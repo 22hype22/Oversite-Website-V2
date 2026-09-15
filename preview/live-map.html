@@ -139,6 +139,7 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -170,6 +171,7 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -274,6 +276,11 @@
   .rail .veh[aria-pressed="true"]{background:rgba(64,64,70,.78)}
   .rail .veh .mini{background:rgba(240,242,245,.035)}
   .vig{background:none}
+  /* the rail floats as its own rounded box, inset from the edges */
+  .rail{top:calc(var(--barh) + var(--gap));left:var(--gap);bottom:var(--gap);border-radius:18px;
+    border:1px solid var(--hair);box-shadow:0 20px 60px rgba(0,0,0,.35);padding:12px}
+  .stage{left:calc(var(--rail) + var(--gap))}
+  @media (max-width:980px){.stage{left:0}}
 </style>
 </head>
 <body>

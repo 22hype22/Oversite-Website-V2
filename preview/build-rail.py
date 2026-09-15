@@ -123,6 +123,13 @@ rail_css = """  /* rail backdrop: map → dark panel → cards */
   .vig{background:none}
 """
 if 'rail backdrop: map' not in s: s=s.replace('</style>',rail_css+'</style>')
+float_css = """  /* the rail floats as its own rounded box, inset from the edges */
+  .rail{top:calc(var(--barh) + var(--gap));left:var(--gap);bottom:var(--gap);border-radius:18px;
+    border:1px solid var(--hair);box-shadow:0 20px 60px rgba(0,0,0,.35);padding:12px}
+  .stage{left:calc(var(--rail) + var(--gap))}
+  @media (max-width:980px){.stage{left:0}}
+"""
+if 'the rail floats as its own rounded box' not in s: s=s.replace('</style>',float_css+'</style>')
 js_add = r"""<script>
 /* ── Unit Availability: real chart over shift data ── */
 (() => {
