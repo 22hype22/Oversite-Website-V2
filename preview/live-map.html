@@ -11,7 +11,7 @@
     --bg:#0B0B0C;
     --glass:rgba(13,13,15,.58);
     --glass2:rgba(20,20,23,.6);
-    --sel:rgba(44,44,48,.80);
+    --sel:rgba(58,58,63,.82);
     --hair:rgba(240,242,245,.08);
     --hair2:rgba(240,242,245,.14);
     --ink:#F0F2F5;
@@ -127,13 +127,16 @@
   .stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .stat{padding:14px 14px 12px;display:flex;align-items:flex-end;justify-content:space-between;gap:8px;min-height:74px}
   .stat .l{display:flex;flex-direction:column;gap:12px;color:var(--dim);font-size:11.5px}
-  .stat .l i{width:8px;height:8px;border-radius:50%;background:var(--green);display:block}
+  .stat .l svg{display:block}
   .stat .n{font-size:26px;font-weight:300;letter-spacing:-.02em;line-height:1}
 
   .eff{padding:14px 14px 10px}
   .card h3{margin:0;font-size:12px;font-weight:400;color:var(--dim);display:flex;align-items:center;justify-content:space-between}
   .card h3 .go{color:var(--faint)}
   .eff .big{font-size:30px;font-weight:300;letter-spacing:-.03em;line-height:1;margin-top:10px}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -152,13 +155,12 @@
   .veh .hd small{font-size:10px;color:var(--faint);display:block;margin-top:1px}
   .veh .hd .go{color:var(--faint);margin-top:2px}
   .veh .pic{position:relative;height:52px;display:flex;align-items:center;justify-content:space-between;gap:6px}
-  .veh .pic>svg{height:44px;width:auto;flex:none;max-width:68%}
+  .veh .pic>svg{height:66px;width:auto;flex:none;max-width:74%;margin-top:-8px}
   .veh .id svg{width:8px;height:8px}
   .veh .id{flex:none;font-size:9.5px;color:var(--dim);padding:2px 6px;border-radius:5px;
     background:rgba(240,242,245,.06);border:1px solid var(--hair);display:flex;align-items:center;gap:4px}
   .veh .meta{display:flex;align-items:center;gap:10px;font-size:10.5px;color:var(--dim)}
-  .veh .meta .on{color:var(--green);display:flex;align-items:center;gap:4px}
-  .veh .meta .on i{width:6px;height:6px;border-radius:50%;background:var(--green);display:block}
+  .veh .meta .on{color:var(--dim)}
   .veh .meta span{display:flex;align-items:center;gap:3px;margin-left:auto}
   .veh .meta span+span{margin-left:0}
   .veh .mini{height:64px;border-radius:8px;background:rgba(240,242,245,.03);border:1px solid var(--hair);overflow:hidden;position:relative}
@@ -166,8 +168,11 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
-  .veh.compact .pic{height:42px}
-  .veh.compact .pic>svg{height:36px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh.compact .pic{height:48px}
+  .veh.compact .pic>svg{height:56px}
 
   /* ───────── stage: everything over the map, right of the rail ───────── */
   .stage{position:fixed;left:var(--rail);right:0;top:var(--barh);bottom:0;z-index:4;pointer-events:none;padding:var(--gap)}
@@ -320,78 +325,70 @@
 </header>
 
 <!-- ─────────── left rail ─────────── -->
-<aside class="rail" aria-label="Fleet overview">
-  <div class="chips" role="group" aria-label="Vehicle types">
-    <button aria-pressed="true"><b>24</b> Bus</button>
-    <button aria-pressed="false"><b>100</b> Taxi</button>
-    <button aria-pressed="false"><b>12</b> Trains</button>
-    <button aria-pressed="false"><b>13</b> Trams</button>
+<aside class="rail" aria-label="Dispatch overview">
+  <div class="chips" role="group" aria-label="Departments">
+    <button aria-pressed="true"><b>18</b> PD</button>
+    <button aria-pressed="false"><b>6</b> FD</button>
+    <button aria-pressed="false"><b>4</b> DOT</button>
+    <button aria-pressed="false"><b>37</b> Civilians</button>
   </div>
 
   <div class="stats">
-    <div class="card stat"><div class="l"><i></i>Online</div><div class="n">12</div></div>
-    <div class="card stat"><div class="l"><svg width="12" height="12" viewBox="0 0 24 24" fill="#E24B4B"><path d="M12 3 2 21h20z"/></svg>Offline</div><div class="n">4</div></div>
+    <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#46D07C"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5" fill="none" stroke="#0B0B0C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Online</div><div class="n">65</div></div>
+    <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#E24B4B"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round"/></svg>Active Calls</div><div class="n">7</div></div>
   </div>
 
   <div class="card eff">
     <h3>Operational Efficiency <span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></h3>
-    <div class="big">78.3<small>%</small></div>
+    <div class="big">78.<span class="d">3</span><small>%</small></div>
     <div class="tgt">Target:</div>
     <div class="plot">
       <svg viewBox="0 0 300 86" preserveAspectRatio="none" aria-hidden="true">
-        <defs><linearGradient id="gEff" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0F2F5" stop-opacity=".18"/><stop offset="1" stop-color="#F0F2F5" stop-opacity="0"/></linearGradient></defs>
-        <g stroke="rgba(240,242,245,.08)" stroke-width="1"><line x1="0" y1="18" x2="252" y2="18" stroke-dasharray="2 3"/><line x1="0" y1="40" x2="252" y2="40"/><line x1="0" y1="62" x2="252" y2="62"/><line x1="0" y1="84" x2="252" y2="84"/></g>
-        <g fill="rgba(240,242,245,.10)">
-          <rect x="4" y="48" width="9" height="36"/><rect x="22" y="40" width="9" height="44"/><rect x="40" y="54" width="9" height="30"/><rect x="58" y="44" width="9" height="40"/><rect x="76" y="36" width="9" height="48"/><rect x="94" y="50" width="9" height="34"/><rect x="112" y="42" width="9" height="42"/><rect x="130" y="34" width="9" height="50"/><rect x="148" y="46" width="9" height="38"/><rect x="166" y="38" width="9" height="46"/><rect x="184" y="30" width="9" height="54"/><rect x="202" y="44" width="9" height="40"/><rect x="220" y="36" width="9" height="48"/><rect x="238" y="40" width="9" height="44"/>
+        <g stroke="rgba(240,242,245,.07)" stroke-width="1"><line x1="0" y1="8" x2="252" y2="8" stroke-dasharray="2 3"/><line x1="0" y1="27" x2="252" y2="27"/><line x1="0" y1="46" x2="252" y2="46"/><line x1="0" y1="65" x2="252" y2="65"/><line x1="0" y1="84" x2="252" y2="84"/></g>
+        <g fill="rgba(240,242,245,.09)">
+          <rect x="2" y="52" width="7" height="32"/><rect x="16" y="46" width="7" height="38"/><rect x="30" y="58" width="7" height="26"/><rect x="44" y="48" width="7" height="36"/><rect x="58" y="40" width="7" height="44"/><rect x="72" y="54" width="7" height="30"/><rect x="86" y="44" width="7" height="40"/><rect x="100" y="36" width="7" height="48"/><rect x="114" y="50" width="7" height="34"/><rect x="128" y="42" width="7" height="42"/><rect x="142" y="30" width="7" height="54"/><rect x="156" y="48" width="7" height="36"/><rect x="170" y="38" width="7" height="46"/><rect x="184" y="44" width="7" height="40"/><rect x="198" y="34" width="7" height="50"/><rect x="212" y="46" width="7" height="38"/><rect x="226" y="40" width="7" height="44"/><rect x="240" y="50" width="7" height="34"/>
         </g>
-        <path d="M0 50 L10 44 L22 52 L34 40 L46 46 L58 34 L70 38 L82 30 L94 44 L106 36 L118 48 L130 30 L142 42 L154 28 L166 34 L178 24 L190 36 L202 30 L214 42 L226 32 L238 40 L252 30 L252 84 L0 84Z" fill="url(#gEff)"/>
-        <path d="M0 50 L10 44 L22 52 L34 40 L46 46 L58 34 L70 38 L82 30 L94 44 L106 36 L118 48 L130 30 L142 42 L154 28 L166 34 L178 24 L190 36 L202 30 L214 42 L226 32 L238 40 L252 30" fill="none" stroke="#F0F2F5" stroke-width="1.4" stroke-linejoin="round"/>
-        <path d="M0 62 L14 58 L28 64 L42 55 L56 60 L70 52" fill="none" stroke="#E9A24C" stroke-width="1.4" stroke-linejoin="round"/>
-        <circle cx="130" cy="30" r="2.6" fill="#F0F2F5"/>
+        <rect x="98" y="8" width="12" height="76" fill="rgba(240,242,245,.10)"/><rect x="194" y="8" width="12" height="76" fill="rgba(240,242,245,.10)"/>
+        <path d="M0 58 L10 52 L22 60 L34 50 L46 55 L58 44 L70 50 L82 40 L94 46 L104 26 L116 50 L128 40 L140 48 L152 36 L164 44 L176 34 L188 42 L200 22 L212 44 L226 38 L240 46 L252 36" fill="none" stroke="#F0F2F5" stroke-width="1.3" stroke-linejoin="round"/>
+        <path d="M0 66 L10 62 L20 68 L30 60 L40 64 L50 58" fill="none" stroke="#E9A24C" stroke-width="1.3" stroke-dasharray="3 2"/>
+        <circle cx="104" cy="26" r="2.4" fill="#F0F2F5"/><circle cx="200" cy="22" r="2.4" fill="#F0F2F5"/>
       </svg>
-      <div class="ax"><span>+80%</span><span>75%</span><span>50%</span><span>25%</span></div>
-      <div class="xs"><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span></div>
+      <div class="ax"><span>+80%</span><span>100%</span><span>75%</span><span>50%</span><span>25%</span></div>
+      <div class="xs"><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span></div>
     </div>
   </div>
 
-  <div class="fleet" role="list" aria-label="Vehicles">
-    <button class="card veh" role="listitem" aria-pressed="true">
-      <div class="hd"><div><b>Bus 6023</b><small>08.03.2026, 02:31:35 AM</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
-      <div class="pic">
-        <svg viewBox="0 0 120 52" fill="none" stroke="#C9CDD3" stroke-width="1"><rect x="4" y="10" width="112" height="30" rx="5"/><rect x="10" y="15" width="14" height="10" rx="1.5"/><rect x="28" y="15" width="14" height="10" rx="1.5"/><rect x="46" y="15" width="14" height="10" rx="1.5"/><rect x="64" y="15" width="14" height="10" rx="1.5"/><rect x="82" y="15" width="14" height="10" rx="1.5"/><rect x="100" y="15" width="11" height="10" rx="1.5"/><line x1="4" y1="31" x2="116" y2="31" opacity=".5"/><circle cx="26" cy="41" r="6"/><circle cx="94" cy="41" r="6"/><circle cx="26" cy="41" r="2"/><circle cx="94" cy="41" r="2"/><path d="M4 22h-2M116 22h2" opacity=".6"/></svg>
-        <span class="id"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12h16M12 4v16"/></svg>45623</span>
-      </div>
-      <div class="meta"><span class="on" style="margin:0"><i></i>Online</span><span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h3l3-6 4 12 3-6h3"/></svg>GPS</span><span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
-      <div class="mini"><svg viewBox="0 0 150 64" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 52 L44 28 L44 12 L70 12" stroke="rgba(240,242,245,.15)" stroke-width="5"/><path d="M14 52 L44 28 L44 12 L70 12" stroke="#F0F2F5" stroke-width="1.5"/><path d="M70 12 L110 12 L136 34" stroke="#F0F2F5" stroke-width="1.5" stroke-dasharray="3 3"/><circle cx="14" cy="52" r="3" fill="#0B0B0C" stroke="#F0F2F5" stroke-width="1.5"/><circle cx="70" cy="12" r="3.5" fill="#F0F2F5"/><circle cx="136" cy="34" r="3" fill="#0B0B0C" stroke="#F0F2F5" stroke-width="1.5"/></svg></div>
-      <div class="tl"><span>06AM</span><span class="bar2" style="--p:42%"></span><span>11PM</span></div>
-    </button>
-
-    <button class="card veh" role="listitem" aria-pressed="false">
-      <div class="hd"><div><b>Bus 4120</b><small>10.03.2026, 11:22:18</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
-      <div class="pic">
-        <svg viewBox="0 0 120 52" fill="none" stroke="#C9CDD3" stroke-width="1"><rect x="4" y="10" width="112" height="30" rx="5"/><rect x="10" y="15" width="14" height="10" rx="1.5"/><rect x="28" y="15" width="14" height="10" rx="1.5"/><rect x="46" y="15" width="14" height="10" rx="1.5"/><rect x="64" y="15" width="14" height="10" rx="1.5"/><rect x="82" y="15" width="14" height="10" rx="1.5"/><rect x="100" y="15" width="11" height="10" rx="1.5"/><line x1="4" y1="31" x2="116" y2="31" opacity=".5"/><circle cx="26" cy="41" r="6"/><circle cx="94" cy="41" r="6"/><circle cx="26" cy="41" r="2"/><circle cx="94" cy="41" r="2"/></svg>
-        <span class="id"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12h16M12 4v16"/></svg>31564</span>
-      </div>
-      <div class="meta"><span class="on" style="margin:0"><i></i>Online</span><span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h3l3-6 4 12 3-6h3"/></svg>GPS</span><span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
-      <div class="mini"><svg viewBox="0 0 150 64" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16 L40 16 L40 44 L92 44" stroke="rgba(240,242,245,.15)" stroke-width="5"/><path d="M12 16 L40 16 L40 44 L92 44" stroke="#F0F2F5" stroke-width="1.5"/><path d="M92 44 L124 44 L138 22" stroke="#F0F2F5" stroke-width="1.5" stroke-dasharray="3 3"/><circle cx="12" cy="16" r="3" fill="#0B0B0C" stroke="#F0F2F5" stroke-width="1.5"/><circle cx="92" cy="44" r="3.5" fill="#F0F2F5"/><circle cx="138" cy="22" r="3" fill="#0B0B0C" stroke="#F0F2F5" stroke-width="1.5"/></svg></div>
-      <div class="tl"><span>05AM</span><span class="bar2" style="--p:64%"></span><span>09PM</span></div>
-    </button>
-
-    <button class="card veh compact" role="listitem" aria-pressed="false">
-      <div class="hd"><div><b>Bus 2209</b><small>10.03.2026, 11:25:40</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
-      <div class="pic">
-        <svg viewBox="0 0 120 52" fill="none" stroke="#C9CDD3" stroke-width="1"><rect x="4" y="10" width="112" height="30" rx="5"/><rect x="10" y="15" width="14" height="10" rx="1.5"/><rect x="28" y="15" width="14" height="10" rx="1.5"/><rect x="46" y="15" width="14" height="10" rx="1.5"/><rect x="64" y="15" width="14" height="10" rx="1.5"/><rect x="82" y="15" width="14" height="10" rx="1.5"/><rect x="100" y="15" width="11" height="10" rx="1.5"/><line x1="4" y1="31" x2="116" y2="31" opacity=".5"/><circle cx="26" cy="41" r="6"/><circle cx="94" cy="41" r="6"/><circle cx="26" cy="41" r="2"/><circle cx="94" cy="41" r="2"/></svg>
-        <span class="id"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12h16M12 4v16"/></svg>34654</span>
-      </div>
-    </button>
-
-    <button class="card veh compact" role="listitem" aria-pressed="false">
-      <div class="hd"><div><b>E-Bus 07</b><small>10.03.2026, 11:25:40</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
-      <div class="pic">
-        <svg viewBox="0 0 120 52" fill="none" stroke="#C9CDD3" stroke-width="1"><rect x="4" y="10" width="112" height="30" rx="8"/><rect x="12" y="15" width="18" height="10" rx="2"/><rect x="34" y="15" width="18" height="10" rx="2"/><rect x="56" y="15" width="18" height="10" rx="2"/><rect x="78" y="15" width="18" height="10" rx="2"/><rect x="100" y="15" width="10" height="10" rx="2"/><line x1="4" y1="31" x2="116" y2="31" opacity=".5"/><circle cx="26" cy="41" r="6"/><circle cx="94" cy="41" r="6"/><circle cx="26" cy="41" r="2"/><circle cx="94" cy="41" r="2"/><path d="M52 7h16" opacity=".6"/></svg>
-        <span class="id"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12h16M12 4v16"/></svg>34664</span>
-      </div>
-    </button>
+  <div class="fleet" role="list" aria-label="Units">
+<button class="card veh" role="listitem" aria-pressed="true">
+  <div class="hd"><div><b>PD 6023</b><small>08.03.2026, 02:31:35 AM</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 68" fill="none" stroke="#C9CDD3" stroke-width=".9" stroke-linejoin="round"><path d="M36.5 -0.7 L106.0 39.4 L83.5 52.4 L14.0 12.3Z" fill="rgba(240,242,245,.10)"/><path d="M36.5 8.7 L106.0 48.9 L106.0 39.4 L36.5 -0.7Z" fill="rgba(240,242,245,.04)"/><path d="M106.0 48.9 L83.5 61.8 L83.5 52.4 L106.0 39.4Z" fill="rgba(240,242,245,.02)"/><path d="M36.5 -0.7 L106.0 39.4 L83.5 52.4 L14.0 12.3Z M36.5 8.7 L106.0 48.9 L106.0 39.4 L36.5 -0.7Z M106.0 48.9 L83.5 61.8 L83.5 52.4 L106.0 39.4Z M36.5 8.7 L106.0 48.9 L83.5 61.8 M106.0 48.9 L106.0 39.4 M36.5 8.7 L36.5 -0.7 M83.5 61.8 L83.5 52.4"/><path d="M54.9 0.5 L85.5 18.2 L67.2 28.8 L36.5 11.1Z" fill="rgba(240,242,245,.10)"/><path d="M54.9 12.3 L85.5 30.0 L85.5 18.2 L54.9 0.5Z" fill="rgba(240,242,245,.04)"/><path d="M85.5 30.0 L67.2 40.6 L67.2 28.8 L85.5 18.2Z" fill="rgba(240,242,245,.02)"/><path d="M54.9 0.5 L85.5 18.2 L67.2 28.8 L36.5 11.1Z M54.9 12.3 L85.5 30.0 L85.5 18.2 L54.9 0.5Z M85.5 30.0 L67.2 40.6 L67.2 28.8 L85.5 18.2Z M54.9 12.3 L85.5 30.0 L67.2 40.6 M85.5 30.0 L85.5 18.2 M54.9 12.3 L54.9 0.5 M67.2 40.6 L67.2 28.8"/><path d="M60.0 1.1 L76.4 10.5 L60.0 19.9 L43.6 10.5Z M60.0 4.6 L76.4 14.0 L76.4 10.5 L60.0 1.1Z M76.4 14.0 L60.0 23.5 L60.0 19.9 L76.4 10.5Z" fill="rgba(226,75,75,.35)" stroke="rgba(240,242,245,.6)"/><ellipse cx="49.8" cy="15.2" rx="5.5" ry="3.5" transform="rotate(30 49.8 15.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="49.8" cy="15.2" rx="2.2" ry="1.4" transform="rotate(30 49.8 15.2)"/><ellipse cx="94.7" cy="41.2" rx="5.5" ry="3.5" transform="rotate(30 94.7 41.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="94.7" cy="41.2" rx="2.2" ry="1.4" transform="rotate(30 94.7 41.2)"/><ellipse cx="70.2" cy="55.3" rx="4.6" ry="2.9" transform="rotate(30 70.2 55.3)" fill="rgba(240,242,245,.06)"/><ellipse cx="70.2" cy="55.3" rx="1.9" ry="1.2" transform="rotate(30 70.2 55.3)"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>45623</span></div>
+  <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
+  <div class="mini"><svg viewBox="0 0 150 64" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 20H150" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M0 44H150" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M30 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M76 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M118 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M50 20V44" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M96 44V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/>
+<path d="M14 54 L40 30 L40 14 L68 14" stroke="rgba(240,242,245,.18)" stroke-width="5"/><path d="M14 54 L40 30 L40 14 L68 14" stroke="#F0F2F5" stroke-width="1.6"/>
+<path d="M68 14 L110 14 L136 36" stroke="#F0F2F5" stroke-width="1.4" stroke-dasharray="3 3" opacity=".7"/>
+<g transform="translate(68 14)"><path d="M0 0 C-4 -5 -6 -8 -6 -11 A6 6 0 1 1 6 -11 C6 -8 4 -5 0 0Z" fill="#F0F2F5"/><circle cy="-11" r="2" fill="#0B0B0C"/></g>
+</svg></div>
+  <div class="tl"><span>06AM</span><span class="bar2" style="--p:42%"></span><span>11PM</span></div>
+</button>
+<button class="card veh" role="listitem" aria-pressed="false">
+  <div class="hd"><div><b>FD 4120</b><small>10.03.2026, 11:22:18</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 68" fill="none" stroke="#C9CDD3" stroke-width=".9" stroke-linejoin="round"><path d="M36.5 -14.9 L77.4 8.7 L54.9 21.7 L14.0 -1.9Z" fill="rgba(240,242,245,.10)"/><path d="M36.5 8.7 L77.4 32.3 L77.4 8.7 L36.5 -14.9Z" fill="rgba(240,242,245,.04)"/><path d="M77.4 32.3 L54.9 45.3 L54.9 21.7 L77.4 8.7Z" fill="rgba(240,242,245,.02)"/><path d="M36.5 -14.9 L77.4 8.7 L54.9 21.7 L14.0 -1.9Z M36.5 8.7 L77.4 32.3 L77.4 8.7 L36.5 -14.9Z M77.4 32.3 L54.9 45.3 L54.9 21.7 L77.4 8.7Z M36.5 8.7 L77.4 32.3 L54.9 45.3 M77.4 32.3 L77.4 8.7 M36.5 8.7 L36.5 -14.9 M54.9 45.3 L54.9 21.7"/><path d="M77.4 15.8 L106.0 32.3 L83.5 45.3 L54.9 28.8Z" fill="rgba(240,242,245,.10)"/><path d="M77.4 32.3 L106.0 48.9 L106.0 32.3 L77.4 15.8Z" fill="rgba(240,242,245,.04)"/><path d="M106.0 48.9 L83.5 61.8 L83.5 45.3 L106.0 32.3Z" fill="rgba(240,242,245,.02)"/><path d="M77.4 15.8 L106.0 32.3 L83.5 45.3 L54.9 28.8Z M77.4 32.3 L106.0 48.9 L106.0 32.3 L77.4 15.8Z M106.0 48.9 L83.5 61.8 L83.5 45.3 L106.0 32.3Z M77.4 32.3 L106.0 48.9 L83.5 61.8 M106.0 48.9 L106.0 32.3 M77.4 32.3 L77.4 15.8 M83.5 61.8 L83.5 45.3"/><path d="M35.5 -9.6 L23.2 -2.5" opacity=".6"/><path d="M41.6 -6.0 L29.3 1.1" opacity=".6"/><path d="M47.7 -2.5 L35.5 4.6" opacity=".6"/><path d="M53.9 1.1 L41.6 8.1" opacity=".6"/><path d="M60.0 4.6 L47.7 11.7" opacity=".6"/><path d="M66.1 8.1 L53.9 15.2" opacity=".6"/><ellipse cx="49.8" cy="15.2" rx="5.5" ry="3.5" transform="rotate(30 49.8 15.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="49.8" cy="15.2" rx="2.2" ry="1.4" transform="rotate(30 49.8 15.2)"/><ellipse cx="94.7" cy="41.2" rx="5.5" ry="3.5" transform="rotate(30 94.7 41.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="94.7" cy="41.2" rx="2.2" ry="1.4" transform="rotate(30 94.7 41.2)"/><ellipse cx="70.2" cy="55.3" rx="4.6" ry="2.9" transform="rotate(30 70.2 55.3)" fill="rgba(240,242,245,.06)"/><ellipse cx="70.2" cy="55.3" rx="1.9" ry="1.2" transform="rotate(30 70.2 55.3)"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>31564</span></div>
+  <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
+  <div class="mini"><svg viewBox="0 0 150 64" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 20H150" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M0 44H150" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M30 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M76 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M118 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M50 20V44" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M96 44V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/>
+<path d="M12 18 L40 18 L40 46 L92 46" stroke="rgba(240,242,245,.18)" stroke-width="5"/><path d="M12 18 L40 18 L40 46 L92 46" stroke="#F0F2F5" stroke-width="1.6"/>
+<path d="M92 46 L124 46 L138 24" stroke="#F0F2F5" stroke-width="1.4" stroke-dasharray="3 3" opacity=".7"/>
+<g transform="translate(92 46)"><path d="M0 0 C-4 -5 -6 -8 -6 -11 A6 6 0 1 1 6 -11 C6 -8 4 -5 0 0Z" fill="#F0F2F5"/><circle cy="-11" r="2" fill="#0B0B0C"/></g>
+</svg></div>
+  <div class="tl"><span>05AM</span><span class="bar2" style="--p:64%"></span><span>09PM</span></div>
+</button>
+<button class="card veh compact" role="listitem" aria-pressed="false">
+  <div class="hd"><div><b>DOT 2209</b><small>10.03.2026, 11:25:40</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 68" fill="none" stroke="#C9CDD3" stroke-width=".9" stroke-linejoin="round"><path d="M36.5 -14.9 L77.4 8.7 L54.9 21.7 L14.0 -1.9Z" fill="rgba(240,242,245,.10)"/><path d="M36.5 8.7 L77.4 32.3 L77.4 8.7 L36.5 -14.9Z" fill="rgba(240,242,245,.04)"/><path d="M77.4 32.3 L54.9 45.3 L54.9 21.7 L77.4 8.7Z" fill="rgba(240,242,245,.02)"/><path d="M36.5 -14.9 L77.4 8.7 L54.9 21.7 L14.0 -1.9Z M36.5 8.7 L77.4 32.3 L77.4 8.7 L36.5 -14.9Z M77.4 32.3 L54.9 45.3 L54.9 21.7 L77.4 8.7Z M36.5 8.7 L77.4 32.3 L54.9 45.3 M77.4 32.3 L77.4 8.7 M36.5 8.7 L36.5 -14.9 M54.9 45.3 L54.9 21.7"/><path d="M77.4 15.8 L106.0 32.3 L83.5 45.3 L54.9 28.8Z" fill="rgba(240,242,245,.10)"/><path d="M77.4 32.3 L106.0 48.9 L106.0 32.3 L77.4 15.8Z" fill="rgba(240,242,245,.04)"/><path d="M106.0 48.9 L83.5 61.8 L83.5 45.3 L106.0 32.3Z" fill="rgba(240,242,245,.02)"/><path d="M77.4 15.8 L106.0 32.3 L83.5 45.3 L54.9 28.8Z M77.4 32.3 L106.0 48.9 L106.0 32.3 L77.4 15.8Z M106.0 48.9 L83.5 61.8 L83.5 45.3 L106.0 32.3Z M77.4 32.3 L106.0 48.9 L83.5 61.8 M106.0 48.9 L106.0 32.3 M77.4 32.3 L77.4 15.8 M83.5 61.8 L83.5 45.3"/><path d="M35.5 -9.6 L23.2 -2.5" opacity=".6"/><path d="M41.6 -6.0 L29.3 1.1" opacity=".6"/><path d="M47.7 -2.5 L35.5 4.6" opacity=".6"/><path d="M53.9 1.1 L41.6 8.1" opacity=".6"/><path d="M60.0 4.6 L47.7 11.7" opacity=".6"/><path d="M66.1 8.1 L53.9 15.2" opacity=".6"/><ellipse cx="49.8" cy="15.2" rx="5.5" ry="3.5" transform="rotate(30 49.8 15.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="49.8" cy="15.2" rx="2.2" ry="1.4" transform="rotate(30 49.8 15.2)"/><ellipse cx="94.7" cy="41.2" rx="5.5" ry="3.5" transform="rotate(30 94.7 41.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="94.7" cy="41.2" rx="2.2" ry="1.4" transform="rotate(30 94.7 41.2)"/><ellipse cx="70.2" cy="55.3" rx="4.6" ry="2.9" transform="rotate(30 70.2 55.3)" fill="rgba(240,242,245,.06)"/><ellipse cx="70.2" cy="55.3" rx="1.9" ry="1.2" transform="rotate(30 70.2 55.3)"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>34654</span></div>
+</button>
+<button class="card veh compact" role="listitem" aria-pressed="false">
+  <div class="hd"><div><b>PD 1207</b><small>10.03.2026, 11:25:40</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 68" fill="none" stroke="#C9CDD3" stroke-width=".9" stroke-linejoin="round"><path d="M36.5 -0.7 L106.0 39.4 L83.5 52.4 L14.0 12.3Z" fill="rgba(240,242,245,.10)"/><path d="M36.5 8.7 L106.0 48.9 L106.0 39.4 L36.5 -0.7Z" fill="rgba(240,242,245,.04)"/><path d="M106.0 48.9 L83.5 61.8 L83.5 52.4 L106.0 39.4Z" fill="rgba(240,242,245,.02)"/><path d="M36.5 -0.7 L106.0 39.4 L83.5 52.4 L14.0 12.3Z M36.5 8.7 L106.0 48.9 L106.0 39.4 L36.5 -0.7Z M106.0 48.9 L83.5 61.8 L83.5 52.4 L106.0 39.4Z M36.5 8.7 L106.0 48.9 L83.5 61.8 M106.0 48.9 L106.0 39.4 M36.5 8.7 L36.5 -0.7 M83.5 61.8 L83.5 52.4"/><path d="M54.9 0.5 L85.5 18.2 L67.2 28.8 L36.5 11.1Z" fill="rgba(240,242,245,.10)"/><path d="M54.9 12.3 L85.5 30.0 L85.5 18.2 L54.9 0.5Z" fill="rgba(240,242,245,.04)"/><path d="M85.5 30.0 L67.2 40.6 L67.2 28.8 L85.5 18.2Z" fill="rgba(240,242,245,.02)"/><path d="M54.9 0.5 L85.5 18.2 L67.2 28.8 L36.5 11.1Z M54.9 12.3 L85.5 30.0 L85.5 18.2 L54.9 0.5Z M85.5 30.0 L67.2 40.6 L67.2 28.8 L85.5 18.2Z M54.9 12.3 L85.5 30.0 L67.2 40.6 M85.5 30.0 L85.5 18.2 M54.9 12.3 L54.9 0.5 M67.2 40.6 L67.2 28.8"/><path d="M60.0 1.1 L76.4 10.5 L60.0 19.9 L43.6 10.5Z M60.0 4.6 L76.4 14.0 L76.4 10.5 L60.0 1.1Z M76.4 14.0 L60.0 23.5 L60.0 19.9 L76.4 10.5Z" fill="rgba(226,75,75,.35)" stroke="rgba(240,242,245,.6)"/><ellipse cx="49.8" cy="15.2" rx="5.5" ry="3.5" transform="rotate(30 49.8 15.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="49.8" cy="15.2" rx="2.2" ry="1.4" transform="rotate(30 49.8 15.2)"/><ellipse cx="94.7" cy="41.2" rx="5.5" ry="3.5" transform="rotate(30 94.7 41.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="94.7" cy="41.2" rx="2.2" ry="1.4" transform="rotate(30 94.7 41.2)"/><ellipse cx="70.2" cy="55.3" rx="4.6" ry="2.9" transform="rotate(30 70.2 55.3)" fill="rgba(240,242,245,.06)"/><ellipse cx="70.2" cy="55.3" rx="1.9" ry="1.2" transform="rotate(30 70.2 55.3)"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>34664</span></div>
+</button>
   </div>
 </aside>
 
