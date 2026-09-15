@@ -239,6 +239,9 @@
     .search{display:none}
   }
   @media (prefers-reduced-motion:reduce){.focus::before{animation:none;opacity:.4}}
+  .sel .seg{display:flex;padding:3px;gap:2px}
+  .sel .seg a{display:block;padding:4px 9px;border-radius:6px;font-size:11px;color:var(--dim);text-decoration:none}
+  .sel .seg a[aria-current="page"]{background:#F4F6F8;color:#0B0B0C;font-weight:500}
 </style>
 </head>
 <body>
@@ -398,6 +401,7 @@
   <div class="sel">
     <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="13" rx="3"/><path d="M8 20h8M4 12h16"/></svg>Bus 6023<span class="chev"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></span></button>
     <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg>Map 2<span class="chev"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></span></button>
+    <span class="card seg" role="group" aria-label="View"><a href="live-map.html" aria-current="page">2D</a><a href="live-map-3d.html">3D</a></span>
   </div>
 
   <div class="mapctl" role="group" aria-label="Map controls">
