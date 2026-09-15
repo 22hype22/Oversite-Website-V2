@@ -58,6 +58,7 @@ const apply = () => {
   for (const b of picker.querySelectorAll('[data-dim]')) b.setAttribute('aria-checked', b.dataset.dim === state.dim && b.dataset.theme === state.theme);
   dispatchEvent(new CustomEvent('maptheme', { detail: { ...state } }));
 };
+addEventListener('viewchange', e => { window.map3d.setActive(e.detail === 'dispatch' && state.dim === '3d'); });
 picker.addEventListener('click', e => { const b = e.target.closest('[data-dim]'); if (!b) return; state.dim = b.dataset.dim; state.theme = b.dataset.theme; apply(); });
 document.getElementById('zin').onclick = () => (state.dim === '3d' ? window.map3d : window.map2d).zoomIn();
 document.getElementById('zout').onclick = () => (state.dim === '3d' ? window.map3d : window.map2d).zoomOut();
