@@ -141,6 +141,8 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -172,6 +174,8 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -368,11 +372,11 @@
 
 <!-- ─────────── left rail ─────────── -->
 <aside class="rail" aria-label="Dispatch overview">
-  <div class="chips" role="group" aria-label="Departments">
-    <button aria-pressed="true"><b>18</b> PD</button>
-    <button aria-pressed="false"><b>6</b> FD</button>
-    <button aria-pressed="false"><b>4</b> DOT</button>
-    <button aria-pressed="false"><b>37</b> Civilians</button>
+  <div class="chips" role="group" aria-label="Filter units by department">
+    <button aria-pressed="true" data-filter="all"><b data-count="all">0</b> All Units</button>
+    <button aria-pressed="false" data-filter="pd"><b data-count="pd">0</b> PD</button>
+    <button aria-pressed="false" data-filter="fd"><b data-count="fd">0</b> FD</button>
+    <button aria-pressed="false" data-filter="dot"><b data-count="dot">0</b> DOT</button>
   </div>
 
   <div class="stats">
@@ -507,6 +511,57 @@
   </div>
 </main>
 
+<script id="units" type="application/json">[{"id":"pd-6023","dept":"pd","name":"PD 6023","crew":["22hype22","sppoklex","relukt"],"kind":"cruiser","uid":"45623","route":"B","t":0.42,"dir":1,"speed":0.011,"since":6137},{"id":"fd-4120","dept":"fd","name":"FD 4120","crew":["marlowe_j","ttx_ash"],"kind":"engine","uid":"31564","route":"A","t":0.28,"dir":1,"speed":0.008,"since":2711},{"id":"dot-2209","dept":"dot","name":"DOT 2209","crew":["cone_daddy"],"kind":"dot","uid":"34654","route":"A","t":0.88,"dir":-1,"speed":0.007,"since":10422},{"id":"pd-1207","dept":"pd","name":"PD 1207","crew":["nova.k","bryce_v"],"kind":"cruiser","uid":"34664","route":"B","t":0.61,"dir":-1,"speed":0.01,"since":1503},{"id":"pd-3310","dept":"pd","name":"PD 3310","crew":["ghostrider44"],"kind":"cruiser","uid":"38812","route":"A","t":0.12,"dir":1,"speed":0.012,"since":4290},{"id":"fd-2201","dept":"fd","name":"FD 2201","crew":["ember_lux","dan.holt","mk_ruiz"],"kind":"engine","uid":"29907","route":"B","t":0.05,"dir":1,"speed":0.007,"since":8004},{"id":"dot-1180","dept":"dot","name":"DOT 1180","crew":["plow_king","ash_dot"],"kind":"dot","uid":"36012","route":"B","t":0.85,"dir":-1,"speed":0.006,"since":13355},{"id":"pd-4501","dept":"pd","name":"PD 4501","crew":["kzz_mike"],"kind":"cruiser","uid":"41155","route":"A","t":0.66,"dir":-1,"speed":0.011,"since":622}]</script>
+<script>
+/* ── shared unit simulation: positions for cards, 2D pins and the 3D scene ── */
+(() => {
+  const ROUTES = { A: [[1332,275],[1340,520],[1350,760],[1350,1000],[1352,1452],[300,1452]],
+                   B: [[188,792],[660,792],[660,988],[1180,988],[1240,1040],[1240,1330],[1350,1330]] };
+  const units = JSON.parse(document.getElementById('units').textContent);
+  const seg = {}; for (const k in ROUTES) { const r = ROUTES[k], L = [0]; for (let i = 1; i < r.length; i++) L.push(L[i-1] + Math.hypot(r[i][0]-r[i-1][0], r[i][1]-r[i-1][1])); seg[k] = L; }
+  const at = (k, t) => { const r = ROUTES[k], L = seg[k], d = t * L[L.length-1]; let i = 1; while (i < L.length-1 && L[i] < d) i++;
+    const f = (d - L[i-1]) / (L[i] - L[i-1] || 1), a = r[i-1], b = r[i];
+    return { x: a[0] + (b[0]-a[0]) * f, y: a[1] + (b[1]-a[1]) * f, heading: Math.atan2(b[1]-a[1], b[0]-a[0]) }; };
+  const now0 = Date.now();
+  for (const u of units) { u.startedAt = now0 - u.since * 1000; Object.assign(u, at(u.route, u.t)); }
+  window.UNITS = units;
+
+  // department chips: counts from the unit list, click to filter the cards
+  const counts = { all: units.length, pd: 0, fd: 0, dot: 0 }; for (const u of units) counts[u.dept]++;
+  for (const el of document.querySelectorAll('[data-count]')) el.textContent = counts[el.dataset.count] ?? 0;
+  const chips = [...document.querySelectorAll('.chips button[data-filter]')];
+  chips.forEach(c => c.addEventListener('click', () => {
+    chips.forEach(x => x.setAttribute('aria-pressed', x === c));
+    const f = c.dataset.filter;
+    for (const card of document.querySelectorAll('.veh[data-unit]')) card.hidden = f !== 'all' && !card.classList.contains('dept-' + f);
+  }));
+
+  const MAP = document.getElementById('mapsrc')?.getAttribute('href') || document.querySelector('.view img')?.getAttribute('src');
+  const minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
+  const timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
+  const bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: units.find(x => x.id === el.dataset.unit) }));
+  const VIEW = 300;                                   // world units visible across a mini map
+  if (MAP) for (const m of minis) m.el.style.backgroundImage = `url("${MAP}")`;
+  let w = 0, h = 0; const measure = () => { const r = minis[0]?.el.getBoundingClientRect(); if (r) { w = r.width; h = r.height; } };
+  measure(); addEventListener('resize', measure);
+
+  let last = performance.now(), tick = 0;
+  const loop = (ts) => {
+    const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
+    for (const u of units) { u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
+      const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
+    if (w) { const sc = w / VIEW; const size = 2000 * sc;
+      for (const { el, u } of minis) { el.style.backgroundSize = `${size}px ${size}px`; el.style.backgroundPosition = `${w/2 - u.x*sc}px ${h/2 - u.y*sc}px`;
+        el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }
+    if (++tick % 20 === 0) { const now = Date.now();
+      for (const { el, u } of timers) { const s = Math.floor((now - u.startedAt) / 1000);
+        el.textContent = `${Math.floor(s/3600)}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+      for (const { el, u } of bars) if (el) el.style.setProperty('--p', Math.min(100, (now - u.startedAt) / 36e5 / 8 * 100).toFixed(1) + '%'); }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+})();
+</script>
 <script>
 /* ── Unit Availability: real chart over shift data ── */
 (() => {
@@ -570,47 +625,6 @@
   // live feed: the current half-hour keeps moving as units take and clear calls
   setInterval(() => { const d = data[data.length - 1]; d.avail = Math.max(0, Math.min(d.onduty, d.avail + (rnd() < 0.5 ? -1 : 1))); render(); }, 4000);
   render();
-})();
-</script>
-<script id="units" type="application/json">[{"id":"pd-6023","dept":"pd","name":"PD 6023","crew":["22hype22","sppoklex","relukt"],"kind":"cruiser","uid":"45623","route":"B","t":0.42,"dir":1,"speed":0.011,"since":6137},{"id":"fd-4120","dept":"fd","name":"FD 4120","crew":["marlowe_j","ttx_ash"],"kind":"engine","uid":"31564","route":"A","t":0.28,"dir":1,"speed":0.008,"since":2711},{"id":"dot-2209","dept":"dot","name":"DOT 2209","crew":["cone_daddy"],"kind":"dot","uid":"34654","route":"A","t":0.88,"dir":-1,"speed":0.007,"since":10422},{"id":"pd-1207","dept":"pd","name":"PD 1207","crew":["nova.k","bryce_v"],"kind":"cruiser","uid":"34664","route":"B","t":0.61,"dir":-1,"speed":0.01,"since":1503},{"id":"pd-3310","dept":"pd","name":"PD 3310","crew":["ghostrider44"],"kind":"cruiser","uid":"38812","route":"A","t":0.12,"dir":1,"speed":0.012,"since":4290},{"id":"fd-2201","dept":"fd","name":"FD 2201","crew":["ember_lux","dan.holt","mk_ruiz"],"kind":"engine","uid":"29907","route":"B","t":0.05,"dir":1,"speed":0.007,"since":8004},{"id":"dot-1180","dept":"dot","name":"DOT 1180","crew":["plow_king","ash_dot"],"kind":"dot","uid":"36012","route":"B","t":0.85,"dir":-1,"speed":0.006,"since":13355},{"id":"pd-4501","dept":"pd","name":"PD 4501","crew":["kzz_mike"],"kind":"cruiser","uid":"41155","route":"A","t":0.66,"dir":-1,"speed":0.011,"since":622}]</script>
-<script>
-/* ── shared unit simulation: positions for cards, 2D pins and the 3D scene ── */
-(() => {
-  const ROUTES = { A: [[1332,275],[1340,520],[1350,760],[1350,1000],[1352,1452],[300,1452]],
-                   B: [[188,792],[660,792],[660,988],[1180,988],[1240,1040],[1240,1330],[1350,1330]] };
-  const units = JSON.parse(document.getElementById('units').textContent);
-  const seg = {}; for (const k in ROUTES) { const r = ROUTES[k], L = [0]; for (let i = 1; i < r.length; i++) L.push(L[i-1] + Math.hypot(r[i][0]-r[i-1][0], r[i][1]-r[i-1][1])); seg[k] = L; }
-  const at = (k, t) => { const r = ROUTES[k], L = seg[k], d = t * L[L.length-1]; let i = 1; while (i < L.length-1 && L[i] < d) i++;
-    const f = (d - L[i-1]) / (L[i] - L[i-1] || 1), a = r[i-1], b = r[i];
-    return { x: a[0] + (b[0]-a[0]) * f, y: a[1] + (b[1]-a[1]) * f, heading: Math.atan2(b[1]-a[1], b[0]-a[0]) }; };
-  const now0 = Date.now();
-  for (const u of units) { u.startedAt = now0 - u.since * 1000; Object.assign(u, at(u.route, u.t)); }
-  window.UNITS = units;
-
-  const MAP = document.getElementById('mapsrc')?.getAttribute('href') || document.querySelector('.view img')?.getAttribute('src');
-  const minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
-  const timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
-  const bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: units.find(x => x.id === el.dataset.unit) }));
-  const VIEW = 300;                                   // world units visible across a mini map
-  if (MAP) for (const m of minis) m.el.style.backgroundImage = `url("${MAP}")`;
-  let w = 0, h = 0; const measure = () => { const r = minis[0]?.el.getBoundingClientRect(); if (r) { w = r.width; h = r.height; } };
-  measure(); addEventListener('resize', measure);
-
-  let last = performance.now(), tick = 0;
-  const loop = (ts) => {
-    const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
-    for (const u of units) { u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
-      const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
-    if (w) { const sc = w / VIEW; const size = 2000 * sc;
-      for (const { el, u } of minis) { el.style.backgroundSize = `${size}px ${size}px`; el.style.backgroundPosition = `${w/2 - u.x*sc}px ${h/2 - u.y*sc}px`;
-        el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }
-    if (++tick % 20 === 0) { const now = Date.now();
-      for (const { el, u } of timers) { const s = Math.floor((now - u.startedAt) / 1000);
-        el.textContent = `${Math.floor(s/3600)}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
-      for (const { el, u } of bars) if (el) el.style.setProperty('--p', Math.min(100, (now - u.startedAt) / 36e5 / 8 * 100).toFixed(1) + '%'); }
-    requestAnimationFrame(loop);
-  };
-  requestAnimationFrame(loop);
 })();
 </script>
 <script>
@@ -691,9 +705,6 @@
   // ── tabs / toggles (visual only) ──
   document.querySelectorAll('.menu button').forEach(b => b.onclick = () => {
     document.querySelectorAll('.menu button').forEach(x => x.setAttribute('aria-selected', x === b));
-  });
-  document.querySelectorAll('.chips button').forEach(b => b.onclick = () => {
-    document.querySelectorAll('.chips button').forEach(x => x.setAttribute('aria-pressed', x === b));
   });
   document.querySelectorAll('.veh').forEach(b => b.onclick = () => {
     document.querySelectorAll('.veh').forEach(x => x.setAttribute('aria-pressed', x === b));

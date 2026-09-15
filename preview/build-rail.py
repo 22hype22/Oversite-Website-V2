@@ -52,11 +52,11 @@ def card(u, sel=False):
   <div class="mini live" data-unit="{u['id']}" aria-label="Live position of {u['name']}"><span class="ring"></span><span class="pin"></span></div>
   <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="{u['id']}">0:00:00</span></div>
 </button>"""
-chips='''  <div class="chips" role="group" aria-label="Departments">
-    <button aria-pressed="true"><b>18</b> PD</button>
-    <button aria-pressed="false"><b>6</b> FD</button>
-    <button aria-pressed="false"><b>4</b> DOT</button>
-    <button aria-pressed="false"><b>37</b> Civilians</button>
+chips='''  <div class="chips" role="group" aria-label="Filter units by department">
+    <button aria-pressed="true" data-filter="all"><b data-count="all">0</b> All Units</button>
+    <button aria-pressed="false" data-filter="pd"><b data-count="pd">0</b> PD</button>
+    <button aria-pressed="false" data-filter="fd"><b data-count="fd">0</b> FD</button>
+    <button aria-pressed="false" data-filter="dot"><b data-count="dot">0</b> DOT</button>
   </div>'''
 stats='''  <div class="stats">
     <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#46D07C"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5" fill="none" stroke="#0B0B0C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Online</div><div class="n">65</div></div>
@@ -163,6 +163,16 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   for (const u of units) { u.startedAt = now0 - u.since * 1000; Object.assign(u, at(u.route, u.t)); }
   window.UNITS = units;
 
+  // department chips: counts from the unit list, click to filter the cards
+  const counts = { all: units.length, pd: 0, fd: 0, dot: 0 }; for (const u of units) counts[u.dept]++;
+  for (const el of document.querySelectorAll('[data-count]')) el.textContent = counts[el.dataset.count] ?? 0;
+  const chips = [...document.querySelectorAll('.chips button[data-filter]')];
+  chips.forEach(c => c.addEventListener('click', () => {
+    chips.forEach(x => x.setAttribute('aria-pressed', x === c));
+    const f = c.dataset.filter;
+    for (const card of document.querySelectorAll('.veh[data-unit]')) card.hidden = f !== 'all' && !card.classList.contains('dept-' + f);
+  }));
+
   const MAP = document.getElementById('mapsrc')?.getAttribute('href') || document.querySelector('.view img')?.getAttribute('src');
   const minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
   const timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
@@ -256,8 +266,10 @@ js_add = r"""<script>
 })();
 </script>
 """
-if "shared unit simulation" not in s: s=s.replace('<script>\n(() => {', units_js+'<script>\n(() => {',1)
-if "Unit Availability: real chart" not in s: s=s.replace('<script>\n(() => {', js_add+'<script>\n(() => {',1)
+import re
+s=re.sub(r'<script id="units" type="application/json">.*?shared unit simulation.*?</script>\n', '', s, flags=re.S)
+s=re.sub(r'<script>\n/\* ── Unit Availability: real chart.*?</script>\n', '', s, flags=re.S)
+s=s.replace('<script>\n(() => {', units_js+js_add+'<script>\n(() => {',1)
 open(p,'w').write(s)
 b64=base64.b64encode(open('preview/liberty-county-dark.jpg','rb').read()).decode()
 sa=s.replace('src="liberty-county-dark.jpg"','src="data:image/jpeg;base64,'+b64+'"').replace('href="live-map.html"','href="live-map-standalone.html"').replace('href="live-map-3d.html"','href="live-map-3d-standalone.html"')
