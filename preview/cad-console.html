@@ -2,15 +2,15 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@300;400;500&display=swap">
 <style>
   :root{
-    --ground:#0A0B0C;
-    --panel:#0E0F11;
-    --raised:#17181B;
-    --line:rgba(235,240,245,.07);
-    --line2:rgba(235,240,245,.13);
-    --ink:#EDF1F5;
-    --dim:#8D949C;
-    --faint:#5A6069;
-    --amber:#E89A3C;
+    --bg:#0A0A0B;
+    --panel:#0D0D0F;
+    --raised:#171719;
+    --line:rgba(236,239,243,.07);
+    --line2:rgba(236,239,243,.13);
+    --ink:#ECEFF3;
+    --dim:#8A8F96;
+    --faint:#585C63;
+    --amber:#E8A04A;
     --red:#E04A4A;
     --green:#4ADE80;
     --ui:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -19,249 +19,208 @@
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
-    margin:0;background:var(--ground);color:var(--ink);
-    font-family:var(--ui);font-size:12.5px;line-height:1.4;
-    -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;
-    overflow:hidden;
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--ui);font-size:12px;line-height:1.4;
+    -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;overflow:hidden;
   }
-  @media (max-width:1140px){body{overflow:auto}}
+  @media (max-width:1100px){body{overflow:auto}}
   button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   :focus-visible{outline:1px solid var(--amber);outline-offset:2px}
   .mono{font-family:var(--mono)}
-  .micro{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
 
   .app{
     height:100%;display:grid;
-    grid-template-columns:288px minmax(0,1fr) 286px;
-    grid-template-rows:auto minmax(0,1fr);
+    grid-template-columns:256px minmax(0,1fr);
+    grid-template-rows:48px minmax(0,1fr) auto;
   }
 
-  /* ─────────── top bar ─────────── */
-  .top{
-    grid-column:1/-1;display:flex;align-items:center;gap:20px;
-    padding:0 16px;height:52px;background:var(--panel);
-    border-bottom:1px solid var(--line);
-  }
-  .brand{display:flex;align-items:center;gap:8px;flex:none}
-  .brand b{font-weight:600;font-size:13px;letter-spacing:-.01em}
-  .nav{display:flex;align-items:center;gap:20px;overflow-x:auto;scrollbar-width:none}
+  /* ══ top ══ */
+  .top{grid-column:1/-1;display:flex;align-items:center;gap:26px;padding:0 16px;background:var(--panel)}
+  .logo{display:flex;align-items:center;flex:none}
+  .nav{display:flex;align-items:center;gap:24px;overflow-x:auto;scrollbar-width:none}
   .nav::-webkit-scrollbar{display:none}
-  .nav button{
-    font-size:12.5px;color:var(--dim);white-space:nowrap;padding:5px 0;
-    transition:color .18s cubic-bezier(.32,.72,0,1);
-  }
+  .nav button{font-size:12px;color:var(--dim);white-space:nowrap;transition:color .18s cubic-bezier(.32,.72,0,1)}
   .nav button:hover{color:var(--ink)}
-  .nav button[aria-selected="true"]{
-    background:var(--ink);color:#0A0B0C;font-weight:500;
-    border-radius:999px;padding:5px 15px;
+  .nav button[aria-selected="true"]{background:var(--ink);color:#0A0A0B;font-weight:500;border-radius:999px;padding:6px 16px}
+
+  /* ══ left rail ══ */
+  .rail{grid-row:2/4;grid-column:1;background:var(--panel);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+  .rail::-webkit-scrollbar{width:5px}
+  .rail::-webkit-scrollbar-thumb{background:rgba(236,239,243,.1)}
+
+  .tabs{display:flex;gap:3px;padding:10px 10px 9px}
+  .tabs button{
+    padding:5px 10px;border-radius:999px;font-size:11px;color:var(--dim);white-space:nowrap;
+    transition:background .18s cubic-bezier(.32,.72,0,1),color .18s cubic-bezier(.32,.72,0,1);
   }
+  .tabs button .n{font-family:var(--mono);color:var(--ink)}
+  .tabs button:hover{color:var(--ink)}
+  .tabs button[aria-pressed="true"]{background:var(--raised);color:var(--ink)}
 
-  /* ─────────── rails ─────────── */
-  .rail{background:var(--panel);display:flex;flex-direction:column;min-height:0;overflow-y:auto}
-  .rail.l{border-right:1px solid var(--line)}
-  .rail.r{border-left:1px solid var(--line)}
-  .rail::-webkit-scrollbar{width:6px}
-  .rail::-webkit-scrollbar-thumb{background:rgba(235,240,245,.1)}
-  .rail::-webkit-scrollbar-track{background:transparent}
-
-  .pad{padding:12px 13px}
-  .bb{border-bottom:1px solid var(--line)}
-
-  /* dept pill tabs */
-  .depts{display:flex;gap:4px;flex-wrap:wrap}
-  .depts button{
-    display:flex;align-items:baseline;gap:5px;padding:5px 11px;border-radius:999px;
-    font-size:11.5px;color:var(--dim);border:1px solid transparent;
-    transition:color .18s cubic-bezier(.32,.72,0,1),background .18s cubic-bezier(.32,.72,0,1);
-  }
-  .depts button:hover{color:var(--ink)}
-  .depts button .n{font-family:var(--mono);font-size:11.5px;color:var(--ink)}
-  .depts button[aria-pressed="true"]{background:var(--raised);color:var(--ink);border-color:var(--line2)}
-
-  /* online / offline */
-  .duo{display:grid;grid-template-columns:1fr 1fr}
-  .duo>div{padding:13px}
-  .duo>div+div{border-left:1px solid var(--line)}
-  .duo .hd{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);margin-bottom:9px}
-  .duo .num{font-family:var(--mono);font-size:30px;font-weight:300;letter-spacing:-.03em;line-height:1}
-  .chk{width:11px;height:11px;border-radius:50%;background:var(--green);position:relative;flex:none}
+  .onoff{display:grid;grid-template-columns:1fr 1fr;padding:6px 12px 14px;gap:10px}
+  .onoff>div{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .onoff .lab{display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--dim)}
+  .onoff .num{font-family:var(--mono);font-size:27px;font-weight:300;letter-spacing:-.03em;line-height:1}
+  .chk{width:11px;height:11px;border-radius:50%;background:var(--green);position:relative}
   .chk::after{content:"";position:absolute;left:3px;top:3.4px;width:3.6px;height:1.8px;
-    border-left:1.6px solid #0A0B0C;border-bottom:1.6px solid #0A0B0C;transform:rotate(-45deg)}
-  .tri{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
-    border-bottom:9px solid var(--red);flex:none}
+    border-left:1.6px solid #0A0A0B;border-bottom:1.6px solid #0A0A0B;transform:rotate(-45deg)}
+  .tri{width:0;height:0;border-left:5.5px solid transparent;border-right:5.5px solid transparent;border-bottom:9.5px solid var(--red)}
 
-  /* efficiency */
-  .eff .big{font-family:var(--mono);font-size:36px;font-weight:300;letter-spacing:-.035em;line-height:1}
-  .eff .big span{font-size:15px;color:var(--dim)}
-  .chartwrap{display:grid;grid-template-columns:minmax(0,1fr) 30px;gap:6px;margin-top:12px}
-  .chartwrap svg{display:block;width:100%;height:auto}
-  .yax{display:flex;flex-direction:column;justify-content:space-between;padding:1px 0}
-  .yax span{font-family:var(--mono);font-size:8.5px;color:var(--faint);text-align:right}
-  .xax{display:flex;justify-content:space-between;margin-top:6px;padding-right:36px}
-  .xax span{font-family:var(--mono);font-size:8.5px;color:var(--faint)}
+  .eff{padding:12px 12px 13px;border-top:1px solid var(--line)}
+  .eff .t{font-size:11.5px;color:var(--dim)}
+  .eff .big{font-family:var(--mono);font-size:33px;font-weight:300;letter-spacing:-.035em;line-height:1;margin-top:9px}
+  .eff .big span{font-size:14px;color:var(--dim)}
+  .eff .tg{font-size:10px;color:var(--faint);margin-top:4px}
+  .cw{display:grid;grid-template-columns:minmax(0,1fr) 28px;gap:5px;margin-top:11px}
+  .cw svg{display:block;width:100%;height:auto}
+  .yx{display:flex;flex-direction:column;justify-content:space-between}
+  .yx span{font-family:var(--mono);font-size:8px;color:var(--faint);text-align:right}
+  .xx{display:flex;justify-content:space-between;margin-top:5px;padding-right:33px}
+  .xx span{font-family:var(--mono);font-size:8px;color:var(--faint)}
 
-  /* unit cards */
-  .cards{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
-  .card{background:var(--panel);padding:10px;text-align:left;transition:background .18s cubic-bezier(.32,.72,0,1)}
-  .card:hover{background:#131416}
-  .card[aria-current="true"]{background:var(--raised)}
-  .card .ch{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
-  .card .nm{font-size:12px;font-weight:500;letter-spacing:-.005em}
-  .card .ts{font-family:var(--mono);font-size:8px;color:var(--faint);margin-top:2px}
-  .art{margin:10px 0 9px}
-  .art svg{display:block;width:100%;height:auto}
-  .srow{display:flex;align-items:center;gap:7px;font-size:9.5px;color:var(--dim)}
-  .srow .st{display:flex;align-items:center;gap:4px}
-  .srow .sep{width:1px;height:8px;background:var(--line2)}
-  .trace{margin-top:9px}
-  .trace svg{display:block;width:100%;height:auto}
-  .tax{display:flex;justify-content:space-between;margin-top:3px}
-  .tax span{font-family:var(--mono);font-size:7.5px;color:var(--faint)}
+  .fleet{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-top:1px solid var(--line)}
+  .fc{background:var(--panel);padding:9px;text-align:left;transition:background .18s cubic-bezier(.32,.72,0,1)}
+  .fc:hover{background:#111113}
+  .fc[aria-current="true"]{background:var(--raised)}
+  .fc .h{display:flex;align-items:flex-start;justify-content:space-between;gap:5px}
+  .fc .nm{font-size:11.5px;font-weight:500}
+  .fc .ts{font-family:var(--mono);font-size:7.5px;color:var(--faint);margin-top:2px}
+  .fc .art{margin:9px 0 8px}
+  .fc .art svg{display:block;width:100%;height:auto}
+  .fc .st{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--dim)}
+  .fc .st .sep{width:1px;height:8px;background:var(--line2)}
+  .fc .mini{margin-top:8px;background:#0A0A0B;border-radius:2px;padding:3px}
+  .fc .mini svg{display:block;width:100%;height:auto}
+  .fc .ax{display:flex;justify-content:space-between;margin-top:4px}
+  .fc .ax span{font-family:var(--mono);font-size:7px;color:var(--faint)}
   .arw{color:var(--faint);flex:none;transition:transform .2s cubic-bezier(.32,.72,0,1),color .2s}
-  .card:hover .arw{color:var(--ink);transform:translate(1px,-1px)}
+  .fc:hover .arw{color:var(--ink);transform:translate(1px,-1px)}
 
-  /* ─────────── map ─────────── */
-  .mid{display:flex;flex-direction:column;min-width:0;min-height:0}
-  .map{position:relative;flex:1;min-height:360px;background:#07080A;overflow:hidden}
-  .map>svg{position:absolute;inset:0;width:100%;height:100%}
+  /* ══ map ══ */
+  .map{grid-row:2;grid-column:2;position:relative;min-height:380px;background:#070809;overflow:hidden}
+  .map canvas,.map>svg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
-  .mtitle{
-    position:absolute;top:20px;left:26px;font-size:30px;font-weight:300;
-    letter-spacing:-.025em;color:rgba(237,241,245,.94);pointer-events:none;
-    text-shadow:0 2px 24px rgba(0,0,0,.7);
-  }
-  .crumbs{position:absolute;top:66px;left:26px;display:flex;gap:7px}
-  .cb{
-    display:flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;
-    background:rgba(10,11,12,.7);backdrop-filter:blur(14px);border:1px solid var(--line2);
-    font-family:var(--mono);font-size:10.5px;color:var(--dim);
-  }
+  .mt{position:absolute;top:18px;left:24px;font-size:29px;font-weight:300;letter-spacing:-.025em;
+    color:rgba(236,239,243,.95);pointer-events:none;text-shadow:0 2px 30px rgba(0,0,0,.85)}
+  .crumbs{position:absolute;top:62px;left:24px;display:flex;gap:6px}
+  .cb{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;
+    background:rgba(13,13,15,.74);backdrop-filter:blur(14px);border:1px solid var(--line2);
+    font-family:var(--mono);font-size:10px;color:var(--dim)}
   .cb b{color:var(--ink);font-weight:500}
 
-  .toolbar{position:absolute;top:18px;right:18px;display:flex;align-items:center;gap:9px}
-  .sbox{
-    display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;
-    background:rgba(10,11,12,.7);backdrop-filter:blur(14px);border:1px solid var(--line2);
-  }
-  .sbox input{background:none;border:0;color:var(--ink);font-family:var(--ui);font-size:11.5px;width:126px;padding:0}
-  .sbox input::placeholder{color:var(--faint)}
-  .ibtn{
-    width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    background:rgba(10,11,12,.7);backdrop-filter:blur(14px);border:1px solid var(--line2);
-    color:var(--dim);position:relative;transition:color .18s,background .18s;
-  }
-  .ibtn:hover{color:var(--ink);background:rgba(23,24,27,.9)}
-  .ibtn .bdg{position:absolute;top:-1px;right:-1px;width:13px;height:13px;border-radius:50%;
-    background:var(--red);color:#fff;font-family:var(--mono);font-size:8px;
-    display:flex;align-items:center;justify-content:center;border:2px solid var(--panel)}
-  .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(150deg,#2E3A46,#1A2027);
+  .tools{position:absolute;top:14px;right:14px;display:flex;align-items:center;gap:7px;z-index:3}
+  .sb{display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;
+    background:rgba(13,13,15,.7);backdrop-filter:blur(14px);border:1px solid var(--line2)}
+  .sb input{background:none;border:0;color:var(--ink);font-family:var(--ui);font-size:11px;width:104px;padding:0}
+  .sb input::placeholder{color:var(--faint)}
+  .ib{width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:rgba(13,13,15,.7);backdrop-filter:blur(14px);border:1px solid var(--line2);
+    color:var(--dim);position:relative;transition:color .18s,background .18s}
+  .ib:hover{color:var(--ink);background:rgba(23,23,25,.92)}
+  .ib .bd{position:absolute;top:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:var(--red);
+    color:#fff;font-family:var(--mono);font-size:7.5px;display:flex;align-items:center;justify-content:center;
+    border:1.5px solid var(--panel)}
+  .avt{width:27px;height:27px;border-radius:50%;background:linear-gradient(150deg,#2C3540,#171B21);
     border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;
-    font-family:var(--mono);font-size:10px;color:var(--dim)}
+    font-family:var(--mono);font-size:9.5px;color:var(--dim)}
 
-  .glass{
-    position:absolute;padding:11px 13px;border-radius:5px;
-    background:rgba(11,13,15,.72);backdrop-filter:blur(18px);border:1px solid var(--line2);
-  }
-  .glass .l1{font-size:11px;color:var(--ink)}
-  .glass .l2{font-family:var(--mono);font-size:8.5px;color:var(--faint);margin-top:2px}
-  .glass .l3{font-family:var(--mono);font-size:27px;font-weight:300;margin-top:9px;letter-spacing:-.03em;line-height:1}
+  .load{position:absolute;padding:10px 12px;border-radius:4px;
+    background:rgba(11,12,13,.62);backdrop-filter:blur(20px);border:1px solid var(--line2)}
+  .load .a{font-size:10.5px;color:var(--ink)}
+  .load .b{font-family:var(--mono);font-size:8px;color:var(--faint);margin-top:2px}
+  .load .c{font-family:var(--mono);font-size:26px;font-weight:300;margin-top:8px;letter-spacing:-.03em;line-height:1}
 
-  .zoom{position:absolute;left:18px;bottom:18px;display:flex;gap:7px}
-  .zoom button{
-    width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    background:rgba(10,11,12,.72);backdrop-filter:blur(14px);border:1px solid var(--line2);
-    color:var(--dim);transition:color .18s,background .18s;
-  }
-  .zoom button:hover{color:var(--ink);background:rgba(23,24,27,.9)}
+  .zm{position:absolute;left:16px;bottom:16px;display:flex;gap:6px}
+  .zm button{width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:rgba(13,13,15,.7);backdrop-filter:blur(14px);border:1px solid var(--line2);
+    color:var(--dim);transition:color .18s,background .18s}
+  .zm button:hover{color:var(--ink);background:rgba(23,23,25,.92)}
 
-  /* ─────────── bottom strips ─────────── */
-  .strips{display:grid;grid-template-columns:1.15fr 1fr;border-top:1px solid var(--line);flex:none}
-  .strip{padding:13px 16px 15px;background:var(--panel);min-width:0}
-  .strip+.strip{border-left:1px solid var(--line)}
-  .sh{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
-  .sh .lab{font-size:11px;color:var(--dim);margin-bottom:6px}
-  .sh .val{font-family:var(--mono);font-size:26px;font-weight:300;letter-spacing:-.03em;line-height:1}
-  .sh .cap{font-size:10px;color:var(--faint);margin-top:5px}
+  /* floating warning panel — sits ON the map */
+  .warn{position:absolute;top:54px;right:14px;width:196px;border-radius:5px;
+    background:rgba(12,12,14,.8);backdrop-filter:blur(20px);border:1px solid var(--line2);
+    max-height:calc(100% - 82px);overflow-y:auto;z-index:2}
+  .warn::-webkit-scrollbar{width:4px}
+  .warn::-webkit-scrollbar-thumb{background:rgba(236,239,243,.12)}
+  .wh{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border-bottom:1px solid var(--line)}
+  .wh span{font-size:11.5px}
+  details.g{border-bottom:1px solid var(--line)}
+  details.g>summary{display:flex;align-items:center;gap:6px;padding:9px 11px;cursor:pointer;
+    font-size:10.5px;color:var(--ink);list-style:none}
+  details.g>summary::-webkit-details-marker{display:none}
+  details.g>summary .c{font-family:var(--mono);font-size:9px;color:var(--faint)}
+  details.g>summary .cv{margin-left:auto;color:var(--faint);transition:transform .2s cubic-bezier(.32,.72,0,1)}
+  details.g[open]>summary .cv{transform:rotate(180deg)}
+  .gb{padding:0 9px 9px}
+  .al{border:1px solid rgba(224,74,74,.3);border-radius:4px;background:rgba(224,74,74,.09);overflow:hidden}
+  .al+.al{margin-top:7px}
+  .ah{display:flex;align-items:flex-start;gap:7px;padding:8px 9px;width:100%;text-align:left}
+  .ah .tx{flex:1;min-width:0}
+  .ah .t1{font-size:10px;line-height:1.35}
+  .ah .t2{font-family:var(--mono);font-size:8px;color:var(--faint);margin-top:2px}
+  .aff{padding:0 9px 9px}
+  .aff .lb{font-family:var(--mono);font-size:7.5px;color:var(--faint);letter-spacing:.06em;margin-bottom:5px}
+  .aff .list{border-left:1px solid var(--line2);padding-left:8px;display:flex;flex-direction:column;gap:6px}
+  .aff .list .n{font-size:9.5px;color:var(--ink)}
+  .aff .list .s{font-family:var(--mono);font-size:7.5px;color:var(--faint);margin-top:1px}
+  .rc{display:flex;gap:7px;align-items:flex-start;padding:8px 9px;border-top:1px solid var(--line)}
+  .rc b{display:block;font-size:9.5px;font-weight:500;margin-bottom:1px}
+  .rc p{margin:0;font-size:9px;color:var(--dim);line-height:1.35}
 
-  .grid-hd{display:grid;gap:8px;align-items:center;margin-bottom:7px}
-  .grid-hd span{font-family:var(--mono);font-size:8.5px;color:var(--faint);letter-spacing:.06em}
-  .grow{display:grid;gap:8px;align-items:center;padding:5px 0}
-  .grow+.grow{border-top:1px solid var(--line)}
-  .rbadge{
-    font-family:var(--mono);font-size:9.5px;color:var(--ink);display:flex;align-items:center;gap:5px;
-  }
-  .rbadge i{width:5px;height:5px;border-radius:50%;flex:none}
-  .cell{font-family:var(--mono);font-size:9.5px;color:var(--dim);display:flex;align-items:center;gap:4px}
-  .cell i{width:4px;height:4px;border-radius:50%;background:var(--amber);flex:none}
-  .cell.neg{color:var(--dim)}
-  .cell.pos{color:var(--ink)}
+  /* ══ strips ══ */
+  .strips{grid-row:3;grid-column:2;display:grid;grid-template-columns:1.12fr 1fr;
+    border-top:1px solid var(--line);background:var(--panel)}
+  .sp{padding:12px 16px 14px;min-width:0}
+  .sp+.sp{border-left:1px solid var(--line)}
+  .sh{display:flex;align-items:flex-start;justify-content:space-between}
+  .sh .l{font-size:11px;color:var(--dim)}
+  .row1{display:flex;align-items:baseline;gap:9px;margin-top:8px}
+  .row1 .v{font-family:var(--mono);font-size:25px;font-weight:300;letter-spacing:-.03em;line-height:1}
+  .row1 .u{font-size:10px;color:var(--dim)}
+  .tbl{margin-top:13px}
+  .thd,.trow{display:grid;grid-template-columns:62px repeat(6,minmax(0,1fr));gap:6px;align-items:center}
+  .thd{margin-bottom:7px}
+  .thd span{font-family:var(--mono);font-size:8px;color:var(--faint);letter-spacing:.05em}
+  .trow{padding:5px 0}
+  .rb{font-family:var(--mono);font-size:9px;color:var(--ink);display:flex;align-items:center;gap:4px}
+  .rb i{width:4px;height:4px;border-radius:50%;flex:none}
+  .cl{font-family:var(--mono);font-size:9px;color:var(--dim);display:flex;align-items:center;gap:3px}
+  .cl i{width:3.5px;height:3.5px;border-radius:50%;background:var(--amber);flex:none}
+  .tk{margin-top:3px}
+  .tk svg{display:block;width:100%;height:auto}
 
-  .ticks{margin-top:9px}
-  .ticks svg{display:block;width:100%;height:auto}
+  .vol{margin-top:14px}
+  .vol svg{display:block;width:100%;height:auto}
 
-  /* ─────────── right rail ─────────── */
-  .whead{display:flex;align-items:center;justify-content:space-between;padding:13px;border-bottom:1px solid var(--line)}
-  .whead .t{font-size:13px}
-  details.grp{border-bottom:1px solid var(--line)}
-  details.grp>summary{
-    display:flex;align-items:center;gap:8px;padding:11px 13px;cursor:pointer;
-    font-size:11.5px;color:var(--ink);list-style:none;
-  }
-  details.grp>summary::-webkit-details-marker{display:none}
-  details.grp>summary .c{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--faint)}
-  details.grp>summary .cv{color:var(--faint);transition:transform .2s cubic-bezier(.32,.72,0,1)}
-  details.grp[open]>summary .cv{transform:rotate(180deg)}
-  .gbody{padding:0 13px 12px;display:flex;flex-direction:column;gap:8px}
-
-  .alert{border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--raised)}
-  .alert.crit{border-color:rgba(224,74,74,.34);background:rgba(224,74,74,.07)}
-  .ahead{display:flex;align-items:flex-start;gap:8px;padding:10px 11px;width:100%;text-align:left}
-  .ahead .ic{flex:none;margin-top:1px}
-  .ahead .tx{flex:1;min-width:0}
-  .ahead .tt{font-size:11.5px;line-height:1.35}
-  .ahead .su{font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:3px}
-  .ahead .cv{color:var(--faint);flex:none;margin-top:2px}
-
-  .affected{padding:0 11px 11px}
-  .affected .lb{font-family:var(--mono);font-size:8.5px;color:var(--faint);letter-spacing:.06em;margin-bottom:6px}
-  .stations{border-left:1px solid var(--line2);padding-left:10px;display:flex;flex-direction:column;gap:7px}
-  .stations div .n{font-size:10.5px;color:var(--ink)}
-  .stations div .s{font-family:var(--mono);font-size:8.5px;color:var(--faint);margin-top:1px}
-
-  .rec{display:flex;gap:8px;align-items:flex-start;padding:10px 11px;border-top:1px solid var(--line)}
-  .rec .tx b{display:block;font-size:10.5px;font-weight:500;margin-bottom:2px}
-  .rec .tx p{margin:0;font-size:10px;color:var(--dim);line-height:1.4}
-
-  .note{padding:10px 13px;font-size:9.5px;color:var(--faint);line-height:1.5}
-
-  @media (max-width:1140px){
+  @media (max-width:1100px){
     .app{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;height:auto}
-    .map{min-height:440px}
-    .rail.l,.rail.r{border:0;border-top:1px solid var(--line)}
+    .rail{grid-row:auto;grid-column:1;border-right:0;border-bottom:1px solid var(--line)}
+    .map{grid-row:auto;grid-column:1;min-height:440px}
+    .strips{grid-row:auto;grid-column:1}
+    .warn{position:static;width:auto;max-height:none;margin:0;border-radius:0;border:0;border-top:1px solid var(--line);backdrop-filter:none;background:var(--panel)}
   }
   @media (max-width:560px){
-    .top{height:auto;padding:10px 13px;flex-wrap:wrap;gap:12px}
-    .mtitle{font-size:21px;left:15px;top:15px}
-    .crumbs{left:15px;top:50px}
-    .sbox{display:none}
+    .top{height:auto;padding:10px 12px;flex-wrap:wrap;gap:12px}
+    .mt{font-size:21px;left:14px;top:14px}
+    .crumbs{left:14px;top:48px}
+    .sb{display:none}
     .strips{grid-template-columns:1fr}
-    .strip+.strip{border-left:0;border-top:1px solid var(--line)}
-    .cards{grid-template-columns:1fr}
+    .sp+.sp{border-left:0;border-top:1px solid var(--line)}
+    .fleet{grid-template-columns:1fr}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
 <div class="app">
 
-  <!-- ══════ TOP ══════ -->
   <header class="top">
-    <div class="brand">
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-        <path d="M2 5.5 9 1.8 16 5.5" stroke="#EDF1F5" stroke-width="1.1" stroke-linecap="round"/>
-        <path d="M2 9 9 5.3 16 9" stroke="#EDF1F5" stroke-width="1.1" stroke-linecap="round" opacity=".6"/>
-        <path d="M2 12.5 9 8.8 16 12.5" stroke="#EDF1F5" stroke-width="1.1" stroke-linecap="round" opacity=".3"/>
+    <div class="logo">
+      <svg width="19" height="19" viewBox="0 0 19 19" fill="none" aria-hidden="true">
+        <path d="M2 6 9.5 2 17 6" stroke="#ECEFF3" stroke-width="1.15" stroke-linecap="round"/>
+        <path d="M2 9.5 9.5 5.5 17 9.5" stroke="#ECEFF3" stroke-width="1.15" stroke-linecap="round" opacity=".58"/>
+        <path d="M2 13 9.5 9 17 13" stroke="#ECEFF3" stroke-width="1.15" stroke-linecap="round" opacity=".3"/>
       </svg>
-      <b>Oversite</b>
     </div>
     <nav class="nav" role="tablist" aria-label="Sections">
       <button role="tab" aria-selected="true">Live Map</button>
@@ -270,655 +229,621 @@
       <button role="tab" aria-selected="false">Civilians</button>
       <button role="tab" aria-selected="false">Warrants</button>
       <button role="tab" aria-selected="false">BOLOs</button>
-      <button role="tab" aria-selected="false">Reports</button>
-      <button role="tab" aria-selected="false">Staff</button>
+      <button role="tab" aria-selected="false">Crew</button>
     </nav>
   </header>
 
-  <!-- ══════ LEFT RAIL ══════ -->
-  <aside class="rail l" aria-label="Unit roster">
-    <div class="pad bb">
-      <div class="depts" role="group" aria-label="Department">
-        <button aria-pressed="true"><span class="n">11</span> LCPD</button>
-        <button aria-pressed="false"><span class="n">6</span> LCSO</button>
-        <button aria-pressed="false"><span class="n">5</span> LCFD</button>
-        <button aria-pressed="false"><span class="n">2</span> DOT</button>
+  <!-- ══ LEFT RAIL ══ -->
+  <aside class="rail" aria-label="Fleet">
+    <div class="tabs" role="group" aria-label="Department">
+      <button aria-pressed="true"><span class="n">11</span> LCPD</button>
+      <button aria-pressed="false"><span class="n">6</span> LCSO</button>
+      <button aria-pressed="false"><span class="n">5</span> LCFD</button>
+      <button aria-pressed="false"><span class="n">2</span> DOT</button>
+    </div>
+
+    <div class="onoff">
+      <div>
+        <span class="lab"><i class="chk"></i>Online</span>
+        <span class="num">18</span>
+      </div>
+      <div>
+        <span class="lab"><i class="tri"></i>Offline</span>
+        <span class="num">6</span>
       </div>
     </div>
 
-    <div class="duo bb">
-      <div>
-        <div class="hd"><i class="chk"></i> In service</div>
-        <div class="num">18</div>
-      </div>
-      <div>
-        <div class="hd"><i class="tri"></i> Out</div>
-        <div class="num">6</div>
-      </div>
-    </div>
-
-    <div class="pad bb eff">
-      <div class="micro" style="margin-bottom:9px">Response Readiness</div>
+    <div class="eff">
+      <div class="t">Operational Efficiency</div>
       <div class="big">82.4<span>%</span></div>
-      <div class="micro" style="margin-top:5px;letter-spacing:.06em">Target</div>
-
-      <div class="chartwrap">
-        <svg viewBox="0 0 230 78" preserveAspectRatio="none"
-             aria-label="Readiness across the shift from 04:00 to 21:00, ranging 58 to 96 percent, currently 82.4">
-          <defs>
-            <linearGradient id="eg" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#E89A3C" stop-opacity=".2"/>
-              <stop offset="100%" stop-color="#E89A3C" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <line x1="0" y1="4"  x2="230" y2="4"  stroke="rgba(235,240,245,.055)"/>
-          <line x1="0" y1="27" x2="230" y2="27" stroke="rgba(235,240,245,.055)"/>
-          <line x1="0" y1="50" x2="230" y2="50" stroke="rgba(235,240,245,.055)"/>
-          <line x1="0" y1="72" x2="230" y2="72" stroke="rgba(235,240,245,.055)"/>
-          <line x1="0" y1="20" x2="230" y2="20" stroke="rgba(235,240,245,.24)" stroke-dasharray="2 3"/>
-          <rect x="112" y="0" width="30" height="72" fill="rgba(235,240,245,.04)"/>
-          <rect x="182" y="0" width="26" height="72" fill="rgba(235,240,245,.04)"/>
-          <path fill="url(#eg)" d="M0,52 L13,47 L26,55 L39,44 L52,50 L65,38 L78,43 L91,31 L104,36 L117,24 L130,29 L143,19 L156,27 L169,16 L182,23 L195,13 L208,20 L221,11 L230,15 L230,72 L0,72 Z"/>
-          <polyline fill="none" stroke="#E89A3C" stroke-width="1.1" stroke-linejoin="round"
-            points="0,52 13,47 26,55 39,44 52,50 65,38 78,43 91,31 104,36 117,24 130,29 143,19 156,27 169,16 182,23 195,13 208,20 221,11 230,15"/>
-          <circle cx="221" cy="11" r="2.2" fill="#E89A3C"/>
+      <div class="tg">Target</div>
+      <div class="cw">
+        <svg viewBox="0 0 208 76" preserveAspectRatio="none"
+             aria-label="Operational efficiency across the shift from 04:00 to 21:00, ranging 0 to 100 percent, currently 82.4">
+          <rect x="72" y="0" width="26" height="66" fill="rgba(236,239,243,.045)"/>
+          <rect x="140" y="0" width="30" height="66" fill="rgba(236,239,243,.045)"/>
+          <line x1="0" y1="4"  x2="208" y2="4"  stroke="rgba(236,239,243,.05)"/>
+          <line x1="0" y1="35" x2="208" y2="35" stroke="rgba(236,239,243,.05)"/>
+          <line x1="0" y1="66" x2="208" y2="66" stroke="rgba(236,239,243,.05)"/>
+          <line x1="0" y1="20" x2="208" y2="20" stroke="rgba(236,239,243,.26)" stroke-dasharray="2 3"/>
+          <polyline fill="none" stroke="#E8A04A" stroke-width="1"
+            points="0,50 6,44 12,54 18,41 24,52 30,46 36,56 42,45"/>
+          <polyline fill="none" stroke="rgba(236,239,243,.62)" stroke-width="1" stroke-linejoin="round"
+            points="42,45 50,38 58,48 66,34 74,42 82,30 90,39 98,26 106,34 114,22 122,31 130,18 138,27 146,15 154,24 162,13 170,22 178,11 186,19 194,9 202,17 208,12"/>
+          <circle cx="202" cy="17" r="1.8" fill="#ECEFF3"/>
         </svg>
-        <div class="yax">
-          <span>+100%</span><span>100%</span><span>50%</span><span>0%</span>
-        </div>
+        <div class="yx"><span>+100%</span><span>100%</span><span>50%</span><span>0%</span></div>
       </div>
-      <div class="xax">
-        <span>04:00</span><span>09:00</span><span>15:00</span><span>18:00</span><span>21:00</span>
+      <div class="xx"><span>04:00</span><span>09:00</span><span>15:00</span><span>18:00</span><span>21:00</span></div>
+    </div>
+
+    <div class="fleet" id="fleet"></div>
+  </aside>
+
+  <!-- ══ MAP ══ -->
+  <section class="map" aria-label="Liberty County live map">
+    <canvas id="terrain" width="1200" height="760" role="img"
+            aria-label="Shaded relief map of Liberty County with the bay to the east"></canvas>
+
+    <svg viewBox="0 0 1200 760" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <!-- route network -->
+      <g fill="none" stroke="rgba(248,250,252,.72)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M96,742 L188,540 L262,410 L372,286 L466,198 L574,132 L688,74"/>
+      </g>
+      <g fill="none" stroke="rgba(248,250,252,.42)" stroke-width="1.5" stroke-linecap="round">
+        <path d="M262,410 L414,456 L546,430 L648,336 L714,246"/>
+        <path d="M188,540 L322,578 L452,540 L524,598"/>
+      </g>
+      <g fill="none" stroke="rgba(248,250,252,.6)" stroke-width="1.3" stroke-dasharray="7 6" stroke-linecap="round">
+        <path d="M372,286 L448,344 L470,438 L546,430"/>
+        <path d="M574,132 L616,214 L688,232"/>
+        <path d="M414,456 L400,556 L470,640 L586,672"/>
+      </g>
+      <g fill="none" stroke="rgba(248,250,252,.2)" stroke-width="1" stroke-dasharray="4 5">
+        <path d="M262,410 L182,352 L108,378"/>
+        <path d="M648,336 L706,404 L740,498"/>
+      </g>
+
+      <!-- district labels -->
+      <g font-family="Geist Mono, monospace" font-size="9.5" fill="rgba(236,239,243,.3)" letter-spacing="2">
+        <text x="150" y="150">NORTH RIDGE</text>
+        <text x="300" y="366">MILL LAKE</text>
+        <text x="482" y="556">SOUTH FLATS</text>
+        <text x="576" y="104">AIRFIELD</text>
+        <text x="930" y="392">GREAT BAY</text>
+        <text x="132" y="702">QUARRY</text>
+      </g>
+
+      <!-- landmark ticks -->
+      <g font-family="Geist Mono, monospace" font-size="9" fill="rgba(236,239,243,.52)">
+        <g transform="translate(372,286)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">Central Bank</text></g>
+        <g transform="translate(466,198)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">Postal</text></g>
+        <g transform="translate(262,410)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">LCSO</text></g>
+        <g transform="translate(574,132)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">Hospital</text></g>
+        <g transform="translate(188,540)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">Station 1</text></g>
+        <g transform="translate(648,336)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">Pier</text></g>
+      </g>
+    </svg>
+
+    <svg viewBox="0 0 1200 760" preserveAspectRatio="xMidYMid slice" id="mk"></svg>
+
+    <h1 class="mt">Liberty County</h1>
+
+    <div class="crumbs">
+      <div class="cb">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <rect x="1" y="3" width="8" height="4.4" rx=".6" stroke="currentColor" stroke-width=".9"/>
+        </svg>
+        <b id="cbU">1A-12</b>
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+          <path d="M2 5 4 3l2 2" stroke="currentColor" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="cb">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <rect x="1.2" y="1.2" width="7.6" height="7.6" rx="1" stroke="currentColor" stroke-width=".9"/>
+          <path d="M1.2 5h7.6M5 1.2v7.6" stroke="currentColor" stroke-width=".7"/>
+        </svg>
+        Sector <b id="cbS">N-2</b>
       </div>
     </div>
 
-    <div class="cards" id="cards"></div>
-  </aside>
+    <div class="tools">
+      <div class="sb">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+          <circle cx="4.6" cy="4.6" r="3.4" stroke="#585C63"/><path d="M7.2 7.2 9.9 9.9" stroke="#585C63" stroke-linecap="round"/>
+        </svg>
+        <input id="q" type="search" placeholder="Search Ctrl+Shift+P" aria-label="Search units, plates or calls">
+      </div>
+      <button class="ib" type="button" aria-label="Radio traffic">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M3.2 3.2a4 4 0 0 0 0 5.6M8.8 3.2a4 4 0 0 1 0 5.6" stroke="currentColor" stroke-linecap="round"/>
+          <circle cx="6" cy="6" r="1.4" fill="currentColor"/>
+        </svg>
+      </button>
+      <button class="ib" type="button" aria-label="Alerts, 3 unread">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M3 5a3 3 0 0 1 6 0v2.2l.9 1.5H2.1L3 7.2V5Z" stroke="currentColor" stroke-linejoin="round"/>
+        </svg>
+        <span class="bd">3</span>
+      </button>
+      <div class="avt mono">HK</div>
+    </div>
 
-  <!-- ══════ MAP ══════ -->
-  <main class="mid">
-    <section class="map" aria-label="Liberty County live map">
+    <div class="load" id="load" style="left:19%;top:43%">
+      <div class="a">Sector Coverage</div>
+      <div class="b" id="loadSub">North Ridge · N-2</div>
+      <div class="c" id="loadVal">87<span style="font-size:13px;color:var(--dim)">%</span></div>
+    </div>
 
-      <!-- terrain base -->
-      <svg viewBox="0 0 1200 780" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs>
-          <filter id="relief" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.009" numOctaves="6" seed="19" result="n"/>
-            <feDiffuseLighting in="n" lighting-color="#7E8C6B" surfaceScale="3.4" diffuseConstant="1.05" result="lit">
-              <feDistantLight azimuth="318" elevation="46"/>
-            </feDiffuseLighting>
-            <feComposite in="lit" in2="SourceGraphic" operator="in"/>
-          </filter>
-          <filter id="reliefHi" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="5" seed="4" result="n2"/>
-            <feDiffuseLighting in="n2" lighting-color="#9AA684" surfaceScale="2.2" diffuseConstant="1.1" result="l2">
-              <feDistantLight azimuth="318" elevation="52"/>
-            </feDiffuseLighting>
-            <feComposite in="l2" in2="SourceGraphic" operator="in"/>
-          </filter>
-          <clipPath id="land">
-            <path d="M0,0 H742 L704,96 L780,188 L742,286 L820,352 L788,470 L842,556 L806,672 L860,780 H0 Z"/>
-          </clipPath>
-          <clipPath id="ridge">
-            <path d="M30,44 Q170,-6 330,54 T600,80 L580,214 Q400,166 230,206 T40,182 Z"/>
-          </clipPath>
-          <clipPath id="ridge2">
-            <path d="M60,470 Q210,424 360,486 T640,510 L618,648 Q430,600 250,640 T70,610 Z"/>
-          </clipPath>
-          <radialGradient id="vig" cx="50%" cy="46%" r="72%">
-            <stop offset="55%" stop-color="#000" stop-opacity="0"/>
-            <stop offset="100%" stop-color="#000" stop-opacity=".62"/>
-          </radialGradient>
-          <radialGradient id="halo" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#EDF1F5" stop-opacity=".1"/>
-            <stop offset="100%" stop-color="#EDF1F5" stop-opacity="0"/>
-          </radialGradient>
-        </defs>
+    <div class="zm">
+      <button type="button" aria-label="Zoom in">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1.8v7.4M1.8 5.5h7.4" stroke="currentColor" stroke-linecap="round"/></svg>
+      </button>
+      <button type="button" aria-label="Centre on unit">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="2.1" stroke="currentColor"/><path d="M5.5.9v1.6M5.5 8.5v1.6M.9 5.5h1.6M8.5 5.5h1.6" stroke="currentColor" stroke-linecap="round"/></svg>
+      </button>
+      <button type="button" aria-label="Zoom out">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.8 5.5h7.4" stroke="currentColor" stroke-linecap="round"/></svg>
+      </button>
+    </div>
 
-        <rect width="1200" height="780" fill="#070A0C"/>
+    <!-- floating warning panel -->
+    <div class="warn">
+      <div class="wh">
+        <span>Warning</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="color:var(--faint)" aria-hidden="true">
+          <path d="M2.5 3.8 5 6.3l2.5-2.5" stroke="currentColor" stroke-linecap="round"/>
+        </svg>
+      </div>
 
-        <!-- vegetated landmass with hill shading -->
-        <g clip-path="url(#land)">
-          <rect width="1200" height="780" fill="#2A3526" filter="url(#relief)"/>
-          <rect width="1200" height="780" fill="#0C120D" opacity=".54"/>
-          <g clip-path="url(#ridge)">
-            <rect width="1200" height="780" fill="#3A4630" filter="url(#reliefHi)"/>
-            <rect width="1200" height="780" fill="#0C120D" opacity=".4"/>
-          </g>
-          <g clip-path="url(#ridge2)">
-            <rect width="1200" height="780" fill="#36422E" filter="url(#reliefHi)"/>
-            <rect width="1200" height="780" fill="#0C120D" opacity=".46"/>
-          </g>
-        </g>
-
-        <!-- bay -->
-        <path d="M742,0 L704,96 L780,188 L742,286 L820,352 L788,470 L842,556 L806,672 L860,780 H1200 V0 Z"
-              fill="#08121B"/>
-        <path d="M742,0 L704,96 L780,188 L742,286 L820,352 L788,470 L842,556 L806,672 L860,780"
-              fill="none" stroke="rgba(235,240,245,.22)" stroke-width="1.1"/>
-        <!-- inland lake -->
-        <ellipse cx="352" cy="352" rx="84" ry="46" fill="#08121B"/>
-        <ellipse cx="352" cy="352" rx="84" ry="46" fill="none" stroke="rgba(235,240,245,.16)"/>
-        <!-- river -->
-        <path d="M352,398 Q380,470 344,540 T372,672" fill="none" stroke="#08121B" stroke-width="7"/>
-        <path d="M352,398 Q380,470 344,540 T372,672" fill="none" stroke="rgba(235,240,245,.1)"/>
-
-        <!-- rail -->
-        <path d="M0,282 H232 L404,228 H716 L900,172" fill="none"
-              stroke="rgba(235,240,245,.26)" stroke-width="1.1" stroke-dasharray="8 6"/>
-
-        <!-- Highway 1 -->
-        <path d="M82,752 L176,552 L246,424 L352,296 L444,210 L548,142 L654,86"
-              fill="none" stroke="rgba(245,248,251,.78)" stroke-width="2.6" stroke-linecap="round"/>
-        <path d="M246,424 L396,470 L524,446 L628,352 L698,258"
-              fill="none" stroke="rgba(245,248,251,.6)" stroke-width="2.1" stroke-linecap="round"/>
-        <!-- arterials -->
-        <g fill="none" stroke="rgba(235,240,245,.3)" stroke-width="1.2" stroke-linecap="round">
-          <path d="M176,552 L306,588 L436,552 L506,610"/>
-          <path d="M352,296 L282,354 L222,342"/>
-          <path d="M444,210 L502,282 L584,270"/>
-          <path d="M548,142 L584,224 L654,236"/>
-          <path d="M396,470 L384,552 L456,634"/>
-          <path d="M118,656 L236,692 L354,656"/>
-          <path d="M628,352 L686,412 L722,504"/>
-          <path d="M282,354 L268,428 L246,424"/>
-        </g>
-        <!-- service tracks -->
-        <g fill="none" stroke="rgba(235,240,245,.14)" stroke-width="1" stroke-dasharray="5 5">
-          <path d="M222,342 L140,294 L70,318"/>
-          <path d="M722,504 L770,586"/>
-          <path d="M506,610 L610,656"/>
-          <path d="M456,634 L500,712"/>
-        </g>
-
-        <!-- district names -->
-        <g font-family="Geist Mono, monospace" font-size="10" fill="rgba(235,240,245,.34)" letter-spacing="2">
-          <text x="140" y="140">NORTH RIDGE</text>
-          <text x="286" y="360">MILL LAKE</text>
-          <text x="470" y="540">SOUTH FLATS</text>
-          <text x="548" y="108">AIRFIELD</text>
-          <text x="920" y="390">GREAT BAY</text>
-          <text x="128" y="716">QUARRY</text>
-        </g>
-
-        <!-- landmarks -->
-        <g font-family="Geist Mono, monospace" font-size="9.5" fill="rgba(235,240,245,.6)">
-          <g transform="translate(352,296)"><rect x="-4" y="-4" width="8" height="8" fill="none" stroke="rgba(235,240,245,.55)"/><text x="11" y="3.5">Central Bank</text></g>
-          <g transform="translate(444,210)"><rect x="-4" y="-4" width="8" height="8" fill="none" stroke="rgba(235,240,245,.55)"/><text x="11" y="3.5">Postal</text></g>
-          <g transform="translate(246,424)"><rect x="-4" y="-4" width="8" height="8" fill="none" stroke="rgba(235,240,245,.55)"/><text x="11" y="3.5">LCSO</text></g>
-          <g transform="translate(548,142)"><rect x="-4" y="-4" width="8" height="8" fill="none" stroke="rgba(235,240,245,.55)"/><text x="11" y="3.5">Hospital</text></g>
-          <g transform="translate(176,552)"><rect x="-4" y="-4" width="8" height="8" fill="none" stroke="rgba(235,240,245,.55)"/><text x="11" y="3.5">Station 1</text></g>
-          <g transform="translate(628,352)"><rect x="-4" y="-4" width="8" height="8" fill="none" stroke="rgba(235,240,245,.55)"/><text x="11" y="3.5">Pier</text></g>
-        </g>
-        <g font-family="Geist Mono, monospace" font-size="8" fill="rgba(235,240,245,.34)">
-          <circle cx="176" cy="552" r="1.8" fill="rgba(235,240,245,.34)"/><text x="182" y="566">MM2</text>
-          <circle cx="352" cy="296" r="1.8" fill="rgba(235,240,245,.34)"/><text x="334" y="286">MM6</text>
-          <circle cx="548" cy="142" r="1.8" fill="rgba(235,240,245,.34)"/><text x="530" y="132">MM9</text>
-        </g>
-
-        <rect width="1200" height="780" fill="url(#vig)"/>
-      </svg>
-
-      <!-- live markers -->
-      <svg viewBox="0 0 1200 780" preserveAspectRatio="xMidYMid slice" id="mk"></svg>
-
-      <h1 class="mtitle">Liberty County</h1>
-
-      <div class="crumbs">
-        <div class="cb">
+      <details class="g" open>
+        <summary>
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-            <rect x="1" y="3" width="8" height="4.4" stroke="currentColor" stroke-width=".9" rx=".6"/>
+            <rect x="1" y="1" width="8" height="8" rx="1" stroke="#8A8F96" stroke-width=".9"/>
+            <path d="M3 5h4" stroke="#8A8F96" stroke-width=".9" stroke-linecap="round"/>
           </svg>
-          <b id="cbUnit">1A-12</b>
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
-            <path d="M2 5 4 3l2 2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+          Priority Calls <span class="c">(2 active)</span>
+          <svg class="cv" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+            <path d="M2.2 3.4 4.5 5.7l2.3-2.3" stroke="currentColor" stroke-linecap="round"/>
           </svg>
-        </div>
-        <div class="cb">Sector <b id="cbSec">N-2</b></div>
-      </div>
-
-      <div class="toolbar">
-        <div class="sbox">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-            <circle cx="5" cy="5" r="3.6" stroke="#5A6069"/><path d="M7.8 7.8 10.6 10.6" stroke="#5A6069" stroke-linecap="round"/>
-          </svg>
-          <input id="q" type="search" placeholder="Search Ctrl+Shift+P" aria-label="Search units, plates or calls">
-        </div>
-        <button class="ibtn" type="button" aria-label="Radio traffic">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-            <path d="M3.4 3.4a4.4 4.4 0 0 0 0 6.2M9.6 3.4a4.4 4.4 0 0 1 0 6.2" stroke="currentColor" stroke-linecap="round"/>
-            <circle cx="6.5" cy="6.5" r="1.5" fill="currentColor"/>
-          </svg>
-        </button>
-        <button class="ibtn" type="button" aria-label="Alerts, 3 unread">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-            <path d="M3.2 5.4a3.3 3.3 0 0 1 6.6 0v2.4l1 1.6H2.2l1-1.6V5.4Z" stroke="currentColor" stroke-linejoin="round"/>
-          </svg>
-          <span class="bdg">3</span>
-        </button>
-        <div class="av mono">HK</div>
-      </div>
-
-      <div class="glass" id="cov" style="left:20%;top:44%">
-        <div class="l1">Sector coverage</div>
-        <div class="l2" id="covSub">North Ridge · N-2</div>
-        <div class="l3" id="covVal">87<span style="font-size:14px;color:var(--dim)">%</span></div>
-      </div>
-
-      <div class="zoom">
-        <button type="button" aria-label="Zoom in">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2v8M2 6h8" stroke="currentColor" stroke-linecap="round"/></svg>
-        </button>
-        <button type="button" aria-label="Centre on unit">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="2.3" stroke="currentColor"/><path d="M6 .8v1.8M6 9.4v1.8M.8 6h1.8M9.4 6h1.8" stroke="currentColor" stroke-linecap="round"/></svg>
-        </button>
-        <button type="button" aria-label="Zoom out">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8" stroke="currentColor" stroke-linecap="round"/></svg>
-        </button>
-      </div>
-    </section>
-
-    <!-- ══════ STRIPS ══════ -->
-    <section class="strips">
-      <div class="strip">
-        <div class="sh">
-          <div>
-            <div class="lab">Response Offset</div>
-            <div class="val">± 2:40</div>
-            <div class="cap">Average variance</div>
+        </summary>
+        <div class="gb">
+          <div class="al">
+            <button class="ah" type="button">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="flex:none;margin-top:1px" aria-hidden="true">
+                <circle cx="5" cy="5" r="4" fill="#E04A4A"/>
+                <path d="M5 2.8v2.4" stroke="#0A0A0B" stroke-width="1.1" stroke-linecap="round"/>
+                <circle cx="5" cy="7" r=".65" fill="#0A0A0B"/>
+              </svg>
+              <span class="tx">
+                <span class="t1">Shots fired &mdash; 3 units committed</span>
+                <span class="t2">04:12 elapsed</span>
+              </span>
+              <svg class="cv" width="9" height="9" viewBox="0 0 9 9" fill="none" style="color:var(--faint)" aria-hidden="true">
+                <path d="M2.2 5.7 4.5 3.4l2.3 2.3" stroke="currentColor" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <div class="aff">
+              <div class="lb">AFFECTED POSTS</div>
+              <div class="list">
+                <div><div class="n">Central Bank</div><div class="s">3 units on scene</div></div>
+                <div><div class="n">Highway 1 &middot; MM6</div><div class="s">northbound closed</div></div>
+              </div>
+            </div>
+            <div class="rc">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="flex:none;margin-top:1px" aria-hidden="true">
+                <path d="M5.5 1.3 9.7 5.5 5.5 9.7 1.3 5.5 5.5 1.3Z" stroke="#E8A04A" stroke-linejoin="round"/>
+              </svg>
+              <div>
+                <b>Recommend</b>
+                <p>Stage M-12 at Postal &mdash; nearest medic 3:10 out</p>
+              </div>
+            </div>
           </div>
-          <svg class="arw" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-            <path d="M2.5 7.5 7.5 2.5M7.5 2.5h-4M7.5 2.5v4" stroke="currentColor" stroke-linecap="round"/>
-          </svg>
         </div>
-        <div id="offsets"></div>
-      </div>
+      </details>
 
-      <div class="strip">
-        <div class="sh">
-          <div>
-            <div class="lab">Dispatched Volume</div>
-            <div class="val">1,284</div>
-            <div class="cap">Calls today</div>
+      <details class="g" open>
+        <summary>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+            <circle cx="5" cy="5" r="3.9" stroke="#8A8F96" stroke-width=".9"/>
+            <path d="M5 2.9v2.3l1.5.9" stroke="#8A8F96" stroke-width=".9" stroke-linecap="round"/>
+          </svg>
+          Response Delays <span class="c">(Sector S-2)</span>
+          <svg class="cv" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+            <path d="M2.2 3.4 4.5 5.7l2.3-2.3" stroke="currentColor" stroke-linecap="round"/>
+          </svg>
+        </summary>
+        <div class="gb">
+          <div class="al">
+            <button class="ah" type="button">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="flex:none;margin-top:1px" aria-hidden="true">
+                <circle cx="5" cy="5" r="4" fill="#E04A4A"/>
+                <path d="M5 2.8v2.4" stroke="#0A0A0B" stroke-width="1.1" stroke-linecap="round"/>
+                <circle cx="5" cy="7" r=".65" fill="#0A0A0B"/>
+              </svg>
+              <span class="tx">
+                <span class="t1">E-31 is 4 min behind response target</span>
+                <span class="t2">structure fire &middot; South Flats</span>
+              </span>
+              <svg class="cv" width="9" height="9" viewBox="0 0 9 9" fill="none" style="color:var(--faint)" aria-hidden="true">
+                <path d="M2.2 3.4 4.5 5.7l2.3-2.3" stroke="currentColor" stroke-linecap="round"/>
+              </svg>
+            </button>
           </div>
-          <svg class="arw" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-            <path d="M2.5 7.5 7.5 2.5M7.5 2.5h-4M7.5 2.5v4" stroke="currentColor" stroke-linecap="round"/>
-          </svg>
         </div>
-        <div class="ticks">
-          <svg viewBox="0 0 400 74" preserveAspectRatio="none"
-               aria-label="Calls dispatched per two-hour block from 07:00 to 18:00, from 82 up to 164">
-            <g font-family="Geist Mono, monospace" font-size="8" fill="#5A6069">
-              <text x="0" y="8">98</text><text x="68" y="8">112</text><text x="136" y="8">104</text>
-              <text x="204" y="8">131</text><text x="272" y="8">147</text><text x="340" y="8">164</text>
-            </g>
-            <g fill="#E89A3C">
-              <rect x="0"   y="26" width="58" height="26" fill-opacity=".3"/>
-              <rect x="68"  y="21" width="58" height="31" fill-opacity=".38"/>
-              <rect x="136" y="24" width="58" height="28" fill-opacity=".34"/>
-              <rect x="204" y="16" width="58" height="36" fill-opacity=".48"/>
-              <rect x="272" y="12" width="58" height="40" fill-opacity=".62"/>
-              <rect x="340" y="7"  width="58" height="45"/>
-            </g>
-            <line x1="0" y1="52" x2="400" y2="52" stroke="rgba(235,240,245,.16)"/>
-            <g stroke="rgba(235,240,245,.2)" id="volticks"></g>
-            <g font-family="Geist Mono, monospace" font-size="8" fill="#5A6069">
-              <text x="0" y="72">07:00</text><text x="136" y="72">11:00</text>
-              <text x="272" y="72">15:00</text><text x="368" y="72">18:00</text>
-            </g>
-          </svg>
-        </div>
-      </div>
-    </section>
-  </main>
+      </details>
+    </div>
+  </section>
 
-  <!-- ══════ RIGHT RAIL ══════ -->
-  <aside class="rail r" aria-label="Alerts">
-    <div class="whead">
-      <span class="t">Warning</span>
-      <svg class="cv" width="10" height="10" viewBox="0 0 10 10" fill="none" style="color:var(--faint)" aria-hidden="true">
-        <path d="M2.5 3.8 5 6.3l2.5-2.5" stroke="currentColor" stroke-linecap="round"/>
-      </svg>
+  <!-- ══ STRIPS ══ -->
+  <section class="strips">
+    <div class="sp">
+      <div class="sh">
+        <div class="l">Response Offset</div>
+        <svg class="arw" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M2.5 7.5 7.5 2.5M7.5 2.5h-4M7.5 2.5v4" stroke="currentColor" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="row1"><span class="v">&plusmn; 2.5</span><span class="u">min</span><span class="u">Average Variance</span></div>
+      <div class="tbl" id="tbl"></div>
     </div>
 
-    <details class="grp" open>
-      <summary>
-        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
-          <path d="M5.5 1.4 10 9H1l4.5-7.6Z" stroke="#E04A4A" stroke-linejoin="round"/>
-          <path d="M5.5 4.4v2" stroke="#E04A4A" stroke-linecap="round"/>
+    <div class="sp">
+      <div class="sh">
+        <div class="l">Calls Dispatched</div>
+        <svg class="arw" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M2.5 7.5 7.5 2.5M7.5 2.5h-4M7.5 2.5v4" stroke="currentColor" stroke-linecap="round"/>
         </svg>
-        Priority Response
-        <span class="c">(2 calls)</span>
-        <svg class="cv" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-          <path d="M2.5 3.8 5 6.3l2.5-2.5" stroke="currentColor" stroke-linecap="round"/>
-        </svg>
-      </summary>
-      <div class="gbody">
-
-        <div class="alert crit">
-          <button class="ahead" type="button">
-            <span class="ic">
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
-                <circle cx="5.5" cy="5.5" r="4.4" fill="#E04A4A"/>
-                <path d="M5.5 3.2v2.6" stroke="#0A0B0C" stroke-width="1.2" stroke-linecap="round"/>
-                <circle cx="5.5" cy="7.6" r=".7" fill="#0A0B0C"/>
-              </svg>
-            </span>
-            <span class="tx">
-              <span class="tt">Shots fired &mdash; 3 units committed</span>
-              <span class="su">04:12 elapsed</span>
-            </span>
-            <svg class="cv" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-              <path d="M2.5 6.3 5 3.8l2.5 2.5" stroke="currentColor" stroke-linecap="round"/>
-            </svg>
-          </button>
-          <div class="affected">
-            <div class="lb">AFFECTED POSTS</div>
-            <div class="stations">
-              <div><div class="n">Central Bank</div><div class="s">3 units on scene</div></div>
-              <div><div class="n">Highway 1 · MM6</div><div class="s">Northbound closed</div></div>
-            </div>
-          </div>
-          <div class="rec">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex:none;margin-top:1px" aria-hidden="true">
-              <path d="M6 1.4 10.2 6 6 10.6 1.8 6 6 1.4Z" stroke="#E89A3C" stroke-linejoin="round"/>
-            </svg>
-            <div class="tx">
-              <b>Recommend</b>
-              <p>Stage M-12 at Postal. Nearest medic is 3:10 out.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="alert crit">
-          <button class="ahead" type="button">
-            <span class="ic">
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
-                <circle cx="5.5" cy="5.5" r="4.4" fill="#E04A4A"/>
-                <path d="M5.5 3.2v2.6" stroke="#0A0B0C" stroke-width="1.2" stroke-linecap="round"/>
-                <circle cx="5.5" cy="7.6" r=".7" fill="#0A0B0C"/>
-              </svg>
-            </span>
-            <span class="tx">
-              <span class="tt">Pursuit northbound on Highway 1</span>
-              <span class="su">01:48 elapsed · passing MM2</span>
-            </span>
-            <svg class="cv" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-              <path d="M2.5 3.8 5 6.3l2.5-2.5" stroke="currentColor" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
-
       </div>
-    </details>
-
-    <details class="grp" open>
-      <summary>
-        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
-          <circle cx="5.5" cy="5.5" r="4.2" stroke="#8D949C"/>
-          <path d="M5.5 3.2v2.6l1.7 1" stroke="#8D949C" stroke-linecap="round"/>
+      <div class="row1"><span class="v">1,284</span><span class="u">today</span></div>
+      <div class="vol">
+        <svg viewBox="0 0 380 56" preserveAspectRatio="none"
+             aria-label="Calls dispatched per block: 98, 112, 104, 131, 147 and 164">
+          <g font-family="Geist Mono, monospace" font-size="8" fill="#8A8F96">
+            <text x="0" y="8">98</text><text x="64" y="8">112</text><text x="128" y="8">104</text>
+            <text x="192" y="8">131</text><text x="256" y="8">147</text><text x="320" y="8">164</text>
+          </g>
+          <g stroke="#E8A04A" stroke-width="1.6">
+            <path d="M0 17h44"/><path d="M64 17h44"/><path d="M128 17h44"/>
+            <path d="M192 17h44"/><path d="M256 17h44"/><path d="M320 17h44"/>
+          </g>
+          <g stroke="rgba(236,239,243,.2)" id="vt"></g>
+          <g font-family="Geist Mono, monospace" font-size="8" fill="#585C63">
+            <text x="0" y="52">&minus;4%</text><text x="64" y="52">+14%</text><text x="128" y="52">&minus;7%</text>
+            <text x="192" y="52">+26%</text><text x="256" y="52">+12%</text><text x="320" y="52">+11%</text>
+          </g>
         </svg>
-        Pending Dispatch
-        <span class="c">(3 calls)</span>
-        <svg class="cv" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-          <path d="M2.5 3.8 5 6.3l2.5-2.5" stroke="currentColor" stroke-linecap="round"/>
-        </svg>
-      </summary>
-      <div class="gbody">
-        <div class="alert">
-          <button class="ahead" type="button">
-            <span class="ic">
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4.4" fill="#E89A3C"/></svg>
-            </span>
-            <span class="tx">
-              <span class="tt">Structure fire &mdash; farmhouse</span>
-              <span class="su">06:31 elapsed · E-31 responding</span>
-            </span>
-          </button>
-        </div>
-        <div class="alert">
-          <button class="ahead" type="button">
-            <span class="ic">
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4.4" fill="#5A6069"/></svg>
-            </span>
-            <span class="tx">
-              <span class="tt">Traffic collision at Pier Road</span>
-              <span class="su">11:04 elapsed · DOT-3 assigned</span>
-            </span>
-          </button>
-        </div>
-        <div class="alert">
-          <button class="ahead" type="button">
-            <span class="ic">
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><circle cx="5.5" cy="5.5" r="4.4" fill="#5A6069"/></svg>
-            </span>
-            <span class="tx">
-              <span class="tt">Suspicious vehicle &mdash; quarry access</span>
-              <span class="su">18:22 elapsed · unassigned</span>
-            </span>
-          </button>
-        </div>
       </div>
-    </details>
-
-    <div class="note">Sample dispatch data for layout review &mdash; not live server state.</div>
-  </aside>
+    </div>
+  </section>
 </div>
 
 <script>
 (function () {
   "use strict";
 
-  /* ── vehicle line art, drawn side-profile like the reference fleet cards ── */
+  /* ══════════════════════════════════════════════════════════════
+     Shaded-relief terrain.
+     Elevation = fBm + ridged noise, carved by a bay field.
+     Surface normals lit from the north-west, coloured through a
+     satellite ramp — the same pipeline a real hillshade uses.
+     ══════════════════════════════════════════════════════════════ */
+  function buildTerrain() {
+    var cv = document.getElementById("terrain");
+    var W = cv.width, H = cv.height;
+    var ctx = cv.getContext("2d");
+    var img = ctx.createImageData(W, H);
+    var px = img.data;
+    var elev = new Float32Array(W * H);
+
+    function hash(x, y, s) {
+      var n = (x * 374761393 + y * 668265263 + s * 1013904223) | 0;
+      n = (n ^ (n >>> 13)) * 1274126177;
+      return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
+    }
+    function sm(t) { return t * t * (3 - 2 * t); }
+    function vn(x, y, s) {
+      var xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+      var u = sm(xf), v = sm(yf);
+      var a = hash(xi, yi, s), b = hash(xi + 1, yi, s),
+          c = hash(xi, yi + 1, s), d = hash(xi + 1, yi + 1, s);
+      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+    }
+    function fbm(x, y, s, oct) {
+      var sum = 0, amp = .5, fr = 1, nrm = 0;
+      for (var i = 0; i < oct; i++) {
+        sum += amp * vn(x * fr, y * fr, s + i * 31);
+        nrm += amp; amp *= .5; fr *= 2;
+      }
+      return sum / nrm;
+    }
+    function ridged(x, y, s, oct) {
+      var sum = 0, amp = .5, fr = 1, nrm = 0;
+      for (var i = 0; i < oct; i++) {
+        var n = vn(x * fr, y * fr, s + i * 53);
+        sum += amp * (1 - Math.abs(n * 2 - 1));
+        nrm += amp; amp *= .5; fr *= 2;
+      }
+      return sum / nrm;
+    }
+
+    /* ── pass 1 · elevation field ── */
+    var i, x, y;
+    for (y = 0; y < H; y++) {
+      for (x = 0; x < W; x++) {
+        var fx = x * .0062, fy = y * .0062;
+        var base = fbm(fx, fy, 7, 6);
+        var rdg  = ridged(x * .0042, y * .0042, 23, 5);
+        var e = base * .46 + rdg * .54;
+
+        /* mountainous north-west, flats to the south */
+        var band = 1 - Math.min(1, Math.max(0, (y - 180) / 620));
+        e = e * (.62 + band * .5);
+
+        /* carve Great Bay out of the east */
+        var wob = (fbm(y * .009, 3.1, 61, 4) - .5) * 210;
+        var shore = 700 + wob;
+        var bay = Math.min(1, Math.max(0, (x - shore) / 150));
+        e -= bay * .78;
+
+        /* Mill Lake */
+        var dx = (x - 352) / 96, dy = (y - 352) / 54;
+        var lake = Math.min(1, Math.max(0, 1 - (dx * dx + dy * dy)));
+        e -= lake * .62;
+
+        elev[y * W + x] = e;
+      }
+    }
+
+    /* ── pass 2 · shade + colour ── */
+    var SEA = .3;
+    var ramp = [
+      [0.30, 26, 38, 30], [0.40, 34, 46, 33], [0.50, 44, 54, 38],
+      [0.60, 58, 64, 47], [0.72, 74, 78, 60], [0.84, 96, 98, 80], [1.00, 124, 124, 106]
+    ];
+    function shore(t) {
+      for (var k = 1; k < ramp.length; k++) {
+        if (t <= ramp[k][0]) {
+          var a = ramp[k - 1], b = ramp[k];
+          var f = (t - a[0]) / (b[0] - a[0]);
+          return [a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f, a[3] + (b[3] - a[3]) * f];
+        }
+      }
+      var z = ramp[ramp.length - 1];
+      return [z[1], z[2], z[3]];
+    }
+
+    var LX = -.56, LY = -.56, LZ = .61;   /* light from the north-west */
+
+    for (y = 0; y < H; y++) {
+      for (x = 0; x < W; x++) {
+        i = y * W + x;
+        var e2 = elev[i];
+        var xl = x > 0 ? elev[i - 1] : e2, xr = x < W - 1 ? elev[i + 1] : e2;
+        var yu = y > 0 ? elev[i - W] : e2, yd = y < H - 1 ? elev[i + W] : e2;
+
+        var nx = (xl - xr) * 42, ny = (yu - yd) * 42, nz = 1;
+        var il = 1 / Math.sqrt(nx * nx + ny * ny + 1);
+        var sh = (nx * LX + ny * LY + nz * LZ) * il;
+        sh = .42 + Math.max(0, sh) * 1.02;
+
+        var r, g, b;
+        if (e2 < SEA) {
+          var d = Math.min(1, (SEA - e2) / .34);
+          r = 20 - d * 10; g = 32 - d * 16; b = 44 - d * 18;
+          r *= .88 + sh * .16; g *= .88 + sh * .16; b *= .9 + sh * .18;
+        } else {
+          var c2 = shore(Math.min(1, e2));
+          r = c2[0] * sh; g = c2[1] * sh; b = c2[2] * sh;
+          /* desaturate slightly toward the reference's grey-green cast */
+          var lum = r * .3 + g * .59 + b * .11;
+          r += (lum - r) * .22; g += (lum - g) * .22; b += (lum - b) * .22;
+        }
+
+        /* vignette */
+        var vx = (x / W - .5), vy = (y / H - .46);
+        var vg = 1 - Math.min(.62, (vx * vx + vy * vy) * 1.35);
+        r *= vg; g *= vg; b *= vg;
+
+        var o = i * 4;
+        px[o] = r < 0 ? 0 : r > 255 ? 255 : r;
+        px[o + 1] = g < 0 ? 0 : g > 255 ? 255 : g;
+        px[o + 2] = b < 0 ? 0 : b > 255 ? 255 : b;
+        px[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  /* ══ vehicle line art ══ */
   var ART = {
     cruiser: function (id) {
-      return '<svg viewBox="0 0 132 52" aria-hidden="true">' +
-        '<g fill="none" stroke="rgba(235,240,245,.46)" stroke-width="1" stroke-linejoin="round">' +
-        '<path d="M8 38h116"/>' +
-        '<path d="M16 38V26c0-2 1-3 3-3h10l9-9c1-1 2-2 4-2h40c2 0 3 1 4 2l9 9h10c2 0 3 1 3 3v12"/>' +
-        '<path d="M38 23l7-7h18v7H38Z"/><path d="M69 16h16l7 7H69v-7Z"/>' +
-        '<path d="M16 30h92"/><path d="M24 34h8M96 34h8"/>' +
-        '<rect x="52" y="9" width="22" height="5" rx="1.6"/>' +
-        '<path d="M57 9V7M69 9V7"/>' +
-        '</g>' +
-        '<circle cx="36" cy="38" r="7" fill="none" stroke="rgba(235,240,245,.5)"/>' +
-        '<circle cx="36" cy="38" r="3" fill="none" stroke="rgba(235,240,245,.28)"/>' +
-        '<circle cx="96" cy="38" r="7" fill="none" stroke="rgba(235,240,245,.5)"/>' +
-        '<circle cx="96" cy="38" r="3" fill="none" stroke="rgba(235,240,245,.28)"/>' +
-        '<rect x="53" y="10" width="9" height="3" fill="#4A9EFF" fill-opacity=".62"/>' +
-        '<rect x="64" y="10" width="9" height="3" fill="#E04A4A" fill-opacity=".62"/>' +
-        '<text x="50" y="35" font-family="Geist Mono, monospace" font-size="7" fill="rgba(235,240,245,.4)">' + id + '</text>' +
-        '</svg>';
+      return '<svg viewBox="0 0 126 48" aria-hidden="true">' +
+        '<g fill="none" stroke="rgba(236,239,243,.44)" stroke-width=".9" stroke-linejoin="round">' +
+        '<path d="M6 35h114"/>' +
+        '<path d="M14 35V24c0-1.8 1-2.8 2.8-2.8h9.4l8.6-8.4c1-1 1.9-1.8 3.8-1.8h38c1.9 0 2.8.8 3.8 1.8l8.6 8.4h9.4c1.8 0 2.8 1 2.8 2.8v11"/>' +
+        '<path d="M35 21.2l6.6-6.6h17v6.6H35Z"/><path d="M64 14.6h15.2l6.6 6.6H64v-6.6Z"/>' +
+        '<path d="M14 27.6h88"/><path d="M21 31h7.6M89 31h7.6"/>' +
+        '<rect x="49" y="7.4" width="21" height="4.6" rx="1.4"/><path d="M54 7.4V5.6M65 7.4V5.6"/></g>' +
+        '<circle cx="33" cy="35" r="6.6" fill="none" stroke="rgba(236,239,243,.48)"/>' +
+        '<circle cx="33" cy="35" r="2.8" fill="none" stroke="rgba(236,239,243,.26)"/>' +
+        '<circle cx="91" cy="35" r="6.6" fill="none" stroke="rgba(236,239,243,.48)"/>' +
+        '<circle cx="91" cy="35" r="2.8" fill="none" stroke="rgba(236,239,243,.26)"/>' +
+        '<rect x="50" y="8.4" width="8.6" height="2.6" fill="#4A9EFF" fill-opacity=".6"/>' +
+        '<rect x="60.5" y="8.4" width="8.6" height="2.6" fill="#E04A4A" fill-opacity=".6"/>' +
+        '<text x="47" y="32" font-family="Geist Mono, monospace" font-size="6.5" fill="rgba(236,239,243,.38)">' + id + '</text></svg>';
     },
     suv: function (id) {
-      return '<svg viewBox="0 0 132 52" aria-hidden="true">' +
-        '<g fill="none" stroke="rgba(235,240,245,.46)" stroke-width="1" stroke-linejoin="round">' +
-        '<path d="M8 38h116"/>' +
-        '<path d="M14 38V24c0-2 1-3 3-3h6l7-9c1-1 2-2 4-2h52c2 0 3 1 4 2l6 9h8c2 0 3 1 3 3v14"/>' +
-        '<path d="M32 21l6-8h16v8H32Z"/><path d="M58 13h14v8H58v-8Z"/><path d="M76 13h10l6 8H76v-8Z"/>' +
-        '<path d="M14 29h93"/><path d="M20 33h7M100 33h7"/>' +
-        '<rect x="48" y="6" width="24" height="5" rx="1.6"/><path d="M54 6V4M66 6V4"/>' +
-        '</g>' +
-        '<circle cx="34" cy="38" r="7.5" fill="none" stroke="rgba(235,240,245,.5)"/>' +
-        '<circle cx="34" cy="38" r="3.2" fill="none" stroke="rgba(235,240,245,.28)"/>' +
-        '<circle cx="98" cy="38" r="7.5" fill="none" stroke="rgba(235,240,245,.5)"/>' +
-        '<circle cx="98" cy="38" r="3.2" fill="none" stroke="rgba(235,240,245,.28)"/>' +
-        '<rect x="49" y="7" width="10" height="3" fill="#4A9EFF" fill-opacity=".62"/>' +
-        '<rect x="61" y="7" width="10" height="3" fill="#E04A4A" fill-opacity=".62"/>' +
-        '<text x="46" y="34" font-family="Geist Mono, monospace" font-size="7" fill="rgba(235,240,245,.4)">' + id + '</text>' +
-        '</svg>';
+      return '<svg viewBox="0 0 126 48" aria-hidden="true">' +
+        '<g fill="none" stroke="rgba(236,239,243,.44)" stroke-width=".9" stroke-linejoin="round">' +
+        '<path d="M6 35h114"/>' +
+        '<path d="M12 35V22c0-1.8 1-2.8 2.8-2.8h5.6l6.6-8.4c1-1.2 1.9-1.8 3.8-1.8h49c1.9 0 2.8.6 3.8 1.8l5.6 8.4h7.6c1.8 0 2.8 1 2.8 2.8v13"/>' +
+        '<path d="M30 19.2l5.6-7.6h15v7.6H30Z"/><path d="M54 11.6h13.2v7.6H54v-7.6Z"/><path d="M71 11.6h9.4l5.6 7.6H71v-7.6Z"/>' +
+        '<path d="M12 26.6h89"/><path d="M18 30h6.6M93 30h6.6"/>' +
+        '<rect x="45" y="4.6" width="22" height="4.6" rx="1.4"/><path d="M50 4.6V2.8M62 4.6V2.8"/></g>' +
+        '<circle cx="32" cy="35" r="7" fill="none" stroke="rgba(236,239,243,.48)"/>' +
+        '<circle cx="32" cy="35" r="3" fill="none" stroke="rgba(236,239,243,.26)"/>' +
+        '<circle cx="93" cy="35" r="7" fill="none" stroke="rgba(236,239,243,.48)"/>' +
+        '<circle cx="93" cy="35" r="3" fill="none" stroke="rgba(236,239,243,.26)"/>' +
+        '<rect x="46" y="5.6" width="9.4" height="2.6" fill="#4A9EFF" fill-opacity=".6"/>' +
+        '<rect x="57" y="5.6" width="9.4" height="2.6" fill="#E04A4A" fill-opacity=".6"/>' +
+        '<text x="44" y="31" font-family="Geist Mono, monospace" font-size="6.5" fill="rgba(236,239,243,.38)">' + id + '</text></svg>';
     },
     engine: function (id) {
-      return '<svg viewBox="0 0 132 52" aria-hidden="true">' +
-        '<g fill="none" stroke="rgba(235,240,245,.46)" stroke-width="1" stroke-linejoin="round">' +
-        '<path d="M6 38h120"/>' +
-        '<path d="M10 38V18c0-1 1-2 2-2h34v22"/>' +
-        '<path d="M46 38V12c0-1 1-2 2-2h62c1 0 2 1 2 2v26"/>' +
-        '<path d="M14 20h12v9H14z"/><path d="M52 15h20v10H52z"/><path d="M78 15h28v10H78z"/>' +
-        '<path d="M46 30h68"/><path d="M84 30v8M62 30v8"/>' +
-        '<path d="M50 10 112 6"/><path d="M52 8v-3M108 6V3"/>' +
-        '</g>' +
-        '<circle cx="28" cy="38" r="7" fill="none" stroke="rgba(235,240,245,.5)"/>' +
-        '<circle cx="28" cy="38" r="3" fill="none" stroke="rgba(235,240,245,.28)"/>' +
-        '<circle cx="82" cy="38" r="7" fill="none" stroke="rgba(235,240,245,.5)"/>' +
-        '<circle cx="82" cy="38" r="3" fill="none" stroke="rgba(235,240,245,.28)"/>' +
-        '<circle cx="102" cy="38" r="7" fill="none" stroke="rgba(235,240,245,.5)"/>' +
-        '<circle cx="102" cy="38" r="3" fill="none" stroke="rgba(235,240,245,.28)"/>' +
-        '<rect x="16" y="13" width="9" height="3" fill="#F26B3A" fill-opacity=".68"/>' +
-        '<text x="54" y="35" font-family="Geist Mono, monospace" font-size="7" fill="rgba(235,240,245,.4)">' + id + '</text>' +
-        '</svg>';
+      return '<svg viewBox="0 0 126 48" aria-hidden="true">' +
+        '<g fill="none" stroke="rgba(236,239,243,.44)" stroke-width=".9" stroke-linejoin="round">' +
+        '<path d="M4 35h118"/>' +
+        '<path d="M8 35V17c0-1 .9-1.9 1.9-1.9h32V35"/>' +
+        '<path d="M42 35V11.6c0-1 .9-1.9 1.9-1.9h59c1 0 1.9.9 1.9 1.9V35"/>' +
+        '<path d="M12 18.6h11v8.4H12z"/><path d="M48 14.4h18.6v9.4H48z"/><path d="M72 14.4h26v9.4H72z"/>' +
+        '<path d="M42 28h63"/><path d="M78 28v7M58 28v7"/>' +
+        '<path d="M46 9.4 104 5.6"/><path d="M48 7.6V4.8M100 5.6V3"/></g>' +
+        '<circle cx="26" cy="35" r="6.6" fill="none" stroke="rgba(236,239,243,.48)"/>' +
+        '<circle cx="26" cy="35" r="2.8" fill="none" stroke="rgba(236,239,243,.26)"/>' +
+        '<circle cx="76" cy="35" r="6.6" fill="none" stroke="rgba(236,239,243,.48)"/>' +
+        '<circle cx="76" cy="35" r="2.8" fill="none" stroke="rgba(236,239,243,.26)"/>' +
+        '<circle cx="95" cy="35" r="6.6" fill="none" stroke="rgba(236,239,243,.48)"/>' +
+        '<circle cx="95" cy="35" r="2.8" fill="none" stroke="rgba(236,239,243,.26)"/>' +
+        '<rect x="14" y="11.6" width="8.4" height="2.8" fill="#F26B3A" fill-opacity=".66"/>' +
+        '<text x="50" y="32" font-family="Geist Mono, monospace" font-size="6.5" fill="rgba(236,239,243,.38)">' + id + '</text></svg>';
     },
     heli: function (id) {
-      return '<svg viewBox="0 0 132 52" aria-hidden="true">' +
-        '<g fill="none" stroke="rgba(235,240,245,.46)" stroke-width="1" stroke-linejoin="round">' +
-        '<path d="M14 6h104"/><path d="M66 6v6"/>' +
-        '<path d="M40 30c0-9 7-18 20-18h10c10 0 16 7 18 14l-4 8c-2 3-6 4-10 4H52c-7 0-12-3-12-8Z"/>' +
-        '<path d="M88 26 122 22"/><path d="M118 16v10"/><path d="M114 22h10"/>' +
-        '<path d="M48 16c6-2 12-2 18 0v8H48v-8Z"/>' +
-        '<path d="M44 38h42"/><path d="M52 34v4M78 34v4"/>' +
-        '</g>' +
-        '<circle cx="118" cy="21" r="4.6" fill="none" stroke="rgba(235,240,245,.34)" stroke-dasharray="2 2"/>' +
-        '<text x="56" y="33" font-family="Geist Mono, monospace" font-size="7" fill="rgba(235,240,245,.4)">' + id + '</text>' +
-        '</svg>';
+      return '<svg viewBox="0 0 126 48" aria-hidden="true">' +
+        '<g fill="none" stroke="rgba(236,239,243,.44)" stroke-width=".9" stroke-linejoin="round">' +
+        '<path d="M12 5h102"/><path d="M63 5v5.6"/>' +
+        '<path d="M38 28c0-8.4 6.6-16.8 18.6-16.8h9.4c9.4 0 15 6.6 16.8 13.2l-3.8 7.6c-1.9 2.8-5.6 3.8-9.4 3.8H49c-6.6 0-11-2.8-11-7.8Z"/>' +
+        '<path d="M83 24.2 116 20.4"/><path d="M112 15v10"/><path d="M108 20.4h9.4"/>' +
+        '<path d="M46 15c5.6-1.9 11-1.9 16.8 0v7.6H46V15Z"/>' +
+        '<path d="M42 35h40"/><path d="M50 31v4M74 31v4"/></g>' +
+        '<circle cx="112" cy="19.6" r="4.2" fill="none" stroke="rgba(236,239,243,.3)" stroke-dasharray="2 2"/>' +
+        '<text x="53" y="31" font-family="Geist Mono, monospace" font-size="6.5" fill="rgba(236,239,243,.38)">' + id + '</text></svg>';
     }
   };
 
   var UNITS = [
-    { cs:"1A-12", art:"cruiser", fleet:"45623", ts:"15.09.2026, 18:41:02", state:"In service",
-      link:"LTE", code:"10-23", col:"#EDF1F5", x:352, y:296, sector:"N-2", zone:"North Ridge", cov:87,
-      trace:"M2,22 L18,17 L34,20 L52,10 L70,13 L88,5 L104,8" },
-    { cs:"2S-04", art:"suv", fleet:"34654", ts:"15.09.2026, 18:39:55", state:"In service",
-      link:"LTE", code:"10-23", col:"#E89A3C", x:268, y:344, sector:"S-1", zone:"Mill Lake", cov:64,
-      trace:"M2,8 L20,14 L38,11 L56,21 L74,17 L92,24 L104,20" },
-    { cs:"AIR-1", art:"heli", fleet:"AIR1", ts:"15.09.2026, 18:42:10", state:"In service",
-      link:"SAT", code:"10-8", col:"#4A9EFF", x:536, y:176, sector:"N-1", zone:"Airfield", cov:93,
-      trace:"M2,18 Q22,4 42,16 T82,10 L104,14" },
-    { cs:"E-31", art:"engine", fleet:"E31", ts:"15.09.2026, 18:12:47", state:"Out of service",
-      link:"LTE", code:"10-7", col:"#F26B3A", x:176, y:552, sector:"S-2", zone:"Station 1", cov:41,
-      trace:"M2,20 L24,20 L24,11 L48,11 L72,16 L104,16" }
+    { cs:"1A-12", art:"cruiser", fleet:"45623", ts:"15.09.2026, 18:41:02", state:"Online", link:"LTE",
+      col:"#F2F5F8", x:372, y:286, sec:"N-2", zone:"North Ridge", cov:87,
+      tr:"M2,20 L16,15 L30,18 L46,9 L62,12 L78,5 L92,8" },
+    { cs:"2S-04", art:"suv", fleet:"34654", ts:"15.09.2026, 18:39:55", state:"Online", link:"LTE",
+      col:"#E8A04A", x:286, y:336, sec:"S-1", zone:"Mill Lake", cov:64,
+      tr:"M2,7 L18,13 L34,10 L50,19 L66,15 L82,21 L92,18" },
+    { cs:"AIR-1", art:"heli", fleet:"AIR1", ts:"15.09.2026, 18:42:10", state:"Online", link:"SAT",
+      col:"#4A9EFF", x:556, y:170, sec:"N-1", zone:"Airfield", cov:93,
+      tr:"M2,16 Q20,3 38,14 T74,9 L92,12" },
+    { cs:"E-31", art:"engine", fleet:"E31", ts:"15.09.2026, 18:12:47", state:"Offline", link:"LTE",
+      col:"#F26B3A", x:188, y:540, sec:"S-2", zone:"Station 1", cov:41,
+      tr:"M2,18 L22,18 L22,10 L44,10 L66,14 L92,14" }
   ];
 
-  var CALLS = [
-    { x:352, y:296, p:1 }, { x:186, y:534, p:1 },
-    { x:456, y:634, p:2 }, { x:628, y:352, p:3 }
-  ];
+  var CALLS = [{ x:372, y:286, p:1 }, { x:200, y:524, p:1 }, { x:470, y:640, p:2 }, { x:648, y:336, p:3 }];
+  var NODES = [[262,410],[414,456],[546,430],[466,198],[688,74],[322,578],[714,246],[586,672]];
 
-  var OFFSETS = [
-    { u:"1A-12", col:"#EDF1F5", v:[-2, 1, 1.5, -3, -1, 2] },
-    { u:"2S-04", col:"#E89A3C", v:[-1, 2, -2.5, 1, -2, 3] },
-    { u:"E-31",  col:"#F26B3A", v:[4, -1, 2, 1.5, -1, -2] }
+  var OFF = [
+    { u:"45623", col:"#F2F5F8", v:[-2, 1, 1.5, -3, -1, 2] },
+    { u:"34654", col:"#E8A04A", v:[-2, -1, 2, -2.5, 2, -1] }
   ];
 
   var sel = 0;
 
-  function renderCards() {
-    document.getElementById("cards").innerHTML = UNITS.map(function (u, i) {
-      var dot = u.code === "10-7" ? "#5A6069" : u.code === "10-23" ? "#E89A3C" : "#4ADE80";
-      return '<button type="button" class="card" data-i="' + i + '" aria-current="' + (i === sel) + '">' +
-        '<div class="ch">' +
-          '<div><div class="nm">' + u.cs + '</div><div class="ts">' + u.ts + '</div></div>' +
-          '<svg class="arw" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">' +
-            '<path d="M2.5 7.5 7.5 2.5M7.5 2.5h-4M7.5 2.5v4" stroke="currentColor" stroke-linecap="round"/></svg>' +
-        '</div>' +
+  function fleet() {
+    document.getElementById("fleet").innerHTML = UNITS.map(function (u, i) {
+      var on = u.state === "Online";
+      return '<button type="button" class="fc" data-i="' + i + '" aria-current="' + (i === sel) + '">' +
+        '<div class="h"><div><div class="nm">' + u.cs + '</div><div class="ts">' + u.ts + '</div></div>' +
+        '<svg class="arw" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">' +
+        '<path d="M2 7 7 2M7 2H3M7 2v4" stroke="currentColor" stroke-linecap="round"/></svg></div>' +
         '<div class="art">' + ART[u.art](u.fleet) + '</div>' +
-        '<div class="srow">' +
-          '<span class="st"><i style="width:5px;height:5px;border-radius:50%;background:' + dot + ';display:inline-block"></i>' + u.state + '</span>' +
+        '<div class="st">' +
+          '<span style="display:flex;align-items:center;gap:4px"><i style="width:4.5px;height:4.5px;border-radius:50%;background:' +
+            (on ? "#4ADE80" : "#585C63") + ';display:inline-block"></i>' + u.state + '</span>' +
           '<span class="sep"></span>' +
-          '<span class="st"><svg width="9" height="9" viewBox="0 0 9 9" fill="none">' +
-            '<path d="M4.5 8 1.4 2.2 4.5 3.6 7.6 2.2 4.5 8Z" stroke="currentColor" stroke-width=".8" stroke-linejoin="round"/></svg>GPS</span>' +
-          '<span class="sep"></span>' +
-          '<span class="st">' + u.link + '</span>' +
+          '<span style="display:flex;align-items:center;gap:3px"><svg width="8" height="8" viewBox="0 0 9 9" fill="none">' +
+          '<path d="M4.5 8 1.4 2.2 4.5 3.6 7.6 2.2 4.5 8Z" stroke="currentColor" stroke-width=".8" stroke-linejoin="round"/></svg>GPS</span>' +
+          '<span class="sep"></span><span>' + u.link + '</span>' +
         '</div>' +
-        '<div class="trace"><svg viewBox="0 0 106 28" preserveAspectRatio="none">' +
-          '<line x1="0" y1="24" x2="106" y2="24" stroke="rgba(235,240,245,.08)"/>' +
-          '<path d="' + u.trace + '" fill="none" stroke="rgba(235,240,245,.34)" stroke-width="1" stroke-dasharray="2.5 2.5"/>' +
-          '<circle cx="104" cy="' + (u.art === "engine" ? 16 : u.art === "suv" ? 20 : u.art === "heli" ? 14 : 8) + '" r="2.6" fill="' + u.col + '"/>' +
-        '</svg></div>' +
-        '<div class="tax"><span>06AM</span><span>11PM</span></div>' +
+        '<div class="mini"><svg viewBox="0 0 94 26" preserveAspectRatio="none">' +
+          '<path d="M0,21 L94,15" stroke="rgba(236,239,243,.06)" fill="none"/>' +
+          '<path d="M0,9 L94,13" stroke="rgba(236,239,243,.05)" fill="none"/>' +
+          '<path d="' + u.tr + '" fill="none" stroke="rgba(236,239,243,.42)" stroke-width=".9" stroke-dasharray="2.5 2.5"/>' +
+          '<circle cx="92" cy="' + (u.art === "engine" ? 14 : u.art === "suv" ? 18 : u.art === "heli" ? 12 : 8) +
+            '" r="2.4" fill="#F2F5F8"/></svg></div>' +
+        '<div class="ax"><span>06AM</span><span>11PM</span></div>' +
       '</button>';
     }).join("");
 
-    Array.prototype.forEach.call(document.querySelectorAll(".card"), function (el) {
-      el.addEventListener("click", function () {
-        sel = +el.dataset.i; renderCards(); renderMarkers(); sync();
-      });
+    Array.prototype.forEach.call(document.querySelectorAll(".fc"), function (el) {
+      el.addEventListener("click", function () { sel = +el.dataset.i; fleet(); markers(); sync(); });
     });
   }
 
-  function renderMarkers() {
+  function markers() {
     var s = "";
+    NODES.forEach(function (n) {
+      s += '<g transform="translate(' + n[0] + ',' + n[1] + ')">' +
+           '<circle r="7" fill="rgba(12,13,14,.72)" stroke="rgba(248,250,252,.62)" stroke-width="1.2"/>' +
+           '<circle r="2.2" fill="rgba(248,250,252,.72)"/></g>';
+    });
     CALLS.forEach(function (c) {
-      var col = c.p === 1 ? "#E04A4A" : c.p === 2 ? "#E89A3C" : "#5A6069";
+      var col = c.p === 1 ? "#E04A4A" : c.p === 2 ? "#E8A04A" : "#8A8F96";
       s += '<g transform="translate(' + c.x + ',' + c.y + ')">';
       if (c.p === 1) {
-        s += '<circle r="12" fill="none" stroke="' + col + '" stroke-width="1">' +
+        s += '<circle r="11" fill="none" stroke="' + col + '" stroke-width="1">' +
              '<animate attributeName="r" values="8;26;26" dur="2.8s" repeatCount="indefinite"/>' +
-             '<animate attributeName="stroke-opacity" values=".6;0;0" dur="2.8s" repeatCount="indefinite"/></circle>';
+             '<animate attributeName="stroke-opacity" values=".65;0;0" dur="2.8s" repeatCount="indefinite"/></circle>';
       }
-      s += '<circle r="7" fill="#0A0B0C" fill-opacity=".85" stroke="' + col + '" stroke-width="1.4"/>' +
-           '<path d="M0,-3 L3,2.4 H-3 Z" fill="' + col + '"/></g>';
+      s += '<circle r="7" fill="' + col + '" fill-opacity=".92"/>' +
+           '<circle r="2.4" fill="#0A0A0B"/></g>';
     });
-
     UNITS.forEach(function (u, i) {
       var on = i === sel;
       s += '<g transform="translate(' + u.x + ',' + u.y + ')">';
       if (on) {
-        s += '<circle r="44" fill="url(#halo)"/>' +
-             '<circle r="26" fill="none" stroke="' + u.col + '" stroke-opacity=".34" stroke-dasharray="4 4"/>' +
-             '<path d="M0,0 L-17,-24 A30,30 0 0 1 17,-24 Z" fill="' + u.col + '" fill-opacity=".13"/>' +
-             '<circle r="14" fill="none" stroke="' + u.col + '" stroke-opacity=".55">' +
-             '<animate attributeName="r" values="11;19;11" dur="3.2s" repeatCount="indefinite"/></circle>';
+        s += '<circle r="34" fill="none" stroke="rgba(248,250,252,.4)" stroke-width="1.1" stroke-dasharray="5 5"/>' +
+             '<circle r="34" fill="rgba(248,250,252,.05)"/>' +
+             '<path d="M0,-9 L7.4,5 H-7.4 Z" fill="rgba(248,250,252,.92)"/></g>';
+      } else {
+        s += '<circle r="7" fill="rgba(12,13,14,.8)" stroke="' + u.col + '" stroke-width="1.4"/>' +
+             '<circle r="2.6" fill="' + u.col + '"/>' +
+             '<text x="12" y="3.6" font-family="Geist Mono, monospace" font-size="9.5" fill="rgba(236,239,243,.62)">' +
+             u.cs + '</text></g>';
       }
-      s += '<circle r="8" fill="#0A0B0C" stroke="' + u.col + '" stroke-width="1.6"/>' +
-           '<circle r="3" fill="' + u.col + '"/>' +
-           '<text x="14" y="4" font-family="Geist Mono, monospace" font-size="10" fill="' +
-             (on ? "#EDF1F5" : "rgba(235,240,245,.6)") + '">' + u.cs + '</text></g>';
     });
     document.getElementById("mk").innerHTML = s;
   }
 
   function sync() {
     var u = UNITS[sel];
-    document.getElementById("cbUnit").textContent = u.cs;
-    document.getElementById("cbSec").textContent = u.sector;
-    document.getElementById("covSub").textContent = u.zone + " · " + u.sector;
-    document.getElementById("covVal").innerHTML = u.cov + '<span style="font-size:14px;color:var(--dim)">%</span>';
+    document.getElementById("cbU").textContent = u.cs;
+    document.getElementById("cbS").textContent = u.sec;
+    document.getElementById("loadSub").textContent = u.zone + " · " + u.sec;
+    document.getElementById("loadVal").innerHTML = u.cov + '<span style="font-size:13px;color:var(--dim)">%</span>';
   }
 
-  /* ── offset table with ruler ticks, mirroring the reference strip ── */
-  function renderOffsets() {
-    var cols = "64px repeat(6, minmax(0,1fr))";
-    var html = '<div class="grid-hd" style="grid-template-columns:' + cols + '">' +
-      '<span>UNIT</span><span>S1</span><span>S2</span><span>S3</span><span>S4</span><span>S5</span><span>S6</span></div>';
-
-    OFFSETS.forEach(function (r) {
-      html += '<div class="grow" style="grid-template-columns:' + cols + '">' +
-        '<span class="rbadge"><i style="background:' + r.col + '"></i>' + r.u + '</span>' +
+  function table() {
+    var h = '<div class="thd"><span>Unit number</span><span>S1</span><span>S2</span><span>S3</span>' +
+            '<span>S4</span><span>S5</span><span>S6</span></div>';
+    OFF.forEach(function (r) {
+      h += '<div class="trow"><span class="rb"><i style="background:' + r.col + '"></i>' + r.u + '</span>' +
         r.v.map(function (v) {
-          var big = Math.abs(v) >= 2;
-          return '<span class="cell ' + (big ? "pos" : "neg") + '">' +
-            (big ? '<i></i>' : '') + (v > 0 ? "+" : "") + v + 'm</span>';
+          var m = Math.abs(v) >= 1.5;
+          return '<span class="cl">' + (m ? '<i></i>' : '') + (v > 0 ? "+" : "") + v + 'min</span>';
         }).join("") + '</div>';
+      var t = "";
+      for (var i = 0; i <= 56; i++) {
+        t += '<path d="M' + (i * 6.8 + 1) + ' 0v' + (i % 8 === 0 ? 7 : 3.4) + '" stroke="rgba(236,239,243,' +
+             (i % 8 === 0 ? ".28" : ".13") + ')"/>';
+      }
+      h += '<div class="tk"><svg viewBox="0 0 386 8" preserveAspectRatio="none">' + t + '</svg></div>';
     });
-
-    var ticks = "";
-    for (var i = 0; i <= 60; i++) {
-      var major = i % 10 === 0;
-      ticks += '<path d="M' + (i * 6.6 + 1) + ' 0 v' + (major ? 8 : 4) + '" stroke="rgba(235,240,245,' +
-               (major ? ".3" : ".14") + ')"/>';
-    }
-    html += '<div class="ticks"><svg viewBox="0 0 400 10" preserveAspectRatio="none">' + ticks + '</svg></div>';
-
-    document.getElementById("offsets").innerHTML = html;
+    document.getElementById("tbl").innerHTML = h;
   }
 
-  /* ruler ticks under the volume chart */
   (function () {
     var t = "";
-    for (var i = 0; i <= 40; i++) {
-      t += '<path d="M' + (i * 10) + ' 52 v' + (i % 5 === 0 ? 6 : 3) + '"/>';
-    }
-    document.getElementById("volticks").innerHTML = t;
+    for (var i = 0; i <= 38; i++) t += '<path d="M' + (i * 10) + ' 22v' + (i % 5 === 0 ? 7 : 3.5) + '"/>';
+    document.getElementById("vt").innerHTML = t;
   })();
 
   Array.prototype.forEach.call(document.querySelectorAll(".nav button"), function (b) {
@@ -927,12 +852,13 @@
       b.setAttribute("aria-selected", "true");
     });
   });
-  Array.prototype.forEach.call(document.querySelectorAll(".depts button"), function (b) {
+  Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function (b) {
     b.addEventListener("click", function () {
       b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
     });
   });
 
-  renderCards(); renderMarkers(); renderOffsets(); sync();
+  buildTerrain();
+  fleet(); markers(); table(); sync();
 })();
 </script>
