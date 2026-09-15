@@ -142,15 +142,22 @@ const toggleFollow = () => { follow = !follow; zfit?.setAttribute('aria-pressed'
 
 // ── themes ──
 const THEMES = {
-  light: { bg: 0x232A33, hemi: [0xC9D8EE, 0x4A4F55, 1.35], sun: [0xFFF1DC, 2.6], exp: 1.15, ground: 0xE4E7EB, apron: 0x1C2128, map: tex },
-  dark:  { bg: 0x0B0B0C, hemi: [0x8FA3C4, 0x1A1C20, 0.8],  sun: [0xFFE3BD, 1.7], exp: 0.95, ground: 0xC4C8CE, apron: 0x0E1114, map: texDark },
+  light: { bg: 0x232A33, hemi: [0xC9D8EE, 0x4A4F55, 1.35], sun: [0xFFF1DC, 2.6], exp: 1.15, ground: 0xE4E7EB, apron: 0x1C2128, map: tex,
+           bld: palette, tree: 0x2F5A2B },
+  dark:  { bg: 0x121214, hemi: [0xB9C2D0, 0x2A2C31, 1.15], sun: [0xE8ECF2, 1.5], exp: 1.0, ground: 0xF2F2F2, apron: 0x111113, map: texDark,
+           bld: [[0x3C3F46, 0x474B53], [0x2A2D33, 0x33373E], [0x3A3D44, 0x44484F]], tree: 0x2B3A2E },
 };
 const setTheme = name => { const T = THEMES[name] || THEMES.light;
   scene.background.setHex(T.bg); scene.fog.color.setHex(T.bg);
   hemi.color.setHex(T.hemi[0]); hemi.groundColor.setHex(T.hemi[1]); hemi.intensity = T.hemi[2];
   sun.color.setHex(T.sun[0]); sun.intensity = T.sun[1]; renderer.toneMappingExposure = T.exp;
   ground.material.color.setHex(T.ground); if (ground.material.map !== T.map) { ground.material.map = T.map; ground.material.needsUpdate = true; }
-  apron.material.color.setHex(T.apron); };
+  apron.material.color.setHex(T.apron);
+  // recolour buildings and trees for the theme (deterministic variation, same seed as construction)
+  let sd = 3; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  GEO.buildings.forEach(([, , , , , , k], i) => { C.setHex(T.bld[k][rn() < 0.5 ? 0 : 1]).offsetHSL(0, 0, (rn() - 0.5) * 0.06); bld.setColorAt(i, C); });
+  GEO.trees.forEach((_, i) => { rn(); rn(); C.setHex(T.tree).offsetHSL((rn() - 0.5) * 0.05, 0, (rn() - 0.5) * 0.12); trees.setColorAt(i, C); });
+  bld.instanceColor.needsUpdate = true; trees.instanceColor.needsUpdate = true; };
 
 // ── loop ──
 const clock = new THREE.Clock();

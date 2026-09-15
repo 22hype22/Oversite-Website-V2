@@ -47,6 +47,7 @@
   .world img{position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-drag:none;
     filter:saturate(1.08) brightness(1.18)}
   body.theme-light .world img{filter:saturate(1.02) brightness(.92)}
+  body.theme-dark .world img{filter:none}
   .world svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .route{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
   .route.a{stroke:#F0F2F5;stroke-width:2.2;stroke-dasharray:9 7;opacity:.9}
@@ -167,6 +168,7 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -198,6 +200,7 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -422,7 +425,7 @@
 <!-- ─────────── map ─────────── -->
 <div class="view" id="view" aria-label="Live map">
   <div class="world" id="world">
-    <img src="liberty-county-dark.jpg" data-light="liberty-county.jpg" data-dark="liberty-county-dark.jpg" alt="">
+    <img src="liberty-county-dark.jpg" data-light="liberty-county.jpg" data-dark="liberty-county-darkmode.jpg" alt="">
     <svg viewBox="0 0 2000 2000" aria-hidden="true">
       <!-- Route 14 · white dashed -->
       <path class="route a2" d="M1332 275 C1340 520 1350 760 1350 1000 L1352 1452 L300 1452"/>
