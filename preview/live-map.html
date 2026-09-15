@@ -91,22 +91,25 @@
     background:none;border:0;pointer-events:none}
   .bar>*{pointer-events:auto}
   .bar .menu button{text-shadow:0 1px 8px rgba(0,0,0,.6)}
-  .mark{flex:none;width:30px;height:30px;border-radius:8px;background:rgba(240,242,245,.06);
+  .mark{flex:none;width:30px;height:30px;border-radius:8px;background:rgba(28,28,31,.66);border:1px solid var(--hair);
     display:flex;align-items:center;justify-content:center}
   .menu{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
   .menu::-webkit-scrollbar{display:none}
-  .menu button{font-size:12.5px;color:var(--dim);white-space:nowrap;padding:7px 12px;border-radius:999px;
+  .menu button{font-size:12.5px;color:var(--dim);white-space:nowrap;padding:7px 12px;border-radius:999px;border:1px solid transparent;
     transition:color .18s cubic-bezier(.32,.72,0,1),background .18s cubic-bezier(.32,.72,0,1)}
   .menu button:hover{color:var(--ink);background:rgba(240,242,245,.05)}
-  .menu button[aria-selected="true"]{background:#F4F6F8;color:#0B0B0C;font-weight:500}
+  .menu button[aria-selected="true"]{background:rgba(28,28,31,.72);color:var(--ink);font-weight:500;border:1px solid var(--hair2);
+    backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:0 6px 20px rgba(0,0,0,.35)}
   .search{flex:none;display:flex;align-items:center;gap:8px;color:var(--dim);font-size:12px;
-    padding:6px 4px;min-width:170px;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+    padding:7px 12px;min-width:190px;border-radius:999px;background:rgba(28,28,31,.66);border:1px solid var(--hair);
+    backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur)}
   .search kbd{font:inherit;font-size:10.5px;color:var(--faint);margin-left:auto}
   .icons{flex:none;display:flex;align-items:center;gap:4px}
-  .icons button{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--dim);position:relative;filter:drop-shadow(0 1px 4px rgba(0,0,0,.6))}
+  .icons button{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--dim);position:relative;
+    background:rgba(28,28,31,.66);border:1px solid var(--hair);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur)}
   .icons button:hover{color:var(--ink);background:rgba(240,242,245,.06)}
-  .icons .dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--red);
-    box-shadow:0 0 0 2px #0F0F11}
+  .icons .dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--red);
+    box-shadow:0 0 0 2px #1C1C1F}
   .avatar{width:30px;height:30px;border-radius:50%;margin-left:6px;
     background:radial-gradient(circle at 35% 30%,#7C7F86,#2A2B2F 70%);border:1px solid var(--hair2)}
 
@@ -136,6 +139,8 @@
   .card h3{margin:0;font-size:12px;font-weight:400;color:var(--dim);display:flex;align-items:center;justify-content:space-between}
   .card h3 .go{color:var(--faint)}
   .eff .big{font-size:30px;font-weight:300;letter-spacing:-.03em;line-height:1;margin-top:10px}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
@@ -211,21 +216,16 @@
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh.compact .pic{height:48px}
   .veh.compact .pic>svg{height:56px}
 
   /* ───────── stage: everything over the map, right of the rail ───────── */
   .stage{position:fixed;left:var(--rail);right:0;top:var(--barh);bottom:0;z-index:4;pointer-events:none;padding:var(--gap)}
   .stage>*{pointer-events:auto}
-  .title{position:absolute;left:var(--gap);top:16px;font-size:clamp(22px,2.3vw,32px);font-weight:300;letter-spacing:-.02em;
+  .title{position:absolute;left:var(--gap);top:-2px;line-height:1;font-size:clamp(22px,2.3vw,32px);font-weight:300;letter-spacing:-.02em;
     text-shadow:0 2px 24px rgba(0,0,0,.7);pointer-events:none}
-  .sel{position:absolute;left:var(--gap);top:calc(16px + clamp(22px,2.3vw,32px) + 16px);display:flex;gap:6px}
-  .sel button{display:flex;align-items:center;gap:6px;padding:7px 10px 7px 8px;border-radius:9px;
-    background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--hair);
-    font-size:11.5px;color:var(--ink)}
-  .sel button:hover{border-color:var(--hair2)}
-  .sel button .chev{color:var(--faint)}
-
   .mapctl{position:absolute;left:var(--gap);bottom:calc(var(--footh) + var(--gap) + 12px);display:flex;gap:6px}
   .mapctl button{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--dim);
     background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--hair)}
@@ -294,9 +294,6 @@
     .search{display:none}
   }
   @media (prefers-reduced-motion:reduce){.focus::before{animation:none;opacity:.4}}
-  .sel .seg{display:flex;padding:3px;gap:2px}
-  .sel .seg a{display:block;padding:4px 9px;border-radius:6px;font-size:11px;color:var(--dim);text-decoration:none}
-  .sel .seg a[aria-current="page"]{background:#F4F6F8;color:#0B0B0C;font-weight:500}
   /* unit render backdrop + availability chart */
   .veh .pic::before{content:"";position:absolute;left:-2px;right:34%;top:-6px;bottom:-4px;border-radius:12px;
     background:radial-gradient(ellipse 70% 80% at 48% 55%,rgba(240,242,245,.13),rgba(240,242,245,.03) 60%,rgba(240,242,245,0) 100%);
@@ -560,13 +557,7 @@
 
 <!-- ─────────── overlays on the map ─────────── -->
 <main class="stage" id="stage">
-  <h1 class="title">Traffic Management</h1>
-  <div class="sel">
-    <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="13" rx="3"/><path d="M8 20h8M4 12h16"/></svg>Bus 6023<span class="chev"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></span></button>
-    <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg>Map 2<span class="chev"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></span></button>
-    <span class="card seg" role="group" aria-label="View"><a href="live-map.html" aria-current="page">2D</a><a href="live-map-3d.html">3D</a></span>
-  </div>
-
+  <h1 class="title">Live Map</h1>
   <div class="mapctl" role="group" aria-label="Map controls">
     <button id="zin" aria-label="Zoom in"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
     <button id="zfit" aria-label="Recenter"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
