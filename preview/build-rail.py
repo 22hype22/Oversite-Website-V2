@@ -62,23 +62,15 @@ stats='''  <div class="stats">
     <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#46D07C"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5" fill="none" stroke="#0B0B0C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Online</div><div class="n">65</div></div>
     <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#E24B4B"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round"/></svg>Active Calls</div><div class="n">7</div></div>
   </div>'''
-eff='''  <div class="card eff">
-    <h3>Operational Efficiency <span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></h3>
-    <div class="big">78.<span class="d">3</span><small>%</small></div>
-    <div class="tgt">Target:</div>
-    <div class="plot">
-      <svg viewBox="0 0 300 86" preserveAspectRatio="none" aria-hidden="true">
-        <g stroke="rgba(240,242,245,.07)" stroke-width="1"><line x1="0" y1="8" x2="252" y2="8" stroke-dasharray="2 3"/><line x1="0" y1="27" x2="252" y2="27"/><line x1="0" y1="46" x2="252" y2="46"/><line x1="0" y1="65" x2="252" y2="65"/><line x1="0" y1="84" x2="252" y2="84"/></g>
-        <g fill="rgba(240,242,245,.09)">
-          <rect x="2" y="52" width="7" height="32"/><rect x="16" y="46" width="7" height="38"/><rect x="30" y="58" width="7" height="26"/><rect x="44" y="48" width="7" height="36"/><rect x="58" y="40" width="7" height="44"/><rect x="72" y="54" width="7" height="30"/><rect x="86" y="44" width="7" height="40"/><rect x="100" y="36" width="7" height="48"/><rect x="114" y="50" width="7" height="34"/><rect x="128" y="42" width="7" height="42"/><rect x="142" y="30" width="7" height="54"/><rect x="156" y="48" width="7" height="36"/><rect x="170" y="38" width="7" height="46"/><rect x="184" y="44" width="7" height="40"/><rect x="198" y="34" width="7" height="50"/><rect x="212" y="46" width="7" height="38"/><rect x="226" y="40" width="7" height="44"/><rect x="240" y="50" width="7" height="34"/>
-        </g>
-        <rect x="98" y="8" width="12" height="76" fill="rgba(240,242,245,.10)"/><rect x="194" y="8" width="12" height="76" fill="rgba(240,242,245,.10)"/>
-        <path d="M0 58 L10 52 L22 60 L34 50 L46 55 L58 44 L70 50 L82 40 L94 46 L104 26 L116 50 L128 40 L140 48 L152 36 L164 44 L176 34 L188 42 L200 22 L212 44 L226 38 L240 46 L252 36" fill="none" stroke="#F0F2F5" stroke-width="1.3" stroke-linejoin="round"/>
-        <path d="M0 66 L10 62 L20 68 L30 60 L40 64 L50 58" fill="none" stroke="#E9A24C" stroke-width="1.3" stroke-dasharray="3 2"/>
-        <circle cx="104" cy="26" r="2.4" fill="#F0F2F5"/><circle cx="200" cy="22" r="2.4" fill="#F0F2F5"/>
-      </svg>
-      <div class="ax"><span>+80%</span><span>100%</span><span>75%</span><span>50%</span><span>25%</span></div>
-      <div class="xs"><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span></div>
+eff='''  <div class="card eff" id="avail">
+    <h3>Unit Availability <span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></h3>
+    <div class="big"><span id="avNum">—</span><small>%</small></div>
+    <div class="tgt">Target: <b>80%</b><span class="sep">·</span><span id="avSub">—</span></div>
+    <div class="plot" id="avPlot" tabindex="0" aria-label="Unit availability over the shift">
+      <svg id="avSvg" viewBox="0 0 300 86" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="ax"><span>100%</span><span>75%</span><span>50%</span><span>25%</span></div>
+      <div class="xs" id="avXs"></div>
+      <div class="hov" id="avHov" hidden></div>
     </div>
   </div>'''
 fleet='  <div class="fleet" role="list" aria-label="Units">\n'
@@ -104,6 +96,89 @@ css_rep=[
 ]
 for x,y in css_rep:
     s=s.replace(x,y)
+css_add = """  /* unit render backdrop + availability chart */
+  .veh .pic::before{content:"";position:absolute;left:-2px;right:34%;top:-6px;bottom:-4px;border-radius:12px;
+    background:radial-gradient(ellipse 70% 80% at 48% 55%,rgba(240,242,245,.13),rgba(240,242,245,.03) 60%,rgba(240,242,245,0) 100%);
+    pointer-events:none}
+  .veh.compact .pic::before{right:40%}
+  .veh .pic>svg{position:relative}
+  .veh[aria-pressed="true"] .pic::before{background:radial-gradient(ellipse 70% 80% at 48% 55%,rgba(240,242,245,.18),rgba(240,242,245,.05) 60%,rgba(240,242,245,0) 100%)}
+  .eff .tgt b{color:var(--dim);font-weight:500}
+  .eff .tgt .sep{margin:0 6px;color:var(--faint)}
+  .plot{cursor:crosshair;outline:0}
+  .plot .hov{position:absolute;top:0;transform:translate(-50%,-4px);padding:5px 8px;border-radius:7px;white-space:nowrap;
+    background:rgba(20,20,23,.92);border:1px solid var(--hair2);font-size:10px;color:var(--dim);pointer-events:none;z-index:2}
+  .plot .hov b{color:var(--ink);font-weight:500}
+  .plot .hov[hidden]{display:none}
+"""
+if '.veh .pic::before' not in s: s=s.replace('</style>',css_add+'</style>')
+js_add = r"""<script>
+/* ── Unit Availability: real chart over shift data ── */
+(() => {
+  const svg = document.getElementById('avSvg'), num = document.getElementById('avNum'), sub = document.getElementById('avSub'),
+        xs = document.getElementById('avXs'), hov = document.getElementById('avHov'), plot = document.getElementById('avPlot');
+  if (!svg) return;
+  const TARGET = 80, START = 9, END = 21, STEP = 0.5;           // shift window, half-hour samples
+  const PLOT_W = 252, TOP = 8, BOT = 84;                          // drawing area inside the 300x86 viewBox
+  let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  // one sample per half hour: units on duty and how many of them are free (not on a call)
+  const data = [];
+  for (let h = START; h <= END; h += STEP) {
+    const onduty = Math.round(17 + 9 * Math.sin((h - 8) / 14 * Math.PI) + rnd() * 3);
+    const busy = Math.round(2 + rnd() * 5 + (h >= 17 && h <= 19 ? 3 : 0));
+    data.push({ h, onduty, avail: Math.max(0, onduty - busy) });
+  }
+  const pct = d => d.onduty ? d.avail / d.onduty * 100 : 0;
+  const X = i => i / (data.length - 1) * PLOT_W;
+  const Y = v => BOT - (v / 100) * (BOT - TOP);
+  const fmt = h => String(Math.floor(h)).padStart(2, '0') + ':' + (h % 1 ? '30' : '00');
+
+  const render = () => {
+    const maxOn = Math.max(...data.map(d => d.onduty)) || 1;
+    const bw = PLOT_W / data.length * 0.55;
+    let g = '<g stroke="rgba(240,242,245,.07)" stroke-width="1">';
+    for (const v of [100, 75, 50, 25]) g += `<line x1="0" y1="${Y(v)}" x2="${PLOT_W}" y2="${Y(v)}"/>`;
+    g += '</g><g fill="rgba(240,242,245,.09)">';
+    data.forEach((d, i) => { const h = (d.onduty / maxOn) * (BOT - TOP) * 0.8; g += `<rect x="${X(i) - bw / 2}" y="${BOT - h}" width="${bw}" height="${h}"/>`; });
+    g += '</g>';
+    // highlight the two best half-hours
+    const top2 = [...data.keys()].sort((a, b) => pct(data[b]) - pct(data[a])).slice(0, 2);
+    for (const i of top2) g += `<rect x="${X(i) - bw}" y="${TOP}" width="${bw * 2}" height="${BOT - TOP}" fill="rgba(240,242,245,.10)"/>`;
+    // target
+    g += `<line x1="0" y1="${Y(TARGET)}" x2="${PLOT_W}" y2="${Y(TARGET)}" stroke="#E9A24C" stroke-width="1" stroke-dasharray="3 3" opacity=".8"/>`;
+    g += `<text x="${PLOT_W - 2}" y="${Y(TARGET) - 3}" font-size="7.5" fill="#E9A24C" text-anchor="end" font-family="inherit">${TARGET}%</text>`;
+    // availability line
+    const pts = data.map((d, i) => `${X(i)} ${Y(pct(d))}`);
+    g += `<path d="M${pts.join(' L')}" fill="none" stroke="#F0F2F5" stroke-width="1.3" stroke-linejoin="round"/>`;
+    for (const i of top2) g += `<circle cx="${X(i)}" cy="${Y(pct(data[i]))}" r="2.4" fill="#F0F2F5"/>`;
+    g += '<line id="avCur" x1="-10" y1="' + TOP + '" x2="-10" y2="' + BOT + '" stroke="rgba(240,242,245,.35)" stroke-width="1"/>';
+    svg.innerHTML = g;
+    const last = data[data.length - 1], p = pct(last);
+    num.innerHTML = Math.floor(p) + '.<span class="d">' + Math.round((p % 1) * 10) + '</span>';
+    sub.textContent = `${last.avail} of ${last.onduty} units free`;
+    num.style.color = p < TARGET - 15 ? 'var(--red)' : '';
+    xs.innerHTML = [9, 12, 15, 18, 21].map(h => `<span>${fmt(h)}</span>`).join('');
+  };
+
+  // hover / keyboard readout
+  const show = i => { const d = data[i], r = plot.getBoundingClientRect();
+    const px = X(i) / 300 * r.width;
+    hov.innerHTML = `<b>${fmt(d.h)}</b> · <b>${Math.round(pct(d))}%</b> · ${d.avail}/${d.onduty} free`; hov.style.left = Math.min(Math.max(px, 44), r.width - 60) + 'px'; hov.hidden = false;
+    const cur = svg.querySelector('#avCur'); cur.setAttribute('x1', X(i)); cur.setAttribute('x2', X(i)); };
+  const hide = () => { hov.hidden = true; const cur = svg.querySelector('#avCur'); cur.setAttribute('x1', -10); cur.setAttribute('x2', -10); };
+  plot.addEventListener('pointermove', e => { const r = plot.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 300;
+    if (x > PLOT_W) return hide(); show(Math.round(x / PLOT_W * (data.length - 1))); });
+  plot.addEventListener('pointerleave', hide);
+  let ki = data.length - 1;
+  plot.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') ki = Math.max(0, ki - 1); else if (e.key === 'ArrowRight') ki = Math.min(data.length - 1, ki + 1); else return; e.preventDefault(); show(ki); });
+
+  // live feed: the current half-hour keeps moving as units take and clear calls
+  setInterval(() => { const d = data[data.length - 1]; d.avail = Math.max(0, Math.min(d.onduty, d.avail + (rnd() < 0.5 ? -1 : 1))); render(); }, 4000);
+  render();
+})();
+</script>
+"""
+if "Unit Availability: real chart" not in s: s=s.replace('<script>\n(() => {', js_add+'<script>\n(() => {',1)
 open(p,'w').write(s)
 b64=base64.b64encode(open('preview/liberty-county-dark.jpg','rb').read()).decode()
 sa=s.replace('src="liberty-county-dark.jpg"','src="data:image/jpeg;base64,'+b64+'"').replace('href="live-map.html"','href="live-map-standalone.html"').replace('href="live-map-3d.html"','href="live-map-3d-standalone.html"')
