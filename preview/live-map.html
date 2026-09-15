@@ -9,8 +9,8 @@
 <style>
   :root{
     --bg:#0B0B0C;
-    --glass:rgba(13,13,15,.78);
-    --glass2:rgba(20,20,23,.72);
+    --glass:rgba(13,13,15,.58);
+    --glass2:rgba(20,20,23,.6);
     --sel:rgba(44,44,48,.80);
     --hair:rgba(240,242,245,.08);
     --hair2:rgba(240,242,245,.14);
@@ -22,7 +22,7 @@
     --green:#46D07C;
     --blue:#4C8DFF;
     --lime:#B8D94A;
-    --blur:blur(28px) saturate(1.1);
+    --blur:blur(40px) saturate(1.25);
     --f:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
     --barh:58px;
     --rail:clamp(330px,26vw,392px);
@@ -45,7 +45,7 @@
   .view.drag{cursor:grabbing}
   .world{position:absolute;left:0;top:0;width:2000px;height:2000px;transform-origin:0 0;will-change:transform}
   .world img{position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-drag:none;
-    filter:saturate(1.05) brightness(.96)}
+    filter:saturate(1.08) brightness(1.18)}
   .world svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .route{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
   .route.a{stroke:#F0F2F5;stroke-width:2.2;stroke-dasharray:9 7;opacity:.9}
@@ -56,8 +56,8 @@
   .stop.g{stroke:var(--lime)}
   .vig{position:absolute;inset:0;pointer-events:none;
     background:
-      linear-gradient(90deg,rgba(11,11,12,.55) 0,rgba(11,11,12,0) var(--rail)),
-      linear-gradient(180deg,rgba(11,11,12,.5),rgba(11,11,12,0) 22%,rgba(11,11,12,0) 70%,rgba(11,11,12,.55))}
+      linear-gradient(90deg,rgba(11,11,12,.28) 0,rgba(11,11,12,0) var(--rail)),
+      linear-gradient(180deg,rgba(11,11,12,.18),rgba(11,11,12,0) 18%,rgba(11,11,12,0) 78%,rgba(11,11,12,.28))}
 
   /* screen-space pins re-projected by JS */
   .pins{position:fixed;inset:0;z-index:2;pointer-events:none}
@@ -86,7 +86,7 @@
   /* ───────── top bar ───────── */
   .bar{position:fixed;top:0;left:0;right:0;height:var(--barh);z-index:6;
     display:flex;align-items:center;gap:20px;padding:0 18px;
-    background:linear-gradient(180deg,rgba(11,11,12,.72),rgba(11,11,12,.42));
+    background:rgba(11,11,12,.32);
     backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
     border-bottom:1px solid var(--hair)}
   .mark{flex:none;width:30px;height:30px;border-radius:8px;background:rgba(240,242,245,.06);
@@ -113,7 +113,7 @@
     padding:var(--gap);overflow-y:auto;scrollbar-width:none;
     display:flex;flex-direction:column;gap:10px}
   .rail::-webkit-scrollbar{display:none}
-  .card{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  .card{background:var(--glass);box-shadow:0 10px 40px rgba(0,0,0,.28);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
     border:1px solid var(--hair);border-radius:14px}
   .chips{display:flex;gap:6px}
   .chips button{flex:1;display:flex;align-items:baseline;justify-content:center;gap:5px;

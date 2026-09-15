@@ -10,8 +10,8 @@
 <style>
   :root{
     --bg:#0B0B0C;
-    --glass:rgba(13,13,15,.78);
-    --glass2:rgba(20,20,23,.72);
+    --glass:rgba(13,13,15,.58);
+    --glass2:rgba(20,20,23,.6);
     --sel:rgba(44,44,48,.80);
     --hair:rgba(240,242,245,.08);
     --hair2:rgba(240,242,245,.14);
@@ -23,7 +23,7 @@
     --green:#46D07C;
     --blue:#4C8DFF;
     --lime:#B8D94A;
-    --blur:blur(28px) saturate(1.1);
+    --blur:blur(40px) saturate(1.25);
     --f:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
     --barh:58px;
     --rail:clamp(330px,26vw,392px);
@@ -46,7 +46,7 @@
   .view.drag{cursor:grabbing}
   .world{position:absolute;left:0;top:0;width:2000px;height:2000px;transform-origin:0 0;will-change:transform}
   .world img{position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-drag:none;
-    filter:saturate(1.05) brightness(.96)}
+    filter:saturate(1.08) brightness(1.18)}
   .world svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .route{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
   .route.a{stroke:#F0F2F5;stroke-width:2.2;stroke-dasharray:9 7;opacity:.9}
@@ -57,8 +57,8 @@
   .stop.g{stroke:var(--lime)}
   .vig{position:absolute;inset:0;pointer-events:none;
     background:
-      linear-gradient(90deg,rgba(11,11,12,.55) 0,rgba(11,11,12,0) var(--rail)),
-      linear-gradient(180deg,rgba(11,11,12,.5),rgba(11,11,12,0) 22%,rgba(11,11,12,0) 70%,rgba(11,11,12,.55))}
+      linear-gradient(90deg,rgba(11,11,12,.28) 0,rgba(11,11,12,0) var(--rail)),
+      linear-gradient(180deg,rgba(11,11,12,.18),rgba(11,11,12,0) 18%,rgba(11,11,12,0) 78%,rgba(11,11,12,.28))}
 
   /* screen-space pins re-projected by JS */
   .pins{position:fixed;inset:0;z-index:2;pointer-events:none}
@@ -87,7 +87,7 @@
   /* ───────── top bar ───────── */
   .bar{position:fixed;top:0;left:0;right:0;height:var(--barh);z-index:6;
     display:flex;align-items:center;gap:20px;padding:0 18px;
-    background:linear-gradient(180deg,rgba(11,11,12,.72),rgba(11,11,12,.42));
+    background:rgba(11,11,12,.32);
     backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
     border-bottom:1px solid var(--hair)}
   .mark{flex:none;width:30px;height:30px;border-radius:8px;background:rgba(240,242,245,.06);
@@ -114,7 +114,7 @@
     padding:var(--gap);overflow-y:auto;scrollbar-width:none;
     display:flex;flex-direction:column;gap:10px}
   .rail::-webkit-scrollbar{display:none}
-  .card{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  .card{background:var(--glass);box-shadow:0 10px 40px rgba(0,0,0,.28);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
     border:1px solid var(--hair);border-radius:14px}
   .chips{display:flex;gap:6px}
   .chips button{flex:1;display:flex;align-items:baseline;justify-content:center;gap:5px;
@@ -240,11 +240,15 @@
     .search{display:none}
   }
   @media (prefers-reduced-motion:reduce){.focus::before{animation:none;opacity:.4}}
+  .sel .seg{display:flex;padding:3px;gap:2px}
+  .sel .seg a{display:block;padding:4px 9px;border-radius:6px;font-size:11px;color:var(--dim);text-decoration:none}
+  .sel .seg a[aria-current="page"]{background:#F4F6F8;color:#0B0B0C;font-weight:500}
   /* ───────── 3D view ───────── */
+  :root{--blur:blur(22px) saturate(1.2)}   /* lighter blur: the backdrop repaints every frame over WebGL */
   .view canvas{position:absolute;inset:0;width:100%;height:100%;display:block;outline:0}
   .view .vig{background:
-      linear-gradient(90deg,rgba(11,11,12,.6) 0,rgba(11,11,12,0) var(--rail)),
-      linear-gradient(180deg,rgba(11,11,12,.55),rgba(11,11,12,0) 24%,rgba(11,11,12,0) 68%,rgba(11,11,12,.6))}
+      linear-gradient(90deg,rgba(11,11,12,.22) 0,rgba(11,11,12,0) var(--rail)),
+      linear-gradient(180deg,rgba(11,11,12,.12),rgba(11,11,12,0) 16%,rgba(11,11,12,0) 80%,rgba(11,11,12,.22))}
   .pins .tip{transform:translate(18px,-50%)}
   .sel .seg{display:flex;padding:3px;gap:2px}
   .sel .seg a{display:block;padding:4px 9px;border-radius:6px;font-size:11px;color:var(--dim);text-decoration:none}
@@ -448,17 +452,18 @@ const loading = document.getElementById('loading');
 
 // ── renderer / scene ──
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+let pr = Math.min(devicePixelRatio, 1.5); renderer.setPixelRatio(pr);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.autoUpdate = false;      // the city is static: bake the shadow map once
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.95;
+renderer.toneMappingExposure = 1.15;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 view.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0B0B0C);
-scene.fog = new THREE.Fog(0x0B0B0C, 700, 2600);
+scene.background = new THREE.Color(0x232A33);
+scene.fog = new THREE.Fog(0x232A33, 900, 3000);
 
 const camera = new THREE.PerspectiveCamera(42, 1, 1, 6000);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -470,25 +475,25 @@ controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 renderer.domElement.addEventListener('pointerdown', () => { controls.autoRotate = false; }, { once: true });
 
 // ── light ──
-scene.add(new THREE.HemisphereLight(0x8FA3C4, 0x1A1C20, 0.75));
-const sun = new THREE.DirectionalLight(0xFFE3BD, 1.9);
+scene.add(new THREE.HemisphereLight(0xC9D8EE, 0x4A4F55, 1.35));
+const sun = new THREE.DirectionalLight(0xFFF1DC, 2.6);
 sun.position.set(1000 + 520, 900, 1000 - 380);
 sun.target.position.set(1000, 0, 1000);
 sun.castShadow = true;
-sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -1300, right: 1300, top: 1300, bottom: -1300, near: 100, far: 3000 });
 sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.8;
 scene.add(sun, sun.target);
 
 // ── ground: the map itself ──
-const tex = new THREE.TextureLoader().load(MAP_SRC, () => loading.classList.add('off'));
-tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const tex = new THREE.TextureLoader().load(MAP_SRC, () => { loading.classList.add('off'); renderer.shadowMap.needsUpdate = true; });
+tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(W, W),
-  new THREE.MeshStandardMaterial({ map: tex, color: 0xB6BAC0, roughness: 1, metalness: 0 }));
+  new THREE.MeshStandardMaterial({ map: tex, color: 0xE4E7EB, roughness: 1, metalness: 0 }));
 ground.rotation.x = -Math.PI / 2; ground.position.set(W / 2, 0, W / 2); ground.receiveShadow = true;
 scene.add(ground);
 // apron beyond the map edge
-const apron = new THREE.Mesh(new THREE.PlaneGeometry(W * 4, W * 4), new THREE.MeshStandardMaterial({ color: 0x0E1114, roughness: 1 }));
+const apron = new THREE.Mesh(new THREE.PlaneGeometry(W * 4, W * 4), new THREE.MeshStandardMaterial({ color: 0x1C2128, roughness: 1 }));
 apron.rotation.x = -Math.PI / 2; apron.position.set(W / 2, -0.5, W / 2); scene.add(apron);
 
 // ── buildings ──
@@ -497,7 +502,7 @@ const bMat = new THREE.MeshStandardMaterial({ roughness: 0.82, metalness: 0.05, 
 const bld = new THREE.InstancedMesh(box, bMat, GEO.buildings.length);
 bld.castShadow = bld.receiveShadow = true;
 const M = new THREE.Matrix4(), P = new THREE.Vector3(), Q = new THREE.Quaternion(), Sc = new THREE.Vector3(), C = new THREE.Color();
-const palette = [[0xC4C8CE, 0xD7DAE0], [0x2B2E33, 0x3A3E45], [0x6F5B4C, 0x8A7460]];
+const palette = [[0xD3D7DD, 0xE3E6EB], [0x3E434B, 0x50565F], [0x8A745F, 0xA08A72]];
 let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 GEO.buildings.forEach(([x, y, L, Wd, ang, h, k], i) => {
   P.set(x, 0, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L, h, Wd);
@@ -515,7 +520,7 @@ trees.castShadow = true; trees.receiveShadow = true;
 GEO.trees.forEach(([x, y, s], i) => {
   P.set(x, 0, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rnd() * 6.28); Sc.set(s, s * (0.9 + rnd() * 0.5), s);
   trees.setMatrixAt(i, M.compose(P, Q, Sc));
-  C.setHex(0x22421F).offsetHSL((rnd() - 0.5) * 0.05, 0, (rnd() - 0.5) * 0.12);
+  C.setHex(0x2F5A2B).offsetHSL((rnd() - 0.5) * 0.05, 0, (rnd() - 0.5) * 0.12);
   trees.setColorAt(i, C);
 });
 scene.add(trees);
@@ -543,7 +548,7 @@ const addStop = ([x, y], color) => {
 // ── vehicles ──
 const busGeo = new THREE.BoxGeometry(14, 5.5, 6); busGeo.translate(0, 2.75, 0);
 const mkBus = color => { const b = new THREE.Mesh(busGeo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.5 }));
-  b.castShadow = true; scene.add(b); return b; };
+  scene.add(b); return b; };
 const hero = mkBus(0xF0F2F5);           // Bus 6023 (focused)
 const bus4120 = mkBus(0x4C8DFF);        // on route 14
 const bus2209 = mkBus(0xC9CDD3), ebus = mkBus(0xC9CDD3);
@@ -579,8 +584,14 @@ zfit.onclick = () => { follow = !follow; zfit.setAttribute('aria-pressed', follo
 
 // ── loop ──
 const clock = new THREE.Clock();
+// adaptive resolution: if frames are slow, drop the pixel ratio (and climb back when they are fast)
+let acc = 0, n = 0;
+const adapt = dt => { acc += dt; if (++n < 40) return; const avg = acc / n; acc = n = 0;
+  const want = avg > 0.03 ? Math.max(0.75, pr - 0.25) : (avg < 0.014 ? Math.min(Math.min(devicePixelRatio, 1.5), pr + 0.25) : pr);
+  if (want !== pr) { pr = want; renderer.setPixelRatio(pr); } };
+renderer.shadowMap.needsUpdate = true;
 renderer.setAnimationLoop(() => {
-  const dt = Math.min(clock.getDelta(), 0.05), now = clock.elapsedTime;
+  const dt = Math.min(clock.getDelta(), 0.05), now = clock.elapsedTime; adapt(dt);
   tHero = (tHero + dt * 0.011) % 1; t4120 = (t4120 + dt * 0.008) % 1; t2209 = (t2209 + dt * 0.007) % 1; tE = (tE + dt * 0.009) % 1;
   const hp = place(hero, routeB, tHero); place(bus4120, routeA, t4120); place(bus2209, routeA, t2209); place(ebus, routeB, tE);
   glow.position.x = pulse.position.x = hp.x; glow.position.z = pulse.position.z = hp.z;
