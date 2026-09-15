@@ -1,0 +1,902 @@
+<title>Oversite Dispatch</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@300;400;500&display=swap">
+<style>
+  /* ── Oversite Dispatch · CAD console ───────────────────────────────
+     Single-theme by intent: a dispatch console is a dark-room tool.
+     Every colour is painted explicitly so the page holds on any ground. */
+  :root{
+    --ground:#0B0C0E;
+    --panel:#121417;
+    --raised:#171A1E;
+    --sunk:#0E1013;
+    --hairline:rgba(233,239,247,.07);
+    --hairline-2:rgba(233,239,247,.12);
+    --ink:#E9EFF7;
+    --dim:#8A939F;
+    --faint:#565E69;
+    --amber:#E8A33D;      /* data accent — ticks, scales, marks */
+    --red:#E5484D;        /* priority 1 / critical */
+    --green:#3DD68C;      /* 10-8 in service */
+    --fire:#F26B3A;       /* LCFD */
+    --air:#4A9EFF;        /* air unit */
+    --r:3px;
+    --ui:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--ground);color:var(--ink);
+    font-family:var(--ui);font-size:13px;line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    font-variant-numeric:tabular-nums;
+    overflow:hidden;
+  }
+  @media (max-width:1080px){body{overflow:auto}}
+
+  .mono{font-family:var(--mono)}
+  .micro{
+    font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--faint);font-weight:500;
+  }
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  :focus-visible{outline:1px solid var(--amber);outline-offset:2px}
+
+  /* ── shell ─────────────────────────────────────────────────────── */
+  .console{
+    height:100%;display:grid;
+    grid-template-columns:296px minmax(0,1fr) 300px;
+    grid-template-rows:auto minmax(0,1fr);
+    gap:1px;background:var(--hairline);
+  }
+  .console>*{background:var(--ground)}
+
+  /* ── top bar ───────────────────────────────────────────────────── */
+  .topbar{
+    grid-column:1/-1;display:flex;align-items:center;gap:14px;
+    padding:0 14px;height:46px;background:var(--panel);
+  }
+  .mark{display:flex;align-items:center;gap:9px;padding-right:6px}
+  .mark svg{display:block}
+  .mark b{font-weight:600;font-size:12.5px;letter-spacing:-.01em}
+  .mark span{font-size:9px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase}
+
+  .tabs{display:flex;align-items:center;gap:2px;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{
+    padding:5px 11px;border-radius:2px;font-size:12px;color:var(--dim);
+    white-space:nowrap;transition:color .15s cubic-bezier(.32,.72,0,1),background .15s cubic-bezier(.32,.72,0,1);
+  }
+  .tab:hover{color:var(--ink);background:rgba(233,239,247,.04)}
+  .tab[aria-selected="true"]{background:var(--ink);color:#0B0C0E;font-weight:500}
+
+  .topbar .spacer{flex:1}
+  .clock{font-family:var(--mono);font-size:12px;color:var(--dim);letter-spacing:.02em}
+  .clock b{color:var(--ink);font-weight:400}
+  .net{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim)}
+  .dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex:none}
+  .dot.live{animation:breathe 2.4s cubic-bezier(.4,0,.6,1) infinite}
+  @keyframes breathe{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* ── rails ─────────────────────────────────────────────────────── */
+  .rail{background:var(--panel);display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+  .rail::-webkit-scrollbar{width:7px}
+  .rail::-webkit-scrollbar-thumb{background:rgba(233,239,247,.09);border-radius:4px}
+  .rail::-webkit-scrollbar-track{background:transparent}
+
+  .block{padding:12px 13px;border-bottom:1px solid var(--hairline)}
+  .block-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+
+  /* filter chips */
+  .chips{display:flex;gap:5px;flex-wrap:wrap}
+  .chip{
+    display:flex;align-items:baseline;gap:5px;padding:4px 8px;
+    border:1px solid var(--hairline);border-radius:2px;
+    font-size:11px;color:var(--dim);
+    transition:border-color .15s cubic-bezier(.32,.72,0,1),color .15s cubic-bezier(.32,.72,0,1);
+  }
+  .chip:hover{border-color:var(--hairline-2);color:var(--ink)}
+  .chip[aria-pressed="true"]{border-color:rgba(233,239,247,.28);color:var(--ink);background:rgba(233,239,247,.05)}
+  .chip .n{font-family:var(--mono);font-size:11px;color:var(--ink);font-weight:500}
+  .chip[aria-pressed="true"] .n{color:var(--amber)}
+
+  /* status split */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hairline);border:1px solid var(--hairline)}
+  .stat{background:var(--panel);padding:10px 11px}
+  .stat .row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .stat .row span{font-size:10.5px;color:var(--dim)}
+  .stat .v{font-family:var(--mono);font-size:26px;font-weight:300;letter-spacing:-.02em;line-height:1}
+  .tri{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:7px solid var(--red)}
+  .chk{width:9px;height:9px;border-radius:50%;background:var(--green);position:relative}
+  .chk::after{content:"";position:absolute;inset:0;margin:auto;width:3px;height:1.5px;border-left:1.5px solid #0B0C0E;border-bottom:1.5px solid #0B0C0E;transform:rotate(-45deg) translate(0,-.5px)}
+
+  /* readiness chart */
+  .readout{display:flex;align-items:baseline;gap:6px}
+  .readout .big{font-family:var(--mono);font-size:32px;font-weight:300;letter-spacing:-.03em;line-height:1}
+  .readout .pct{font-family:var(--mono);font-size:14px;color:var(--dim);font-weight:300}
+  .spark{margin-top:10px;position:relative}
+  .spark svg{display:block;width:100%;height:auto}
+  .axis{display:flex;justify-content:space-between;margin-top:5px}
+  .axis span{font-family:var(--mono);font-size:9px;color:var(--faint)}
+
+  /* unit cards */
+  .units{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hairline)}
+  .unit{
+    background:var(--panel);padding:9px 9px 8px;text-align:left;position:relative;
+    transition:background .15s cubic-bezier(.32,.72,0,1);
+  }
+  .unit:hover{background:var(--raised)}
+  .unit[aria-current="true"]{background:var(--raised);box-shadow:inset 0 0 0 1px rgba(233,239,247,.2)}
+  .unit-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+  .unit .cs{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.01em}
+  .unit .meta{font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:1px}
+  .arrow{color:var(--faint);flex:none;transition:transform .2s cubic-bezier(.32,.72,0,1),color .2s}
+  .unit:hover .arrow{color:var(--ink);transform:translate(1px,-1px)}
+  .thumb{margin:8px 0 7px;height:46px;background:var(--sunk);position:relative;overflow:hidden}
+  .thumb svg{position:absolute;inset:0;width:100%;height:100%}
+  .unit-bot{display:flex;align-items:center;justify-content:space-between;gap:4px}
+  .code{font-family:var(--mono);font-size:9.5px;display:flex;align-items:center;gap:4px}
+  .tags{display:flex;gap:4px}
+  .tag{font-family:var(--mono);font-size:8.5px;color:var(--faint);letter-spacing:.04em}
+
+  /* ── map ───────────────────────────────────────────────────────── */
+  .center{display:flex;flex-direction:column;min-width:0;min-height:0;gap:1px;background:var(--hairline)}
+  .map{position:relative;flex:1;min-height:340px;background:var(--sunk);overflow:hidden}
+  .map>svg.base{position:absolute;inset:0;width:100%;height:100%}
+
+  .map-title{
+    position:absolute;top:18px;left:24px;font-size:26px;font-weight:300;
+    letter-spacing:-.02em;color:rgba(233,239,247,.9);pointer-events:none;
+    text-wrap:balance;
+  }
+  .map-title em{font-style:normal;color:var(--faint)}
+
+  .crumbs{position:absolute;top:60px;left:24px;display:flex;gap:6px}
+  .crumb{
+    display:flex;align-items:center;gap:6px;padding:4px 9px;
+    background:rgba(11,12,14,.72);backdrop-filter:blur(12px);
+    border:1px solid var(--hairline);border-radius:2px;
+    font-family:var(--mono);font-size:10.5px;color:var(--dim);
+  }
+  .crumb b{color:var(--ink);font-weight:500}
+
+  .search{
+    position:absolute;top:16px;right:16px;display:flex;align-items:center;gap:8px;
+    padding:6px 10px;background:rgba(11,12,14,.72);backdrop-filter:blur(12px);
+    border:1px solid var(--hairline);border-radius:2px;
+  }
+  .search input{
+    background:none;border:0;color:var(--ink);font-family:var(--ui);font-size:11.5px;
+    width:118px;padding:0;
+  }
+  .search input::placeholder{color:var(--faint)}
+  .search kbd{
+    font-family:var(--mono);font-size:9px;color:var(--faint);
+    border:1px solid var(--hairline);border-radius:2px;padding:1px 4px;
+  }
+
+  .glass{
+    position:absolute;padding:10px 12px;
+    background:rgba(14,16,19,.76);backdrop-filter:blur(16px);
+    border:1px solid var(--hairline);border-radius:2px;min-width:132px;
+  }
+  .glass .lbl{font-size:10.5px;color:var(--dim)}
+  .glass .sub{font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:1px}
+  .glass .big{font-family:var(--mono);font-size:24px;font-weight:300;margin-top:7px;letter-spacing:-.02em;line-height:1}
+
+  .zoom{
+    position:absolute;left:16px;bottom:16px;display:flex;gap:1px;background:var(--hairline);
+    border:1px solid var(--hairline);
+  }
+  .zoom button{
+    width:28px;height:28px;background:rgba(11,12,14,.78);backdrop-filter:blur(12px);
+    display:flex;align-items:center;justify-content:center;color:var(--dim);
+    transition:color .15s cubic-bezier(.32,.72,0,1),background .15s cubic-bezier(.32,.72,0,1);
+  }
+  .zoom button:hover{color:var(--ink);background:var(--raised)}
+
+  .legend{
+    position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;gap:5px;
+    padding:9px 11px;background:rgba(11,12,14,.72);backdrop-filter:blur(12px);
+    border:1px solid var(--hairline);border-radius:2px;
+  }
+  .legend div{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--dim)}
+  .legend i{width:6px;height:6px;border-radius:50%;flex:none}
+
+  /* ── bottom strips ─────────────────────────────────────────────── */
+  .strips{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hairline);flex:none}
+  .strip{background:var(--panel);padding:12px 14px 13px;min-width:0}
+  .strip-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:11px}
+  .strip .v{font-family:var(--mono);font-size:24px;font-weight:300;letter-spacing:-.02em;line-height:1}
+  .strip .v small{font-size:12px;color:var(--dim);margin-left:3px;font-weight:300}
+  .strip .cap{font-size:10.5px;color:var(--dim);margin-top:4px}
+
+  .sectors{display:flex;flex-direction:column;gap:6px}
+  .sector{display:grid;grid-template-columns:52px 1fr;align-items:center;gap:10px}
+  .sector .id{font-family:var(--mono);font-size:10px;color:var(--dim);display:flex;align-items:center;gap:5px}
+  .sector .id i{width:4px;height:4px;border-radius:50%;background:var(--amber);flex:none}
+  .ruler{position:relative;height:16px}
+  .ruler svg{display:block;width:100%;height:100%}
+
+  .volbars{position:relative}
+  .volbars svg{display:block;width:100%;height:auto}
+  .volaxis{display:flex;justify-content:space-between;margin-top:4px}
+  .volaxis span{font-family:var(--mono);font-size:9px;color:var(--faint)}
+
+  /* ── right rail / calls ────────────────────────────────────────── */
+  .group{border-bottom:1px solid var(--hairline)}
+  .group>summary{
+    display:flex;align-items:center;gap:7px;padding:10px 13px;cursor:pointer;
+    font-size:11.5px;color:var(--ink);list-style:none;
+  }
+  .group>summary::-webkit-details-marker{display:none}
+  .group>summary .cnt{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--faint)}
+  .group>summary .caret{transition:transform .2s cubic-bezier(.32,.72,0,1);color:var(--faint)}
+  .group[open]>summary .caret{transform:rotate(180deg)}
+  .group-body{padding:0 13px 12px;display:flex;flex-direction:column;gap:7px}
+
+  .call{
+    border:1px solid var(--hairline);border-left-width:2px;border-radius:2px;
+    background:var(--raised);padding:9px 10px;text-align:left;width:100%;
+    transition:border-color .15s cubic-bezier(.32,.72,0,1);
+  }
+  .call:hover{border-color:var(--hairline-2)}
+  .call.p1{border-left-color:var(--red);background:rgba(229,72,77,.06)}
+  .call.p2{border-left-color:var(--amber);background:rgba(232,163,61,.05)}
+  .call.p3{border-left-color:var(--faint)}
+  .call-top{display:flex;align-items:center;gap:7px}
+  .pri{
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;padding:1.5px 4px;border-radius:2px;
+    color:#0B0C0E;font-weight:500;flex:none;
+  }
+  .pri.p1{background:var(--red);color:#fff}
+  .pri.p2{background:var(--amber)}
+  .pri.p3{background:rgba(233,239,247,.18);color:var(--dim)}
+  .call .ttl{font-size:11.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .call .el{font-family:var(--mono);font-size:10px;color:var(--dim);flex:none}
+  .call .loc{font-family:var(--mono);font-size:9.5px;color:var(--faint);margin-top:4px}
+  .assigned{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap}
+  .badge{
+    font-family:var(--mono);font-size:8.5px;padding:1.5px 5px;border-radius:2px;
+    border:1px solid var(--hairline-2);color:var(--dim);
+  }
+  .badge.on{border-color:rgba(61,214,140,.4);color:var(--green)}
+
+  .rec{
+    display:flex;gap:8px;align-items:flex-start;margin-top:9px;padding-top:9px;
+    border-top:1px solid var(--hairline);
+  }
+  .rec .txt{font-size:10.5px;color:var(--dim);line-height:1.4}
+  .rec .txt b{color:var(--ink);font-weight:500;display:block;font-size:10.5px;margin-bottom:1px}
+
+  .sample{
+    padding:9px 13px;font-size:9.5px;color:var(--faint);line-height:1.5;
+    border-top:1px solid var(--hairline);
+  }
+
+  /* ── responsive ────────────────────────────────────────────────── */
+  @media (max-width:1080px){
+    .console{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;height:auto}
+    .map{min-height:420px}
+    .rail{max-height:none}
+  }
+  @media (max-width:560px){
+    .topbar{flex-wrap:wrap;height:auto;padding:9px 12px;gap:9px}
+    .map-title{font-size:19px;left:14px;top:14px}
+    .crumbs{left:14px;top:46px}
+    .search{display:none}
+    .strips{grid-template-columns:1fr}
+    .units{grid-template-columns:1fr}
+    .legend{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+
+<div class="console">
+
+  <!-- ══ TOP BAR ══════════════════════════════════════════════════ -->
+  <header class="topbar">
+    <div class="mark">
+      <svg width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+        <path d="M2 5.2 8.5 1.6 15 5.2" stroke="#E9EFF7" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M2 8.5 8.5 4.9 15 8.5" stroke="#E9EFF7" stroke-width="1.1" stroke-linecap="round" opacity=".62"/>
+        <path d="M2 11.8 8.5 8.2 15 11.8" stroke="#E9EFF7" stroke-width="1.1" stroke-linecap="round" opacity=".34"/>
+        <circle cx="8.5" cy="14.4" r="1.3" fill="#E8A33D"/>
+      </svg>
+      <div>
+        <b>Oversite</b> <span>CAD</span>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist" aria-label="Console sections">
+      <button class="tab" role="tab" aria-selected="true">Live Map</button>
+      <button class="tab" role="tab" aria-selected="false">Units</button>
+      <button class="tab" role="tab" aria-selected="false">Calls</button>
+      <button class="tab" role="tab" aria-selected="false">Civilians</button>
+      <button class="tab" role="tab" aria-selected="false">Warrants</button>
+      <button class="tab" role="tab" aria-selected="false">BOLOs</button>
+      <button class="tab" role="tab" aria-selected="false">Reports</button>
+    </nav>
+
+    <div class="spacer"></div>
+
+    <div class="clock mono"><b id="clock">18:42:07</b> · SHIFT B</div>
+    <div class="net">
+      <i class="dot live"></i> Dispatch net
+    </div>
+  </header>
+
+  <!-- ══ LEFT RAIL · ROSTER ═══════════════════════════════════════ -->
+  <aside class="rail" aria-label="Unit roster">
+
+    <div class="block">
+      <div class="chips" role="group" aria-label="Filter by department">
+        <button class="chip" aria-pressed="true"><span class="n">11</span> LCPD</button>
+        <button class="chip" aria-pressed="false"><span class="n">6</span> LCSO</button>
+        <button class="chip" aria-pressed="false"><span class="n">5</span> LCFD</button>
+        <button class="chip" aria-pressed="false"><span class="n">2</span> DOT</button>
+      </div>
+    </div>
+
+    <div class="block" style="padding:0;border-bottom:0">
+      <div class="split">
+        <div class="stat">
+          <div class="row"><i class="chk"></i><span>10-8 In service</span></div>
+          <div class="v">18</div>
+        </div>
+        <div class="stat">
+          <div class="row"><i class="tri"></i><span>10-7 Out</span></div>
+          <div class="v">6</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <div class="micro">Response readiness</div>
+        <svg class="arrow" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+          <path d="M2 7 7 2M7 2H3M7 2v4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="readout">
+        <span class="big">82.4</span><span class="pct">%</span>
+      </div>
+      <div class="micro" style="margin-top:4px">Target 80 · shift avg</div>
+
+      <div class="spark">
+        <svg viewBox="0 0 268 74" preserveAspectRatio="none" aria-label="Readiness across the shift, 04:00 to 21:00, ranging 61 to 93 percent">
+          <defs>
+            <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#E8A33D" stop-opacity=".26"/>
+              <stop offset="100%" stop-color="#E8A33D" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- grid -->
+          <line x1="0" y1="8"  x2="268" y2="8"  stroke="rgba(233,239,247,.06)" stroke-width="1"/>
+          <line x1="0" y1="31" x2="268" y2="31" stroke="rgba(233,239,247,.06)" stroke-width="1"/>
+          <line x1="0" y1="54" x2="268" y2="54" stroke="rgba(233,239,247,.06)" stroke-width="1"/>
+          <!-- target line -->
+          <line x1="0" y1="24" x2="268" y2="24" stroke="rgba(233,239,247,.22)" stroke-width="1" stroke-dasharray="2 3"/>
+          <!-- peak window -->
+          <rect x="150" y="0" width="46" height="66" fill="rgba(233,239,247,.035)"/>
+          <path fill="url(#sg)" d="M0,44 L16,40 L32,47 L48,38 L64,42 L80,33 L96,36 L112,27 L128,31 L144,22 L160,18 L176,25 L192,15 L208,21 L224,13 L240,19 L256,11 L268,16 L268,66 L0,66 Z"/>
+          <polyline fill="none" stroke="#E8A33D" stroke-width="1.2" stroke-linejoin="round"
+            points="0,44 16,40 32,47 48,38 64,42 80,33 96,36 112,27 128,31 144,22 160,18 176,25 192,15 208,21 224,13 240,19 256,11 268,16"/>
+          <circle cx="256" cy="11" r="2.4" fill="#E8A33D"/>
+          <circle cx="256" cy="11" r="5" fill="none" stroke="#E8A33D" stroke-opacity=".3" stroke-width="1"/>
+          <text x="2" y="6" fill="#565E69" font-family="Geist Mono, monospace" font-size="7">93%</text>
+          <text x="2" y="64" fill="#565E69" font-family="Geist Mono, monospace" font-size="7">61%</text>
+        </svg>
+      </div>
+      <div class="axis">
+        <span>04:00</span><span>09:00</span><span>14:00</span><span>18:00</span><span>21:00</span>
+      </div>
+    </div>
+
+    <div class="block" style="padding-bottom:0;border-bottom:0">
+      <div class="block-head">
+        <div class="micro">Active units</div>
+        <div class="micro" style="color:var(--dim)">4 of 24</div>
+      </div>
+    </div>
+    <div class="units" id="units"></div>
+  </aside>
+
+  <!-- ══ CENTRE · MAP + STRIPS ════════════════════════════════════ -->
+  <main class="center">
+    <section class="map" aria-label="Liberty County live map">
+      <svg class="base" viewBox="0 0 1000 660" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0C1218"/><stop offset="100%" stop-color="#090D12"/>
+          </linearGradient>
+          <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#E9EFF7" stop-opacity=".07"/>
+            <stop offset="100%" stop-color="#E9EFF7" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <rect width="1000" height="660" fill="#0E1013"/>
+
+        <!-- terrain masses -->
+        <path d="M0,0 H640 L600,120 L680,210 L640,330 L710,420 L660,540 L700,660 H0 Z" fill="#111418"/>
+        <path d="M0,0 H400 L360,150 L430,260 L380,400 L440,520 L400,660 H0 Z" fill="#131619"/>
+        <!-- hills -->
+        <path d="M40,60 Q140,20 250,70 T460,90 L440,190 Q300,150 160,180 T40,160 Z" fill="#161A1E" opacity=".8"/>
+        <path d="M80,420 Q200,380 320,430 T540,450 L520,560 Q380,520 240,550 T80,530 Z" fill="#161A1E" opacity=".6"/>
+        <!-- contour lines -->
+        <g fill="none" stroke="rgba(233,239,247,.05)" stroke-width="1">
+          <path d="M60,90 Q170,50 280,100 T480,118"/>
+          <path d="M70,118 Q180,80 290,128 T486,146"/>
+          <path d="M100,448 Q215,410 330,458 T548,476"/>
+          <path d="M108,476 Q222,440 338,486 T552,502"/>
+        </g>
+
+        <!-- water -->
+        <path d="M640,0 L600,120 L680,210 L640,330 L710,420 L660,540 L700,660 H1000 V0 Z" fill="url(#sea)"/>
+        <ellipse cx="300" cy="300" rx="72" ry="40" fill="#0C1218"/>
+        <ellipse cx="300" cy="300" rx="72" ry="40" fill="none" stroke="rgba(74,158,255,.14)" stroke-width="1"/>
+        <!-- shoreline -->
+        <path d="M640,0 L600,120 L680,210 L640,330 L710,420 L660,540 L700,660"
+              fill="none" stroke="rgba(233,239,247,.16)" stroke-width="1"/>
+
+        <!-- rail line -->
+        <path d="M0,240 H210 L360,196 H620 L780,150" fill="none" stroke="rgba(233,239,247,.2)"
+              stroke-width="1" stroke-dasharray="7 5"/>
+
+        <!-- highway 1 (primary) -->
+        <path d="M70,640 L150,470 L210,360 L300,250 L380,180 L470,120 L560,70"
+              fill="none" stroke="rgba(233,239,247,.62)" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M210,360 L340,400 L450,380 L540,300 L600,220"
+              fill="none" stroke="rgba(233,239,247,.5)" stroke-width="1.8" stroke-linecap="round"/>
+        <!-- secondary roads -->
+        <g fill="none" stroke="rgba(233,239,247,.26)" stroke-width="1.1" stroke-linecap="round">
+          <path d="M150,470 L260,500 L370,470 L430,520"/>
+          <path d="M300,250 L240,300 L190,290"/>
+          <path d="M380,180 L430,240 L500,230"/>
+          <path d="M470,120 L500,190 L560,200"/>
+          <path d="M340,400 L330,470 L390,540"/>
+          <path d="M100,560 L200,590 L300,560"/>
+          <path d="M540,300 L590,350 L620,430"/>
+        </g>
+        <!-- dirt / service roads -->
+        <g fill="none" stroke="rgba(233,239,247,.13)" stroke-width="1" stroke-dasharray="4 4">
+          <path d="M190,290 L120,250 L60,270"/>
+          <path d="M620,430 L660,500"/>
+          <path d="M430,520 L520,560"/>
+        </g>
+
+        <!-- district labels -->
+        <g font-family="Geist Mono, monospace" font-size="9" fill="#565E69" letter-spacing="1.4">
+          <text x="120" y="120">NORTH RIDGE</text>
+          <text x="238" y="322">MILL LAKE</text>
+          <text x="430" y="452">SOUTH FLATS</text>
+          <text x="470" y="96">AIRFIELD</text>
+          <text x="760" y="330">GREAT BAY</text>
+          <text x="120" y="606">QUARRY</text>
+        </g>
+
+        <!-- landmarks -->
+        <g>
+          <g transform="translate(300,250)">
+            <rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(233,239,247,.5)" stroke-width="1"/>
+            <text x="9" y="3" font-family="Geist Mono, monospace" font-size="9" fill="#8A939F">Central Bank</text>
+          </g>
+          <g transform="translate(380,180)">
+            <rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(233,239,247,.5)" stroke-width="1"/>
+            <text x="9" y="3" font-family="Geist Mono, monospace" font-size="9" fill="#8A939F">Postal</text>
+          </g>
+          <g transform="translate(210,360)">
+            <rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(233,239,247,.5)" stroke-width="1"/>
+            <text x="9" y="3" font-family="Geist Mono, monospace" font-size="9" fill="#8A939F">LCSO</text>
+          </g>
+          <g transform="translate(470,120)">
+            <rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(233,239,247,.5)" stroke-width="1"/>
+            <text x="9" y="3" font-family="Geist Mono, monospace" font-size="9" fill="#8A939F">Hospital</text>
+          </g>
+          <g transform="translate(150,470)">
+            <rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(233,239,247,.5)" stroke-width="1"/>
+            <text x="9" y="3" font-family="Geist Mono, monospace" font-size="9" fill="#8A939F">Station 1</text>
+          </g>
+          <g transform="translate(540,300)">
+            <rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(233,239,247,.5)" stroke-width="1"/>
+            <text x="9" y="3" font-family="Geist Mono, monospace" font-size="9" fill="#8A939F">Pier</text>
+          </g>
+        </g>
+
+        <!-- mile markers along Highway 1 -->
+        <g font-family="Geist Mono, monospace" font-size="7.5" fill="#565E69">
+          <circle cx="150" cy="470" r="1.6" fill="#565E69"/><text x="156" y="481">MM2</text>
+          <circle cx="300" cy="250" r="1.6" fill="#565E69"/><text x="284" y="242">MM6</text>
+          <circle cx="470" cy="120" r="1.6" fill="#565E69"/><text x="454" y="112">MM9</text>
+        </g>
+      </svg>
+
+      <!-- unit + call markers, drawn over the base -->
+      <svg class="base" viewBox="0 0 1000 660" preserveAspectRatio="xMidYMid slice" id="markers"></svg>
+
+      <h1 class="map-title">Liberty County <em>/ Live</em></h1>
+
+      <div class="crumbs">
+        <div class="crumb">
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+            <rect x="1" y="2.5" width="7" height="4" stroke="currentColor" stroke-width=".9"/>
+          </svg>
+          <b id="crumb-unit">1A-12</b>
+        </div>
+        <div class="crumb">Sector <b>N-2</b></div>
+      </div>
+
+      <div class="search">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+          <circle cx="4.6" cy="4.6" r="3.4" stroke="#565E69" stroke-width="1"/>
+          <path d="M7.2 7.2 9.8 9.8" stroke="#565E69" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+        <input id="map-search" type="search" placeholder="Search callsign or plate" aria-label="Search callsign or plate">
+        <kbd>/</kbd>
+      </div>
+
+      <div class="glass" id="coverage" style="left:22%;top:46%">
+        <div class="lbl">Sector coverage</div>
+        <div class="sub">North Ridge · N-2</div>
+        <div class="big">87<span style="font-size:13px;color:var(--dim)">%</span></div>
+      </div>
+
+      <div class="zoom">
+        <button type="button" aria-label="Zoom in">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1.6v7.8M1.6 5.5h7.8" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" aria-label="Centre on selected unit">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="2.2" stroke="currentColor" stroke-width="1"/><path d="M5.5.8v1.6M5.5 8.6v1.6M.8 5.5h1.6M8.6 5.5h1.6" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" aria-label="Zoom out">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.6 5.5h7.8" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="legend">
+        <div><i style="background:#E9EFF7"></i> LCPD</div>
+        <div><i style="background:#E8A33D"></i> LCSO</div>
+        <div><i style="background:#F26B3A"></i> LCFD / EMS</div>
+        <div><i style="background:#4A9EFF"></i> Air</div>
+        <div><i style="background:#E5484D"></i> Active call</div>
+      </div>
+    </section>
+
+    <!-- bottom strips -->
+    <section class="strips">
+      <div class="strip">
+        <div class="strip-head">
+          <div>
+            <div class="v">± 2:40<small>avg</small></div>
+            <div class="cap">Response time offset by sector</div>
+          </div>
+          <svg class="arrow" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+            <path d="M2 7 7 2M7 2H3M7 2v4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="sectors" id="sectors"></div>
+      </div>
+
+      <div class="strip">
+        <div class="strip-head">
+          <div>
+            <div class="v">1,284<small>calls today</small></div>
+            <div class="cap">Dispatched volume · last 12 hours</div>
+          </div>
+          <svg class="arrow" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+            <path d="M2 7 7 2M7 2H3M7 2v4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="volbars">
+          <svg viewBox="0 0 440 62" preserveAspectRatio="none" aria-label="Dispatched call volume by hour from 07:00 to 18:00, peaking at 164 calls at 17:00">
+            <line x1="0" y1="52" x2="440" y2="52" stroke="rgba(233,239,247,.1)" stroke-width="1"/>
+            <g fill="#E8A33D" fill-opacity=".34">
+              <rect x="2"   y="34" width="26" height="18"/>
+              <rect x="38"  y="29" width="26" height="23"/>
+              <rect x="74"  y="37" width="26" height="15"/>
+              <rect x="110" y="24" width="26" height="28"/>
+              <rect x="146" y="31" width="26" height="21"/>
+              <rect x="182" y="19" width="26" height="33"/>
+              <rect x="218" y="26" width="26" height="26"/>
+              <rect x="254" y="14" width="26" height="38"/>
+              <rect x="290" y="22" width="26" height="30"/>
+              <rect x="326" y="9"  width="26" height="43"/>
+            </g>
+            <rect x="362" y="4" width="26" height="48" fill="#E8A33D"/>
+            <rect x="398" y="17" width="26" height="35" fill="#E8A33D" fill-opacity=".34"/>
+            <!-- ruler ticks -->
+            <g stroke="rgba(233,239,247,.18)" stroke-width="1">
+              <path d="M2 52v4M74 52v4M146 52v4M218 52v4M290 52v4M362 52v4M424 52v4"/>
+            </g>
+            <text x="362" y="1" fill="#E8A33D" font-family="Geist Mono, monospace" font-size="7.5" dominant-baseline="hanging">164</text>
+          </svg>
+          <div class="volaxis">
+            <span>07:00</span><span>10:00</span><span>13:00</span><span>16:00</span><span>18:00</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ══ RIGHT RAIL · CALLS ═══════════════════════════════════════ -->
+  <aside class="rail" aria-label="Active calls">
+    <div class="block" style="padding:11px 13px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:12.5px">Active calls</span>
+          <span class="badge" style="border-color:rgba(229,72,77,.4);color:var(--red)">2 P1</span>
+        </div>
+        <span class="mono" style="font-size:10px;color:var(--faint)">5 open</span>
+      </div>
+    </div>
+
+    <details class="group" open>
+      <summary>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M5 1.2 9 8.4H1L5 1.2Z" stroke="#E5484D" stroke-width="1" stroke-linejoin="round"/>
+        </svg>
+        Priority response
+        <span class="cnt">2</span>
+        <svg class="caret" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+          <path d="M2 3.4 4.5 6 7 3.4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+      </summary>
+      <div class="group-body">
+
+        <button type="button" class="call p1">
+          <div class="call-top">
+            <span class="pri p1">P1</span>
+            <span class="ttl">Shots fired</span>
+            <span class="el mono">04:12</span>
+          </div>
+          <div class="loc">Central Bank · Highway 1 MM6</div>
+          <div class="assigned">
+            <span class="badge on">1A-12</span>
+            <span class="badge on">2S-04</span>
+            <span class="badge">AIR-1</span>
+          </div>
+          <div class="rec">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="flex:none;margin-top:1px" aria-hidden="true">
+              <circle cx="5.5" cy="5.5" r="4.2" stroke="#E8A33D" stroke-width="1"/>
+              <path d="M5.5 3.2v2.6l1.7 1" stroke="#E8A33D" stroke-width="1" stroke-linecap="round"/>
+            </svg>
+            <div class="txt">
+              <b>Recommend</b>
+              Stage M-12 at Postal. Nearest medic is 3:10 out.
+            </div>
+          </div>
+        </button>
+
+        <button type="button" class="call p1">
+          <div class="call-top">
+            <span class="pri p1">P1</span>
+            <span class="ttl">Pursuit in progress</span>
+            <span class="el mono">01:48</span>
+          </div>
+          <div class="loc">Highway 1 NB · passing MM2</div>
+          <div class="assigned">
+            <span class="badge on">1A-07</span>
+            <span class="badge on">SP-21</span>
+          </div>
+        </button>
+
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <rect x="1.2" y="1.2" width="7.6" height="7.6" stroke="#8A939F" stroke-width="1"/>
+        </svg>
+        Pending dispatch
+        <span class="cnt">3</span>
+        <svg class="caret" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+          <path d="M2 3.4 4.5 6 7 3.4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+      </summary>
+      <div class="group-body">
+
+        <button type="button" class="call p2">
+          <div class="call-top">
+            <span class="pri p2">P2</span>
+            <span class="ttl">Structure fire</span>
+            <span class="el mono">06:31</span>
+          </div>
+          <div class="loc">Farmhouse · South Flats</div>
+          <div class="assigned"><span class="badge on">E-31</span><span class="badge">M-12</span></div>
+        </button>
+
+        <button type="button" class="call p3">
+          <div class="call-top">
+            <span class="pri p3">P3</span>
+            <span class="ttl">Traffic collision</span>
+            <span class="el mono">11:04</span>
+          </div>
+          <div class="loc">Mansion Drive at Pier Road</div>
+          <div class="assigned"><span class="badge">DOT-3</span></div>
+        </button>
+
+        <button type="button" class="call p3">
+          <div class="call-top">
+            <span class="pri p3">P3</span>
+            <span class="ttl">Suspicious vehicle</span>
+            <span class="el mono">18:22</span>
+          </div>
+          <div class="loc">Quarry access road</div>
+          <div class="assigned"><span class="badge">Unassigned</span></div>
+        </button>
+
+      </div>
+    </details>
+
+    <div class="sample">
+      Sample dispatch data for layout review — not live server state.
+    </div>
+  </aside>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── roster ─────────────────────────────────────────────────── */
+  var UNITS = [
+    { cs:"1A-12", dept:"LCPD", vehicle:"Marked Cruiser", code:"10-23", codeColor:"var(--amber)",
+      loc:"Central Bank", x:300, y:250, colour:"#E9EFF7", tags:["GPS","MDT"], sector:"N-2", cov:87, track:"M4,34 L16,26 L27,29 L38,17 L52,12" },
+    { cs:"2S-04", dept:"LCSO", vehicle:"Patrol Tahoe", code:"10-23", codeColor:"var(--amber)",
+      loc:"Quarry Road", x:264, y:296, colour:"#E8A33D", tags:["GPS","K9"], sector:"S-1", cov:64, track:"M4,12 L14,20 L26,16 L40,28 L52,24" },
+    { cs:"AIR-1", dept:"LCPD", vehicle:"Air Unit", code:"10-8", codeColor:"var(--green)",
+      loc:"Orbiting Airfield", x:452, y:150, colour:"#4A9EFF", tags:["FLIR"], sector:"N-1", cov:93, track:"M4,24 Q18,8 30,22 T52,16" },
+    { cs:"E-31", dept:"LCFD", vehicle:"Engine 31", code:"10-7", codeColor:"var(--faint)",
+      loc:"Station 1", x:150, y:470, colour:"#F26B3A", tags:["ALS"], sector:"S-2", cov:41, track:"M4,28 L20,28 L20,16 L38,16 L52,22" }
+  ];
+
+  var CALLS = [
+    { x:300, y:250, pri:1 },
+    { x:158, y:452, pri:1 },
+    { x:430, y:520, pri:2 },
+    { x:540, y:300, pri:3 }
+  ];
+
+  var SECTORS = [
+    { id:"N-1", offset:-1.2 }, { id:"N-2", offset:+2.4 },
+    { id:"S-1", offset:-0.6 }, { id:"S-2", offset:+4.1 },
+    { id:"E-1", offset:+1.1 }
+  ];
+
+  var selected = 0;
+
+  /* ── unit cards ─────────────────────────────────────────────── */
+  function renderUnits() {
+    document.getElementById("units").innerHTML = UNITS.map(function (u, i) {
+      return '<button type="button" class="unit" data-i="' + i + '" aria-current="' + (i === selected) + '">' +
+        '<div class="unit-top">' +
+          '<div><div class="cs">' + u.cs + '</div><div class="meta">' + u.dept + ' · ' + u.vehicle + '</div></div>' +
+          '<svg class="arrow" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">' +
+            '<path d="M2 7 7 2M7 2H3M7 2v4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>' +
+        '</div>' +
+        '<div class="thumb"><svg viewBox="0 0 56 46" preserveAspectRatio="none">' +
+          '<path d="M0,34 L56,26" stroke="rgba(233,239,247,.09)" stroke-width="1" fill="none"/>' +
+          '<path d="M0,14 L56,20" stroke="rgba(233,239,247,.06)" stroke-width="1" fill="none"/>' +
+          '<path d="' + u.track + '" fill="none" stroke="rgba(233,239,247,.34)" stroke-width="1" stroke-dasharray="2 2"/>' +
+          '<circle cx="52" cy="' + (u.cs === "E-31" ? 22 : 16) + '" r="2.4" fill="' + u.colour + '"/>' +
+        '</svg></div>' +
+        '<div class="unit-bot">' +
+          '<span class="code" style="color:' + u.codeColor + '">' +
+            '<i style="width:4px;height:4px;border-radius:50%;background:currentColor;display:inline-block"></i>' + u.code +
+          '</span>' +
+          '<span class="tags">' + u.tags.map(function (t) { return '<span class="tag">' + t + '</span>'; }).join("") + '</span>' +
+        '</div>' +
+      '</button>';
+    }).join("");
+
+    Array.prototype.forEach.call(document.querySelectorAll(".unit"), function (el) {
+      el.addEventListener("click", function () {
+        selected = +el.dataset.i;
+        renderUnits();
+        renderMarkers();
+        syncSelection();
+      });
+    });
+  }
+
+  /* ── map markers ────────────────────────────────────────────── */
+  function renderMarkers() {
+    var out = "";
+
+    CALLS.forEach(function (c) {
+      var col = c.pri === 1 ? "#E5484D" : c.pri === 2 ? "#E8A33D" : "#565E69";
+      out += '<g transform="translate(' + c.x + ',' + c.y + ')">';
+      if (c.pri === 1) {
+        out += '<circle r="13" fill="none" stroke="' + col + '" stroke-opacity=".5" stroke-width="1">' +
+               '<animate attributeName="r" values="7;19;19" dur="2.6s" repeatCount="indefinite"/>' +
+               '<animate attributeName="stroke-opacity" values=".55;0;0" dur="2.6s" repeatCount="indefinite"/></circle>';
+      }
+      out += '<path d="M0,-6 L6,5 H-6 Z" fill="' + col + '" fill-opacity=".9"/></g>';
+    });
+
+    UNITS.forEach(function (u, i) {
+      var sel = i === selected;
+      out += '<g transform="translate(' + u.x + ',' + u.y + ')">';
+      if (sel) {
+        out += '<circle r="26" fill="url(#glow)"/>' +
+               '<circle r="17" fill="none" stroke="' + u.colour + '" stroke-opacity=".34" stroke-width="1" stroke-dasharray="3 3"/>' +
+               '<circle r="11" fill="none" stroke="' + u.colour + '" stroke-opacity=".6" stroke-width="1">' +
+               '<animate attributeName="r" values="9;15;9" dur="3s" repeatCount="indefinite"/></circle>';
+      }
+      out += '<circle r="6" fill="#0E1013" stroke="' + u.colour + '" stroke-width="1.4"/>' +
+             '<circle r="2.2" fill="' + u.colour + '"/>' +
+             '<text x="11" y="3.5" font-family="Geist Mono, monospace" font-size="9.5" fill="' +
+               (sel ? "#E9EFF7" : "#8A939F") + '">' + u.cs + '</text>' +
+             '</g>';
+    });
+
+    document.getElementById("markers").innerHTML = out;
+  }
+
+  function syncSelection() {
+    var u = UNITS[selected];
+    document.getElementById("crumb-unit").textContent = u.cs;
+    var g = document.getElementById("coverage");
+    g.querySelector(".sub").textContent = u.loc + " · " + u.sector;
+    g.querySelector(".big").innerHTML = u.cov + '<span style="font-size:13px;color:var(--dim)">%</span>';
+  }
+
+  /* ── sector offset rulers ───────────────────────────────────── */
+  function renderSectors() {
+    document.getElementById("sectors").innerHTML = SECTORS.map(function (s) {
+      var mid = 50;                                  // centre of the scale, in %
+      var span = Math.min(Math.abs(s.offset) / 6, 1) * 44;
+      var x = s.offset >= 0 ? mid : mid - span;
+      var col = s.offset > 2 ? "#E5484D" : "#E8A33D";
+      var ticks = "";
+      for (var t = 0; t <= 10; t++) {
+        ticks += '<path d="M' + (t * 10) + ' 11 v' + (t === 5 ? 5 : 3) + '" stroke="rgba(233,239,247,.16)" stroke-width="1"/>';
+      }
+      return '<div class="sector">' +
+        '<span class="id"><i style="background:' + col + '"></i>' + s.id + '</span>' +
+        '<div class="ruler"><svg viewBox="0 0 100 16" preserveAspectRatio="none">' +
+          ticks +
+          '<path d="M50 2 v8" stroke="rgba(233,239,247,.3)" stroke-width="1"/>' +
+          '<rect x="' + x + '" y="4" width="' + span + '" height="4" fill="' + col + '" fill-opacity=".85"/>' +
+        '</svg>' +
+        '<span class="mono" style="position:absolute;right:0;top:-1px;font-size:9.5px;color:' + col + '">' +
+          (s.offset > 0 ? "+" : "") + s.offset.toFixed(1) + 'm</span>' +
+        '</div></div>';
+    }).join("");
+  }
+
+  /* ── tabs ───────────────────────────────────────────────────── */
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) {
+    t.addEventListener("click", function () {
+      document.querySelectorAll(".tab").forEach(function (o) { o.setAttribute("aria-selected", "false"); });
+      t.setAttribute("aria-selected", "true");
+    });
+  });
+
+  /* ── department chips ───────────────────────────────────────── */
+  Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (c) {
+    c.addEventListener("click", function () {
+      c.setAttribute("aria-pressed", c.getAttribute("aria-pressed") === "true" ? "false" : "true");
+    });
+  });
+
+  /* ── shift clock ────────────────────────────────────────────── */
+  var t = new Date(); t.setHours(18, 42, 7, 0);
+  setInterval(function () {
+    t = new Date(t.getTime() + 1000);
+    document.getElementById("clock").textContent =
+      String(t.getHours()).padStart(2, "0") + ":" +
+      String(t.getMinutes()).padStart(2, "0") + ":" +
+      String(t.getSeconds()).padStart(2, "0");
+  }, 1000);
+
+  renderUnits();
+  renderMarkers();
+  renderSectors();
+  syncSelection();
+})();
+</script>
