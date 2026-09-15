@@ -54,6 +54,18 @@
     font-variant-numeric:tabular-nums;backdrop-filter:blur(12px);
   }
 
+  .swap{
+    position:absolute;right:18px;top:calc(16px + env(safe-area-inset-top,0px));
+    display:flex;gap:2px;padding:3px;border-radius:999px;
+    background:rgba(20,22,25,.86);border:1px solid var(--hair);backdrop-filter:blur(12px);
+  }
+  .swap button{
+    padding:5px 13px;border-radius:999px;font-size:11px;color:var(--dim);
+    transition:background .16s,color .16s;
+  }
+  .swap button:hover{color:var(--ink)}
+  .swap button[aria-pressed="true"]{background:#E9ECEF;color:#0E1012;font-weight:500}
+
   .hint{
     position:absolute;left:50%;transform:translateX(-50%);
     bottom:calc(18px + env(safe-area-inset-bottom,0px));
@@ -66,7 +78,7 @@
 </style>
 
 <div class="stage" id="stage">
-  <img id="map" src="liberty-county.jpg" alt="Aerial map of Liberty County, Emergency Response: Liberty County" draggable="false">
+  <img id="map" src="liberty-county-dark.jpg" alt="Aerial map of Liberty County, Emergency Response: Liberty County" draggable="false">
 </div>
 
 <div class="hud">
@@ -74,6 +86,11 @@
     <h1>Liberty County</h1>
     <p>Emergency Response: Liberty County &mdash; current map</p>
   </div>
+</div>
+
+<div class="swap" role="group" aria-label="Map treatment">
+  <button type="button" id="bGraded" aria-pressed="true">Graded</button>
+  <button type="button" id="bRaw" aria-pressed="false">Original</button>
 </div>
 
 <div class="zoomtag" id="tag">100%</div>
@@ -174,8 +191,19 @@
   });
   document.getElementById("zfit").addEventListener("click", reset);
 
+  /* graded / original — swap the source, hold the view */
+  var bG = document.getElementById("bGraded"), bR = document.getElementById("bRaw");
+  function pick(src, on, off) {
+    map.src = src;
+    on.setAttribute("aria-pressed", "true");
+    off.setAttribute("aria-pressed", "false");
+  }
+  bG.addEventListener("click", function () { pick("liberty-county-dark.jpg", bG, bR); });
+  bR.addEventListener("click", function () { pick("liberty-county.jpg", bR, bG); });
+
   window.addEventListener("resize", reset);
-  if (map.complete) reset(); else map.addEventListener("load", reset);
+  /* both sources are the same square size, so a swap keeps the current view */
+  if (!map.complete) map.addEventListener("load", reset, { once: true });
   reset();
 })();
 </script>
