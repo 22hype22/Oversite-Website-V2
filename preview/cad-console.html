@@ -50,10 +50,8 @@
   .rail::-webkit-scrollbar-thumb{background:rgba(236,239,243,.1)}
 
   .tabs{display:flex;gap:3px;padding:10px 10px 9px}
-  .tabs button{
-    padding:5px 10px;border-radius:999px;font-size:11px;color:var(--dim);white-space:nowrap;
-    transition:background .18s cubic-bezier(.32,.72,0,1),color .18s cubic-bezier(.32,.72,0,1);
-  }
+  .tabs button{padding:5px 10px;border-radius:999px;font-size:11px;color:var(--dim);white-space:nowrap;
+    transition:background .18s cubic-bezier(.32,.72,0,1),color .18s cubic-bezier(.32,.72,0,1)}
   .tabs button .n{font-family:var(--mono);color:var(--ink)}
   .tabs button:hover{color:var(--ink)}
   .tabs button[aria-pressed="true"]{background:var(--raised);color:var(--ink)}
@@ -99,10 +97,14 @@
 
   /* ══ map ══ */
   .map{grid-row:2;grid-column:2;position:relative;min-height:380px;background:#070809;overflow:hidden}
-  .map canvas,.map>svg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .map img.base{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 46%;
+    max-width:100%;user-select:none;-webkit-user-drag:none}
+  .map>svg{position:absolute;inset:0;width:100%;height:100%}
+  .map .fade{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse 78% 78% at 50% 46%,transparent 40%,rgba(7,8,9,.55) 100%)}
 
   .mt{position:absolute;top:18px;left:24px;font-size:29px;font-weight:300;letter-spacing:-.025em;
-    color:rgba(236,239,243,.95);pointer-events:none;text-shadow:0 2px 30px rgba(0,0,0,.85)}
+    color:rgba(236,239,243,.95);pointer-events:none;text-shadow:0 2px 30px rgba(0,0,0,.9)}
   .crumbs{position:absolute;top:62px;left:24px;display:flex;gap:6px}
   .cb{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;
     background:rgba(13,13,15,.74);backdrop-filter:blur(14px);border:1px solid var(--line2);
@@ -137,9 +139,8 @@
     color:var(--dim);transition:color .18s,background .18s}
   .zm button:hover{color:var(--ink);background:rgba(23,23,25,.92)}
 
-  /* floating warning panel — sits ON the map */
   .warn{position:absolute;top:54px;right:14px;width:196px;border-radius:5px;
-    background:rgba(12,12,14,.8);backdrop-filter:blur(20px);border:1px solid var(--line2);
+    background:rgba(12,12,14,.82);backdrop-filter:blur(20px);border:1px solid var(--line2);
     max-height:calc(100% - 82px);overflow-y:auto;z-index:2}
   .warn::-webkit-scrollbar{width:4px}
   .warn::-webkit-scrollbar-thumb{background:rgba(236,239,243,.12)}
@@ -179,7 +180,7 @@
   .row1 .v{font-family:var(--mono);font-size:25px;font-weight:300;letter-spacing:-.03em;line-height:1}
   .row1 .u{font-size:10px;color:var(--dim)}
   .tbl{margin-top:13px}
-  .thd,.trow{display:grid;grid-template-columns:62px repeat(6,minmax(0,1fr));gap:6px;align-items:center}
+  .thd,.trow{display:grid;grid-template-columns:78px repeat(6,minmax(0,1fr));gap:6px;align-items:center}
   .thd{margin-bottom:7px}
   .thd span{font-family:var(--mono);font-size:8px;color:var(--faint);letter-spacing:.05em}
   .trow{padding:5px 0}
@@ -189,16 +190,19 @@
   .cl i{width:3.5px;height:3.5px;border-radius:50%;background:var(--amber);flex:none}
   .tk{margin-top:3px}
   .tk svg{display:block;width:100%;height:auto}
-
   .vol{margin-top:14px}
   .vol svg{display:block;width:100%;height:auto}
+
+  .credit{position:absolute;right:10px;bottom:8px;font-family:var(--mono);font-size:8px;
+    color:rgba(236,239,243,.3);pointer-events:none}
 
   @media (max-width:1100px){
     .app{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;height:auto}
     .rail{grid-row:auto;grid-column:1;border-right:0;border-bottom:1px solid var(--line)}
     .map{grid-row:auto;grid-column:1;min-height:440px}
     .strips{grid-row:auto;grid-column:1}
-    .warn{position:static;width:auto;max-height:none;margin:0;border-radius:0;border:0;border-top:1px solid var(--line);backdrop-filter:none;background:var(--panel)}
+    .warn{position:static;width:auto;max-height:none;border-radius:0;border:0;
+      border-top:1px solid var(--line);backdrop-filter:none;background:var(--panel)}
   }
   @media (max-width:560px){
     .top{height:auto;padding:10px 12px;flex-wrap:wrap;gap:12px}
@@ -236,21 +240,15 @@
   <!-- ══ LEFT RAIL ══ -->
   <aside class="rail" aria-label="Fleet">
     <div class="tabs" role="group" aria-label="Department">
-      <button aria-pressed="true"><span class="n">11</span> LCPD</button>
+      <button aria-pressed="true"><span class="n">11</span> RCPD</button>
       <button aria-pressed="false"><span class="n">6</span> LCSO</button>
-      <button aria-pressed="false"><span class="n">5</span> LCFD</button>
+      <button aria-pressed="false"><span class="n">5</span> RCFR</button>
       <button aria-pressed="false"><span class="n">2</span> DOT</button>
     </div>
 
     <div class="onoff">
-      <div>
-        <span class="lab"><i class="chk"></i>Online</span>
-        <span class="num">18</span>
-      </div>
-      <div>
-        <span class="lab"><i class="tri"></i>Offline</span>
-        <span class="num">6</span>
-      </div>
+      <div><span class="lab"><i class="chk"></i>Online</span><span class="num">18</span></div>
+      <div><span class="lab"><i class="tri"></i>Offline</span><span class="num">6</span></div>
     </div>
 
     <div class="eff">
@@ -282,50 +280,52 @@
 
   <!-- ══ MAP ══ -->
   <section class="map" aria-label="Liberty County live map">
-    <canvas id="terrain" width="1200" height="760" role="img"
-            aria-label="Shaded relief map of Liberty County with the bay to the east"></canvas>
+    <img class="base" src="erlc-map.jpg" alt="Aerial map of Liberty County" draggable="false">
+    <div class="fade"></div>
 
-    <svg viewBox="0 0 1200 760" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <!-- route network -->
-      <g fill="none" stroke="rgba(248,250,252,.72)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M96,742 L188,540 L262,410 L372,286 L466,198 L574,132 L688,74"/>
+    <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <!-- patrol corridors, traced onto the county's real road network -->
+      <g fill="none" stroke="rgba(248,250,252,.62)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M700,250 L700,732"/>
+        <path d="M214,545 L700,545"/>
       </g>
-      <g fill="none" stroke="rgba(248,250,252,.42)" stroke-width="1.5" stroke-linecap="round">
-        <path d="M262,410 L414,456 L546,430 L648,336 L714,246"/>
-        <path d="M188,540 L322,578 L452,540 L524,598"/>
+      <g fill="none" stroke="rgba(248,250,252,.34)" stroke-width="1.6" stroke-linecap="round">
+        <path d="M232,642 L618,642"/>
+        <path d="M392,300 L392,760"/>
       </g>
-      <g fill="none" stroke="rgba(248,250,252,.6)" stroke-width="1.3" stroke-dasharray="7 6" stroke-linecap="round">
-        <path d="M372,286 L448,344 L470,438 L546,430"/>
-        <path d="M574,132 L616,214 L688,232"/>
-        <path d="M414,456 L400,556 L470,640 L586,672"/>
+      <!-- active response paths -->
+      <g fill="none" stroke="rgba(248,250,252,.66)" stroke-width="1.5" stroke-dasharray="8 6" stroke-linecap="round">
+        <path d="M252,668 L300,640 L392,608 L470,545"/>
+        <path d="M700,420 L700,330 L660,300 L600,290"/>
+        <path d="M560,455 L560,545 L700,545"/>
       </g>
       <g fill="none" stroke="rgba(248,250,252,.2)" stroke-width="1" stroke-dasharray="4 5">
-        <path d="M262,410 L182,352 L108,378"/>
-        <path d="M648,336 L706,404 L740,498"/>
+        <path d="M700,600 L790,610 L846,600"/>
+        <path d="M392,430 L300,410 L246,380"/>
       </g>
 
-      <!-- district labels -->
-      <g font-family="Geist Mono, monospace" font-size="9.5" fill="rgba(236,239,243,.3)" letter-spacing="2">
-        <text x="150" y="150">NORTH RIDGE</text>
-        <text x="300" y="366">MILL LAKE</text>
-        <text x="482" y="556">SOUTH FLATS</text>
-        <text x="576" y="104">AIRFIELD</text>
-        <text x="930" y="392">GREAT BAY</text>
-        <text x="132" y="702">QUARRY</text>
+      <!-- districts -->
+      <g font-family="Geist Mono, monospace" font-size="11" fill="rgba(236,239,243,.42)" letter-spacing="2.4">
+        <text x="140" y="352">HOUSING SUBURBS</text>
+        <text x="756" y="308">SPRINGFIELD</text>
+        <text x="520" y="418">THE FARMS</text>
+        <text x="790" y="596">HIGH ROCK PARK</text>
+        <text x="196" y="702">RIVER CITY</text>
+        <text x="330" y="500">LIBERTY CO. RIVER</text>
       </g>
 
-      <!-- landmark ticks -->
-      <g font-family="Geist Mono, monospace" font-size="9" fill="rgba(236,239,243,.52)">
-        <g transform="translate(372,286)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">Central Bank</text></g>
-        <g transform="translate(466,198)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">Postal</text></g>
-        <g transform="translate(262,410)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">LCSO</text></g>
-        <g transform="translate(574,132)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">Hospital</text></g>
-        <g transform="translate(188,540)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">Station 1</text></g>
-        <g transform="translate(648,336)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.5)"/><text x="10" y="3">Pier</text></g>
+      <!-- posts -->
+      <g font-family="Geist Mono, monospace" font-size="9.5" fill="rgba(236,239,243,.62)">
+        <g transform="translate(286,700)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.6)"/><text x="10" y="3">Bank</text></g>
+        <g transform="translate(252,668)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.6)"/><text x="10" y="3">RCPD HQ</text></g>
+        <g transform="translate(470,545)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.6)"/><text x="10" y="3">LCSO</text></g>
+        <g transform="translate(600,290)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.6)"/><text x="10" y="3">Hospital</text></g>
+        <g transform="translate(232,642)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.6)"/><text x="10" y="3">RCFR Station</text></g>
+        <g transform="translate(790,352)"><rect x="-3.5" y="-3.5" width="7" height="7" fill="none" stroke="rgba(236,239,243,.6)"/><text x="10" y="3">Springfield Mall</text></g>
       </g>
     </svg>
 
-    <svg viewBox="0 0 1200 760" preserveAspectRatio="xMidYMid slice" id="mk"></svg>
+    <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" id="mk"></svg>
 
     <h1 class="mt">Liberty County</h1>
 
@@ -344,7 +344,7 @@
           <rect x="1.2" y="1.2" width="7.6" height="7.6" rx="1" stroke="currentColor" stroke-width=".9"/>
           <path d="M1.2 5h7.6M5 1.2v7.6" stroke="currentColor" stroke-width=".7"/>
         </svg>
-        Sector <b id="cbS">N-2</b>
+        Sector <b id="cbS">RC-2</b>
       </div>
     </div>
 
@@ -372,7 +372,7 @@
 
     <div class="load" id="load" style="left:19%;top:43%">
       <div class="a">Sector Coverage</div>
-      <div class="b" id="loadSub">North Ridge · N-2</div>
+      <div class="b" id="loadSub">River City &middot; RC-2</div>
       <div class="c" id="loadVal">87<span style="font-size:13px;color:var(--dim)">%</span></div>
     </div>
 
@@ -388,7 +388,6 @@
       </button>
     </div>
 
-    <!-- floating warning panel -->
     <div class="warn">
       <div class="wh">
         <span>Warning</span>
@@ -417,7 +416,7 @@
                 <circle cx="5" cy="7" r=".65" fill="#0A0A0B"/>
               </svg>
               <span class="tx">
-                <span class="t1">Shots fired &mdash; 3 units committed</span>
+                <span class="t1">Bank alarm &mdash; 3 units committed</span>
                 <span class="t2">04:12 elapsed</span>
               </span>
               <svg class="cv" width="9" height="9" viewBox="0 0 9 9" fill="none" style="color:var(--faint)" aria-hidden="true">
@@ -427,8 +426,8 @@
             <div class="aff">
               <div class="lb">AFFECTED POSTS</div>
               <div class="list">
-                <div><div class="n">Central Bank</div><div class="s">3 units on scene</div></div>
-                <div><div class="n">Highway 1 &middot; MM6</div><div class="s">northbound closed</div></div>
+                <div><div class="n">River City Bank</div><div class="s">3 units on scene</div></div>
+                <div><div class="n">Main St &middot; 4th</div><div class="s">northbound closed</div></div>
               </div>
             </div>
             <div class="rc">
@@ -437,7 +436,7 @@
               </svg>
               <div>
                 <b>Recommend</b>
-                <p>Stage M-12 at Postal &mdash; nearest medic 3:10 out</p>
+                <p>Stage M-12 at the hospital &mdash; nearest medic 3:10 out</p>
               </div>
             </div>
           </div>
@@ -450,7 +449,7 @@
             <circle cx="5" cy="5" r="3.9" stroke="#8A8F96" stroke-width=".9"/>
             <path d="M5 2.9v2.3l1.5.9" stroke="#8A8F96" stroke-width=".9" stroke-linecap="round"/>
           </svg>
-          Response Delays <span class="c">(Sector S-2)</span>
+          Response Delays <span class="c">(Sector SF-1)</span>
           <svg class="cv" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
             <path d="M2.2 3.4 4.5 5.7l2.3-2.3" stroke="currentColor" stroke-linecap="round"/>
           </svg>
@@ -465,7 +464,7 @@
               </svg>
               <span class="tx">
                 <span class="t1">E-31 is 4 min behind response target</span>
-                <span class="t2">structure fire &middot; South Flats</span>
+                <span class="t2">barn fire &middot; The Farms</span>
               </span>
               <svg class="cv" width="9" height="9" viewBox="0 0 9 9" fill="none" style="color:var(--faint)" aria-hidden="true">
                 <path d="M2.2 3.4 4.5 5.7l2.3-2.3" stroke="currentColor" stroke-linecap="round"/>
@@ -475,6 +474,8 @@
         </div>
       </details>
     </div>
+
+    <p class="credit">Map &copy; Police Roleplay Community &middot; render via erlc.one</p>
   </section>
 
   <!-- ══ STRIPS ══ -->
@@ -524,140 +525,6 @@
 (function () {
   "use strict";
 
-  /* ══════════════════════════════════════════════════════════════
-     Shaded-relief terrain.
-     Elevation = fBm + ridged noise, carved by a bay field.
-     Surface normals lit from the north-west, coloured through a
-     satellite ramp — the same pipeline a real hillshade uses.
-     ══════════════════════════════════════════════════════════════ */
-  function buildTerrain() {
-    var cv = document.getElementById("terrain");
-    var W = cv.width, H = cv.height;
-    var ctx = cv.getContext("2d");
-    var img = ctx.createImageData(W, H);
-    var px = img.data;
-    var elev = new Float32Array(W * H);
-
-    function hash(x, y, s) {
-      var n = (x * 374761393 + y * 668265263 + s * 1013904223) | 0;
-      n = (n ^ (n >>> 13)) * 1274126177;
-      return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
-    }
-    function sm(t) { return t * t * (3 - 2 * t); }
-    function vn(x, y, s) {
-      var xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
-      var u = sm(xf), v = sm(yf);
-      var a = hash(xi, yi, s), b = hash(xi + 1, yi, s),
-          c = hash(xi, yi + 1, s), d = hash(xi + 1, yi + 1, s);
-      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
-    }
-    function fbm(x, y, s, oct) {
-      var sum = 0, amp = .5, fr = 1, nrm = 0;
-      for (var i = 0; i < oct; i++) {
-        sum += amp * vn(x * fr, y * fr, s + i * 31);
-        nrm += amp; amp *= .5; fr *= 2;
-      }
-      return sum / nrm;
-    }
-    function ridged(x, y, s, oct) {
-      var sum = 0, amp = .5, fr = 1, nrm = 0;
-      for (var i = 0; i < oct; i++) {
-        var n = vn(x * fr, y * fr, s + i * 53);
-        sum += amp * (1 - Math.abs(n * 2 - 1));
-        nrm += amp; amp *= .5; fr *= 2;
-      }
-      return sum / nrm;
-    }
-
-    /* ── pass 1 · elevation field ── */
-    var i, x, y;
-    for (y = 0; y < H; y++) {
-      for (x = 0; x < W; x++) {
-        var fx = x * .0062, fy = y * .0062;
-        var base = fbm(fx, fy, 7, 6);
-        var rdg  = ridged(x * .0042, y * .0042, 23, 5);
-        var e = base * .46 + rdg * .54;
-
-        /* mountainous north-west, flats to the south */
-        var band = 1 - Math.min(1, Math.max(0, (y - 180) / 620));
-        e = e * (.62 + band * .5);
-
-        /* carve Great Bay out of the east */
-        var wob = (fbm(y * .009, 3.1, 61, 4) - .5) * 210;
-        var shore = 700 + wob;
-        var bay = Math.min(1, Math.max(0, (x - shore) / 150));
-        e -= bay * .78;
-
-        /* Mill Lake */
-        var dx = (x - 352) / 96, dy = (y - 352) / 54;
-        var lake = Math.min(1, Math.max(0, 1 - (dx * dx + dy * dy)));
-        e -= lake * .62;
-
-        elev[y * W + x] = e;
-      }
-    }
-
-    /* ── pass 2 · shade + colour ── */
-    var SEA = .3;
-    var ramp = [
-      [0.30, 26, 38, 30], [0.40, 34, 46, 33], [0.50, 44, 54, 38],
-      [0.60, 58, 64, 47], [0.72, 74, 78, 60], [0.84, 96, 98, 80], [1.00, 124, 124, 106]
-    ];
-    function shore(t) {
-      for (var k = 1; k < ramp.length; k++) {
-        if (t <= ramp[k][0]) {
-          var a = ramp[k - 1], b = ramp[k];
-          var f = (t - a[0]) / (b[0] - a[0]);
-          return [a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f, a[3] + (b[3] - a[3]) * f];
-        }
-      }
-      var z = ramp[ramp.length - 1];
-      return [z[1], z[2], z[3]];
-    }
-
-    var LX = -.56, LY = -.56, LZ = .61;   /* light from the north-west */
-
-    for (y = 0; y < H; y++) {
-      for (x = 0; x < W; x++) {
-        i = y * W + x;
-        var e2 = elev[i];
-        var xl = x > 0 ? elev[i - 1] : e2, xr = x < W - 1 ? elev[i + 1] : e2;
-        var yu = y > 0 ? elev[i - W] : e2, yd = y < H - 1 ? elev[i + W] : e2;
-
-        var nx = (xl - xr) * 42, ny = (yu - yd) * 42, nz = 1;
-        var il = 1 / Math.sqrt(nx * nx + ny * ny + 1);
-        var sh = (nx * LX + ny * LY + nz * LZ) * il;
-        sh = .42 + Math.max(0, sh) * 1.02;
-
-        var r, g, b;
-        if (e2 < SEA) {
-          var d = Math.min(1, (SEA - e2) / .34);
-          r = 20 - d * 10; g = 32 - d * 16; b = 44 - d * 18;
-          r *= .88 + sh * .16; g *= .88 + sh * .16; b *= .9 + sh * .18;
-        } else {
-          var c2 = shore(Math.min(1, e2));
-          r = c2[0] * sh; g = c2[1] * sh; b = c2[2] * sh;
-          /* desaturate slightly toward the reference's grey-green cast */
-          var lum = r * .3 + g * .59 + b * .11;
-          r += (lum - r) * .22; g += (lum - g) * .22; b += (lum - b) * .22;
-        }
-
-        /* vignette */
-        var vx = (x / W - .5), vy = (y / H - .46);
-        var vg = 1 - Math.min(.62, (vx * vx + vy * vy) * 1.35);
-        r *= vg; g *= vg; b *= vg;
-
-        var o = i * 4;
-        px[o] = r < 0 ? 0 : r > 255 ? 255 : r;
-        px[o + 1] = g < 0 ? 0 : g > 255 ? 255 : g;
-        px[o + 2] = b < 0 ? 0 : b > 255 ? 255 : b;
-        px[o + 3] = 255;
-      }
-    }
-    ctx.putImageData(img, 0, 0);
-  }
-
-  /* ══ vehicle line art ══ */
   var ART = {
     cruiser: function (id) {
       return '<svg viewBox="0 0 126 48" aria-hidden="true">' +
@@ -722,23 +589,24 @@
     }
   };
 
+  /* positions are in the map image's own 0-1000 space */
   var UNITS = [
     { cs:"1A-12", art:"cruiser", fleet:"45623", ts:"15.09.2026, 18:41:02", state:"Online", link:"LTE",
-      col:"#F2F5F8", x:372, y:286, sec:"N-2", zone:"North Ridge", cov:87,
+      col:"#F2F5F8", x:300, y:640, sec:"RC-2", zone:"River City", cov:87,
       tr:"M2,20 L16,15 L30,18 L46,9 L62,12 L78,5 L92,8" },
     { cs:"2S-04", art:"suv", fleet:"34654", ts:"15.09.2026, 18:39:55", state:"Online", link:"LTE",
-      col:"#E8A04A", x:286, y:336, sec:"S-1", zone:"Mill Lake", cov:64,
+      col:"#E8A04A", x:470, y:545, sec:"LC-1", zone:"The Farms", cov:64,
       tr:"M2,7 L18,13 L34,10 L50,19 L66,15 L82,21 L92,18" },
     { cs:"AIR-1", art:"heli", fleet:"AIR1", ts:"15.09.2026, 18:42:10", state:"Online", link:"SAT",
-      col:"#4A9EFF", x:556, y:170, sec:"N-1", zone:"Airfield", cov:93,
+      col:"#4A9EFF", x:770, y:470, sec:"HR-1", zone:"High Rock Park", cov:93,
       tr:"M2,16 Q20,3 38,14 T74,9 L92,12" },
     { cs:"E-31", art:"engine", fleet:"E31", ts:"15.09.2026, 18:12:47", state:"Offline", link:"LTE",
-      col:"#F26B3A", x:188, y:540, sec:"S-2", zone:"Station 1", cov:41,
+      col:"#F26B3A", x:232, y:642, sec:"SF-1", zone:"RCFR Station", cov:41,
       tr:"M2,18 L22,18 L22,10 L44,10 L66,14 L92,14" }
   ];
 
-  var CALLS = [{ x:372, y:286, p:1 }, { x:200, y:524, p:1 }, { x:470, y:640, p:2 }, { x:648, y:336, p:3 }];
-  var NODES = [[262,410],[414,456],[546,430],[466,198],[688,74],[322,578],[714,246],[586,672]];
+  var CALLS = [{ x:286, y:700, p:1 }, { x:700, y:420, p:1 }, { x:560, y:455, p:2 }, { x:790, y:352, p:3 }];
+  var NODES = [[700,300],[700,500],[700,650],[560,545],[300,545],[392,430],[618,642],[392,700]];
 
   var OFF = [
     { u:"45623", col:"#F2F5F8", v:[-2, 1, 1.5, -3, -1, 2] },
@@ -782,8 +650,8 @@
     var s = "";
     NODES.forEach(function (n) {
       s += '<g transform="translate(' + n[0] + ',' + n[1] + ')">' +
-           '<circle r="7" fill="rgba(12,13,14,.72)" stroke="rgba(248,250,252,.62)" stroke-width="1.2"/>' +
-           '<circle r="2.2" fill="rgba(248,250,252,.72)"/></g>';
+           '<circle r="6.5" fill="rgba(12,13,14,.74)" stroke="rgba(248,250,252,.62)" stroke-width="1.2"/>' +
+           '<circle r="2" fill="rgba(248,250,252,.72)"/></g>';
     });
     CALLS.forEach(function (c) {
       var col = c.p === 1 ? "#E04A4A" : c.p === 2 ? "#E8A04A" : "#8A8F96";
@@ -793,20 +661,19 @@
              '<animate attributeName="r" values="8;26;26" dur="2.8s" repeatCount="indefinite"/>' +
              '<animate attributeName="stroke-opacity" values=".65;0;0" dur="2.8s" repeatCount="indefinite"/></circle>';
       }
-      s += '<circle r="7" fill="' + col + '" fill-opacity=".92"/>' +
-           '<circle r="2.4" fill="#0A0A0B"/></g>';
+      s += '<circle r="6.5" fill="' + col + '" fill-opacity=".94"/><circle r="2.2" fill="#0A0A0B"/></g>';
     });
     UNITS.forEach(function (u, i) {
       var on = i === sel;
       s += '<g transform="translate(' + u.x + ',' + u.y + ')">';
       if (on) {
-        s += '<circle r="34" fill="none" stroke="rgba(248,250,252,.4)" stroke-width="1.1" stroke-dasharray="5 5"/>' +
-             '<circle r="34" fill="rgba(248,250,252,.05)"/>' +
-             '<path d="M0,-9 L7.4,5 H-7.4 Z" fill="rgba(248,250,252,.92)"/></g>';
+        s += '<circle r="30" fill="rgba(248,250,252,.05)"/>' +
+             '<circle r="30" fill="none" stroke="rgba(248,250,252,.42)" stroke-width="1.1" stroke-dasharray="5 5"/>' +
+             '<path d="M0,-8.5 L7,4.6 H-7 Z" fill="rgba(248,250,252,.94)"/></g>';
       } else {
-        s += '<circle r="7" fill="rgba(12,13,14,.8)" stroke="' + u.col + '" stroke-width="1.4"/>' +
-             '<circle r="2.6" fill="' + u.col + '"/>' +
-             '<text x="12" y="3.6" font-family="Geist Mono, monospace" font-size="9.5" fill="rgba(236,239,243,.62)">' +
+        s += '<circle r="6.5" fill="rgba(12,13,14,.82)" stroke="' + u.col + '" stroke-width="1.4"/>' +
+             '<circle r="2.4" fill="' + u.col + '"/>' +
+             '<text x="11" y="3.4" font-family="Geist Mono, monospace" font-size="9.5" fill="rgba(236,239,243,.66)">' +
              u.cs + '</text></g>';
       }
     });
@@ -822,8 +689,8 @@
   }
 
   function table() {
-    var h = '<div class="thd"><span>Unit number</span><span>S1</span><span>S2</span><span>S3</span>' +
-            '<span>S4</span><span>S5</span><span>S6</span></div>';
+    var h = '<div class="thd"><span>Unit number</span><span>RC1</span><span>RC2</span><span>LC1</span>' +
+            '<span>SF1</span><span>HR1</span><span>SP1</span></div>';
     OFF.forEach(function (r) {
       h += '<div class="trow"><span class="rb"><i style="background:' + r.col + '"></i>' + r.u + '</span>' +
         r.v.map(function (v) {
@@ -858,7 +725,6 @@
     });
   });
 
-  buildTerrain();
   fleet(); markers(); table(); sync();
 })();
 </script>
