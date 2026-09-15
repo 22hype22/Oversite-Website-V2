@@ -139,6 +139,7 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -170,6 +171,7 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -264,6 +266,15 @@
     background:rgba(20,20,23,.92);border:1px solid var(--hair2);font-size:10px;color:var(--dim);pointer-events:none;z-index:2}
   .plot .hov b{color:var(--ink);font-weight:500}
   .plot .hov[hidden]{display:none}
+  /* rail backdrop: map → dark panel → cards */
+  .rail{background:rgba(12,12,14,.76);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border-right:1px solid var(--hair);box-shadow:12px 0 40px rgba(0,0,0,.25)}
+  .rail .card{background:rgba(30,30,34,.66);border-color:rgba(240,242,245,.07);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
+  .rail .chips button{background:rgba(30,30,34,.66);border-color:rgba(240,242,245,.07);backdrop-filter:none;-webkit-backdrop-filter:none}
+  .rail .chips button[aria-pressed="true"]{background:rgba(40,40,45,.8);border-color:var(--hair2)}
+  .rail .veh[aria-pressed="true"]{background:rgba(64,64,70,.78)}
+  .rail .veh .mini{background:rgba(240,242,245,.035)}
+  .vig{background:none}
   /* ───────── 3D view ───────── */
   :root{--blur:blur(22px) saturate(1.2)}   /* lighter blur: the backdrop repaints every frame over WebGL */
   .view canvas{position:absolute;inset:0;width:100%;height:100%;display:block;outline:0}

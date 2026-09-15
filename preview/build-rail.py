@@ -112,6 +112,17 @@ css_add = """  /* unit render backdrop + availability chart */
   .plot .hov[hidden]{display:none}
 """
 if '.veh .pic::before' not in s: s=s.replace('</style>',css_add+'</style>')
+rail_css = """  /* rail backdrop: map → dark panel → cards */
+  .rail{background:rgba(12,12,14,.76);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border-right:1px solid var(--hair);box-shadow:12px 0 40px rgba(0,0,0,.25)}
+  .rail .card{background:rgba(30,30,34,.66);border-color:rgba(240,242,245,.07);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
+  .rail .chips button{background:rgba(30,30,34,.66);border-color:rgba(240,242,245,.07);backdrop-filter:none;-webkit-backdrop-filter:none}
+  .rail .chips button[aria-pressed="true"]{background:rgba(40,40,45,.8);border-color:var(--hair2)}
+  .rail .veh[aria-pressed="true"]{background:rgba(64,64,70,.78)}
+  .rail .veh .mini{background:rgba(240,242,245,.035)}
+  .vig{background:none}
+"""
+if 'rail backdrop: map' not in s: s=s.replace('</style>',rail_css+'</style>')
 js_add = r"""<script>
 /* ── Unit Availability: real chart over shift data ── */
 (() => {
