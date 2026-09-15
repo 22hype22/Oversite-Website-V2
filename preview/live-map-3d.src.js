@@ -26,7 +26,7 @@ scene.fog = new THREE.Fog(0x232A33, 900, 3000);
 
 const camera = new THREE.PerspectiveCamera(42, 1, 1, 6000);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.enableDamping = true; controls.dampingFactor = 0.16;   // short glide after release, then stops
 controls.maxPolarAngle = Math.PI * 0.46; controls.minDistance = 90; controls.maxDistance = 2200;
 controls.autoRotate = true; controls.autoRotateSpeed = 0.35;
 // left button slides the map, middle (or right) button orbits, wheel zooms
@@ -179,5 +179,6 @@ const frame = () => {
 };
 let active = false;
 const setActive = on => { if (on === active) return; active = on; renderer.setAnimationLoop(on ? frame : null); if (on) { clock.getDelta(); resize(); } };
-window.map3d = { zoomIn: () => dolly(0.78), zoomOut: () => dolly(1.28), toggleFollow, setTheme, setActive, reset };
+window.map3d = { zoomIn: () => dolly(0.78), zoomOut: () => dolly(1.28), toggleFollow, setTheme, setActive, reset,
+  pose: () => [...camera.position.toArray(), ...controls.target.toArray()].map(n => +n.toFixed(2)), controls };
 setActive(true);

@@ -169,6 +169,7 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -200,6 +201,7 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -891,7 +893,9 @@
   };
 
   let drag = null;
+  const is3d = () => document.body.classList.contains('mode-3d');   // the 3D controls own the pointer in 3D mode
   view.addEventListener('pointerdown', e => {
+    if (is3d()) return;
     drag = { x: e.clientX, y: e.clientY, tx, ty };
     view.setPointerCapture(e.pointerId); view.classList.add('drag');
   });
@@ -902,6 +906,7 @@
   const end = () => { drag = null; view.classList.remove('drag'); };
   view.addEventListener('pointerup', end); view.addEventListener('pointercancel', end);
   view.addEventListener('wheel', e => {
+    if (is3d()) return;
     e.preventDefault();
     zoomAt(Math.exp(-e.deltaY * .0016), e.clientX, e.clientY);
   }, { passive: false });
