@@ -66,6 +66,8 @@
   .veh-dot{width:14px;height:14px;border-radius:50%;background:var(--blue);
     box-shadow:0 0 0 3px rgba(76,141,255,.22),0 0 0 1px #0B0B0C inset}
   .veh-dot.red{background:var(--red);box-shadow:0 0 0 3px rgba(226,75,75,.22)}
+  .veh-dot.amber{background:var(--amber);box-shadow:0 0 0 3px rgba(233,162,76,.22)}
+  .pin.call .veh-dot{width:10px;height:10px;animation:blink 1.6s ease-in-out infinite}
   .veh-dot.dim{background:#C9CDD3;width:11px;height:11px;box-shadow:0 0 0 1px #0B0B0C inset}
   .focus{width:78px;height:78px;border-radius:50%;
     border:1px solid rgba(240,242,245,.5);background:rgba(240,242,245,.05);
@@ -152,6 +154,7 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -200,6 +203,7 @@
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh.compact .pic{height:48px}
   .veh.compact .pic>svg{height:56px}
 
@@ -220,30 +224,48 @@
     background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--hair)}
   .mapctl button:hover{color:var(--ink);border-color:var(--hair2)}
 
-  /* warning panel */
-  .warn{position:absolute;right:var(--gap);top:var(--gap);width:clamp(250px,20vw,300px);
-    background:linear-gradient(180deg,rgba(72,22,26,.70),rgba(52,18,22,.66));
-    backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-    border:1px solid rgba(226,75,75,.22);border-radius:14px;padding:12px 14px 6px;
-    box-shadow:0 20px 60px rgba(0,0,0,.35)}
-  .warn h3{margin:0;font-size:12px;font-weight:400;color:#F6D9DA;display:flex;align-items:center;justify-content:space-between}
-  .warn h3 .x{color:rgba(246,217,218,.5)}
-  .wsec{border-top:1px solid rgba(255,255,255,.08);margin-top:10px;padding-top:8px}
-  .wsec .h{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#F6D9DA}
-  .wsec .h span{color:rgba(246,217,218,.5);margin-left:auto}
-  .wsec .h .chev{color:rgba(246,217,218,.5);margin-left:0}
-  .alert{display:flex;gap:9px;margin-top:9px;padding:9px 10px;border-radius:9px;
-    background:rgba(20,8,10,.35);border:1px solid rgba(255,255,255,.06)}
+  /* warning panel: grey glass, red announcements */
+  .warn{position:absolute;right:var(--gap);top:var(--gap);width:clamp(260px,21vw,312px);max-height:calc(100% - var(--footh) - var(--gap)*3);overflow-y:auto;scrollbar-width:none;
+    background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--hair);border-radius:14px;padding:12px 14px 6px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+  .warn::-webkit-scrollbar{display:none}
+  .warn h3{margin:0;font-size:12px;font-weight:400;color:var(--ink);display:flex;align-items:center;gap:8px}
+  .warn h3 .ttl{display:flex;align-items:center;gap:7px}
+  .warn h3 .live{width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);animation:blink 1.8s ease-in-out infinite}
+  .warn h3 .cnt{font-size:10.5px;padding:1px 7px;border-radius:999px;background:rgba(240,242,245,.08);border:1px solid var(--hair)}
+  .warn h3 .x{margin-left:auto;color:var(--faint)}
+  .wsec{border-top:1px solid var(--hair);margin-top:10px;padding-top:8px}
+  .wsec .h{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink)}
+  .wsec .h span{color:var(--faint);margin-left:4px}
+  .wsec .h .chev{color:var(--faint);margin-left:auto}
+  .alert{display:flex;gap:9px;margin-top:8px;padding:9px 10px;border-radius:9px;position:relative;overflow:hidden;
+    background:linear-gradient(90deg,rgba(226,75,75,.22),rgba(226,75,75,.10));border:1px solid rgba(226,75,75,.35)}
+  .alert.p2{background:linear-gradient(90deg,rgba(233,162,76,.18),rgba(233,162,76,.07));border-color:rgba(233,162,76,.32)}
+  .alert.p2 .ic{background:var(--amber)}
+  .alert.p3{background:rgba(240,242,245,.05);border-color:var(--hair2)}
+  .alert.p3 .ic{background:#6B6F76}
   .alert .ic{flex:none;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;margin-top:1px}
-  .alert .t{font-size:11.5px;line-height:1.35}
-  .alert .t small{display:block;font-size:10px;color:rgba(246,217,218,.5);margin-top:2px}
-  .aff{margin:9px 0 0 8px;padding-left:12px;border-left:1px solid rgba(255,255,255,.14);font-size:10.5px;color:rgba(246,217,218,.6)}
-  .aff .r{margin-top:6px;color:#F6D9DA;font-size:11px}
-  .aff .r small{display:block;color:rgba(246,217,218,.55);font-size:10px}
-  .rec{display:flex;gap:8px;margin:10px 0 8px 8px;font-size:11px;color:#F6D9DA;align-items:flex-start}
-  .rec small{display:block;color:rgba(246,217,218,.55);font-size:10px}
-  .rec svg{flex:none;margin-top:2px}
-
+  .alert .t{font-size:11.5px;line-height:1.35;min-width:0}
+  .alert .t b{font-weight:500}
+  .alert .t small{display:block;font-size:10px;color:var(--dim);margin-top:2px}
+  .alert .t small .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#F6C5C5}
+  .alert.p2 .t small .code{color:#F1D3A8}
+  .alert .age{margin-left:auto;flex:none;font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .alert.new{animation:slidein .5s cubic-bezier(.32,.72,0,1)}
+  .alert.new::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.18);animation:flash 1.4s ease-out forwards;pointer-events:none}
+  @keyframes slidein{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+  @keyframes flash{to{opacity:0}}
+  .aff{margin:9px 0 0 8px;padding-left:12px;border-left:1px solid var(--hair2);font-size:10.5px;color:var(--dim)}
+  .aff .r{margin-top:6px;color:var(--ink);font-size:11px;display:flex;align-items:baseline;gap:6px}
+  .aff .r i{width:6px;height:6px;border-radius:50%;background:var(--acc,#C9CDD3);flex:none;position:relative;top:-1px}
+  .aff .r small{color:var(--dim);font-size:10px;margin-left:auto;white-space:nowrap}
+  .rec{display:flex;gap:8px;margin:10px 0 8px 8px;font-size:11px;color:var(--ink);align-items:flex-start}
+  .rec small{display:block;color:var(--dim);font-size:10px}
+  .rec svg{flex:none;margin-top:2px;color:var(--amber)}
+  .rec button{margin-left:auto;flex:none;font-size:10.5px;padding:4px 9px;border-radius:7px;background:#F4F6F8;color:#0B0B0C;font-weight:500}
+  .rec button:hover{background:#fff}
+  .warn .empty{font-size:10.5px;color:var(--faint);padding:8px 2px}
+  @media (prefers-reduced-motion:reduce){.warn h3 .live,.alert.new{animation:none}.alert.new::after{display:none}}
   /* foot panels */
   .foot{position:absolute;left:var(--gap);right:var(--gap);bottom:var(--gap);height:var(--footh);
     display:grid;grid-template-columns:1.25fr 1fr;gap:var(--gap)}
@@ -550,20 +572,15 @@
     <button id="zout" aria-label="Layers"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5"/></svg></button>
   </div>
 
-  <section class="warn" aria-label="Warnings">
-    <h3>Warning <span class="x"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></span></h3>
+  <section class="warn" id="warn" aria-label="Incoming calls" aria-live="polite">
+    <h3><span class="ttl"><i class="live"></i>Incoming Calls</span><span class="cnt" id="warnCount">0</span><span class="x"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></span></h3>
     <div class="wsec">
-      <div class="h"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 12h6"/></svg>Capacity Issues <span>(2 lines)</span><span class="chev"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></span></div>
-      <div class="alert"><div class="ic">!</div><div class="t">-180 passengers left behind<small>4m ago</small></div></div>
-      <div class="aff">Affected stations:
-        <div class="r">Central Station<small>10 passengers waiting</small></div>
-        <div class="r">University Campus<small>25 passengers waiting</small></div>
-      </div>
-      <div class="rec"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F6D9DA" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><div>Recommend<small>Dispatching reserve E-Bus</small></div></div>
+      <div class="h"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>New Calls <span id="warnNew">(0)</span><span class="chev"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></span></div>
+      <div id="warnList"></div>
     </div>
     <div class="wsec">
-      <div class="h"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Schedule Deviations <span>(Route 14)</span><span class="chev"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></span></div>
-      <div class="alert" style="margin-bottom:8px"><div class="ic">!</div><div class="t">Bus 4120 is 15 mins behind schedule<small>2m ago</small></div></div>
+      <div class="h"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>Unit Alerts <span id="warnUnitN">(0)</span><span class="chev"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></span></div>
+      <div id="warnUnits"></div>
     </div>
   </section>
 
@@ -710,14 +727,14 @@
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const now = Date.now();
   const STAGES = ['Dispatched', 'En route', 'On scene'];
-  const CALLS = [
-    { pri: 1, code: '10-50', type: 'Vehicle collision, injuries', where: 'Route 1 & Main St', unit: 'FD 4120', dept: 'fd', stage: 2, since: 240 },
-    { pri: 1, code: '10-31', type: 'Robbery in progress', where: 'Liberty Bank, Downtown', unit: 'PD 6023', dept: 'pd', stage: 1, since: 95 },
-    { pri: 2, code: '10-70', type: 'Structure fire, single family', where: '14 Ridge Rd', unit: 'FD 2201', dept: 'fd', stage: 2, since: 610 },
-    { pri: 2, code: '10-80', type: 'Pursuit, silver sedan', where: 'Highway 1 northbound', unit: 'PD 3310', dept: 'pd', stage: 1, since: 150 },
-    { pri: 3, code: '10-53', type: 'Road hazard, debris', where: 'Interstate ramp, exit 4', unit: 'DOT 2209', dept: 'dot', stage: 2, since: 1320 },
-    { pri: 3, code: '10-91', type: 'Noise complaint', where: 'Sunset Apartments', unit: '', dept: '', stage: 0, since: 45 },
-    { pri: 3, code: '10-38', type: 'Traffic stop, expired tags', where: 'Elm St & 3rd Ave', unit: 'PD 1207', dept: 'pd', stage: 2, since: 380 },
+  const CALLS = window.CALLS = [
+    { pri: 1, code: '10-50', type: 'Vehicle collision, injuries', where: 'Route 1 & Main St', unit: 'FD 4120', dept: 'fd', stage: 2, since: 240, x: 1180, y: 988 },
+    { pri: 1, code: '10-31', type: 'Robbery in progress', where: 'Liberty Bank, Downtown', unit: 'PD 6023', dept: 'pd', stage: 1, since: 95, x: 760, y: 1452 },
+    { pri: 2, code: '10-70', type: 'Structure fire, single family', where: '14 Ridge Rd', unit: 'FD 2201', dept: 'fd', stage: 2, since: 610, x: 300, y: 792 },
+    { pri: 2, code: '10-80', type: 'Pursuit, silver sedan', where: 'Highway 1 northbound', unit: 'PD 3310', dept: 'pd', stage: 1, since: 150, x: 1345, y: 600 },
+    { pri: 3, code: '10-53', type: 'Road hazard, debris', where: 'Interstate ramp, exit 4', unit: 'DOT 2209', dept: 'dot', stage: 2, since: 1320, x: 1352, y: 1300 },
+    { pri: 3, code: '10-91', type: 'Noise complaint', where: 'Sunset Apartments', unit: '', dept: '', stage: 0, since: 45, x: 1160, y: 1092 },
+    { pri: 3, code: '10-38', type: 'Traffic stop, expired tags', where: 'Elm St & 3rd Ave', unit: 'PD 1207', dept: 'pd', stage: 2, since: 380, x: 660, y: 900 },
   ].map(c => ({ ...c, startedAt: now - c.since * 1000 }));
 
   const duty = document.getElementById('dutyRows'), calls = document.getElementById('callRows');
@@ -739,7 +756,7 @@
   mixEl.innerHTML = Object.entries(mix).map(([d, n]) => `<i style="width:${n / roster.length * 100}%;background:${COL[d]}" title="${DEPT[d]} ${n}"></i>`).join('');
 
   const pin = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>';
-  calls.innerHTML = CALLS.map(c => `<div class="row p${c.pri}" role="listitem" style="--acc:${COL[c.dept] || '#C9CDD3'}">
+  const renderCalls = () => { calls.innerHTML = [...CALLS].sort((a, b) => a.pri - b.pri || b.startedAt - a.startedAt).map(c => `<div class="row p${c.pri}" role="listitem" style="--acc:${COL[c.dept] || '#C9CDD3'}">
     <span class="prail"></span><span class="code">${c.code}</span>
     <div class="what"><b>${esc(c.type)}</b><span>${pin}${esc(c.where)}</span></div>
     <div class="asg"><span class="unit${c.unit ? '' : ' none'}">${c.unit ? esc(c.unit) : 'Unassigned'}</span>
@@ -748,12 +765,71 @@
   document.getElementById('callsCount').textContent = CALLS.length;
   const pc = { 1: 0, 2: 0, 3: 0 }; for (const c of CALLS) pc[c.pri]++;
   document.getElementById('callPris').innerHTML = [1, 2, 3].map(p => `<span class="p${p}">P${p} ${pc[p]}</span>`).join('');
-  const cc = document.getElementById('callCount'); if (cc) cc.textContent = CALLS.length;
+  const cc = document.getElementById('callCount'); if (cc) cc.textContent = CALLS.length; tick(); };
+  window.addCall = c => { CALLS.push(c); renderCalls(); dispatchEvent(new CustomEvent('calls')); };
+  window.assignCall = (c, unit, dept) => { c.unit = unit; c.dept = dept; c.stage = 0; renderCalls(); dispatchEvent(new CustomEvent('calls')); };
+  renderCalls();
 
-  const tick = () => { const t = Date.now();
+  setInterval(tick, 1000);
+  function tick() { const t = Date.now();
     for (const el of duty.querySelectorAll('.time [data-start]')) el.textContent = fmtDur((t - el.dataset.start) / 1000);
-    for (const el of calls.querySelectorAll('.age')) el.textContent = fmtAge((t - el.dataset.start) / 1000); };
-  tick(); setInterval(tick, 1000);
+    for (const el of calls.querySelectorAll('.age')) el.textContent = fmtAge((t - el.dataset.start) / 1000); }
+})();
+</script>
+<script>
+/* ── incoming calls feed: the warning panel, new-call simulation, dispatch recommendation ── */
+(() => {
+  const UN = window.UNITS || [], CALLS = window.CALLS || [], COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const list = document.getElementById('warnList'), ulist = document.getElementById('warnUnits');
+  const fmtAge = s => s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)}m ago` : `${Math.floor(s / 3600)}h ${Math.floor(s / 60) % 60}m ago`;
+  const NEW_WINDOW = 10 * 60 * 1000;
+  const deptFor = code => ({ '10-70': 'fd', '10-50': 'fd', '10-52': 'fd', '10-53': 'dot', '10-46': 'dot' }[code] || 'pd');
+  const nearest = c => UN.map(u => ({ u, d: Math.hypot(u.x - c.x, u.y - c.y) })).sort((a, b) => a.d - b.d);
+  let flash = null;
+
+  const render = () => {
+    const now = Date.now();
+    const fresh = CALLS.filter(c => now - c.startedAt < NEW_WINDOW).sort((a, b) => b.startedAt - a.startedAt);
+    document.getElementById('warnNew').textContent = `(${fresh.length})`;
+    document.getElementById('warnCount').textContent = fresh.length;
+    if (!fresh.length) { list.innerHTML = '<div class="empty">No new calls in the last 10 minutes.</div>'; }
+    else list.innerHTML = fresh.map((c, i) => {
+      let html = `<div class="alert p${c.pri}${c === flash ? ' new' : ''}"><div class="ic">!</div><div class="t"><b>${esc(c.type)}</b><small><span class="code">${c.code}</span> · ${esc(c.where)}${c.unit ? ' · ' + esc(c.unit) : ''}</small></div><span class="age" data-start="${c.startedAt}">${fmtAge((now - c.startedAt) / 1000)}</span></div>`;
+      if (i === 0 && !c.unit) {
+        const dept = deptFor(c.code), near = nearest(c).filter(n => n.u.dept === dept).slice(0, 2);
+        html += `<div class="aff">Nearest ${dept.toUpperCase()} units:` + near.map(n => `<div class="r" style="--acc:${COL[n.u.dept]}"><i></i>${esc(n.u.name)}<small>${(n.d / 1609 * 1.2).toFixed(1)} mi · 10-8</small></div>`).join('') + `</div>`;
+        if (near[0]) html += `<div class="rec"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><div>Recommend<small>Dispatch ${esc(near[0].u.name)} · closest available</small></div><button type="button" data-dispatch="${esc(c.code)}|${c.startedAt}">Dispatch</button></div>`;
+      }
+      return html; }).join('');
+    // unit alerts: priority calls with a unit still en route / pursuits
+    const ua = CALLS.filter(c => c.unit && (c.code === '10-80' || (c.pri === 1 && c.stage < 2)));
+    document.getElementById('warnUnitN').textContent = `(${ua.length})`;
+    ulist.innerHTML = ua.length ? ua.map(c => `<div class="alert ${c.code === '10-80' ? 'p1' : 'p2'}"><div class="ic">!</div><div class="t"><b>${esc(c.unit)} ${c.code === '10-80' ? 'in pursuit' : 'en route to ' + c.code}</b><small>${esc(c.where)}</small></div><span class="age" data-start="${c.startedAt}">${fmtAge((now - c.startedAt) / 1000)}</span></div>`).join('')
+      : '<div class="empty">No unit alerts.</div>';
+  };
+  document.getElementById('warn').addEventListener('click', e => {
+    const b = e.target.closest('[data-dispatch]'); if (!b) return;
+    const [code, t] = b.dataset.dispatch.split('|'); const c = CALLS.find(x => x.code === code && String(x.startedAt) === t); if (!c) return;
+    const dept = deptFor(c.code), n = nearest(c).find(n => n.u.dept === dept); if (n) window.assignCall(c, n.u.name, n.u.dept);
+  });
+  addEventListener('calls', render);
+  setInterval(() => { const now = Date.now(); for (const el of document.querySelectorAll('#warn .age')) el.textContent = fmtAge((now - el.dataset.start) / 1000); }, 1000);
+
+  // simulated feed: a new call every so often; replace with the server feed
+  const POOL = [
+    { pri: 1, code: '10-52', type: 'Medical emergency, unresponsive', where: 'Liberty Mall, food court', x: 1000, y: 1613 },
+    { pri: 2, code: '10-32', type: 'Person with a weapon', where: 'Gas station, Route 1', x: 1350, y: 1000 },
+    { pri: 2, code: '10-50', type: 'Vehicle collision, no injuries', where: 'Highway 1 & Bridge Rd', x: 1340, y: 520 },
+    { pri: 3, code: '10-46', type: 'Disabled vehicle', where: 'Interstate shoulder, mile 3', x: 1350, y: 760 },
+    { pri: 1, code: '10-70', type: 'Vehicle fire', where: 'Parking garage, Downtown', x: 880, y: 1452 },
+    { pri: 3, code: '10-66', type: 'Suspicious person', where: 'Riverside Park', x: 660, y: 988 },
+  ];
+  let pi = 0;
+  const incoming = () => { const c = { ...POOL[pi++ % POOL.length], unit: '', dept: '', stage: 0, startedAt: Date.now() };
+    flash = c; window.addCall(c); setTimeout(() => { if (flash === c) { flash = null; render(); } }, 1600); };
+  setTimeout(incoming, 6000); setInterval(incoming, 32000);
+  render();
 })();
 </script>
 <script>
