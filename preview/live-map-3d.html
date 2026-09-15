@@ -149,6 +149,9 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -180,6 +183,9 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -330,32 +336,60 @@
   .veh .vinfo .code{color:var(--acc);font-weight:500}
   .veh .pic .id{position:relative}
   /* bottom lists: on-duty roster and active calls */
-  :root{--footh:clamp(184px,23vh,236px)}
+  :root{--footh:clamp(196px,24vh,250px)}
   .foot{grid-template-columns:1fr 1.15fr}
-  .foot .list{padding:10px 6px 6px 14px}
-  .foot .list h3{padding-right:8px}
-  .foot .list h3 .cnt{margin-left:8px;margin-right:auto;font-size:10.5px;color:var(--ink);padding:1px 7px;border-radius:999px;background:rgba(240,242,245,.08)}
-  .rows{flex:1;min-height:0;overflow-y:auto;margin-top:6px;padding-right:8px;scrollbar-width:thin;scrollbar-color:rgba(240,242,245,.12) transparent}
-  .row{display:grid;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--hair);font-size:11px;min-height:32px}
-  .row:last-child{border-bottom:0}
-  .duty .row{grid-template-columns:8px 1fr auto auto}
-  .duty .dot{width:8px;height:8px;border-radius:50%;background:var(--acc,#C9CDD3);box-shadow:0 0 8px var(--acc,transparent)}
-  .duty .who{min-width:0;display:flex;align-items:baseline;gap:8px}
+  .foot .list{padding:0;overflow:hidden}
+  .foot .lh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px 9px;
+    border-bottom:1px solid var(--hair);background:linear-gradient(180deg,rgba(240,242,245,.035),transparent)}
+  .foot .lh h3{gap:8px}
+  .foot .lh .cnt{font-size:10.5px;color:var(--ink);padding:1px 7px;border-radius:999px;background:rgba(240,242,245,.08);border:1px solid var(--hair)}
+  .rows{flex:1;min-height:0;overflow-y:auto;padding:6px 8px 8px;scrollbar-width:thin;scrollbar-color:rgba(240,242,245,.12) transparent;
+    mask-image:linear-gradient(180deg,#000 calc(100% - 18px),transparent);-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 18px),transparent)}
+  .row{display:grid;align-items:center;gap:10px;padding:6px 8px;border-radius:9px;font-size:11px;min-height:36px;position:relative;
+    transition:background .16s cubic-bezier(.32,.72,0,1)}
+  .row:hover{background:rgba(240,242,245,.05)}
+  .row+.row{margin-top:2px}
+  /* on duty */
+  .mix{display:flex;height:4px;width:96px;border-radius:2px;overflow:hidden;background:rgba(240,242,245,.06)}
+  .mix i{display:block;height:100%}
+  .duty .row{grid-template-columns:26px 1fr auto auto}
+  .duty .av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;
+    color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,rgba(11,11,12,.5));box-shadow:0 0 0 1px color-mix(in srgb,var(--acc) 40%,transparent);position:relative}
+  .duty .av::after{content:"";position:absolute;right:-1px;bottom:-1px;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px #151518}
+  .duty .who{min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.2}
   .duty .who b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .duty .who span{color:var(--dim);font-size:10.5px;white-space:nowrap}
-  .duty .unit{color:var(--dim);font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(240,242,245,.05);border:1px solid var(--hair)}
-  .duty .time{color:var(--faint);font-size:10px;font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
-  .calls .row{grid-template-columns:30px 1fr auto auto}
-  .calls .pri{font-size:9.5px;font-weight:600;letter-spacing:.04em;text-align:center;padding:3px 0;border-radius:6px;background:rgba(240,242,245,.06);color:var(--dim)}
-  .calls .pri.p1{background:rgba(226,75,75,.18);color:#F0A0A0}
-  .calls .pri.p2{background:rgba(233,162,76,.16);color:#F1C48A}
+  .duty .who .rank{font-size:9.5px;letter-spacing:.02em;color:color-mix(in srgb,var(--acc) 70%,#F0F2F5);white-space:nowrap}
+  .duty .who .rank.hi{color:var(--amber)}
+  .duty .unit{color:var(--dim);font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(240,242,245,.05);border:1px solid var(--hair);white-space:nowrap}
+  .duty .time{color:var(--faint);font-size:10px;font-variant-numeric:tabular-nums;min-width:44px;text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:5px}
+  .duty .time i{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2.4s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:.35}50%{opacity:1}}
+  /* active calls */
+  .pris{display:flex;gap:4px}
+  .pris span{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:2px 7px;border-radius:6px;background:rgba(240,242,245,.06);color:var(--dim)}
+  .pris .p1{background:rgba(226,75,75,.18);color:#F0A0A0} .pris .p2{background:rgba(233,162,76,.16);color:#F1C48A}
+  .calls .row{grid-template-columns:3px 46px minmax(0,1fr) auto 30px;padding-left:6px}
+  .calls .prail{width:3px;height:26px;border-radius:2px;background:var(--pc,#5B5F66)}
+  .calls .row.p1 .prail{background:var(--red);box-shadow:0 0 10px rgba(226,75,75,.7);animation:blink 1.6s ease-in-out infinite}
+  .calls .row.p2 .prail{background:var(--amber);box-shadow:0 0 8px rgba(233,162,76,.5)}
+  .calls .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;letter-spacing:.02em;color:var(--ink);
+    padding:3px 0;text-align:center;border-radius:6px;background:rgba(240,242,245,.06);border:1px solid var(--hair)}
+  .calls .row.p1 .code{color:#F6C5C5;border-color:rgba(226,75,75,.35);background:rgba(226,75,75,.10)}
+  .calls .row.p2 .code{color:#F1D3A8;border-color:rgba(233,162,76,.35);background:rgba(233,162,76,.10)}
   .calls .what{min-width:0;line-height:1.25}
   .calls .what b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .calls .what span{display:block;color:var(--dim);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .calls .unit{font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid color-mix(in srgb,var(--acc,#C9CDD3) 40%,transparent);color:var(--acc,#C9CDD3);background:color-mix(in srgb,var(--acc,#C9CDD3) 10%,transparent)}
-  .calls .unit.none{color:var(--faint);border-color:var(--hair);background:none}
+  .calls .what span{display:flex;align-items:center;gap:4px;color:var(--dim);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .calls .what span svg{flex:none;opacity:.7}
+  .calls .asg{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+  .calls .unit{font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid color-mix(in srgb,var(--acc,#C9CDD3) 40%,transparent);color:var(--acc,#C9CDD3);background:color-mix(in srgb,var(--acc,#C9CDD3) 10%,transparent);white-space:nowrap}
+  .calls .unit.none{color:var(--faint);border-color:var(--hair);background:none;border-style:dashed}
+  .calls .cstage{display:flex;gap:3px;align-items:center}
+  .calls .cstage i{width:14px;height:3px;border-radius:2px;background:rgba(240,242,245,.12)}
+  .calls .cstage i.on{background:var(--acc,#C9CDD3)}
+  .calls .cstage small{font-size:9px;color:var(--faint);margin-left:3px;letter-spacing:.03em}
   .calls .age{color:var(--faint);font-size:10px;font-variant-numeric:tabular-nums;min-width:30px;text-align:right}
   @media (max-width:980px){.foot .card:last-child{display:flex}}
+  @media (prefers-reduced-motion:reduce){.duty .time i,.calls .row.p1 .prail{animation:none}}
   /* ───────── 3D view ───────── */
   :root{--blur:blur(22px) saturate(1.2)}   /* lighter blur: the backdrop repaints every frame over WebGL */
   .view canvas{position:absolute;inset:0;width:100%;height:100%;display:block;outline:0}
@@ -534,12 +568,18 @@
   </section>
 
   <div class="foot">
-    <div class="card list" id="dutyCard">
-      <h3>On Duty <span class="cnt" id="dutyCount">0</span><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></h3>
+    <div class="card list duty" id="dutyCard">
+      <div class="lh">
+        <h3>On Duty <span class="cnt" id="dutyCount">0</span></h3>
+        <div class="mix" id="dutyMix" aria-label="Department mix"></div>
+      </div>
       <div class="rows" id="dutyRows" role="list" aria-label="Users on duty"></div>
     </div>
-    <div class="card list" id="callsCard">
-      <h3>Active Calls <span class="cnt" id="callsCount">0</span><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></h3>
+    <div class="card list calls" id="callsCard">
+      <div class="lh">
+        <h3>Active Calls <span class="cnt" id="callsCount">0</span></h3>
+        <div class="pris" id="callPris" aria-label="Calls by priority"></div>
+      </div>
       <div class="rows" id="callRows" role="list" aria-label="Active calls"></div>
     </div>
   </div>
@@ -666,36 +706,52 @@
 <script>
 /* ── bottom panels: on-duty roster (from the unit crews) and active calls ── */
 (() => {
-  const UN = window.UNITS || [], COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
+  const UN = window.UNITS || [], COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' }, DEPT = { pd: 'PD', fd: 'FD', dot: 'DOT' };
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const now = Date.now();
+  const STAGES = ['Dispatched', 'En route', 'On scene'];
   const CALLS = [
-    { pri: 1, code: '10-50', type: 'Vehicle collision, injuries', where: 'Route 1 & Main St', unit: 'FD 4120', dept: 'fd', since: 240 },
-    { pri: 1, code: '10-31', type: 'Robbery in progress', where: 'Liberty Bank, Downtown', unit: 'PD 6023', dept: 'pd', since: 95 },
-    { pri: 2, code: '10-70', type: 'Structure fire, single family', where: '14 Ridge Rd', unit: 'FD 2201', dept: 'fd', since: 610 },
-    { pri: 2, code: '10-80', type: 'Pursuit, silver sedan', where: 'Highway 1 northbound', unit: 'PD 3310', dept: 'pd', since: 150 },
-    { pri: 3, code: '10-53', type: 'Road hazard, debris', where: 'Interstate ramp, exit 4', unit: 'DOT 2209', dept: 'dot', since: 1320 },
-    { pri: 3, code: '10-91', type: 'Noise complaint', where: 'Sunset Apartments', unit: '', dept: '', since: 45 },
-    { pri: 3, code: '10-38', type: 'Traffic stop, expired tags', where: 'Elm St & 3rd Ave', unit: 'PD 1207', dept: 'pd', since: 380 },
+    { pri: 1, code: '10-50', type: 'Vehicle collision, injuries', where: 'Route 1 & Main St', unit: 'FD 4120', dept: 'fd', stage: 2, since: 240 },
+    { pri: 1, code: '10-31', type: 'Robbery in progress', where: 'Liberty Bank, Downtown', unit: 'PD 6023', dept: 'pd', stage: 1, since: 95 },
+    { pri: 2, code: '10-70', type: 'Structure fire, single family', where: '14 Ridge Rd', unit: 'FD 2201', dept: 'fd', stage: 2, since: 610 },
+    { pri: 2, code: '10-80', type: 'Pursuit, silver sedan', where: 'Highway 1 northbound', unit: 'PD 3310', dept: 'pd', stage: 1, since: 150 },
+    { pri: 3, code: '10-53', type: 'Road hazard, debris', where: 'Interstate ramp, exit 4', unit: 'DOT 2209', dept: 'dot', stage: 2, since: 1320 },
+    { pri: 3, code: '10-91', type: 'Noise complaint', where: 'Sunset Apartments', unit: '', dept: '', stage: 0, since: 45 },
+    { pri: 3, code: '10-38', type: 'Traffic stop, expired tags', where: 'Elm St & 3rd Ave', unit: 'PD 1207', dept: 'pd', stage: 2, since: 380 },
   ].map(c => ({ ...c, startedAt: now - c.since * 1000 }));
 
   const duty = document.getElementById('dutyRows'), calls = document.getElementById('callRows');
   const fmtAge = s => s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h ${Math.floor(s / 60) % 60}m`;
   const fmtDur = s => `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}`;
+  const initials = n => { const w = n.replace(/[^a-z0-9]/gi, ' ').trim().split(/\s+/).filter(Boolean); return (w.length > 1 ? w.map(x => x[0]).join('').slice(0, 2) : n.slice(0, 2)).toUpperCase(); };
+  const RANK_ORDER = ['Chief of Police', 'Battalion Chief', 'Captain', 'Lieutenant', 'Sergeant', 'Supervisor', 'Corporal', 'Officer', 'Firefighter', 'Operator', 'Trainee', 'Probationary'];
+  const HI = new Set(['Chief of Police', 'Battalion Chief', 'Captain', 'Lieutenant']);
 
   const roster = [];
   for (const u of UN) u.crew.forEach((name, i) => roster.push({ name, rank: (u.ranks || [])[i] || 'Member', unit: u.name, dept: u.dept, startedAt: u.startedAt }));
-  duty.className = 'rows duty';
-  duty.innerHTML = roster.map(r => `<div class="row" role="listitem" style="--acc:${COL[r.dept]}"><span class="dot"></span><div class="who"><b>${esc(r.name)}</b><span>${esc(r.rank)}</span></div><span class="unit">${esc(r.unit)}</span><span class="time" data-start="${r.startedAt}"></span></div>`).join('');
+  roster.sort((a, b) => (RANK_ORDER.indexOf(a.rank) + 1 || 99) - (RANK_ORDER.indexOf(b.rank) + 1 || 99) || a.name.localeCompare(b.name));
+  duty.innerHTML = roster.map(r => `<div class="row" role="listitem" style="--acc:${COL[r.dept]}" title="${esc(r.name)} · ${esc(r.rank)} · ${esc(r.unit)}">
+    <span class="av">${esc(initials(r.name))}</span>
+    <div class="who"><b>${esc(r.name)}</b><span class="rank${HI.has(r.rank) ? ' hi' : ''}">${esc(r.rank)}</span></div>
+    <span class="unit">${esc(r.unit)}</span><span class="time"><i></i><span data-start="${r.startedAt}"></span></span></div>`).join('');
   document.getElementById('dutyCount').textContent = roster.length;
+  const mixEl = document.getElementById('dutyMix'), mix = { pd: 0, fd: 0, dot: 0 }; for (const r of roster) mix[r.dept]++;
+  mixEl.innerHTML = Object.entries(mix).map(([d, n]) => `<i style="width:${n / roster.length * 100}%;background:${COL[d]}" title="${DEPT[d]} ${n}"></i>`).join('');
 
-  calls.className = 'rows calls';
-  calls.innerHTML = CALLS.map(c => `<div class="row" role="listitem" style="--acc:${COL[c.dept] || '#C9CDD3'}"><span class="pri p${c.pri}">P${c.pri}</span><div class="what"><b>${c.code} · ${esc(c.type)}</b><span>${esc(c.where)}</span></div><span class="unit${c.unit ? '' : ' none'}">${c.unit ? esc(c.unit) : 'Unassigned'}</span><span class="age" data-start="${c.startedAt}"></span></div>`).join('');
+  const pin = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+  calls.innerHTML = CALLS.map(c => `<div class="row p${c.pri}" role="listitem" style="--acc:${COL[c.dept] || '#C9CDD3'}">
+    <span class="prail"></span><span class="code">${c.code}</span>
+    <div class="what"><b>${esc(c.type)}</b><span>${pin}${esc(c.where)}</span></div>
+    <div class="asg"><span class="unit${c.unit ? '' : ' none'}">${c.unit ? esc(c.unit) : 'Unassigned'}</span>
+      <span class="cstage">${[0, 1, 2].map(i => `<i class="${c.unit && i <= c.stage ? 'on' : ''}"></i>`).join('')}<small>${c.unit ? STAGES[c.stage] : 'Pending'}</small></span></div>
+    <span class="age" data-start="${c.startedAt}"></span></div>`).join('');
   document.getElementById('callsCount').textContent = CALLS.length;
+  const pc = { 1: 0, 2: 0, 3: 0 }; for (const c of CALLS) pc[c.pri]++;
+  document.getElementById('callPris').innerHTML = [1, 2, 3].map(p => `<span class="p${p}">P${p} ${pc[p]}</span>`).join('');
   const cc = document.getElementById('callCount'); if (cc) cc.textContent = CALLS.length;
 
   const tick = () => { const t = Date.now();
-    for (const el of duty.querySelectorAll('.time')) el.textContent = fmtDur((t - el.dataset.start) / 1000);
+    for (const el of duty.querySelectorAll('.time [data-start]')) el.textContent = fmtDur((t - el.dataset.start) / 1000);
     for (const el of calls.querySelectorAll('.age')) el.textContent = fmtAge((t - el.dataset.start) / 1000); };
   tick(); setInterval(tick, 1000);
 })();
