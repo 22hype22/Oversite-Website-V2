@@ -172,7 +172,9 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   const spds = [...document.querySelectorAll('.spd[data-unit]')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
   const bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: units.find(x => x.id === el.dataset.unit) }));
   const VIEW = 300;                                   // world units visible across a mini map
-  if (MAP) for (const m of minis) m.el.style.backgroundImage = `url("${MAP}")`;
+  const setMini = url => { for (const m of minis) m.el.style.backgroundImage = `url("${url}")`; };
+  if (MAP) setMini(MAP);
+  addEventListener('maptheme', e => { const l = document.getElementById('mapsrc')?.getAttribute('href'), d = document.getElementById('mapsrc-dark')?.getAttribute('href') || document.querySelector('.view img')?.dataset.dark; setMini(e.detail.theme === 'dark' ? (d || l) : (l || d)); });
   let w = 0, h = 0; const measure = () => { const r = minis[0]?.el.getBoundingClientRect(); if (r) { w = r.width; h = r.height; } };
   measure(); addEventListener('resize', measure);
 
@@ -280,5 +282,6 @@ anchor='<script>\n/* ── bottom panels' if '<script>\n/* ── bottom panels
 s=s.replace(anchor, units_js+js_add+anchor,1)
 open(p,'w').write(s)
 b64=base64.b64encode(open('preview/liberty-county-dark.jpg','rb').read()).decode()
-sa=s.replace('src="liberty-county-dark.jpg"','src="data:image/jpeg;base64,'+b64+'"').replace('href="live-map.html"','href="live-map-standalone.html"').replace('href="live-map-3d.html"','href="live-map-3d-standalone.html"')
+b64l=base64.b64encode(open('preview/liberty-county.jpg','rb').read()).decode()
+sa=s.replace('src="liberty-county-dark.jpg"','src=""').replace('data-light="liberty-county.jpg"','data-light="data:image/jpeg;base64,'+b64l+'"').replace('data-dark="liberty-county-dark.jpg"','data-dark="data:image/jpeg;base64,'+b64+'"').replace('href="live-map.html"','href="live-map-standalone.html"').replace('href="live-map-3d.html"','href="live-map-3d-standalone.html"')
 open('preview/live-map-standalone.html','w').write(sa); print('rail rebuilt')

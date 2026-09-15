@@ -1,0 +1,36 @@
+  /* ───────── 3D view ───────── */
+  body.mode-3d{--blur:blur(22px) saturate(1.2)}   /* lighter blur while WebGL repaints under the panels */
+  .view3d{position:absolute;inset:0}
+  .view3d canvas{position:absolute;inset:0;width:100%;height:100%;display:block;outline:0}
+  body.mode-2d .view3d,body.mode-2d #pins3d,body.mode-2d .loading{display:none}
+  body.mode-3d .world,body.mode-3d #pins{display:none}
+  body.mode-3d .view{cursor:default}
+  .pins .tip{transform:translate(18px,-50%)}
+  /* map style picker (hover the layers button) */
+  .layers{position:relative}
+  .layers .fly{position:absolute;left:100%;bottom:-6px;padding-left:8px;opacity:0;visibility:hidden;transform:translateX(-6px);
+    transition:opacity .18s cubic-bezier(.32,.72,0,1),transform .18s cubic-bezier(.32,.72,0,1),visibility 0s linear .18s}
+  .layers:hover .fly,.layers:focus-within .fly{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+  .layers .flyout{display:flex;gap:4px;padding:8px;border-radius:14px;background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--hair);box-shadow:0 20px 60px rgba(0,0,0,.4)}
+  .layers .flyout button{width:auto;height:auto;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 6px 2px;font-size:10.5px;color:var(--dim);border-radius:10px}
+  .layers .flyout button:hover{color:var(--ink);background:rgba(240,242,245,.05);border-color:transparent}
+  .layers .flyout button[aria-checked="true"]{color:var(--ink)}
+  .thumb{display:block;width:54px;height:54px;border-radius:10px;overflow:hidden;border:2px solid rgba(240,242,245,.12);background:#0E1013;position:relative;transition:border-color .16s}
+  .thumb i{position:absolute;inset:0;background:#0E1013 52% 64%/460% no-repeat}
+  .thumb.t3d i{inset:-14px -12px;transform:perspective(90px) rotateX(38deg) scale(1.05);transform-origin:50% 100%}
+  .thumb.t3d::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(35,42,51,.9),rgba(35,42,51,0) 30%)}
+  .thumb.dark.t3d::after{background:linear-gradient(180deg,rgba(11,11,12,.95),rgba(11,11,12,0) 30%)}
+  .layers .flyout button[aria-checked="true"] .thumb{border-color:#F0F2F5}
+  @media (prefers-reduced-motion:reduce){.layers .fly{transition:none}}
+  .view .vig{background:
+      linear-gradient(90deg,rgba(11,11,12,.22) 0,rgba(11,11,12,0) var(--rail)),
+      linear-gradient(180deg,rgba(11,11,12,.12),rgba(11,11,12,0) 16%,rgba(11,11,12,0) 80%,rgba(11,11,12,.22))}
+  .pins .tip{transform:translate(18px,-50%)}
+  .sel .seg{display:flex;padding:3px;gap:2px}
+  .sel .seg a{display:block;padding:4px 9px;border-radius:6px;font-size:11px;color:var(--dim);text-decoration:none}
+  .sel .seg a[aria-current="page"]{background:#F4F6F8;color:#0B0B0C;font-weight:500}
+  .mapctl button[aria-pressed="true"]{color:var(--ink);border-color:var(--hair2);background:rgba(240,242,245,.1)}
+  .loading{position:fixed;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;
+    color:var(--faint);font-size:12px;letter-spacing:.04em;pointer-events:none;transition:opacity .6s}
+  .loading.off{opacity:0}
