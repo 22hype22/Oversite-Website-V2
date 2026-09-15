@@ -1,4 +1,4 @@
-import math, base64
+import math, base64, json
 # ── isometric wireframe vehicles (generated so the geometry is exact) ──
 K=1.18
 def iso(x,y,z,ox=60,oy=40):
@@ -14,44 +14,44 @@ def box(x0,x1,y0,y1,z0,z1):
     return faces,edges
 def wheel(x,y,r=5):
     cx,cy=iso(x,y,4); return f'<ellipse cx="{cx:.1f}" cy="{cy:.1f}" rx="{r*1.1:.1f}" ry="{r*0.7:.1f}" transform="rotate(30 {cx:.1f} {cy:.1f})" fill="rgba(240,242,245,.06)"/><ellipse cx="{cx:.1f}" cy="{cy:.1f}" rx="{r*0.45:.1f}" ry="{r*0.28:.1f}" transform="rotate(30 {cx:.1f} {cy:.1f})"/>'
+
+# side-view wireframe vehicles (viewBox 0 0 120 48); accent parts use currentColor
 def vehicle(kind):
-    parts=[]
-    if kind=='truck':   # fire engine: tall body, short cab
-        b=[box(-34,6,-11,11,4,24),box(6,34,-11,11,4,18)]
-    else:               # cruiser: body + cabin + light bar
-        b=[box(-34,34,-11,11,4,12),box(-14,16,-9,9,12,22)]
-    for faces,edges in b:
-        parts.append(f'<path d="{faces[0]}" fill="rgba(240,242,245,.10)"/><path d="{faces[1]}" fill="rgba(240,242,245,.04)"/><path d="{faces[2]}" fill="rgba(240,242,245,.02)"/>')
-        parts.append(f'<path d="{faces[0]} {faces[1]} {faces[2]} {edges}"/>')
-    if kind!='truck':
-        f,e=box(-8,8,-8,8,22,25); parts.append(f'<path d="{f[0]} {f[1]} {f[2]}" fill="rgba(226,75,75,.35)" stroke="rgba(240,242,245,.6)"/>')
-    else:
-        # ladder on top
-        for i in range(-30,4,6):
-            a=iso(i,-6,24); c=iso(i,6,24); parts.append(f'<path d="M{a[0]:.1f} {a[1]:.1f} L{c[0]:.1f} {c[1]:.1f}" opacity=".6"/>')
-    parts+= [wheel(-22,-12),wheel(22,-12),wheel(22,12,4.2)]
-    return '<svg viewBox="0 0 120 68" fill="none" stroke="#C9CDD3" stroke-width=".9" stroke-linejoin="round">'+''.join(parts)+'</svg>'
+    if kind=='cruiser':
+        body='<path d="M8 34 L12 23 L36 21 L48 11 L84 11 L96 21 L112 25 L114 34 Z"/><path d="M40 21 L50 13 L64 13 L64 21 M68 21 L68 13 L82 13 L92 21" opacity=".7"/><path d="M8 34 H114" opacity=".5"/>'
+        acc='<rect x="54" y="6" width="26" height="4" rx="1.5" fill="currentColor" stroke="none" opacity=".9"/><rect x="12" y="27" width="100" height="2" fill="currentColor" stroke="none" opacity=".35"/>'
+        wheels='<circle cx="32" cy="36" r="7"/><circle cx="32" cy="36" r="2.5"/><circle cx="92" cy="36" r="7"/><circle cx="92" cy="36" r="2.5"/>'
+    elif kind=='engine':
+        body='<path d="M6 34 L6 16 L28 16 L28 8 L46 8 L50 16 L114 16 L114 34 Z"/><path d="M30 10 L44 10 L47 16 M28 16 V34 M50 16 V34" opacity=".7"/><path d="M56 20 H108 M56 26 H108" opacity=".5"/>'
+        acc='<path d="M52 6 L110 6 M52 3 L110 3 M58 3 V6 M70 3 V6 M82 3 V6 M94 3 V6 M106 3 V6" stroke="currentColor" opacity=".85"/><rect x="6" y="28" width="108" height="3" fill="currentColor" stroke="none" opacity=".45"/><rect x="32" y="2" width="8" height="4" rx="1" fill="currentColor" stroke="none"/>'
+        wheels='<circle cx="22" cy="36" r="7"/><circle cx="22" cy="36" r="2.5"/><circle cx="76" cy="36" r="7"/><circle cx="76" cy="36" r="2.5"/><circle cx="100" cy="36" r="7"/><circle cx="100" cy="36" r="2.5"/>'
+    else:  # DOT truck with arrow board
+        body='<path d="M8 34 L8 22 L30 22 L36 12 L58 12 L60 22 L114 22 L114 34 Z"/><path d="M38 14 L56 14 L57 22 M60 22 V34 M62 22 L62 16 L110 16 L110 22" opacity=".7"/>'
+        acc='<rect x="66" y="4" width="40" height="10" rx="1.5" fill="none" stroke="currentColor" opacity=".9"/><path d="M74 9 L98 9 M92 5.5 L98 9 L92 12.5" stroke="currentColor" opacity=".9"/><rect x="40" y="7" width="6" height="4" rx="1" fill="currentColor" stroke="none"/><rect x="8" y="27" width="106" height="2" fill="currentColor" stroke="none" opacity=".4"/>'
+        wheels='<circle cx="26" cy="36" r="7"/><circle cx="26" cy="36" r="2.5"/><circle cx="94" cy="36" r="7"/><circle cx="94" cy="36" r="2.5"/>'
+    return '<svg viewBox="0 0 120 48" fill="rgba(240,242,245,.05)" stroke="#C9CDD3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">'+body+acc+wheels+'</svg>'
 
-def minimap(path, pin, dashed, sel):
-    grid=''.join(f'<path d="{d}" stroke="rgba(240,242,245,.07)" stroke-width="3"/>' for d in ("M0 20H150","M0 44H150","M30 0V64","M76 0V64","M118 0V64","M50 20V44","M96 44V64"))
-    return f'''<svg viewBox="0 0 150 64" fill="none" stroke-linecap="round" stroke-linejoin="round">{grid}
-<path d="{path}" stroke="rgba(240,242,245,.18)" stroke-width="5"/><path d="{path}" stroke="#F0F2F5" stroke-width="1.6"/>
-<path d="{dashed}" stroke="#F0F2F5" stroke-width="1.4" stroke-dasharray="3 3" opacity=".7"/>
-<g transform="translate({pin[0]} {pin[1]})"><path d="M0 0 C-4 -5 -6 -8 -6 -11 A6 6 0 1 1 6 -11 C6 -8 4 -5 0 0Z" fill="#F0F2F5"/><circle cy="-11" r="2" fill="#0B0B0C"/></g>
-</svg>'''
-
-def card(name, date, kind, uid, big, mm=None, sel=False):
+UNITS=[
+ dict(id='pd-6023',dept='pd',name='PD 6023',crew=['22hype22','sppoklex','relukt'],kind='cruiser',uid='45623',route='B',t=0.42,dir=1,speed=0.011,since=6137),
+ dict(id='fd-4120',dept='fd',name='FD 4120',crew=['marlowe_j','ttx_ash'],kind='engine',uid='31564',route='A',t=0.28,dir=1,speed=0.008,since=2711),
+ dict(id='dot-2209',dept='dot',name='DOT 2209',crew=['cone_daddy'],kind='dot',uid='34654',route='A',t=0.88,dir=-1,speed=0.007,since=10422),
+ dict(id='pd-1207',dept='pd',name='PD 1207',crew=['nova.k','bryce_v'],kind='cruiser',uid='34664',route='B',t=0.61,dir=-1,speed=0.010,since=1503),
+ dict(id='pd-3310',dept='pd',name='PD 3310',crew=['ghostrider44'],kind='cruiser',uid='38812',route='A',t=0.12,dir=1,speed=0.012,since=4290),
+ dict(id='fd-2201',dept='fd',name='FD 2201',crew=['ember_lux','dan.holt','mk_ruiz'],kind='engine',uid='29907',route='B',t=0.05,dir=1,speed=0.007,since=8004),
+ dict(id='dot-1180',dept='dot',name='DOT 1180',crew=['plow_king','ash_dot'],kind='dot',uid='36012',route='B',t=0.85,dir=-1,speed=0.006,since=13355),
+ dict(id='pd-4501',dept='pd',name='PD 4501',crew=['kzz_mike'],kind='cruiser',uid='41155',route='A',t=0.66,dir=-1,speed=0.011,since=622),
+]
+def card(u, sel=False):
     arrow='<span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span>'
-    idc=f'<span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>{uid}</span>'
-    h=f'<button class="card veh{"" if big else " compact"}" role="listitem" aria-pressed="{"true" if sel else "false"}">\n'
-    h+=f'  <div class="hd"><div><b>{name}</b><small>{date}</small></div>{arrow}</div>\n'
-    h+=f'  <div class="pic">{vehicle(kind)}{idc}</div>\n'
-    if big:
-        h+='  <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>\n'
-        h+=f'  <div class="mini">{minimap(mm[0], mm[1], mm[2], sel)}</div>\n'
-        h+=f'  <div class="tl"><span>{mm[3]}</span><span class="bar2" style="--p:{mm[5]}"></span><span>{mm[4]}</span></div>\n'
-    return h+'</button>'
-
+    idc=f'<span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>{u["uid"]}</span>'
+    crew=', '.join(u['crew'])
+    return f"""<button class="card veh dept-{u['dept']}" role="listitem" data-unit="{u['id']}" aria-pressed="{'true' if sel else 'false'}">
+  <div class="hd"><div><b>{u['name']}</b><small class="crew" title="{crew}">{crew}</small></div>{arrow}</div>
+  <div class="pic">{vehicle(u['kind'])}{idc}</div>
+  <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
+  <div class="mini live" data-unit="{u['id']}" aria-label="Live position of {u['name']}"><span class="ring"></span><span class="pin"></span></div>
+  <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="{u['id']}">0:00:00</span></div>
+</button>"""
 chips='''  <div class="chips" role="group" aria-label="Departments">
     <button aria-pressed="true"><b>18</b> PD</button>
     <button aria-pressed="false"><b>6</b> FD</button>
@@ -73,12 +73,7 @@ eff='''  <div class="card eff" id="avail">
       <div class="hov" id="avHov" hidden></div>
     </div>
   </div>'''
-fleet='  <div class="fleet" role="list" aria-label="Units">\n'
-fleet+=card('PD 6023','08.03.2026, 02:31:35 AM','car','45623',True,('M14 54 L40 30 L40 14 L68 14',(68,14),'M68 14 L110 14 L136 36','06AM','11PM','42%'),sel=True)+'\n'
-fleet+=card('FD 4120','10.03.2026, 11:22:18','truck','31564',True,('M12 18 L40 18 L40 46 L92 46',(92,46),'M92 46 L124 46 L138 24','05AM','09PM','64%'))+'\n'
-fleet+=card('DOT 2209','10.03.2026, 11:25:40','truck','34654',False)+'\n'
-fleet+=card('PD 1207','10.03.2026, 11:25:40','car','34664',False)+'\n  </div>'
-fleet=fleet.replace("(68,14)","(68,14)")
+fleet='  <div class="fleet" role="list" aria-label="Units">\n'+'\n'.join(card(u, i==0) for i,u in enumerate(UNITS))+'\n  </div>'
 rail='<aside class="rail" aria-label="Dispatch overview">\n'+chips+'\n\n'+stats+'\n\n'+eff+'\n\n'+fleet+'\n</aside>'
 
 p='preview/live-map.html'; s=open(p).read()
@@ -130,6 +125,71 @@ float_css = """  /* the rail floats as its own rounded box, inset from the edges
   @media (max-width:980px){.stage{left:0}}
 """
 if 'the rail floats as its own rounded box' not in s: s=s.replace('</style>',float_css+'</style>')
+units_css = """  /* live unit cards, coloured by department */
+  .veh{--acc:#C9CDD3;position:relative;overflow:hidden}
+  .veh.dept-pd{--acc:#4C8DFF} .veh.dept-fd{--acc:#E24B4B} .veh.dept-dot{--acc:#E9C24C}
+  .veh::after{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,var(--acc),transparent 70%);opacity:.55}
+  .veh .hd .crew{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:118px}
+  .veh .pic{height:50px}
+  .veh .pic>svg{height:48px;max-width:70%;margin-top:0;color:var(--acc)}
+  .veh .pic::before{right:32%;background:radial-gradient(ellipse 70% 80% at 48% 55%,color-mix(in srgb,var(--acc) 22%,rgba(240,242,245,.10)),rgba(240,242,245,.03) 60%,transparent 100%)}
+  .veh .id svg{color:var(--acc)}
+  .veh .mini.live{background:#0E1013 center/cover no-repeat;position:relative;image-rendering:auto}
+  .veh .mini.live::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 24px rgba(0,0,0,.55);pointer-events:none}
+  .veh .mini .pin{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--acc);
+    box-shadow:0 0 0 2px #0B0B0C,0 0 10px var(--acc)}
+  .veh .mini .pin::after{content:"";position:absolute;left:50%;top:-9px;margin-left:-3px;border:3px solid transparent;border-bottom:6px solid var(--acc);transform-origin:50% 14px}
+  .veh .mini .ring{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:1px solid var(--acc);opacity:.5;
+    animation:ringpulse 2.2s cubic-bezier(.32,.72,0,1) infinite}
+  @keyframes ringpulse{0%{transform:scale(.6);opacity:.7}100%{transform:scale(1.8);opacity:0}}
+  .veh .tl .bar2::after{background:var(--acc);opacity:.85}
+  .veh .tl .bar2::before{display:none}
+  .veh .tl .timer{color:var(--ink);font-variant-numeric:tabular-nums}
+  @media (prefers-reduced-motion:reduce){.veh .mini .ring{animation:none}}
+"""
+if 'live unit cards, coloured by department' not in s: s=s.replace('</style>',units_css+'</style>')
+units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS,separators=(',',':')) + r"""</script>
+<script>
+/* ── shared unit simulation: positions for cards, 2D pins and the 3D scene ── */
+(() => {
+  const ROUTES = { A: [[1332,275],[1340,520],[1350,760],[1350,1000],[1352,1452],[300,1452]],
+                   B: [[188,792],[660,792],[660,988],[1180,988],[1240,1040],[1240,1330],[1350,1330]] };
+  const units = JSON.parse(document.getElementById('units').textContent);
+  const seg = {}; for (const k in ROUTES) { const r = ROUTES[k], L = [0]; for (let i = 1; i < r.length; i++) L.push(L[i-1] + Math.hypot(r[i][0]-r[i-1][0], r[i][1]-r[i-1][1])); seg[k] = L; }
+  const at = (k, t) => { const r = ROUTES[k], L = seg[k], d = t * L[L.length-1]; let i = 1; while (i < L.length-1 && L[i] < d) i++;
+    const f = (d - L[i-1]) / (L[i] - L[i-1] || 1), a = r[i-1], b = r[i];
+    return { x: a[0] + (b[0]-a[0]) * f, y: a[1] + (b[1]-a[1]) * f, heading: Math.atan2(b[1]-a[1], b[0]-a[0]) }; };
+  const now0 = Date.now();
+  for (const u of units) { u.startedAt = now0 - u.since * 1000; Object.assign(u, at(u.route, u.t)); }
+  window.UNITS = units;
+
+  const MAP = document.getElementById('mapsrc')?.getAttribute('href') || document.querySelector('.view img')?.getAttribute('src');
+  const minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
+  const timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
+  const bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: units.find(x => x.id === el.dataset.unit) }));
+  const VIEW = 300;                                   // world units visible across a mini map
+  if (MAP) for (const m of minis) m.el.style.backgroundImage = `url("${MAP}")`;
+  let w = 0, h = 0; const measure = () => { const r = minis[0]?.el.getBoundingClientRect(); if (r) { w = r.width; h = r.height; } };
+  measure(); addEventListener('resize', measure);
+
+  let last = performance.now(), tick = 0;
+  const loop = (ts) => {
+    const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
+    for (const u of units) { u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
+      const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
+    if (w) { const sc = w / VIEW; const size = 2000 * sc;
+      for (const { el, u } of minis) { el.style.backgroundSize = `${size}px ${size}px`; el.style.backgroundPosition = `${w/2 - u.x*sc}px ${h/2 - u.y*sc}px`;
+        el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }
+    if (++tick % 20 === 0) { const now = Date.now();
+      for (const { el, u } of timers) { const s = Math.floor((now - u.startedAt) / 1000);
+        el.textContent = `${Math.floor(s/3600)}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+      for (const { el, u } of bars) if (el) el.style.setProperty('--p', Math.min(100, (now - u.startedAt) / 36e5 / 8 * 100).toFixed(1) + '%'); }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+})();
+</script>
+"""
 js_add = r"""<script>
 /* ── Unit Availability: real chart over shift data ── */
 (() => {
@@ -196,6 +256,7 @@ js_add = r"""<script>
 })();
 </script>
 """
+if "shared unit simulation" not in s: s=s.replace('<script>\n(() => {', units_js+'<script>\n(() => {',1)
 if "Unit Availability: real chart" not in s: s=s.replace('<script>\n(() => {', js_add+'<script>\n(() => {',1)
 open(p,'w').write(s)
 b64=base64.b64encode(open('preview/liberty-county-dark.jpg','rb').read()).decode()

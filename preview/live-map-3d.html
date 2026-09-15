@@ -141,6 +141,7 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -172,6 +173,7 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -282,6 +284,27 @@
     border:1px solid var(--hair);box-shadow:0 20px 60px rgba(0,0,0,.35);padding:12px}
   .stage{left:calc(var(--rail) + var(--gap))}
   @media (max-width:980px){.stage{left:0}}
+  /* live unit cards, coloured by department */
+  .veh{--acc:#C9CDD3;position:relative;overflow:hidden}
+  .veh.dept-pd{--acc:#4C8DFF} .veh.dept-fd{--acc:#E24B4B} .veh.dept-dot{--acc:#E9C24C}
+  .veh::after{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,var(--acc),transparent 70%);opacity:.55}
+  .veh .hd .crew{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:118px}
+  .veh .pic{height:50px}
+  .veh .pic>svg{height:48px;max-width:70%;margin-top:0;color:var(--acc)}
+  .veh .pic::before{right:32%;background:radial-gradient(ellipse 70% 80% at 48% 55%,color-mix(in srgb,var(--acc) 22%,rgba(240,242,245,.10)),rgba(240,242,245,.03) 60%,transparent 100%)}
+  .veh .id svg{color:var(--acc)}
+  .veh .mini.live{background:#0E1013 center/cover no-repeat;position:relative;image-rendering:auto}
+  .veh .mini.live::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 24px rgba(0,0,0,.55);pointer-events:none}
+  .veh .mini .pin{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--acc);
+    box-shadow:0 0 0 2px #0B0B0C,0 0 10px var(--acc)}
+  .veh .mini .pin::after{content:"";position:absolute;left:50%;top:-9px;margin-left:-3px;border:3px solid transparent;border-bottom:6px solid var(--acc);transform-origin:50% 14px}
+  .veh .mini .ring{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:1px solid var(--acc);opacity:.5;
+    animation:ringpulse 2.2s cubic-bezier(.32,.72,0,1) infinite}
+  @keyframes ringpulse{0%{transform:scale(.6);opacity:.7}100%{transform:scale(1.8);opacity:0}}
+  .veh .tl .bar2::after{background:var(--acc);opacity:.85}
+  .veh .tl .bar2::before{display:none}
+  .veh .tl .timer{color:var(--ink);font-variant-numeric:tabular-nums}
+  @media (prefers-reduced-motion:reduce){.veh .mini .ring{animation:none}}
   /* ───────── 3D view ───────── */
   :root{--blur:blur(22px) saturate(1.2)}   /* lighter blur: the backdrop repaints every frame over WebGL */
   .view canvas{position:absolute;inset:0;width:100%;height:100%;display:block;outline:0}
@@ -309,9 +332,9 @@
 <div class="pins" id="pins" aria-hidden="true">
   <div class="pin" id="tip" style="transform:none;left:-999px">
     <div class="tip">
-      <div class="k">Passenger Load</div>
-      <div class="s">Next: Central Station</div>
-      <div class="v">87<small>%</small></div>
+      <div class="k">PD 6023</div>
+      <div class="s">22hype22, sppoklex, relukt</div>
+      <div class="v">10-8<small>available</small></div>
     </div>
   </div>
 </div>
@@ -368,35 +391,61 @@
   </div>
 
   <div class="fleet" role="list" aria-label="Units">
-<button class="card veh" role="listitem" aria-pressed="true">
-  <div class="hd"><div><b>PD 6023</b><small>08.03.2026, 02:31:35 AM</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
-  <div class="pic"><svg viewBox="0 0 120 68" fill="none" stroke="#C9CDD3" stroke-width=".9" stroke-linejoin="round"><path d="M36.5 -0.7 L106.0 39.4 L83.5 52.4 L14.0 12.3Z" fill="rgba(240,242,245,.10)"/><path d="M36.5 8.7 L106.0 48.9 L106.0 39.4 L36.5 -0.7Z" fill="rgba(240,242,245,.04)"/><path d="M106.0 48.9 L83.5 61.8 L83.5 52.4 L106.0 39.4Z" fill="rgba(240,242,245,.02)"/><path d="M36.5 -0.7 L106.0 39.4 L83.5 52.4 L14.0 12.3Z M36.5 8.7 L106.0 48.9 L106.0 39.4 L36.5 -0.7Z M106.0 48.9 L83.5 61.8 L83.5 52.4 L106.0 39.4Z M36.5 8.7 L106.0 48.9 L83.5 61.8 M106.0 48.9 L106.0 39.4 M36.5 8.7 L36.5 -0.7 M83.5 61.8 L83.5 52.4"/><path d="M54.9 0.5 L85.5 18.2 L67.2 28.8 L36.5 11.1Z" fill="rgba(240,242,245,.10)"/><path d="M54.9 12.3 L85.5 30.0 L85.5 18.2 L54.9 0.5Z" fill="rgba(240,242,245,.04)"/><path d="M85.5 30.0 L67.2 40.6 L67.2 28.8 L85.5 18.2Z" fill="rgba(240,242,245,.02)"/><path d="M54.9 0.5 L85.5 18.2 L67.2 28.8 L36.5 11.1Z M54.9 12.3 L85.5 30.0 L85.5 18.2 L54.9 0.5Z M85.5 30.0 L67.2 40.6 L67.2 28.8 L85.5 18.2Z M54.9 12.3 L85.5 30.0 L67.2 40.6 M85.5 30.0 L85.5 18.2 M54.9 12.3 L54.9 0.5 M67.2 40.6 L67.2 28.8"/><path d="M60.0 1.1 L76.4 10.5 L60.0 19.9 L43.6 10.5Z M60.0 4.6 L76.4 14.0 L76.4 10.5 L60.0 1.1Z M76.4 14.0 L60.0 23.5 L60.0 19.9 L76.4 10.5Z" fill="rgba(226,75,75,.35)" stroke="rgba(240,242,245,.6)"/><ellipse cx="49.8" cy="15.2" rx="5.5" ry="3.5" transform="rotate(30 49.8 15.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="49.8" cy="15.2" rx="2.2" ry="1.4" transform="rotate(30 49.8 15.2)"/><ellipse cx="94.7" cy="41.2" rx="5.5" ry="3.5" transform="rotate(30 94.7 41.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="94.7" cy="41.2" rx="2.2" ry="1.4" transform="rotate(30 94.7 41.2)"/><ellipse cx="70.2" cy="55.3" rx="4.6" ry="2.9" transform="rotate(30 70.2 55.3)" fill="rgba(240,242,245,.06)"/><ellipse cx="70.2" cy="55.3" rx="1.9" ry="1.2" transform="rotate(30 70.2 55.3)"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>45623</span></div>
+<button class="card veh dept-pd" role="listitem" data-unit="pd-6023" aria-pressed="true">
+  <div class="hd"><div><b>PD 6023</b><small class="crew" title="22hype22, sppoklex, relukt">22hype22, sppoklex, relukt</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 48" fill="rgba(240,242,245,.05)" stroke="#C9CDD3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"><path d="M8 34 L12 23 L36 21 L48 11 L84 11 L96 21 L112 25 L114 34 Z"/><path d="M40 21 L50 13 L64 13 L64 21 M68 21 L68 13 L82 13 L92 21" opacity=".7"/><path d="M8 34 H114" opacity=".5"/><rect x="54" y="6" width="26" height="4" rx="1.5" fill="currentColor" stroke="none" opacity=".9"/><rect x="12" y="27" width="100" height="2" fill="currentColor" stroke="none" opacity=".35"/><circle cx="32" cy="36" r="7"/><circle cx="32" cy="36" r="2.5"/><circle cx="92" cy="36" r="7"/><circle cx="92" cy="36" r="2.5"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>45623</span></div>
   <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
-  <div class="mini"><svg viewBox="0 0 150 64" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 20H150" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M0 44H150" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M30 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M76 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M118 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M50 20V44" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M96 44V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/>
-<path d="M14 54 L40 30 L40 14 L68 14" stroke="rgba(240,242,245,.18)" stroke-width="5"/><path d="M14 54 L40 30 L40 14 L68 14" stroke="#F0F2F5" stroke-width="1.6"/>
-<path d="M68 14 L110 14 L136 36" stroke="#F0F2F5" stroke-width="1.4" stroke-dasharray="3 3" opacity=".7"/>
-<g transform="translate(68 14)"><path d="M0 0 C-4 -5 -6 -8 -6 -11 A6 6 0 1 1 6 -11 C6 -8 4 -5 0 0Z" fill="#F0F2F5"/><circle cy="-11" r="2" fill="#0B0B0C"/></g>
-</svg></div>
-  <div class="tl"><span>06AM</span><span class="bar2" style="--p:42%"></span><span>11PM</span></div>
+  <div class="mini live" data-unit="pd-6023" aria-label="Live position of PD 6023"><span class="ring"></span><span class="pin"></span></div>
+  <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="pd-6023">0:00:00</span></div>
 </button>
-<button class="card veh" role="listitem" aria-pressed="false">
-  <div class="hd"><div><b>FD 4120</b><small>10.03.2026, 11:22:18</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
-  <div class="pic"><svg viewBox="0 0 120 68" fill="none" stroke="#C9CDD3" stroke-width=".9" stroke-linejoin="round"><path d="M36.5 -14.9 L77.4 8.7 L54.9 21.7 L14.0 -1.9Z" fill="rgba(240,242,245,.10)"/><path d="M36.5 8.7 L77.4 32.3 L77.4 8.7 L36.5 -14.9Z" fill="rgba(240,242,245,.04)"/><path d="M77.4 32.3 L54.9 45.3 L54.9 21.7 L77.4 8.7Z" fill="rgba(240,242,245,.02)"/><path d="M36.5 -14.9 L77.4 8.7 L54.9 21.7 L14.0 -1.9Z M36.5 8.7 L77.4 32.3 L77.4 8.7 L36.5 -14.9Z M77.4 32.3 L54.9 45.3 L54.9 21.7 L77.4 8.7Z M36.5 8.7 L77.4 32.3 L54.9 45.3 M77.4 32.3 L77.4 8.7 M36.5 8.7 L36.5 -14.9 M54.9 45.3 L54.9 21.7"/><path d="M77.4 15.8 L106.0 32.3 L83.5 45.3 L54.9 28.8Z" fill="rgba(240,242,245,.10)"/><path d="M77.4 32.3 L106.0 48.9 L106.0 32.3 L77.4 15.8Z" fill="rgba(240,242,245,.04)"/><path d="M106.0 48.9 L83.5 61.8 L83.5 45.3 L106.0 32.3Z" fill="rgba(240,242,245,.02)"/><path d="M77.4 15.8 L106.0 32.3 L83.5 45.3 L54.9 28.8Z M77.4 32.3 L106.0 48.9 L106.0 32.3 L77.4 15.8Z M106.0 48.9 L83.5 61.8 L83.5 45.3 L106.0 32.3Z M77.4 32.3 L106.0 48.9 L83.5 61.8 M106.0 48.9 L106.0 32.3 M77.4 32.3 L77.4 15.8 M83.5 61.8 L83.5 45.3"/><path d="M35.5 -9.6 L23.2 -2.5" opacity=".6"/><path d="M41.6 -6.0 L29.3 1.1" opacity=".6"/><path d="M47.7 -2.5 L35.5 4.6" opacity=".6"/><path d="M53.9 1.1 L41.6 8.1" opacity=".6"/><path d="M60.0 4.6 L47.7 11.7" opacity=".6"/><path d="M66.1 8.1 L53.9 15.2" opacity=".6"/><ellipse cx="49.8" cy="15.2" rx="5.5" ry="3.5" transform="rotate(30 49.8 15.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="49.8" cy="15.2" rx="2.2" ry="1.4" transform="rotate(30 49.8 15.2)"/><ellipse cx="94.7" cy="41.2" rx="5.5" ry="3.5" transform="rotate(30 94.7 41.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="94.7" cy="41.2" rx="2.2" ry="1.4" transform="rotate(30 94.7 41.2)"/><ellipse cx="70.2" cy="55.3" rx="4.6" ry="2.9" transform="rotate(30 70.2 55.3)" fill="rgba(240,242,245,.06)"/><ellipse cx="70.2" cy="55.3" rx="1.9" ry="1.2" transform="rotate(30 70.2 55.3)"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>31564</span></div>
+<button class="card veh dept-fd" role="listitem" data-unit="fd-4120" aria-pressed="false">
+  <div class="hd"><div><b>FD 4120</b><small class="crew" title="marlowe_j, ttx_ash">marlowe_j, ttx_ash</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 48" fill="rgba(240,242,245,.05)" stroke="#C9CDD3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"><path d="M6 34 L6 16 L28 16 L28 8 L46 8 L50 16 L114 16 L114 34 Z"/><path d="M30 10 L44 10 L47 16 M28 16 V34 M50 16 V34" opacity=".7"/><path d="M56 20 H108 M56 26 H108" opacity=".5"/><path d="M52 6 L110 6 M52 3 L110 3 M58 3 V6 M70 3 V6 M82 3 V6 M94 3 V6 M106 3 V6" stroke="currentColor" opacity=".85"/><rect x="6" y="28" width="108" height="3" fill="currentColor" stroke="none" opacity=".45"/><rect x="32" y="2" width="8" height="4" rx="1" fill="currentColor" stroke="none"/><circle cx="22" cy="36" r="7"/><circle cx="22" cy="36" r="2.5"/><circle cx="76" cy="36" r="7"/><circle cx="76" cy="36" r="2.5"/><circle cx="100" cy="36" r="7"/><circle cx="100" cy="36" r="2.5"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>31564</span></div>
   <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
-  <div class="mini"><svg viewBox="0 0 150 64" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 20H150" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M0 44H150" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M30 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M76 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M118 0V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M50 20V44" stroke="rgba(240,242,245,.07)" stroke-width="3"/><path d="M96 44V64" stroke="rgba(240,242,245,.07)" stroke-width="3"/>
-<path d="M12 18 L40 18 L40 46 L92 46" stroke="rgba(240,242,245,.18)" stroke-width="5"/><path d="M12 18 L40 18 L40 46 L92 46" stroke="#F0F2F5" stroke-width="1.6"/>
-<path d="M92 46 L124 46 L138 24" stroke="#F0F2F5" stroke-width="1.4" stroke-dasharray="3 3" opacity=".7"/>
-<g transform="translate(92 46)"><path d="M0 0 C-4 -5 -6 -8 -6 -11 A6 6 0 1 1 6 -11 C6 -8 4 -5 0 0Z" fill="#F0F2F5"/><circle cy="-11" r="2" fill="#0B0B0C"/></g>
-</svg></div>
-  <div class="tl"><span>05AM</span><span class="bar2" style="--p:64%"></span><span>09PM</span></div>
+  <div class="mini live" data-unit="fd-4120" aria-label="Live position of FD 4120"><span class="ring"></span><span class="pin"></span></div>
+  <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="fd-4120">0:00:00</span></div>
 </button>
-<button class="card veh compact" role="listitem" aria-pressed="false">
-  <div class="hd"><div><b>DOT 2209</b><small>10.03.2026, 11:25:40</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
-  <div class="pic"><svg viewBox="0 0 120 68" fill="none" stroke="#C9CDD3" stroke-width=".9" stroke-linejoin="round"><path d="M36.5 -14.9 L77.4 8.7 L54.9 21.7 L14.0 -1.9Z" fill="rgba(240,242,245,.10)"/><path d="M36.5 8.7 L77.4 32.3 L77.4 8.7 L36.5 -14.9Z" fill="rgba(240,242,245,.04)"/><path d="M77.4 32.3 L54.9 45.3 L54.9 21.7 L77.4 8.7Z" fill="rgba(240,242,245,.02)"/><path d="M36.5 -14.9 L77.4 8.7 L54.9 21.7 L14.0 -1.9Z M36.5 8.7 L77.4 32.3 L77.4 8.7 L36.5 -14.9Z M77.4 32.3 L54.9 45.3 L54.9 21.7 L77.4 8.7Z M36.5 8.7 L77.4 32.3 L54.9 45.3 M77.4 32.3 L77.4 8.7 M36.5 8.7 L36.5 -14.9 M54.9 45.3 L54.9 21.7"/><path d="M77.4 15.8 L106.0 32.3 L83.5 45.3 L54.9 28.8Z" fill="rgba(240,242,245,.10)"/><path d="M77.4 32.3 L106.0 48.9 L106.0 32.3 L77.4 15.8Z" fill="rgba(240,242,245,.04)"/><path d="M106.0 48.9 L83.5 61.8 L83.5 45.3 L106.0 32.3Z" fill="rgba(240,242,245,.02)"/><path d="M77.4 15.8 L106.0 32.3 L83.5 45.3 L54.9 28.8Z M77.4 32.3 L106.0 48.9 L106.0 32.3 L77.4 15.8Z M106.0 48.9 L83.5 61.8 L83.5 45.3 L106.0 32.3Z M77.4 32.3 L106.0 48.9 L83.5 61.8 M106.0 48.9 L106.0 32.3 M77.4 32.3 L77.4 15.8 M83.5 61.8 L83.5 45.3"/><path d="M35.5 -9.6 L23.2 -2.5" opacity=".6"/><path d="M41.6 -6.0 L29.3 1.1" opacity=".6"/><path d="M47.7 -2.5 L35.5 4.6" opacity=".6"/><path d="M53.9 1.1 L41.6 8.1" opacity=".6"/><path d="M60.0 4.6 L47.7 11.7" opacity=".6"/><path d="M66.1 8.1 L53.9 15.2" opacity=".6"/><ellipse cx="49.8" cy="15.2" rx="5.5" ry="3.5" transform="rotate(30 49.8 15.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="49.8" cy="15.2" rx="2.2" ry="1.4" transform="rotate(30 49.8 15.2)"/><ellipse cx="94.7" cy="41.2" rx="5.5" ry="3.5" transform="rotate(30 94.7 41.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="94.7" cy="41.2" rx="2.2" ry="1.4" transform="rotate(30 94.7 41.2)"/><ellipse cx="70.2" cy="55.3" rx="4.6" ry="2.9" transform="rotate(30 70.2 55.3)" fill="rgba(240,242,245,.06)"/><ellipse cx="70.2" cy="55.3" rx="1.9" ry="1.2" transform="rotate(30 70.2 55.3)"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>34654</span></div>
+<button class="card veh dept-dot" role="listitem" data-unit="dot-2209" aria-pressed="false">
+  <div class="hd"><div><b>DOT 2209</b><small class="crew" title="cone_daddy">cone_daddy</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 48" fill="rgba(240,242,245,.05)" stroke="#C9CDD3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"><path d="M8 34 L8 22 L30 22 L36 12 L58 12 L60 22 L114 22 L114 34 Z"/><path d="M38 14 L56 14 L57 22 M60 22 V34 M62 22 L62 16 L110 16 L110 22" opacity=".7"/><rect x="66" y="4" width="40" height="10" rx="1.5" fill="none" stroke="currentColor" opacity=".9"/><path d="M74 9 L98 9 M92 5.5 L98 9 L92 12.5" stroke="currentColor" opacity=".9"/><rect x="40" y="7" width="6" height="4" rx="1" fill="currentColor" stroke="none"/><rect x="8" y="27" width="106" height="2" fill="currentColor" stroke="none" opacity=".4"/><circle cx="26" cy="36" r="7"/><circle cx="26" cy="36" r="2.5"/><circle cx="94" cy="36" r="7"/><circle cx="94" cy="36" r="2.5"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>34654</span></div>
+  <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
+  <div class="mini live" data-unit="dot-2209" aria-label="Live position of DOT 2209"><span class="ring"></span><span class="pin"></span></div>
+  <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="dot-2209">0:00:00</span></div>
 </button>
-<button class="card veh compact" role="listitem" aria-pressed="false">
-  <div class="hd"><div><b>PD 1207</b><small>10.03.2026, 11:25:40</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
-  <div class="pic"><svg viewBox="0 0 120 68" fill="none" stroke="#C9CDD3" stroke-width=".9" stroke-linejoin="round"><path d="M36.5 -0.7 L106.0 39.4 L83.5 52.4 L14.0 12.3Z" fill="rgba(240,242,245,.10)"/><path d="M36.5 8.7 L106.0 48.9 L106.0 39.4 L36.5 -0.7Z" fill="rgba(240,242,245,.04)"/><path d="M106.0 48.9 L83.5 61.8 L83.5 52.4 L106.0 39.4Z" fill="rgba(240,242,245,.02)"/><path d="M36.5 -0.7 L106.0 39.4 L83.5 52.4 L14.0 12.3Z M36.5 8.7 L106.0 48.9 L106.0 39.4 L36.5 -0.7Z M106.0 48.9 L83.5 61.8 L83.5 52.4 L106.0 39.4Z M36.5 8.7 L106.0 48.9 L83.5 61.8 M106.0 48.9 L106.0 39.4 M36.5 8.7 L36.5 -0.7 M83.5 61.8 L83.5 52.4"/><path d="M54.9 0.5 L85.5 18.2 L67.2 28.8 L36.5 11.1Z" fill="rgba(240,242,245,.10)"/><path d="M54.9 12.3 L85.5 30.0 L85.5 18.2 L54.9 0.5Z" fill="rgba(240,242,245,.04)"/><path d="M85.5 30.0 L67.2 40.6 L67.2 28.8 L85.5 18.2Z" fill="rgba(240,242,245,.02)"/><path d="M54.9 0.5 L85.5 18.2 L67.2 28.8 L36.5 11.1Z M54.9 12.3 L85.5 30.0 L85.5 18.2 L54.9 0.5Z M85.5 30.0 L67.2 40.6 L67.2 28.8 L85.5 18.2Z M54.9 12.3 L85.5 30.0 L67.2 40.6 M85.5 30.0 L85.5 18.2 M54.9 12.3 L54.9 0.5 M67.2 40.6 L67.2 28.8"/><path d="M60.0 1.1 L76.4 10.5 L60.0 19.9 L43.6 10.5Z M60.0 4.6 L76.4 14.0 L76.4 10.5 L60.0 1.1Z M76.4 14.0 L60.0 23.5 L60.0 19.9 L76.4 10.5Z" fill="rgba(226,75,75,.35)" stroke="rgba(240,242,245,.6)"/><ellipse cx="49.8" cy="15.2" rx="5.5" ry="3.5" transform="rotate(30 49.8 15.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="49.8" cy="15.2" rx="2.2" ry="1.4" transform="rotate(30 49.8 15.2)"/><ellipse cx="94.7" cy="41.2" rx="5.5" ry="3.5" transform="rotate(30 94.7 41.2)" fill="rgba(240,242,245,.06)"/><ellipse cx="94.7" cy="41.2" rx="2.2" ry="1.4" transform="rotate(30 94.7 41.2)"/><ellipse cx="70.2" cy="55.3" rx="4.6" ry="2.9" transform="rotate(30 70.2 55.3)" fill="rgba(240,242,245,.06)"/><ellipse cx="70.2" cy="55.3" rx="1.9" ry="1.2" transform="rotate(30 70.2 55.3)"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>34664</span></div>
+<button class="card veh dept-pd" role="listitem" data-unit="pd-1207" aria-pressed="false">
+  <div class="hd"><div><b>PD 1207</b><small class="crew" title="nova.k, bryce_v">nova.k, bryce_v</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 48" fill="rgba(240,242,245,.05)" stroke="#C9CDD3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"><path d="M8 34 L12 23 L36 21 L48 11 L84 11 L96 21 L112 25 L114 34 Z"/><path d="M40 21 L50 13 L64 13 L64 21 M68 21 L68 13 L82 13 L92 21" opacity=".7"/><path d="M8 34 H114" opacity=".5"/><rect x="54" y="6" width="26" height="4" rx="1.5" fill="currentColor" stroke="none" opacity=".9"/><rect x="12" y="27" width="100" height="2" fill="currentColor" stroke="none" opacity=".35"/><circle cx="32" cy="36" r="7"/><circle cx="32" cy="36" r="2.5"/><circle cx="92" cy="36" r="7"/><circle cx="92" cy="36" r="2.5"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>34664</span></div>
+  <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
+  <div class="mini live" data-unit="pd-1207" aria-label="Live position of PD 1207"><span class="ring"></span><span class="pin"></span></div>
+  <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="pd-1207">0:00:00</span></div>
+</button>
+<button class="card veh dept-pd" role="listitem" data-unit="pd-3310" aria-pressed="false">
+  <div class="hd"><div><b>PD 3310</b><small class="crew" title="ghostrider44">ghostrider44</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 48" fill="rgba(240,242,245,.05)" stroke="#C9CDD3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"><path d="M8 34 L12 23 L36 21 L48 11 L84 11 L96 21 L112 25 L114 34 Z"/><path d="M40 21 L50 13 L64 13 L64 21 M68 21 L68 13 L82 13 L92 21" opacity=".7"/><path d="M8 34 H114" opacity=".5"/><rect x="54" y="6" width="26" height="4" rx="1.5" fill="currentColor" stroke="none" opacity=".9"/><rect x="12" y="27" width="100" height="2" fill="currentColor" stroke="none" opacity=".35"/><circle cx="32" cy="36" r="7"/><circle cx="32" cy="36" r="2.5"/><circle cx="92" cy="36" r="7"/><circle cx="92" cy="36" r="2.5"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>38812</span></div>
+  <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
+  <div class="mini live" data-unit="pd-3310" aria-label="Live position of PD 3310"><span class="ring"></span><span class="pin"></span></div>
+  <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="pd-3310">0:00:00</span></div>
+</button>
+<button class="card veh dept-fd" role="listitem" data-unit="fd-2201" aria-pressed="false">
+  <div class="hd"><div><b>FD 2201</b><small class="crew" title="ember_lux, dan.holt, mk_ruiz">ember_lux, dan.holt, mk_ruiz</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 48" fill="rgba(240,242,245,.05)" stroke="#C9CDD3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"><path d="M6 34 L6 16 L28 16 L28 8 L46 8 L50 16 L114 16 L114 34 Z"/><path d="M30 10 L44 10 L47 16 M28 16 V34 M50 16 V34" opacity=".7"/><path d="M56 20 H108 M56 26 H108" opacity=".5"/><path d="M52 6 L110 6 M52 3 L110 3 M58 3 V6 M70 3 V6 M82 3 V6 M94 3 V6 M106 3 V6" stroke="currentColor" opacity=".85"/><rect x="6" y="28" width="108" height="3" fill="currentColor" stroke="none" opacity=".45"/><rect x="32" y="2" width="8" height="4" rx="1" fill="currentColor" stroke="none"/><circle cx="22" cy="36" r="7"/><circle cx="22" cy="36" r="2.5"/><circle cx="76" cy="36" r="7"/><circle cx="76" cy="36" r="2.5"/><circle cx="100" cy="36" r="7"/><circle cx="100" cy="36" r="2.5"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>29907</span></div>
+  <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
+  <div class="mini live" data-unit="fd-2201" aria-label="Live position of FD 2201"><span class="ring"></span><span class="pin"></span></div>
+  <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="fd-2201">0:00:00</span></div>
+</button>
+<button class="card veh dept-dot" role="listitem" data-unit="dot-1180" aria-pressed="false">
+  <div class="hd"><div><b>DOT 1180</b><small class="crew" title="plow_king, ash_dot">plow_king, ash_dot</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 48" fill="rgba(240,242,245,.05)" stroke="#C9CDD3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"><path d="M8 34 L8 22 L30 22 L36 12 L58 12 L60 22 L114 22 L114 34 Z"/><path d="M38 14 L56 14 L57 22 M60 22 V34 M62 22 L62 16 L110 16 L110 22" opacity=".7"/><rect x="66" y="4" width="40" height="10" rx="1.5" fill="none" stroke="currentColor" opacity=".9"/><path d="M74 9 L98 9 M92 5.5 L98 9 L92 12.5" stroke="currentColor" opacity=".9"/><rect x="40" y="7" width="6" height="4" rx="1" fill="currentColor" stroke="none"/><rect x="8" y="27" width="106" height="2" fill="currentColor" stroke="none" opacity=".4"/><circle cx="26" cy="36" r="7"/><circle cx="26" cy="36" r="2.5"/><circle cx="94" cy="36" r="7"/><circle cx="94" cy="36" r="2.5"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>36012</span></div>
+  <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
+  <div class="mini live" data-unit="dot-1180" aria-label="Live position of DOT 1180"><span class="ring"></span><span class="pin"></span></div>
+  <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="dot-1180">0:00:00</span></div>
+</button>
+<button class="card veh dept-pd" role="listitem" data-unit="pd-4501" aria-pressed="false">
+  <div class="hd"><div><b>PD 4501</b><small class="crew" title="kzz_mike">kzz_mike</small></div><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></div>
+  <div class="pic"><svg viewBox="0 0 120 48" fill="rgba(240,242,245,.05)" stroke="#C9CDD3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"><path d="M8 34 L12 23 L36 21 L48 11 L84 11 L96 21 L112 25 L114 34 Z"/><path d="M40 21 L50 13 L64 13 L64 21 M68 21 L68 13 L82 13 L92 21" opacity=".7"/><path d="M8 34 H114" opacity=".5"/><rect x="54" y="6" width="26" height="4" rx="1.5" fill="currentColor" stroke="none" opacity=".9"/><rect x="12" y="27" width="100" height="2" fill="currentColor" stroke="none" opacity=".35"/><circle cx="32" cy="36" r="7"/><circle cx="32" cy="36" r="2.5"/><circle cx="92" cy="36" r="7"/><circle cx="92" cy="36" r="2.5"/></svg><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>41155</span></div>
+  <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
+  <div class="mini live" data-unit="pd-4501" aria-label="Live position of PD 4501"><span class="ring"></span><span class="pin"></span></div>
+  <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="pd-4501">0:00:00</span></div>
 </button>
   </div>
 </aside>
@@ -521,6 +570,47 @@
   render();
 })();
 </script>
+<script id="units" type="application/json">[{"id":"pd-6023","dept":"pd","name":"PD 6023","crew":["22hype22","sppoklex","relukt"],"kind":"cruiser","uid":"45623","route":"B","t":0.42,"dir":1,"speed":0.011,"since":6137},{"id":"fd-4120","dept":"fd","name":"FD 4120","crew":["marlowe_j","ttx_ash"],"kind":"engine","uid":"31564","route":"A","t":0.28,"dir":1,"speed":0.008,"since":2711},{"id":"dot-2209","dept":"dot","name":"DOT 2209","crew":["cone_daddy"],"kind":"dot","uid":"34654","route":"A","t":0.88,"dir":-1,"speed":0.007,"since":10422},{"id":"pd-1207","dept":"pd","name":"PD 1207","crew":["nova.k","bryce_v"],"kind":"cruiser","uid":"34664","route":"B","t":0.61,"dir":-1,"speed":0.01,"since":1503},{"id":"pd-3310","dept":"pd","name":"PD 3310","crew":["ghostrider44"],"kind":"cruiser","uid":"38812","route":"A","t":0.12,"dir":1,"speed":0.012,"since":4290},{"id":"fd-2201","dept":"fd","name":"FD 2201","crew":["ember_lux","dan.holt","mk_ruiz"],"kind":"engine","uid":"29907","route":"B","t":0.05,"dir":1,"speed":0.007,"since":8004},{"id":"dot-1180","dept":"dot","name":"DOT 1180","crew":["plow_king","ash_dot"],"kind":"dot","uid":"36012","route":"B","t":0.85,"dir":-1,"speed":0.006,"since":13355},{"id":"pd-4501","dept":"pd","name":"PD 4501","crew":["kzz_mike"],"kind":"cruiser","uid":"41155","route":"A","t":0.66,"dir":-1,"speed":0.011,"since":622}]</script>
+<script>
+/* ── shared unit simulation: positions for cards, 2D pins and the 3D scene ── */
+(() => {
+  const ROUTES = { A: [[1332,275],[1340,520],[1350,760],[1350,1000],[1352,1452],[300,1452]],
+                   B: [[188,792],[660,792],[660,988],[1180,988],[1240,1040],[1240,1330],[1350,1330]] };
+  const units = JSON.parse(document.getElementById('units').textContent);
+  const seg = {}; for (const k in ROUTES) { const r = ROUTES[k], L = [0]; for (let i = 1; i < r.length; i++) L.push(L[i-1] + Math.hypot(r[i][0]-r[i-1][0], r[i][1]-r[i-1][1])); seg[k] = L; }
+  const at = (k, t) => { const r = ROUTES[k], L = seg[k], d = t * L[L.length-1]; let i = 1; while (i < L.length-1 && L[i] < d) i++;
+    const f = (d - L[i-1]) / (L[i] - L[i-1] || 1), a = r[i-1], b = r[i];
+    return { x: a[0] + (b[0]-a[0]) * f, y: a[1] + (b[1]-a[1]) * f, heading: Math.atan2(b[1]-a[1], b[0]-a[0]) }; };
+  const now0 = Date.now();
+  for (const u of units) { u.startedAt = now0 - u.since * 1000; Object.assign(u, at(u.route, u.t)); }
+  window.UNITS = units;
+
+  const MAP = document.getElementById('mapsrc')?.getAttribute('href') || document.querySelector('.view img')?.getAttribute('src');
+  const minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
+  const timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
+  const bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: units.find(x => x.id === el.dataset.unit) }));
+  const VIEW = 300;                                   // world units visible across a mini map
+  if (MAP) for (const m of minis) m.el.style.backgroundImage = `url("${MAP}")`;
+  let w = 0, h = 0; const measure = () => { const r = minis[0]?.el.getBoundingClientRect(); if (r) { w = r.width; h = r.height; } };
+  measure(); addEventListener('resize', measure);
+
+  let last = performance.now(), tick = 0;
+  const loop = (ts) => {
+    const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
+    for (const u of units) { u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
+      const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
+    if (w) { const sc = w / VIEW; const size = 2000 * sc;
+      for (const { el, u } of minis) { el.style.backgroundSize = `${size}px ${size}px`; el.style.backgroundPosition = `${w/2 - u.x*sc}px ${h/2 - u.y*sc}px`;
+        el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }
+    if (++tick % 20 === 0) { const now = Date.now();
+      for (const { el, u } of timers) { const s = Math.floor((now - u.startedAt) / 1000);
+        el.textContent = `${Math.floor(s/3600)}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+      for (const { el, u } of bars) if (el) el.style.setProperty('--p', Math.min(100, (now - u.startedAt) / 36e5 / 8 * 100).toFixed(1) + '%'); }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+})();
+</script>
 <script>
   document.querySelectorAll('.menu button').forEach(b => b.onclick = () => document.querySelectorAll('.menu button').forEach(x => x.setAttribute('aria-selected', x === b)));
   document.querySelectorAll('.chips button').forEach(b => b.onclick = () => document.querySelectorAll('.chips button').forEach(x => x.setAttribute('aria-pressed', x === b)));
@@ -637,18 +727,14 @@ const addStop = ([x, y], color) => {
 const busGeo = new THREE.BoxGeometry(14, 5.5, 6); busGeo.translate(0, 2.75, 0);
 const mkBus = color => { const b = new THREE.Mesh(busGeo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.5 }));
   scene.add(b); return b; };
-const hero = mkBus(0xF0F2F5);           // Bus 6023 (focused)
-const bus4120 = mkBus(0x4C8DFF);        // on route 14
-const bus2209 = mkBus(0xC9CDD3), ebus = mkBus(0xC9CDD3);
+const UN = window.UNITS || [], COL = { pd: 0x4C8DFF, fd: 0xE24B4B, dot: 0xE9C24C };
+const cars = UN.map((u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept]));
 const incident = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 12), new THREE.MeshBasicMaterial({ color: 0xE24B4B }));
 incident.position.set(1160, 4, 1092); scene.add(incident);
 const glow = new THREE.Mesh(new THREE.RingGeometry(16, 18, 48), new THREE.MeshBasicMaterial({ color: 0xF0F2F5, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
 glow.rotation.x = -Math.PI / 2; glow.position.y = 1.8; scene.add(glow);
 const pulse = glow.clone(); pulse.material = glow.material.clone(); scene.add(pulse);
 
-const place = (bus, curve, t) => { const p = curve.getPointAt(t), d = curve.getTangentAt(t);
-  bus.position.set(p.x, 0.2, p.z); bus.rotation.y = Math.atan2(-d.z, d.x); return p; };
-let tHero = 0.42, t4120 = 0.28, t2209 = 0.88, tE = 0.61;
 
 // ── camera ──
 const FOCUS = new THREE.Vector3(1040, 0, 1060);
@@ -680,8 +766,8 @@ const adapt = dt => { acc += dt; if (++n < 40) return; const avg = acc / n; acc 
 renderer.shadowMap.needsUpdate = true;
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05), now = clock.elapsedTime; adapt(dt);
-  tHero = (tHero + dt * 0.011) % 1; t4120 = (t4120 + dt * 0.008) % 1; t2209 = (t2209 + dt * 0.007) % 1; tE = (tE + dt * 0.009) % 1;
-  const hp = place(hero, routeB, tHero); place(bus4120, routeA, t4120); place(bus2209, routeA, t2209); place(ebus, routeB, tE);
+  UN.forEach((u, i) => { cars[i].position.set(u.x, 0.2, u.y); cars[i].rotation.y = -u.heading; });
+  const hp = UN[0] ? { x: UN[0].x, z: UN[0].y } : { x: FOCUS.x, z: FOCUS.z };
   glow.position.x = pulse.position.x = hp.x; glow.position.z = pulse.position.z = hp.z;
   const k = (now % 2.4) / 2.4; pulse.scale.setScalar(1 + k * 1.6); pulse.material.opacity = 0.5 * (1 - k);
   if (follow) controls.target.lerp(new THREE.Vector3(hp.x, 0, hp.z), 0.06);
