@@ -56,13 +56,12 @@ const apply = () => {
   body.classList.toggle('theme-dark', state.theme === 'dark'); body.classList.toggle('theme-light', state.theme === 'light');
   window.map3d.setTheme(state.theme); window.map3d.setActive(state.dim === '3d'); window.map2d.setTheme(state.theme);
   for (const b of picker.querySelectorAll('[data-dim]')) b.setAttribute('aria-checked', b.dataset.dim === state.dim && b.dataset.theme === state.theme);
-  zfit.setAttribute('aria-label', state.dim === '3d' ? 'Follow PD 6023' : 'Recenter');
   dispatchEvent(new CustomEvent('maptheme', { detail: { ...state } }));
 };
 picker.addEventListener('click', e => { const b = e.target.closest('[data-dim]'); if (!b) return; state.dim = b.dataset.dim; state.theme = b.dataset.theme; apply(); });
 document.getElementById('zin').onclick = () => (state.dim === '3d' ? window.map3d : window.map2d).zoomIn();
 document.getElementById('zout').onclick = () => (state.dim === '3d' ? window.map3d : window.map2d).zoomOut();
-zfit.onclick = () => state.dim === '3d' ? window.map3d.toggleFollow() : window.map2d.fit();
+if (zfit) zfit.onclick = () => state.dim === '3d' ? window.map3d.toggleFollow() : window.map2d.fit();
 apply();
 </script>'''
 j=out.index('</script>\n</body>')

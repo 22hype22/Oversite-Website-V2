@@ -167,6 +167,7 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -198,6 +199,7 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -617,7 +619,6 @@
   <h1 class="title">Live Map</h1>
   <div class="mapctl" role="group" aria-label="Map controls">
     <button id="zin" aria-label="Zoom in"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
-    <button id="zfit" aria-label="Follow PD 6023" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
     <button id="zout" aria-label="Zoom out"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></button>
     <div class="layers" id="layers">
       <button id="zlayers" aria-label="Map style" aria-haspopup="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5"/></svg></button>
@@ -970,7 +971,7 @@
     setTheme: t => { const src = img.dataset[t === 'dark' ? 'dark' : 'light']; if (src && img.getAttribute('src') !== src) img.setAttribute('src', src); } };
   document.getElementById('zin').onclick  = window.map2d.zoomIn;
   document.getElementById('zout').onclick = window.map2d.zoomOut;
-  document.getElementById('zfit').onclick = fit;
+  const zfitBtn = document.getElementById('zfit'); if (zfitBtn) zfitBtn.onclick = fit;
   window.addEventListener('resize', fit);
   fit();
 
@@ -1016,8 +1017,11 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = 0.08;
 controls.maxPolarAngle = Math.PI * 0.46; controls.minDistance = 90; controls.maxDistance = 2200;
 controls.autoRotate = true; controls.autoRotateSpeed = 0.35;
-controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+// left button slides the map, middle (or right) button orbits, wheel zooms
+controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.ROTATE, RIGHT: THREE.MOUSE.ROTATE };
+controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+controls.screenSpacePanning = false;   // pan along the ground plane
+controls.panSpeed = 1.2;
 renderer.domElement.addEventListener('pointerdown', () => { controls.autoRotate = false; }, { once: true });
 
 // ── light ──
@@ -1122,7 +1126,7 @@ const projectTip = p => { V.set(p.x, 8, p.z).project(camera);
 // ── controls wiring ──
 const dolly = f => { const d = camera.position.clone().sub(controls.target); camera.position.copy(controls.target).add(d.multiplyScalar(f)); controls.update(); };
 const zfit = document.getElementById('zfit');
-const toggleFollow = () => { follow = !follow; zfit.setAttribute('aria-pressed', follow); controls.autoRotate = false; if (!follow) reset(); };
+const toggleFollow = () => { follow = !follow; zfit?.setAttribute('aria-pressed', follow); controls.autoRotate = false; if (!follow) reset(); };
 
 // ── themes ──
 const THEMES = {
@@ -1171,13 +1175,12 @@ const apply = () => {
   body.classList.toggle('theme-dark', state.theme === 'dark'); body.classList.toggle('theme-light', state.theme === 'light');
   window.map3d.setTheme(state.theme); window.map3d.setActive(state.dim === '3d'); window.map2d.setTheme(state.theme);
   for (const b of picker.querySelectorAll('[data-dim]')) b.setAttribute('aria-checked', b.dataset.dim === state.dim && b.dataset.theme === state.theme);
-  zfit.setAttribute('aria-label', state.dim === '3d' ? 'Follow PD 6023' : 'Recenter');
   dispatchEvent(new CustomEvent('maptheme', { detail: { ...state } }));
 };
 picker.addEventListener('click', e => { const b = e.target.closest('[data-dim]'); if (!b) return; state.dim = b.dataset.dim; state.theme = b.dataset.theme; apply(); });
 document.getElementById('zin').onclick = () => (state.dim === '3d' ? window.map3d : window.map2d).zoomIn();
 document.getElementById('zout').onclick = () => (state.dim === '3d' ? window.map3d : window.map2d).zoomOut();
-zfit.onclick = () => state.dim === '3d' ? window.map3d.toggleFollow() : window.map2d.fit();
+if (zfit) zfit.onclick = () => state.dim === '3d' ? window.map3d.toggleFollow() : window.map2d.fit();
 apply();
 </script>
 </body>

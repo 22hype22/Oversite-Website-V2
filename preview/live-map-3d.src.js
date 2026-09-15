@@ -29,8 +29,11 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = 0.08;
 controls.maxPolarAngle = Math.PI * 0.46; controls.minDistance = 90; controls.maxDistance = 2200;
 controls.autoRotate = true; controls.autoRotateSpeed = 0.35;
-controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+// left button slides the map, middle (or right) button orbits, wheel zooms
+controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.ROTATE, RIGHT: THREE.MOUSE.ROTATE };
+controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+controls.screenSpacePanning = false;   // pan along the ground plane
+controls.panSpeed = 1.2;
 renderer.domElement.addEventListener('pointerdown', () => { controls.autoRotate = false; }, { once: true });
 
 // ── light ──
@@ -135,7 +138,7 @@ const projectTip = p => { V.set(p.x, 8, p.z).project(camera);
 // ── controls wiring ──
 const dolly = f => { const d = camera.position.clone().sub(controls.target); camera.position.copy(controls.target).add(d.multiplyScalar(f)); controls.update(); };
 const zfit = document.getElementById('zfit');
-const toggleFollow = () => { follow = !follow; zfit.setAttribute('aria-pressed', follow); controls.autoRotate = false; if (!follow) reset(); };
+const toggleFollow = () => { follow = !follow; zfit?.setAttribute('aria-pressed', follow); controls.autoRotate = false; if (!follow) reset(); };
 
 // ── themes ──
 const THEMES = {
