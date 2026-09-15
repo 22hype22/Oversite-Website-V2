@@ -146,6 +146,8 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -177,6 +179,8 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -324,6 +328,33 @@
   .veh .vinfo small{display:block;font-size:9.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .veh .vinfo .code{color:var(--acc);font-weight:500}
   .veh .pic .id{position:relative}
+  /* bottom lists: on-duty roster and active calls */
+  :root{--footh:clamp(184px,23vh,236px)}
+  .foot{grid-template-columns:1fr 1.15fr}
+  .foot .list{padding:10px 6px 6px 14px}
+  .foot .list h3{padding-right:8px}
+  .foot .list h3 .cnt{margin-left:8px;margin-right:auto;font-size:10.5px;color:var(--ink);padding:1px 7px;border-radius:999px;background:rgba(240,242,245,.08)}
+  .rows{flex:1;min-height:0;overflow-y:auto;margin-top:6px;padding-right:8px;scrollbar-width:thin;scrollbar-color:rgba(240,242,245,.12) transparent}
+  .row{display:grid;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--hair);font-size:11px;min-height:32px}
+  .row:last-child{border-bottom:0}
+  .duty .row{grid-template-columns:8px 1fr auto auto}
+  .duty .dot{width:8px;height:8px;border-radius:50%;background:var(--acc,#C9CDD3);box-shadow:0 0 8px var(--acc,transparent)}
+  .duty .who{min-width:0;display:flex;align-items:baseline;gap:8px}
+  .duty .who b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .duty .who span{color:var(--dim);font-size:10.5px;white-space:nowrap}
+  .duty .unit{color:var(--dim);font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(240,242,245,.05);border:1px solid var(--hair)}
+  .duty .time{color:var(--faint);font-size:10px;font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+  .calls .row{grid-template-columns:30px 1fr auto auto}
+  .calls .pri{font-size:9.5px;font-weight:600;letter-spacing:.04em;text-align:center;padding:3px 0;border-radius:6px;background:rgba(240,242,245,.06);color:var(--dim)}
+  .calls .pri.p1{background:rgba(226,75,75,.18);color:#F0A0A0}
+  .calls .pri.p2{background:rgba(233,162,76,.16);color:#F1C48A}
+  .calls .what{min-width:0;line-height:1.25}
+  .calls .what b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .calls .what span{display:block;color:var(--dim);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .calls .unit{font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid color-mix(in srgb,var(--acc,#C9CDD3) 40%,transparent);color:var(--acc,#C9CDD3);background:color-mix(in srgb,var(--acc,#C9CDD3) 10%,transparent)}
+  .calls .unit.none{color:var(--faint);border-color:var(--hair);background:none}
+  .calls .age{color:var(--faint);font-size:10px;font-variant-numeric:tabular-nums;min-width:30px;text-align:right}
+  @media (max-width:980px){.foot .card:last-child{display:flex}}
 </style>
 </head>
 <body>
@@ -397,7 +428,7 @@
 
   <div class="stats">
     <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#46D07C"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5" fill="none" stroke="#0B0B0C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Online</div><div class="n">65</div></div>
-    <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#E24B4B"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round"/></svg>Active Calls</div><div class="n">7</div></div>
+    <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#E24B4B"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round"/></svg>Active Calls</div><div class="n" id="callCount">7</div></div>
   </div>
 
   <div class="card eff" id="avail">
@@ -505,29 +536,18 @@
   </section>
 
   <div class="foot">
-    <div class="card">
-      <h3>Schedule Offset <span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></h3>
-      <div class="big"><b>± 2.5 min</b><span>Average Variance</span></div>
-      <table>
-        <thead><tr><th>Route number</th><th>L1</th><th>L12</th><th>L14</th><th>L1</th><th>L1</th></tr></thead>
-        <tbody>
-          <tr><td class="r"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12h16M12 4v16"/></svg>45623</td><td class="neg">-2min</td><td class="neg">-1min</td><td class="pos">+1.5min</td><td class="neg">-1min</td><td class="neg">-1min</td></tr>
-          <tr><td class="r"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12h16M12 4v16"/></svg>34654</td><td class="neg">-1min</td><td class="neg">-2min</td><td class="pos">+2min</td><td class="neg">-2.5min</td><td class="pos">+2min</td></tr>
-        </tbody>
-      </table>
+    <div class="card list" id="dutyCard">
+      <h3>On Duty <span class="cnt" id="dutyCount">0</span><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></h3>
+      <div class="rows" id="dutyRows" role="list" aria-label="Users on duty"></div>
     </div>
-    <div class="card">
-      <h3>Live Passenger Volume <span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></h3>
-      <div class="big"><b>142,580</b><span>today</span></div>
-      <div class="vol">
-        <div class="lbl"><span>55k</span><span>57k</span><span>56k</span><span>55k</span><span>55k</span><span>52k</span><span>55k</span><span>56k</span></div>
-        <svg viewBox="0 0 320 44" preserveAspectRatio="none" aria-hidden="true" id="vol"></svg>
-      </div>
+    <div class="card list" id="callsCard">
+      <h3>Active Calls <span class="cnt" id="callsCount">0</span><span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></h3>
+      <div class="rows" id="callRows" role="list" aria-label="Active calls"></div>
     </div>
   </div>
 </main>
 
-<script id="units" type="application/json">[{"id":"pd-6023","model":"Explorer PPV","dept":"pd","name":"PD 6023","crew":["22hype22","sppoklex","relukt"],"kind":"cruiser","uid":"45623","route":"B","t":0.42,"dir":1,"speed":0.011,"since":6137},{"id":"fd-4120","model":"Pierce Engine","dept":"fd","name":"FD 4120","crew":["marlowe_j","ttx_ash"],"kind":"engine","uid":"31564","route":"A","t":0.28,"dir":1,"speed":0.008,"since":2711},{"id":"dot-2209","model":"F-350 Arrow Board","dept":"dot","name":"DOT 2209","crew":["cone_daddy"],"kind":"dot","uid":"34654","route":"A","t":0.88,"dir":-1,"speed":0.007,"since":10422},{"id":"pd-1207","model":"Charger Pursuit","dept":"pd","name":"PD 1207","crew":["nova.k","bryce_v"],"kind":"cruiser","uid":"34664","route":"B","t":0.61,"dir":-1,"speed":0.01,"since":1503},{"id":"pd-3310","model":"Tahoe PPV","dept":"pd","name":"PD 3310","crew":["ghostrider44"],"kind":"cruiser","uid":"38812","route":"A","t":0.12,"dir":1,"speed":0.012,"since":4290},{"id":"fd-2201","model":"Rescue 1","dept":"fd","name":"FD 2201","crew":["ember_lux","dan.holt","mk_ruiz"],"kind":"engine","uid":"29907","route":"B","t":0.05,"dir":1,"speed":0.007,"since":8004},{"id":"dot-1180","model":"Plow Truck","dept":"dot","name":"DOT 1180","crew":["plow_king","ash_dot"],"kind":"dot","uid":"36012","route":"B","t":0.85,"dir":-1,"speed":0.006,"since":13355},{"id":"pd-4501","model":"Explorer PPV","dept":"pd","name":"PD 4501","crew":["kzz_mike"],"kind":"cruiser","uid":"41155","route":"A","t":0.66,"dir":-1,"speed":0.011,"since":622}]</script>
+<script id="units" type="application/json">[{"id":"pd-6023","model":"Explorer PPV","dept":"pd","name":"PD 6023","crew":["22hype22","sppoklex","relukt"],"ranks":["Chief of Police","Sergeant","Officer"],"kind":"cruiser","uid":"45623","route":"B","t":0.42,"dir":1,"speed":0.011,"since":6137},{"id":"fd-4120","model":"Pierce Engine","dept":"fd","name":"FD 4120","crew":["marlowe_j","ttx_ash"],"ranks":["Captain","Firefighter"],"kind":"engine","uid":"31564","route":"A","t":0.28,"dir":1,"speed":0.008,"since":2711},{"id":"dot-2209","model":"F-350 Arrow Board","dept":"dot","name":"DOT 2209","crew":["cone_daddy"],"ranks":["Supervisor"],"kind":"dot","uid":"34654","route":"A","t":0.88,"dir":-1,"speed":0.007,"since":10422},{"id":"pd-1207","model":"Charger Pursuit","dept":"pd","name":"PD 1207","crew":["nova.k","bryce_v"],"ranks":["Lieutenant","Officer"],"kind":"cruiser","uid":"34664","route":"B","t":0.61,"dir":-1,"speed":0.01,"since":1503},{"id":"pd-3310","model":"Tahoe PPV","dept":"pd","name":"PD 3310","crew":["ghostrider44"],"ranks":["Corporal"],"kind":"cruiser","uid":"38812","route":"A","t":0.12,"dir":1,"speed":0.012,"since":4290},{"id":"fd-2201","model":"Rescue 1","dept":"fd","name":"FD 2201","crew":["ember_lux","dan.holt","mk_ruiz"],"ranks":["Battalion Chief","Firefighter","Probationary"],"kind":"engine","uid":"29907","route":"B","t":0.05,"dir":1,"speed":0.007,"since":8004},{"id":"dot-1180","model":"Plow Truck","dept":"dot","name":"DOT 1180","crew":["plow_king","ash_dot"],"ranks":["Operator","Operator"],"kind":"dot","uid":"36012","route":"B","t":0.85,"dir":-1,"speed":0.006,"since":13355},{"id":"pd-4501","model":"Explorer PPV","dept":"pd","name":"PD 4501","crew":["kzz_mike"],"ranks":["Trainee"],"kind":"cruiser","uid":"41155","route":"A","t":0.66,"dir":-1,"speed":0.011,"since":622}]</script>
 <script>
 /* ── shared unit simulation: positions for cards, 2D pins and the 3D scene ── */
 (() => {
@@ -646,17 +666,44 @@
 })();
 </script>
 <script>
+/* ── bottom panels: on-duty roster (from the unit crews) and active calls ── */
 (() => {
-  // ── passenger volume bars ──
-  const vol = document.getElementById('vol');
-  let bars = '';
-  for (let i = 0; i < 72; i++) {
-    const h = 10 + Math.abs(Math.sin(i * .9) * 22 + Math.cos(i * .37) * 8);
-    const amber = (i % 9 === 4 || i % 9 === 5);
-    bars += `<rect x="${(i * 4.4).toFixed(1)}" y="${(44 - h).toFixed(1)}" width="2.6" height="${h.toFixed(1)}" fill="${amber ? '#E9A24C' : 'rgba(240,242,245,.28)'}"/>`;
-  }
-  vol.innerHTML = bars;
+  const UN = window.UNITS || [], COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const now = Date.now();
+  const CALLS = [
+    { pri: 1, code: '10-50', type: 'Vehicle collision, injuries', where: 'Route 1 & Main St', unit: 'FD 4120', dept: 'fd', since: 240 },
+    { pri: 1, code: '10-31', type: 'Robbery in progress', where: 'Liberty Bank, Downtown', unit: 'PD 6023', dept: 'pd', since: 95 },
+    { pri: 2, code: '10-70', type: 'Structure fire, single family', where: '14 Ridge Rd', unit: 'FD 2201', dept: 'fd', since: 610 },
+    { pri: 2, code: '10-80', type: 'Pursuit, silver sedan', where: 'Highway 1 northbound', unit: 'PD 3310', dept: 'pd', since: 150 },
+    { pri: 3, code: '10-53', type: 'Road hazard, debris', where: 'Interstate ramp, exit 4', unit: 'DOT 2209', dept: 'dot', since: 1320 },
+    { pri: 3, code: '10-91', type: 'Noise complaint', where: 'Sunset Apartments', unit: '', dept: '', since: 45 },
+    { pri: 3, code: '10-38', type: 'Traffic stop, expired tags', where: 'Elm St & 3rd Ave', unit: 'PD 1207', dept: 'pd', since: 380 },
+  ].map(c => ({ ...c, startedAt: now - c.since * 1000 }));
 
+  const duty = document.getElementById('dutyRows'), calls = document.getElementById('callRows');
+  const fmtAge = s => s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h ${Math.floor(s / 60) % 60}m`;
+  const fmtDur = s => `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}`;
+
+  const roster = [];
+  for (const u of UN) u.crew.forEach((name, i) => roster.push({ name, rank: (u.ranks || [])[i] || 'Member', unit: u.name, dept: u.dept, startedAt: u.startedAt }));
+  duty.className = 'rows duty';
+  duty.innerHTML = roster.map(r => `<div class="row" role="listitem" style="--acc:${COL[r.dept]}"><span class="dot"></span><div class="who"><b>${esc(r.name)}</b><span>${esc(r.rank)}</span></div><span class="unit">${esc(r.unit)}</span><span class="time" data-start="${r.startedAt}"></span></div>`).join('');
+  document.getElementById('dutyCount').textContent = roster.length;
+
+  calls.className = 'rows calls';
+  calls.innerHTML = CALLS.map(c => `<div class="row" role="listitem" style="--acc:${COL[c.dept] || '#C9CDD3'}"><span class="pri p${c.pri}">P${c.pri}</span><div class="what"><b>${c.code} · ${esc(c.type)}</b><span>${esc(c.where)}</span></div><span class="unit${c.unit ? '' : ' none'}">${c.unit ? esc(c.unit) : 'Unassigned'}</span><span class="age" data-start="${c.startedAt}"></span></div>`).join('');
+  document.getElementById('callsCount').textContent = CALLS.length;
+  const cc = document.getElementById('callCount'); if (cc) cc.textContent = CALLS.length;
+
+  const tick = () => { const t = Date.now();
+    for (const el of duty.querySelectorAll('.time')) el.textContent = fmtDur((t - el.dataset.start) / 1000);
+    for (const el of calls.querySelectorAll('.age')) el.textContent = fmtAge((t - el.dataset.start) / 1000); };
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+<script>
+(() => {
   // ── map camera ──
   const view = document.getElementById('view');
   const world = document.getElementById('world');

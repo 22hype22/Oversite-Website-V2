@@ -25,14 +25,14 @@ def vehicle(kind):
     return '<span class="badge"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ic+'</svg></span>'
 
 UNITS=[
- dict(id='pd-6023',model='Explorer PPV',dept='pd',name='PD 6023',crew=['22hype22','sppoklex','relukt'],kind='cruiser',uid='45623',route='B',t=0.42,dir=1,speed=0.011,since=6137),
- dict(id='fd-4120',model='Pierce Engine',dept='fd',name='FD 4120',crew=['marlowe_j','ttx_ash'],kind='engine',uid='31564',route='A',t=0.28,dir=1,speed=0.008,since=2711),
- dict(id='dot-2209',model='F-350 Arrow Board',dept='dot',name='DOT 2209',crew=['cone_daddy'],kind='dot',uid='34654',route='A',t=0.88,dir=-1,speed=0.007,since=10422),
- dict(id='pd-1207',model='Charger Pursuit',dept='pd',name='PD 1207',crew=['nova.k','bryce_v'],kind='cruiser',uid='34664',route='B',t=0.61,dir=-1,speed=0.010,since=1503),
- dict(id='pd-3310',model='Tahoe PPV',dept='pd',name='PD 3310',crew=['ghostrider44'],kind='cruiser',uid='38812',route='A',t=0.12,dir=1,speed=0.012,since=4290),
- dict(id='fd-2201',model='Rescue 1',dept='fd',name='FD 2201',crew=['ember_lux','dan.holt','mk_ruiz'],kind='engine',uid='29907',route='B',t=0.05,dir=1,speed=0.007,since=8004),
- dict(id='dot-1180',model='Plow Truck',dept='dot',name='DOT 1180',crew=['plow_king','ash_dot'],kind='dot',uid='36012',route='B',t=0.85,dir=-1,speed=0.006,since=13355),
- dict(id='pd-4501',model='Explorer PPV',dept='pd',name='PD 4501',crew=['kzz_mike'],kind='cruiser',uid='41155',route='A',t=0.66,dir=-1,speed=0.011,since=622),
+ dict(id='pd-6023',model='Explorer PPV',dept='pd',name='PD 6023',crew=['22hype22','sppoklex','relukt'],ranks=['Chief of Police', 'Sergeant', 'Officer'],kind='cruiser',uid='45623',route='B',t=0.42,dir=1,speed=0.011,since=6137),
+ dict(id='fd-4120',model='Pierce Engine',dept='fd',name='FD 4120',crew=['marlowe_j','ttx_ash'],ranks=['Captain', 'Firefighter'],kind='engine',uid='31564',route='A',t=0.28,dir=1,speed=0.008,since=2711),
+ dict(id='dot-2209',model='F-350 Arrow Board',dept='dot',name='DOT 2209',crew=['cone_daddy'],ranks=['Supervisor'],kind='dot',uid='34654',route='A',t=0.88,dir=-1,speed=0.007,since=10422),
+ dict(id='pd-1207',model='Charger Pursuit',dept='pd',name='PD 1207',crew=['nova.k','bryce_v'],ranks=['Lieutenant', 'Officer'],kind='cruiser',uid='34664',route='B',t=0.61,dir=-1,speed=0.010,since=1503),
+ dict(id='pd-3310',model='Tahoe PPV',dept='pd',name='PD 3310',crew=['ghostrider44'],ranks=['Corporal'],kind='cruiser',uid='38812',route='A',t=0.12,dir=1,speed=0.012,since=4290),
+ dict(id='fd-2201',model='Rescue 1',dept='fd',name='FD 2201',crew=['ember_lux','dan.holt','mk_ruiz'],ranks=['Battalion Chief', 'Firefighter', 'Probationary'],kind='engine',uid='29907',route='B',t=0.05,dir=1,speed=0.007,since=8004),
+ dict(id='dot-1180',model='Plow Truck',dept='dot',name='DOT 1180',crew=['plow_king','ash_dot'],ranks=['Operator', 'Operator'],kind='dot',uid='36012',route='B',t=0.85,dir=-1,speed=0.006,since=13355),
+ dict(id='pd-4501',model='Explorer PPV',dept='pd',name='PD 4501',crew=['kzz_mike'],ranks=['Trainee'],kind='cruiser',uid='41155',route='A',t=0.66,dir=-1,speed=0.011,since=622),
 ]
 def card(u, sel=False):
     arrow='<span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span>'
@@ -53,7 +53,7 @@ chips='''  <div class="chips" role="group" aria-label="Filter units by departmen
   </div>'''
 stats='''  <div class="stats">
     <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#46D07C"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5" fill="none" stroke="#0B0B0C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Online</div><div class="n">65</div></div>
-    <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#E24B4B"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round"/></svg>Active Calls</div><div class="n">7</div></div>
+    <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#E24B4B"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round"/></svg>Active Calls</div><div class="n" id="callCount">7</div></div>
   </div>'''
 eff='''  <div class="card eff" id="avail">
     <h3>Unit Availability <span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span></h3>
@@ -276,7 +276,8 @@ js_add = r"""<script>
 import re
 s=re.sub(r'<script id="units" type="application/json">.*?shared unit simulation.*?</script>\n', '', s, flags=re.S)
 s=re.sub(r'<script>\n/\* ── Unit Availability: real chart.*?</script>\n', '', s, flags=re.S)
-s=s.replace('<script>\n(() => {', units_js+js_add+'<script>\n(() => {',1)
+anchor='<script>\n/* ── bottom panels' if '<script>\n/* ── bottom panels' in s else '<script>\n(() => {'
+s=s.replace(anchor, units_js+js_add+anchor,1)
 open(p,'w').write(s)
 b64=base64.b64encode(open('preview/liberty-county-dark.jpg','rb').read()).decode()
 sa=s.replace('src="liberty-county-dark.jpg"','src="data:image/jpeg;base64,'+b64+'"').replace('href="live-map.html"','href="live-map-standalone.html"').replace('href="live-map-3d.html"','href="live-map-3d-standalone.html"')
