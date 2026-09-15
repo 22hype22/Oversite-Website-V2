@@ -23,19 +23,34 @@
     font-size:13px;line-height:1.4;-webkit-font-smoothing:antialiased;
     font-variant-numeric:tabular-nums;overflow:hidden;
   }
-  @media (max-width:1150px){body{overflow:auto}}
   button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
   :focus-visible{outline:1px solid var(--amber);outline-offset:2px}
 
-  .shell{
-    height:100%;display:grid;
-    grid-template-columns:clamp(320px,25.5vw,448px) minmax(0,1fr);
-    grid-template-rows:clamp(54px,5.6vh,64px) minmax(0,1fr) auto;
+  :root{
+    --rail:clamp(320px,25.5vw,448px);
+    --barh:clamp(54px,5.6vh,64px);
+    --footh:clamp(168px,19vh,212px);
+    --glass:rgba(11,11,13,.74);
+    --blur:blur(30px) saturate(1.08);
   }
+  .shell{height:100%}
+
+  /* the map is the page — it sits under everything, edge to edge */
+  .view{position:fixed;inset:0;z-index:0;background:#08090A;overflow:hidden}
+  .view img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    object-position:50% 47%;max-width:100%;user-select:none;-webkit-user-drag:none}
+  .view>svg{position:absolute;inset:0;width:100%;height:100%}
+
+  /* overlays live in the uncovered window between the rail and the foot */
+  .stage{position:fixed;left:var(--rail);right:0;top:var(--barh);bottom:var(--footh);
+    z-index:3;pointer-events:none}
+  .stage>*{pointer-events:auto}
 
   /* ─────────────── top bar ─────────────── */
-  .bar{grid-column:1/-1;display:flex;align-items:center;gap:clamp(20px,2.6vw,42px);
-    padding:0 22px;background:var(--rail)}
+  .bar{position:fixed;top:0;left:0;right:0;height:var(--barh);z-index:6;
+    display:flex;align-items:center;gap:clamp(20px,2.6vw,42px);padding:0 22px;
+    background:var(--glass);backdrop-filter:var(--blur);
+    border-bottom:1px solid var(--hair)}
   .mark{flex:none;display:flex}
   .menu{display:flex;align-items:center;gap:clamp(18px,2.4vw,38px);overflow-x:auto;scrollbar-width:none}
   .menu::-webkit-scrollbar{display:none}
@@ -46,8 +61,10 @@
     border-radius:999px;padding:7px 18px}
 
   /* ─────────────── left rail ─────────────── */
-  .side{grid-row:2/4;grid-column:1;background:var(--rail);display:flex;flex-direction:column;
-    min-height:0;overflow-y:auto}
+  .side{position:fixed;left:0;top:var(--barh);bottom:0;width:var(--rail);z-index:5;
+    display:flex;flex-direction:column;min-height:0;overflow-y:auto;
+    background:var(--glass);backdrop-filter:var(--blur);
+    border-right:1px solid var(--hair)}
   .side::-webkit-scrollbar{width:5px}
   .side::-webkit-scrollbar-thumb{background:rgba(240,242,245,.1)}
 
@@ -101,22 +118,18 @@
   .veh:hover .up{color:var(--ink);transform:translate(1px,-1px)}
 
   /* ─────────────── map ─────────────── */
-  .view{grid-row:2;grid-column:2;position:relative;min-height:400px;background:#08090A;overflow:hidden}
-  .view img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 47%;
-    max-width:100%;user-select:none;-webkit-user-drag:none}
-  .view>svg{position:absolute;inset:0;width:100%;height:100%}
-  .veil{position:absolute;inset:0;pointer-events:none;
-    background:linear-gradient(180deg,rgba(8,9,10,.55) 0%,transparent 22%,transparent 72%,rgba(8,9,10,.5) 100%)}
+  .veil{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(ellipse 90% 80% at 58% 48%,transparent 34%,rgba(8,9,10,.55) 100%)}
 
-  .head{position:absolute;top:24px;left:30px;font-size:clamp(26px,2.3vw,37px);font-weight:300;
+  .head{position:absolute;top:26px;left:32px;font-size:clamp(26px,2.3vw,37px);font-weight:300;
     letter-spacing:-.028em;color:#F0F2F5;pointer-events:none;text-shadow:0 2px 40px rgba(0,0,0,.95)}
-  .chips{position:absolute;top:clamp(68px,6.6vw,90px);left:30px;display:flex;gap:8px}
+  .chips{position:absolute;top:clamp(70px,6.6vw,92px);left:32px;display:flex;gap:8px}
   .chip{display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;
     background:rgba(16,15,17,.7);backdrop-filter:blur(16px);border:1px solid var(--hair2);
     font-size:11.5px;color:var(--dim)}
   .chip b{color:var(--ink);font-weight:500}
 
-  .util{position:absolute;top:22px;right:24px;display:flex;align-items:center;gap:15px;z-index:3}
+  .util{position:absolute;top:20px;right:26px;display:flex;align-items:center;gap:15px;z-index:3}
   .find{display:flex;align-items:center;gap:9px}
   .find input{background:none;border:0;color:var(--ink);font-family:var(--f);font-size:11.5px;
     width:118px;padding:0;text-align:right}
@@ -135,15 +148,15 @@
   .pop .c{font-size:34px;font-weight:300;margin-top:12px;letter-spacing:-.035em;line-height:1}
   .pop .c i{font-style:normal;font-size:14px;color:var(--dim)}
 
-  .nav3{position:absolute;left:24px;bottom:22px;display:flex;gap:9px}
+  .nav3{position:absolute;left:26px;bottom:24px;display:flex;gap:9px}
   .nav3 button{width:31px;height:31px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     background:rgba(16,15,17,.66);backdrop-filter:blur(16px);border:1px solid var(--hair2);
     color:var(--dim);transition:color .18s,background .18s}
   .nav3 button:hover{color:var(--ink);background:rgba(30,29,32,.9)}
 
-  .panel{position:absolute;top:clamp(64px,6.2vw,86px);right:24px;width:clamp(228px,17.5vw,270px);
-    border-radius:6px;background:rgba(14,14,16,.76);backdrop-filter:blur(24px);
-    border:1px solid var(--hair2);max-height:calc(100% - 118px);overflow-y:auto;z-index:2}
+  .panel{position:absolute;top:clamp(66px,6.2vw,88px);right:26px;width:clamp(228px,17.5vw,270px);
+    border-radius:7px;background:rgba(13,13,15,.7);backdrop-filter:blur(24px);
+    border:1px solid var(--hair2);max-height:calc(100% - 104px);overflow-y:auto;z-index:2}
   .panel::-webkit-scrollbar{width:4px}
   .panel::-webkit-scrollbar-thumb{background:rgba(240,242,245,.14)}
   .ph{display:flex;align-items:center;justify-content:space-between;padding:12px 14px}
@@ -165,10 +178,13 @@
   .tip b{display:block;font-size:10.5px;font-weight:500;margin-bottom:2px}
   .tip p{margin:0;font-size:9.5px;color:rgba(240,242,245,.46);line-height:1.35}
 
-  .by{position:absolute;right:16px;bottom:10px;font-size:8px;color:rgba(240,242,245,.24);pointer-events:none}
+  .by{position:absolute;right:18px;bottom:8px;font-size:8px;color:rgba(240,242,245,.24);pointer-events:none}
 
   /* ─────────────── foot ─────────────── */
-  .foot{grid-row:3;grid-column:2;display:grid;grid-template-columns:1.1fr 1fr;background:var(--bg)}
+  .foot{position:fixed;left:var(--rail);right:0;bottom:0;height:var(--footh);z-index:5;
+    display:grid;grid-template-columns:1.1fr 1fr;
+    background:var(--glass);backdrop-filter:var(--blur);
+    border-top:1px solid var(--hair)}
   .pane{padding:18px 26px 22px;min-width:0}
   .pane+.pane{border-left:1px solid var(--hair)}
   .ptop{display:flex;align-items:flex-start;justify-content:space-between}
@@ -193,12 +209,16 @@
   .scale svg{display:block;width:100%;height:auto}
 
   @media (max-width:1150px){
-    .shell{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;height:auto}
-    .side{grid-row:auto;grid-column:1}
-    .view{grid-row:auto;grid-column:1;min-height:460px}
-    .foot{grid-row:auto;grid-column:1}
+    body{overflow:auto}
+    .view{position:absolute;height:62vh;inset:auto 0 auto 0;top:var(--barh)}
+    .veil{display:none}
+    .bar{position:sticky}
+    .stage{position:absolute;left:0;right:0;top:var(--barh);height:62vh;bottom:auto}
+    .side{position:static;width:auto;margin-top:62vh;border-right:0;
+      border-top:1px solid var(--hair);background:var(--bg);backdrop-filter:none}
+    .foot{position:static;height:auto;left:auto;background:var(--bg);backdrop-filter:none}
     .panel{position:static;width:auto;max-height:none;border-radius:0;border:0;
-      border-top:1px solid var(--hair);backdrop-filter:none;background:var(--rail)}
+      border-top:1px solid var(--hair);backdrop-filter:none;background:var(--bg);margin-top:8px}
   }
   @media (max-width:560px){
     .bar{height:auto;padding:12px 14px;flex-wrap:wrap;gap:14px}
@@ -208,6 +228,18 @@
     .foot{grid-template-columns:1fr}
     .pane+.pane{border-left:0;border-top:1px solid var(--hair)}
     .grid2{grid-template-columns:1fr}
+  }
+  @media (max-width:1150px){
+    body{overflow:auto}
+    .view{position:absolute;height:62vh;inset:auto 0 auto 0;top:var(--barh)}
+    .veil{display:none}
+    .bar{position:sticky}
+    .stage{position:absolute;left:0;right:0;top:var(--barh);height:62vh;bottom:auto}
+    .side{position:static;width:auto;margin-top:62vh;border-right:0;
+      border-top:1px solid var(--hair);background:var(--bg);backdrop-filter:none}
+    .foot{position:static;height:auto;left:auto;background:var(--bg);backdrop-filter:none}
+    .panel{position:static;width:auto;max-height:none;border-radius:0;border:0;
+      border-top:1px solid var(--hair);backdrop-filter:none;background:var(--bg);margin-top:8px}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -281,7 +313,6 @@
   <!-- ═══════ MAP ═══════ -->
   <section class="view" aria-label="Liberty County live map">
     <img src="liberty-county-dark.jpg" alt="Aerial map of Liberty County" draggable="false">
-    <div class="veil"></div>
 
     <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <g fill="none" stroke="rgba(250,252,254,.5)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -311,8 +342,13 @@
     </svg>
 
     <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" id="pins"></svg>
+    </section>
 
-    <h1 class="head">Dispatch Operations</h1>
+    <div class="veil"></div>
+
+    <!-- overlays float in the window the rail and foot leave uncovered -->
+    <div class="stage">
+      <h1 class="head">Dispatch Operations</h1>
 
     <div class="chips">
       <div class="chip">
@@ -463,7 +499,7 @@
     </div>
 
     <p class="by">Map &copy; Police Roleplay Community &middot; erlc.one</p>
-  </section>
+    </div>
 
   <!-- ═══════ FOOT ═══════ -->
   <section class="foot">
