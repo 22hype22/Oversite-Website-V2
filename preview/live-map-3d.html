@@ -89,9 +89,9 @@
   /* ───────── top bar ───────── */
   .bar{position:fixed;top:0;left:0;right:0;height:var(--barh);z-index:6;
     display:flex;align-items:center;gap:20px;padding:0 18px;
-    background:rgba(11,11,12,.32);
-    backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-    border-bottom:1px solid var(--hair)}
+    background:none;border:0;pointer-events:none}
+  .bar>*{pointer-events:auto}
+  .bar .menu button{text-shadow:0 1px 8px rgba(0,0,0,.6)}
   .mark{flex:none;width:30px;height:30px;border-radius:8px;background:rgba(240,242,245,.06);
     display:flex;align-items:center;justify-content:center}
   .menu{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
@@ -100,11 +100,11 @@
     transition:color .18s cubic-bezier(.32,.72,0,1),background .18s cubic-bezier(.32,.72,0,1)}
   .menu button:hover{color:var(--ink);background:rgba(240,242,245,.05)}
   .menu button[aria-selected="true"]{background:#F4F6F8;color:#0B0B0C;font-weight:500}
-  .search{flex:none;display:flex;align-items:center;gap:8px;color:var(--faint);font-size:12px;
-    padding:6px 12px;border-radius:999px;border:1px solid var(--hair);background:rgba(240,242,245,.03);min-width:190px}
+  .search{flex:none;display:flex;align-items:center;gap:8px;color:var(--dim);font-size:12px;
+    padding:6px 4px;min-width:170px;text-shadow:0 1px 8px rgba(0,0,0,.6)}
   .search kbd{font:inherit;font-size:10.5px;color:var(--faint);margin-left:auto}
   .icons{flex:none;display:flex;align-items:center;gap:4px}
-  .icons button{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--dim);position:relative}
+  .icons button{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--dim);position:relative;filter:drop-shadow(0 1px 4px rgba(0,0,0,.6))}
   .icons button:hover{color:var(--ink);background:rgba(240,242,245,.06)}
   .icons .dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--red);
     box-shadow:0 0 0 2px #0F0F11}
@@ -137,6 +137,8 @@
   .card h3{margin:0;font-size:12px;font-weight:400;color:var(--dim);display:flex;align-items:center;justify-content:space-between}
   .card h3 .go{color:var(--faint)}
   .eff .big{font-size:30px;font-weight:300;letter-spacing:-.03em;line-height:1;margin-top:10px}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
@@ -208,6 +210,8 @@
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh.compact .pic{height:48px}
   .veh.compact .pic>svg{height:56px}
 
@@ -244,6 +248,13 @@
   .alert .ic{flex:none;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;margin-top:1px}
   .alert .t{font-size:11.5px;line-height:1.35;min-width:0;color:var(--ink)}
   .alert .t small{display:block;font-size:10px;color:var(--dim);margin-top:3px}
+  .alert{cursor:pointer;transition:background .16s cubic-bezier(.32,.72,0,1)}
+  .alert:hover{background:rgba(226,75,75,.2)}
+  .alert .chev{margin-left:auto;flex:none;color:rgba(240,242,245,.45);transition:transform .2s cubic-bezier(.32,.72,0,1);align-self:center}
+  .alert.open .chev{transform:rotate(180deg)}
+  .alert.open{border-bottom-left-radius:0;border-bottom-right-radius:0}
+  .det{padding:2px 8px 8px;border:1px solid rgba(226,75,75,.20);border-top:0;border-radius:0 0 9px 9px;background:rgba(226,75,75,.05);animation:slidein .25s cubic-bezier(.32,.72,0,1)}
+  .det .aff{margin-top:8px} .det .rec{margin-bottom:2px}
   .alert.new{animation:slidein .45s cubic-bezier(.32,.72,0,1)}
   @keyframes slidein{from{transform:translateY(-6px);opacity:0}to{transform:none;opacity:1}}
   .aff{margin:10px 0 0 6px;padding-left:10px;border-left:1px solid rgba(240,242,245,.16);font-size:10.5px;color:var(--dim)}
@@ -777,28 +788,36 @@
   const nearest = c => UN.map(u => ({ u, d: Math.hypot(u.x - c.x, u.y - c.y) })).sort((a, b) => a.d - b.d);
   let flash = null;
 
+  let open = null;                                   // startedAt of the expanded alert
+  const alertRow = (c, text, sub, extra) => `<div class="alert${c === flash ? ' new' : ''}${open === c.startedAt ? ' open' : ''}" role="button" tabindex="0" aria-expanded="${open === c.startedAt}" data-open="${c.startedAt}"><div class="ic">!</div><div class="t">${text}<small>${sub}</small></div><span class="chev"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></span></div>` + (open === c.startedAt ? `<div class="det">${extra}</div>` : '');
   const render = () => {
     const now = Date.now();
     const fresh = CALLS.filter(c => now - c.startedAt < NEW_WINDOW).sort((a, b) => b.startedAt - a.startedAt);
     document.getElementById('warnNew').textContent = `(${fresh.length} ${fresh.length === 1 ? 'call' : 'calls'})`;
     if (!fresh.length) { list.innerHTML = '<div class="empty">No new calls in the last 10 minutes.</div>'; }
-    else list.innerHTML = fresh.slice(0, 2).map((c, i) => {
-      let html = `<div class="alert${c === flash ? ' new' : ''}"><div class="ic">!</div><div class="t">${c.code} ${esc(c.type)}<small><span>${esc(c.where)}</span> · <span data-start="${c.startedAt}">${fmtAge((now - c.startedAt) / 1000)}</span></small></div></div>`;
-      if (i === 0 && !c.unit) {
+    else list.innerHTML = fresh.slice(0, 3).map(c => {
+      let extra = '';
+      if (!c.unit) {
         const dept = deptFor(c.code), near = nearest(c).filter(n => n.u.dept === dept).slice(0, 2);
-        html += `<div class="aff">Nearest units:` + near.map(n => `<div class="r">${esc(n.u.name)}<small>(${(n.d / 1609 * 1.2).toFixed(1)} mi away, 10-8)</small></div>`).join('') + `</div>`;
-        if (near[0]) html += `<button type="button" class="rec" data-dispatch="${esc(c.code)}|${c.startedAt}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><div>Recommend<small>Dispatching ${esc(near[0].u.name)}</small></div></button>`;
-      } else if (i === 0 && c.unit) {
-        html += `<div class="rec"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><div>Assigned<small>${esc(c.unit)} ${STAGE_TXT[c.stage] || ''}</small></div></div>`;
+        extra += `<div class="aff">Nearest units:` + near.map(n => `<div class="r">${esc(n.u.name)}<small>(${(n.d / 1609 * 1.2).toFixed(1)} mi away, 10-8)</small></div>`).join('') + `</div>`;
+        if (near[0]) extra += `<button type="button" class="rec" data-dispatch="${esc(c.code)}|${c.startedAt}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><div>Recommend<small>Dispatching ${esc(near[0].u.name)}</small></div></button>`;
+      } else {
+        const u = UN.find(x => x.name === c.unit), d = u ? Math.hypot(u.x - c.x, u.y - c.y) : 0;
+        extra += `<div class="aff">Assigned unit:<div class="r">${esc(c.unit)}<small>(${STAGE_TXT[c.stage] || ''}${u ? ', ' + (d / 1609 * 1.2).toFixed(1) + ' mi away' : ''})</small></div></div>`;
+        extra += `<div class="rec"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><div>Priority ${c.pri}<small>${esc(c.type)}</small></div></div>`;
       }
-      return html; }).join('');
+      return alertRow(c, `${c.code} ${esc(c.type)}`, `<span>${esc(c.where)}</span> · <span data-start="${c.startedAt}">${fmtAge((now - c.startedAt) / 1000)}</span>`, extra); }).join('');
     const ua = CALLS.filter(c => c.unit && (c.code === '10-80' || (c.pri === 1 && c.stage < 2)));
     document.getElementById('warnUnitN').textContent = `(${ua.length} ${ua.length === 1 ? 'unit' : 'units'})`;
-    ulist.innerHTML = ua.length ? ua.slice(0, 2).map(c => `<div class="alert"><div class="ic">!</div><div class="t">${esc(c.unit)} is ${c.code === '10-80' ? 'in pursuit' : 'en route to ' + c.code}<small><span>${esc(c.where)}</span> · <span data-start="${c.startedAt}">${fmtAge((now - c.startedAt) / 1000)}</span></small></div></div>`).join('')
+    ulist.innerHTML = ua.length ? ua.slice(0, 3).map(c => alertRow(c, `${esc(c.unit)} is ${c.code === '10-80' ? 'in pursuit' : 'en route to ' + c.code}`, `<span>${esc(c.where)}</span> · <span data-start="${c.startedAt}">${fmtAge((now - c.startedAt) / 1000)}</span>`,
+        `<div class="aff">Call:<div class="r">${c.code} ${esc(c.type)}<small>(priority ${c.pri}, ${STAGE_TXT[c.stage] || ''})</small></div></div>`)).join('')
       : '<div class="empty">No unit alerts.</div>';
   };
   const STAGE_TXT = ['dispatched', 'en route', 'on scene'];
+  document.getElementById('warn').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.alert')) { e.preventDefault(); e.target.click(); } });
   document.getElementById('warn').addEventListener('click', e => {
+    const al = e.target.closest('.alert[data-open]');
+    if (al) { open = open === +al.dataset.open ? null : +al.dataset.open; render(); return; }
     const b = e.target.closest('[data-dispatch]'); if (!b) return;
     const [code, t] = b.dataset.dispatch.split('|'); const c = CALLS.find(x => x.code === code && String(x.startedAt) === t); if (!c) return;
     const dept = deptFor(c.code), n = nearest(c).find(n => n.u.dept === dept); if (n) window.assignCall(c, n.u.name, n.u.dept);
