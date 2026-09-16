@@ -1,0 +1,10 @@
+{
+ "official_px_to_repo_px": {
+  "scale": 0.85876,
+  "tx": -57.54,
+  "ty": -73.74
+ },
+ "repo_px_per_world_unit": 1.28,
+ "official_size": 3121,
+ "repo_size": 2560
+}

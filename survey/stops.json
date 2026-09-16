@@ -1,0 +1,146 @@
+[
+ {
+  "stop": 1,
+  "name": "Tunnel entrance (west of gas station)",
+  "world": [
+   300,
+   1452
+  ],
+  "what": "shoot the portal side-on from the road, then from on top of the hill looking down"
+ },
+ {
+  "stop": 2,
+  "name": "Fire station (postal 401, Fairfax Road)",
+  "world": [
+   330,
+   1400
+  ],
+  "what": "side-on with your car in front"
+ },
+ {
+  "stop": 3,
+  "name": "Fountain plaza pool (postal 216) \u2014 calibration point A",
+  "world": [
+   505,
+   1370
+  ],
+  "what": "stand at the fountain; log a marker"
+ },
+ {
+  "stop": 4,
+  "name": "Water tower (postal 405) \u2014 calibration point B",
+  "world": [
+   380,
+   1100
+  ],
+  "what": "stand at the base; log a marker; one shot side-on from 30 m"
+ },
+ {
+  "stop": 5,
+  "name": "West hill top",
+  "world": [
+   140,
+   1420
+  ],
+  "what": "drive up if you can; shot looking back down at downtown"
+ },
+ {
+  "stop": 6,
+  "name": "South bridge (Freedom Ave)",
+  "world": [
+   850,
+   1565
+  ],
+  "what": "shot along the river from mid-bridge, both directions"
+ },
+ {
+  "stop": 7,
+  "name": "Riverside cave",
+  "world": [
+   866,
+   1684
+  ],
+  "what": "stand at the mouth; shot from across the river"
+ },
+ {
+  "stop": 8,
+  "name": "North bridge (Orchard Blvd)",
+  "world": [
+   850,
+   1405
+  ],
+  "what": "shot along the river"
+ },
+ {
+  "stop": 9,
+  "name": "Hospital",
+  "world": [
+   592,
+   1340
+  ],
+  "what": "side-on with car"
+ },
+ {
+  "stop": 10,
+  "name": "West suburb centre",
+  "world": [
+   480,
+   800
+  ],
+  "what": "one shot toward the rock rim, one toward the water tower"
+ },
+ {
+  "stop": 11,
+  "name": "North lake shore (south-west bank, postal 903)",
+  "world": [
+   930,
+   470
+  ],
+  "what": "shot across the lake toward the highway bridge"
+ },
+ {
+  "stop": 12,
+  "name": "Highway 55 north end",
+  "world": [
+   1340,
+   300
+  ],
+  "what": "shot south along the highway"
+ },
+ {
+  "stop": 13,
+  "name": "Eastern highlands: bottom of the trail",
+  "world": [
+   1350,
+   1000
+  ],
+  "what": "shot up the hill side-on"
+ },
+ {
+  "stop": 14,
+  "name": "Eastern highlands: top",
+  "world": [
+   1700,
+   1000
+  ],
+  "what": "shot back down toward the highway, car in frame"
+ },
+ {
+  "stop": 15,
+  "name": "Industrial area (north-east)",
+  "world": [
+   1500,
+   500
+  ],
+  "what": "one wide shot of the yards"
+ },
+ {
+  "stop": 16,
+  "name": "Mesa top (north-west)",
+  "world": [
+   490,
+   560
+  ],
+  "what": "shot along the edge showing the drop"
+ }
+]
