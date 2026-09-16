@@ -41,10 +41,16 @@ def rrect(xs,ys):
     u=X[0]*c-X[1]*sn; t=X[0]*sn+X[1]*c
     return cx,cy,u.max()-u.min()+1,t.max()-t.min()+1,ang
 
+# buildings only inside the city/suburb zone (same polygon as the terrain's flat zone), never on cliffs or shoreline
+from PIL import ImageDraw as _ID
+_kz=Image.new('L',(N,N),0); _dz=_ID.Draw(_kz)
+_dz.polygon([(140,125),(560,95),(700,140),(880,150),(905,380),(775,395),(775,900),(700,905),(240,905),(240,770),(150,770),(120,420)],fill=255)
+_dz.polygon([(150,265),(380,260),(380,335),(150,335)],fill=0)
+cityzone=ndi.binary_dilation(np.asarray(_kz)>0,iterations=6)&ndi.binary_erosion(land,iterations=10)
 buildings=[]; bmask=np.zeros_like(cand); towers=[]
 for xs,ys in comps(cand,12):
     cx,cy,L,W,ang=rrect(xs,ys); area=len(xs); sol=area/max(L*W,1)
-    if coast[int(cy),int(cx)]: continue
+    if coast[int(cy),int(cx)] or not cityzone[int(cy),int(cx)]: continue
     if L>130 or W<2.2 or L/W>6.5: continue
     if W<3.2 and L/W>2.2: continue            # lane paint
     if float(v[ys,xs].std())>0.055 and float(v[ys,xs].mean())<0.42: continue   # textured dark = cliff crevice
