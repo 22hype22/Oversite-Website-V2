@@ -116,14 +116,14 @@ const TOWER = { 0: 0x1C2027, 1: 0x2C4C80 };
 const towerRank = GEO.buildings.map((b, i) => [b[5], i]).filter(([h], i) => h > 20 && GEO.buildings[i][6] !== 9).sort((a, b) => b[0] - a[0]).map(([, i]) => i);
 const wallColour = (hex, k, i) => { if (k === 9) return C.set(hex); const r = towerRank.indexOf(i); if (r >= 0 && TOWER[r] != null) return C.setHex(TOWER[r]); return roofColour(hex || '#888888', k); };
 // small, low, dark- or colour-roofed footprints are houses: walls plus a hip roof in the map's roof colour
-const isHouse = ([, , L, Wd, , h, k]) => k !== 9 && k !== 0 && h <= 7.3 && L * Wd < 1000;
+const isHouse = ([, , L, Wd, , h, k]) => k === 8 || (k !== 9 && k !== 0 && h <= 7.3 && L * Wd < 1000);
 const houseIdx = GEO.buildings.map((b, i) => isHouse(b) ? i : -1).filter(i => i >= 0);
 const roofGeo = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1); roofGeo.rotateY(Math.PI / 4); roofGeo.translate(0, 0.5, 0);
 const roofMat = new THREE.MeshStandardMaterial({ roughness: 0.9, flatShading: true });
 const roofs = new THREE.InstancedMesh(roofGeo, roofMat, houseIdx.length); roofs.castShadow = roofs.receiveShadow = true; scene.add(roofs);
 const WALL_H = 4.2, ROOF_H = 3.4;
 const houseStoreys = b => (b[2] * b[3] > 560 ? 2 : 1);                 // bigger footprints are two-storey colonials
-const wallH = b => WALL_H + (houseStoreys(b) - 1) * 3.4;
+const wallH = b => b[6] === 8 ? b[5] : WALL_H + (houseStoreys(b) - 1) * 3.4;
 const WALLS = { light: [0xE8E6E0, 0xE8E6E0, 0xE8E6E0, 0xD9C28E, 0xD9C28E, 0xBFC3C8], dark: [0x3A3A3E, 0x3A3A3E, 0x3A3A3E, 0x4A4234, 0x4A4234, 0x33363A] };
 const placeBuildings = () => { GEO.buildings.forEach(([x, y, L, Wd, ang, h, k], i) => {
   const base = heightAt(x, y) - 1.5, house = isHouse(GEO.buildings[i]);
@@ -134,11 +134,12 @@ const placeBuildings = () => { GEO.buildings.forEach(([x, y, L, Wd, ang, h, k], 
     roofs.setMatrixAt(r, M.compose(P, Q, Sc)); }); roofs.instanceMatrix.needsUpdate = true; };
 const colourBuildings = theme => { let sd = 3; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
   GEO.buildings.forEach((b, i) => { const [, , , , , , k, hex] = b;
-    if (isHouse(b)) { const w = WALLS[theme === 'dark' ? 'dark' : 'light']; C.setHex(w[Math.floor(rn() * w.length)]).offsetHSL(0, 0, (rn() - 0.5) * 0.05); }   // white / tan / grey walls
+    if (k === 8) { C.set(hex); if (theme === 'dark') { const hsl = {}; C.getHSL(hsl); C.setHSL(hsl.h, hsl.s * 0.4, 0.18); } }
+    else if (isHouse(b)) { const w = WALLS[theme === 'dark' ? 'dark' : 'light']; C.setHex(w[Math.floor(rn() * w.length)]).offsetHSL(0, 0, (rn() - 0.5) * 0.05); }   // white / tan / grey walls
     else { wallColour(hex, k, i).offsetHSL(0, 0, (rn() - 0.5) * 0.04); if (theme === 'dark') { const hsl = {}; C.getHSL(hsl); C.setHSL(hsl.h, hsl.s * 0.25, 0.16 + hsl.l * 0.35); } }
     bld.setColorAt(i, C); });
   houseIdx.forEach((i, r) => { const hsl = {}; C.set(GEO.buildings[i][7] || '#555').getHSL(hsl);
-    const blue = hsl.h > 0.52 && hsl.h < 0.72 && hsl.s > 0.12, pick = rn();
+    const blue = hsl.h > 0.52 && hsl.h < 0.72 && hsl.s > 0.12, pick = GEO.buildings[i][6] === 8 ? 0.99 : rn();   // pinned hip roofs are grey
     if (blue || pick < 0.22) C.setHSL(0.61, 0.42, theme === 'dark' ? 0.15 : 0.25);                       // dark blue shingles
     else if (pick < 0.42) C.setHSL(0.07, 0.35, theme === 'dark' ? 0.13 : 0.22);                            // brown
     else if (pick < 0.55) C.setHSL(0.6, 0.05, theme === 'dark' ? 0.10 : 0.14);                             // charcoal
@@ -163,6 +164,8 @@ const treeIdx = [];
 const houseCells = new Set(); for (const i of houseIdx) { const [x, y] = GEO.buildings[i]; houseCells.add(`${Math.floor(x / 40)},${Math.floor(y / 40)}`); }
 const nearHouse = (x, y) => { const cx = Math.floor(x / 40), cy = Math.floor(y / 40); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (houseCells.has(`${cx + a},${cy + b}`)) return true; return false; };
 GEO.trees = GEO.trees.filter(([x, y]) => !nearHouse(x, y) || rnd() < 0.45);
+const CLEAR = [[212, 312, 1432, 1472], [846, 900, 1660, 1710]];            // tunnel approach, cave mouth
+GEO.trees = GEO.trees.filter(([x, y]) => !CLEAR.some(([x0, x1, y0, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1));
 const treeXf = GEO.trees.map((t, i) => { const sp = species[i], sc = t[2] * (0.55 + rnd() * 0.35); return [sp, sc, sp === 0 ? sc * (0.9 + rnd() * 0.4) : sc * (0.85 + rnd() * 0.3), rnd() * 6.28]; });
 const placeTrees = () => { let ip = 0, il = 0; treeIdx.length = 0;
   GEO.trees.forEach(([x, y], i) => { const [sp, sc, sy, rot] = treeXf[i];
@@ -183,7 +186,7 @@ const pathOf = pts => { const cp = new THREE.CurvePath(); for (let i = 1; i < pt
   for (let s = 0; s < n; s++) { const t0 = s / n, t1 = (s + 1) / n;
     cp.add(new THREE.LineCurve3(new THREE.Vector3(ax + (bx - ax) * t0, heightAt(ax + (bx - ax) * t0, ay + (by - ay) * t0) + 1.4, ay + (by - ay) * t0),
       new THREE.Vector3(ax + (bx - ax) * t1, heightAt(ax + (bx - ax) * t1, ay + (by - ay) * t1) + 1.4, ay + (by - ay) * t1))); } } return cp; };
-const ROUTE_A = [[1332, 275], [1340, 520], [1350, 760], [1350, 1000], [1352, 1452], [300, 1452]];
+const ROUTE_A = [[1332, 275], [1340, 520], [1350, 760], [1350, 1000], [1352, 1452], [300, 1452], [222, 1452]];   // ends inside the tunnel
 const ROUTE_B = [[188, 792], [660, 792], [660, 988], [1180, 988], [1240, 1040], [1240, 1330], [1350, 1330]];
 const routeGroup = new THREE.Group(); scene.add(routeGroup);
 const tube = (curve, color, r, op) => { const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, r, 6, false),
@@ -212,6 +215,25 @@ const wtCol = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 3.2, 23, 14), wtMat
 const wtCap = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 1.2, 10), wtMat); wtCap.position.y = 33.4;
 wt.add(wtTank, wtCol, wtCap);
 wt.position.set(380, 0, 1100); scene.add(wt); onTerrain.push(() => { wt.position.y = heightAt(380, 1100) - 0.3; });
+
+// ── tunnel portal where the westbound road enters the hill ──
+const tunnel = new THREE.Group();
+const stone = new THREE.MeshStandardMaterial({ color: 0x8E9196, roughness: 0.95 });
+const bore = new THREE.Mesh(new THREE.BoxGeometry(60, 9, 15), new THREE.MeshBasicMaterial({ color: 0x07080A })); bore.position.set(-30, 4.5, 0); tunnel.add(bore);
+const headwall = new THREE.Mesh(new THREE.BoxGeometry(3, 14, 26), stone); headwall.position.set(0, 7, 0); headwall.castShadow = true; tunnel.add(headwall);
+const arch = new THREE.Mesh(new THREE.RingGeometry(6.2, 8.4, 28, 1, 0, Math.PI), stone); arch.rotation.y = Math.PI / 2; arch.position.set(1.6, 4.6, 0); tunnel.add(arch);
+const cutout = new THREE.Mesh(new THREE.BoxGeometry(3.4, 9.2, 15), new THREE.MeshBasicMaterial({ color: 0x07080A })); cutout.position.set(0, 4.5, 0); tunnel.add(cutout);
+for (const dz of [-14, 14]) { const wing = new THREE.Mesh(new THREE.BoxGeometry(12, 8, 2), stone); wing.position.set(-4, 4, dz); wing.rotation.y = dz < 0 ? 0.35 : -0.35; tunnel.add(wing); }
+tunnel.position.set(236, 0, 1452); scene.add(tunnel); onTerrain.push(() => { tunnel.position.y = heightAt(300, 1452) - 0.2; });
+
+// ── cave at the foot of the south-east hill, opening onto the river ──
+const cave = new THREE.Group();
+const caveMat = new THREE.MeshBasicMaterial({ color: 0x06070A });
+const mouth = new THREE.Mesh(new THREE.SphereGeometry(11, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), caveMat); mouth.scale.set(1.3, 0.8, 1); cave.add(mouth);
+const throat = new THREE.Mesh(new THREE.BoxGeometry(30, 12, 22), caveMat); throat.position.set(15, 5, 0); cave.add(throat);
+const lip = new THREE.Mesh(new THREE.TorusGeometry(12.5, 1.6, 8, 24, Math.PI), new THREE.MeshStandardMaterial({ color: 0x9A9DA2, roughness: 1 })); lip.rotation.y = Math.PI / 2; lip.scale.set(1, 0.8, 1.3); cave.add(lip);
+cave.position.set(866, 0, 1684);                             // mouth at the river bank, throat runs east into the hill
+scene.add(cave); onTerrain.push(() => { cave.position.y = heightAt(858, 1684) + 0.3; });
 
 // ── vehicles ──
 const busGeo = new THREE.BoxGeometry(14, 5.5, 6); busGeo.translate(0, 2.75, 0);

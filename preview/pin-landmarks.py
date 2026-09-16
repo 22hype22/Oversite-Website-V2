@@ -14,15 +14,15 @@ LM=[
  ((575,1425), 8,  '#2C4C80', 'blue glass office'),
  ((620,1425), 3,  '#D6D6D4', 'warehouse, white with red base'),
  ((530,1425), 4,  '#9A9DA3', 'parking garage'),
- ((330,1400), 3,  '#6E6A66', 'large hip-roof building'),
+ ((330,1400), 2,  '#7A3B2E', 'fire station (brick, hip roof)', 'hip'),
  ((600,1590), 2,  '#E4E4E2', 'supermarket'),
  ((630,1660), 1,  '#7A5A3A', 'brown-roof restaurant'),
  ((592,1340), 3,  '#2A3340', 'Liberty County Hospital'),
 ]
-for (x,y),st,col,note in LM:
+for (x,y),st,col,note,*opt in LM:
     i=near(x,y)
     if i is None: print('no footprint near',note); continue
-    B[i][5]=round(st*3.6,1); B[i][7]=col; B[i][6]=9   # kind 9 = pinned landmark (colour used as-is)
+    B[i][5]=round(st*3.6,1); B[i][7]=col; B[i][6]=8 if 'hip' in opt else 9   # 9 = pinned flat roof, 8 = pinned with hip roof
     print(f'{note:34s} → #{i} at ({B[i][0]},{B[i][1]}) h={B[i][5]}')
 # yellow-roofed building the extractor dropped
 B.append([592,1485,34,34,0.0,7.2,9,'#D9B85C']); print('added yellow-roof building')
