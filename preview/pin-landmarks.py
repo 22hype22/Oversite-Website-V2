@@ -17,6 +17,7 @@ LM=[
  ((330,1400), 3,  '#6E6A66', 'large hip-roof building'),
  ((600,1590), 2,  '#E4E4E2', 'supermarket'),
  ((630,1660), 1,  '#7A5A3A', 'brown-roof restaurant'),
+ ((592,1340), 3,  '#2A3340', 'Liberty County Hospital'),
 ]
 for (x,y),st,col,note in LM:
     i=near(x,y)

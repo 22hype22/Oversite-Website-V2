@@ -16,21 +16,32 @@ keep=ndi.gaussian_filter((np.asarray(kz)>0).astype(float),12)>0.5   # rounded fl
 grey=(s<0.13)&(v>0.39)&(v<0.56)&land
 cliff=grey&~keep
 cliff=ndi.binary_opening(cliff,structure=np.ones((3,3)))
-# levels (world units): sea 0 → city basin 22 → plateau 42; the plateau runs to the coast and drops as a sea cliff
-BASIN, PLATEAU = 22.0, 42.0
+# inland water: river, lake, ponds
+wat=(b>r+0.025)&(v<0.36)&land
+lab2,n2=ndi.label(wat); sz=ndi.sum(wat,lab2,range(1,n2+1)); water=np.isin(lab2,[i+1 for i,z in enumerate(sz) if z>=120])
+water=ndi.binary_closing(water,iterations=2)
+# levels (world units): sea 0 → one plateau for city, suburbs and hills; river and lake carved below it
+PLATEAU, RIVER_DROP = 40.0, 9.0
 d=ndi.distance_transform_edt(~keep)
-ramp=np.clip(d/34,0,1); ramp=ramp*ramp*(3-2*ramp)                 # short, steep step up at the rock bands
-h=BASIN+(PLATEAU-BASIN)*ramp
-h+=10*ndi.gaussian_filter(cliff.astype(float),5)*ramp               # extra relief where the map shows rock
-# gentle rolling hills on the plateau; the north-west ridge is the one real high ground
-hills=[((250,300),120,26),((70,600),90,12),((880,560),130,16),((900,820),110,14),((520,940),120,10),((980,420),80,12),((450,80),90,8)]
+ramp=np.clip(d/60,0,1); ramp=ramp*ramp*(3-2*ramp)
+h=np.full((N,N),PLATEAU)
+# gentle rolling ground away from the city; the north-west ridge is a flat-topped mesa
+hills=[((250,300),120,18),((70,600),90,6),((880,560),130,10),((900,820),110,8),((520,940),120,5),((980,420),80,6),((450,80),90,5)]
 yy,xx=np.mgrid[0:N,0:N]; H=np.zeros((N,N))
-for (cx,cy),rad,hh in hills: H=np.maximum(H,hh*np.exp(-((xx-cx)**2+(yy-cy)**2)/(2*(rad*0.55)**2)))
+for (cx,cy),rad,hh in hills[1:]: H=np.maximum(H,hh*np.exp(-((xx-cx)**2+(yy-cy)**2)/(2*(rad*0.55)**2)))
+mesa=np.clip(1-(np.sqrt(((xx-250)/150.0)**2+((yy-290)/70.0)**2)-0.8)/0.35,0,1); mesa=mesa*mesa*(3-2*mesa)   # flat top, steep sides
+H=np.maximum(H,22*mesa)
 h+=H*ramp
 rng=np.random.default_rng(4); noise=ndi.gaussian_filter(rng.standard_normal((N,N)),16); noise=noise/np.abs(noise).max()
-h+=5*noise*ramp
-h=ndi.gaussian_filter(h,2.0)
-h[~land]=0                                                          # sea cliff: sharp edge, no coastal slope
+h+=3*noise*ramp
+# river / lake channels: drop with soft banks
+wd=ndi.distance_transform_edt(~water)
+h-=RIVER_DROP*np.clip(1-(wd-1)/4,0,1)
+# roads stay level across the water (bridges)
+road=(s<0.13)&(v>0.39)&(v<0.56)&land
+h=np.where(ndi.binary_dilation(road,iterations=2)&(wd<8),PLATEAU,h)
+h=ndi.gaussian_filter(h,1.2)
+h[~land]=0                                                          # sea cliff: sharp edge
 HMAX=110.0
 img=Image.fromarray((np.clip(h/HMAX,0,1)*255).astype(np.uint8)).resize((OUT,OUT),Image.LANCZOS)
 img.save('preview/liberty-county-height.png',optimize=True)
