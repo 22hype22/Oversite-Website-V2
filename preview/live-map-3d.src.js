@@ -22,7 +22,7 @@ view.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x232A33);
-scene.fog = new THREE.Fog(0x232A33, 900, 3000);
+scene.fog = new THREE.Fog(0x232A33, 1500, 5200);
 
 const camera = new THREE.PerspectiveCamera(42, 1, 1, 6000);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -47,15 +47,32 @@ Object.assign(sun.shadow.camera, { left: -1300, right: 1300, top: 1300, bottom: 
 sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.8;
 scene.add(sun, sun.target);
 
-// ── ground: the map itself ──
+// ── ground: the map draped over the heightmap ──
+const HMAX = 110, HN = 512;
+let hdata = null;                                  // Float32Array of heights (HN x HN), filled once the heightmap loads
+const heightAt = (x, y) => { if (!hdata) return 0; const u = Math.min(Math.max(x / W * (HN - 1), 0), HN - 1.001), v = Math.min(Math.max(y / W * (HN - 1), 0), HN - 1.001);
+  const i = u | 0, j = v | 0, fu = u - i, fv = v - j, k = j * HN + i;
+  return (hdata[k] * (1 - fu) + hdata[k + 1] * fu) * (1 - fv) + (hdata[k + HN] * (1 - fu) + hdata[k + HN + 1] * fu) * fv; };
+const SEG = 255;
+const groundGeo = new THREE.PlaneGeometry(W, W, SEG, SEG); groundGeo.rotateX(-Math.PI / 2); groundGeo.translate(W / 2, 0, W / 2);
 const loader = new THREE.TextureLoader();
 const tex = loader.load(MAP_LIGHT, () => { loading.classList.add('off'); renderer.shadowMap.needsUpdate = true; });
 const texDark = loader.load(MAP_DARK);
 for (const t of [tex, texDark]) { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); }
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(W, W),
-  new THREE.MeshStandardMaterial({ map: tex, color: 0xE4E7EB, roughness: 1, metalness: 0 }));
-ground.rotation.x = -Math.PI / 2; ground.position.set(W / 2, 0, W / 2); ground.receiveShadow = true;
+const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ map: tex, color: 0xE4E7EB, roughness: 1, metalness: 0 }));
+ground.receiveShadow = true; ground.castShadow = true;
 scene.add(ground);
+const onTerrain = [];                              // callbacks to re-seat things once heights are known
+const hm = new Image(); hm.onload = () => {
+  const c = document.createElement('canvas'); c.width = c.height = HN; const g = c.getContext('2d'); g.drawImage(hm, 0, 0, HN, HN);
+  const px = g.getImageData(0, 0, HN, HN).data; hdata = new Float32Array(HN * HN);
+  for (let i = 0; i < HN * HN; i++) hdata[i] = px[i * 4] / 255 * HMAX;
+  const pos = groundGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
+  pos.needsUpdate = true; groundGeo.computeVertexNormals();
+  for (const f of onTerrain) f(); renderer.shadowMap.needsUpdate = true;
+};
+hm.src = document.getElementById('heightsrc').getAttribute('href');
 // apron beyond the map edge
 const apron = new THREE.Mesh(new THREE.PlaneGeometry(W * 4, W * 4), new THREE.MeshStandardMaterial({ color: 0x1C2128, roughness: 1 }));
 apron.rotation.x = -Math.PI / 2; apron.position.set(W / 2, -0.5, W / 2); scene.add(apron);
@@ -96,14 +113,14 @@ const roofColour = (hex, k) => { C.set(hex); const hsl = {}; C.getHSL(hsl);
   return C; };
 // the two downtown towers are glass in game: tallest dark, second blue
 const TOWER = { 0: 0x1C2027, 1: 0x2C4C80 };
-const towerRank = GEO.buildings.map((b, i) => [b[5], i]).filter(([h]) => h > 20).sort((a, b) => b[0] - a[0]).map(([, i]) => i);
-const wallColour = (hex, k, i) => { const r = towerRank.indexOf(i); if (r >= 0 && TOWER[r] != null) return C.setHex(TOWER[r]); return roofColour(hex || '#888888', k); };
-GEO.buildings.forEach(([x, y, L, Wd, ang, h, k, hex], i) => {
-  P.set(x, 0, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L, h, Wd);
-  bld.setMatrixAt(i, M.compose(P, Q, Sc));
-  wallColour(hex, k, i).offsetHSL(0, 0, (rnd() - 0.5) * 0.04);
-  bld.setColorAt(i, C);
-});
+const towerRank = GEO.buildings.map((b, i) => [b[5], i]).filter(([h], i) => h > 20 && GEO.buildings[i][6] !== 9).sort((a, b) => b[0] - a[0]).map(([, i]) => i);
+const wallColour = (hex, k, i) => { if (k === 9) return C.set(hex); const r = towerRank.indexOf(i); if (r >= 0 && TOWER[r] != null) return C.setHex(TOWER[r]); return roofColour(hex || '#888888', k); };
+const placeBuildings = () => { GEO.buildings.forEach(([x, y, L, Wd, ang, h, k], i) => {
+  const base = heightAt(x, y) - 1.5;               // sink a little so hillside footprints do not float
+  P.set(x, base, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L, h + 1.5, Wd);
+  bld.setMatrixAt(i, M.compose(P, Q, Sc)); }); bld.instanceMatrix.needsUpdate = true; };
+GEO.buildings.forEach(([, , , , , , k, hex], i) => { wallColour(hex, k, i).offsetHSL(0, 0, (rnd() - 0.5) * 0.04); bld.setColorAt(i, C); });
+placeBuildings(); onTerrain.push(placeBuildings);
 scene.add(bld);
 
 // ── trees: pines, broadleaf and cherry, sized like the in-game ones ──
@@ -117,13 +134,15 @@ const nPine = species.filter(s => s === 0).length, nLeaf = species.length - nPin
 const pines = new THREE.InstancedMesh(pineGeo, tMat, nPine), leafs = new THREE.InstancedMesh(leafGeo, tMat, nLeaf), trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, nLeaf);
 for (const m of [pines, leafs, trunks]) { m.castShadow = true; m.receiveShadow = true; }
 const TREE_COL = { light: [0x214A28, 0x3C7A34, 0xE8B0C4], dark: [0x2A3A2E, 0x3A4A3C, 0x6E5560] };
-const treeIdx = []; let ip = 0, il = 0;
-GEO.trees.forEach(([x, y, s], i) => {
-  const sp = species[i], sc = s * (0.55 + rnd() * 0.35);
-  P.set(x, 0, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rnd() * 6.28);
-  if (sp === 0) { Sc.set(sc, sc * (0.9 + rnd() * 0.4), sc); pines.setMatrixAt(ip, M.compose(P, Q, Sc)); treeIdx.push([0, ip++]); }
-  else { Sc.set(sc, sc * (0.85 + rnd() * 0.3), sc); leafs.setMatrixAt(il, M.compose(P, Q, Sc)); trunks.setMatrixAt(il, M.compose(P, Q, Sc)); treeIdx.push([sp, il++]); }
-});
+const treeIdx = [];
+const treeXf = GEO.trees.map((t, i) => { const sp = species[i], sc = t[2] * (0.55 + rnd() * 0.35); return [sp, sc, sp === 0 ? sc * (0.9 + rnd() * 0.4) : sc * (0.85 + rnd() * 0.3), rnd() * 6.28]; });
+const placeTrees = () => { let ip = 0, il = 0; treeIdx.length = 0;
+  GEO.trees.forEach(([x, y], i) => { const [sp, sc, sy, rot] = treeXf[i];
+    P.set(x, heightAt(x, y) - 0.5, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rot); Sc.set(sc, sy, sc);
+    if (sp === 0) { pines.setMatrixAt(ip, M.compose(P, Q, Sc)); treeIdx.push([0, ip++]); }
+    else { leafs.setMatrixAt(il, M.compose(P, Q, Sc)); trunks.setMatrixAt(il, M.compose(P, Q, Sc)); treeIdx.push([sp, il++]); } });
+  pines.instanceMatrix.needsUpdate = leafs.instanceMatrix.needsUpdate = trunks.instanceMatrix.needsUpdate = true; };
+placeTrees(); onTerrain.push(placeTrees);
 const colourTrees = theme => { const T = TREE_COL[theme] || TREE_COL.light; let sd2 = 11; const r2 = () => (sd2 = (sd2 * 16807) % 2147483647) / 2147483647;
   treeIdx.forEach(([sp, idx]) => { C.setHex(T[sp]).offsetHSL((r2() - 0.5) * 0.04, 0, (r2() - 0.5) * 0.10); (sp === 0 ? pines : leafs).setColorAt(idx, C); });
   pines.instanceColor.needsUpdate = true; leafs.instanceColor.needsUpdate = true; };
@@ -131,22 +150,29 @@ colourTrees('light');
 scene.add(pines, leafs, trunks);
 
 // ── routes (same polylines as the 2D page) ──
-const pathOf = pts => { const cp = new THREE.CurvePath(); for (let i = 1; i < pts.length; i++)
-  cp.add(new THREE.LineCurve3(new THREE.Vector3(pts[i - 1][0], 1.4, pts[i - 1][1]), new THREE.Vector3(pts[i][0], 1.4, pts[i][1]))); return cp; };
+const pathOf = pts => { const cp = new THREE.CurvePath(); for (let i = 1; i < pts.length; i++) {
+  const [ax, ay] = pts[i - 1], [bx, by] = pts[i], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 12));
+  for (let s = 0; s < n; s++) { const t0 = s / n, t1 = (s + 1) / n;
+    cp.add(new THREE.LineCurve3(new THREE.Vector3(ax + (bx - ax) * t0, heightAt(ax + (bx - ax) * t0, ay + (by - ay) * t0) + 1.4, ay + (by - ay) * t0),
+      new THREE.Vector3(ax + (bx - ax) * t1, heightAt(ax + (bx - ax) * t1, ay + (by - ay) * t1) + 1.4, ay + (by - ay) * t1))); } } return cp; };
 const ROUTE_A = [[1332, 275], [1340, 520], [1350, 760], [1350, 1000], [1352, 1452], [300, 1452]];
 const ROUTE_B = [[188, 792], [660, 792], [660, 988], [1180, 988], [1240, 1040], [1240, 1330], [1350, 1330]];
-const routeA = pathOf(ROUTE_A), routeB = pathOf(ROUTE_B);
+const routeGroup = new THREE.Group(); scene.add(routeGroup);
 const tube = (curve, color, r, op) => { const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, r, 6, false),
   new THREE.MeshBasicMaterial({ color, transparent: op < 1, opacity: op, depthWrite: false })); m.renderOrder = 2; return m; };
-scene.add(tube(routeA, 0xF0F2F5, 1.6, 0.85), tube(routeA, 0xF0F2F5, 5.5, 0.08));
-scene.add(tube(routeB, 0xB8D94A, 1.8, 0.95), tube(routeB, 0xB8D94A, 6.5, 0.10));
+const buildRoutes = () => { for (const m of [...routeGroup.children]) { m.geometry.dispose(); routeGroup.remove(m); }
+  const routeA = pathOf(ROUTE_A), routeB = pathOf(ROUTE_B);
+  routeGroup.add(tube(routeA, 0xF0F2F5, 1.6, 0.85), tube(routeA, 0xF0F2F5, 5.5, 0.08), tube(routeB, 0xB8D94A, 1.8, 0.95), tube(routeB, 0xB8D94A, 6.5, 0.10)); };
+buildRoutes(); onTerrain.push(buildRoutes);
 
 const stopGeo = new THREE.CylinderGeometry(5, 5, 1.2, 24), ringGeo = new THREE.RingGeometry(5, 6.6, 32);
+const stops = [];
 const addStop = ([x, y], color) => {
   const s = new THREE.Mesh(stopGeo, new THREE.MeshBasicMaterial({ color: 0x0B0B0C })); s.position.set(x, 1.5, y);
   const r = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })); r.rotation.x = -Math.PI / 2; r.position.set(x, 2.2, y);
-  scene.add(s, r);
+  scene.add(s, r); stops.push([s, r, x, y]);
 };
+onTerrain.push(() => { for (const [s, r, x, y] of stops) { const h = heightAt(x, y); s.position.y = h + 1.5; r.position.y = h + 2.2; } });
 [[1332, 275], [1348, 640], [1352, 1452], [880, 1452], [300, 1452]].forEach(p => addStop(p, 0xF0F2F5));
 [[188, 792], [660, 988], [1240, 1330], [1350, 1330]].forEach(p => addStop(p, 0xB8D94A));
 
@@ -157,7 +183,7 @@ const mkBus = color => { const b = new THREE.Mesh(busGeo, new THREE.MeshStandard
 const UN = window.UNITS || [], COL = { pd: 0x4C8DFF, fd: 0xE24B4B, dot: 0xE9C24C };
 const cars = UN.map((u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept]));
 const incident = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 12), new THREE.MeshBasicMaterial({ color: 0xE24B4B }));
-incident.position.set(1160, 4, 1092); scene.add(incident);
+incident.position.set(1160, 4, 1092); scene.add(incident); onTerrain.push(() => { incident.position.y = heightAt(1160, 1092) + 4; });
 const glow = new THREE.Mesh(new THREE.RingGeometry(16, 18, 48), new THREE.MeshBasicMaterial({ color: 0xF0F2F5, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
 glow.rotation.x = -Math.PI / 2; glow.position.y = 1.8; scene.add(glow);
 const pulse = glow.clone(); pulse.material = glow.material.clone(); scene.add(pulse);
@@ -172,7 +198,7 @@ addEventListener('resize', resize); resize(); reset();
 
 // ── screen-space tooltip ──
 const tip = document.getElementById('tip'), V = new THREE.Vector3();
-const projectTip = p => { V.set(p.x, 8, p.z).project(camera);
+const projectTip = p => { V.set(p.x, heightAt(p.x, p.z) + 8, p.z).project(camera);
   tip.style.left = ((V.x + 1) / 2 * innerWidth) + 'px'; tip.style.top = ((1 - V.y) / 2 * innerHeight) + 'px';
   tip.style.opacity = V.z < 1 ? 1 : 0; };
 
@@ -183,13 +209,13 @@ const toggleFollow = () => { follow = !follow; zfit?.setAttribute('aria-pressed'
 
 // ── themes ──
 const THEMES = {
-  light: { bg: 0x232A33, hemi: [0xC9D8EE, 0x4A4F55, 1.35], sun: [0xFFF1DC, 2.6], exp: 1.15, ground: 0xE4E7EB, apron: 0x1C2128, map: tex,
+  light: { bg: 0x2A3340, hemi: [0xC9D8EE, 0x4A4F55, 1.35], sun: [0xFFF1DC, 2.6], exp: 1.15, ground: 0xE4E7EB, apron: 0x1C2128, map: tex,
          },
   dark:  { bg: 0x121214, hemi: [0xB9C2D0, 0x2A2C31, 1.15], sun: [0xE8ECF2, 1.5], exp: 1.0, ground: 0xF2F2F2, apron: 0x111113, map: texDark,
          },
 };
 const setTheme = name => { const T = THEMES[name] || THEMES.light;
-  scene.background.setHex(T.bg); scene.fog.color.setHex(T.bg);
+  scene.background.setHex(T.bg); scene.fog.color.setHex(T.bg); scene.fog.near = 1500; scene.fog.far = 5200;
   hemi.color.setHex(T.hemi[0]); hemi.groundColor.setHex(T.hemi[1]); hemi.intensity = T.hemi[2];
   sun.color.setHex(T.sun[0]); sun.intensity = T.sun[1]; renderer.toneMappingExposure = T.exp;
   ground.material.color.setHex(T.ground); if (ground.material.map !== T.map) { ground.material.map = T.map; ground.material.needsUpdate = true; }
@@ -211,8 +237,9 @@ const adapt = dt => { acc += dt; if (++n < 40) return; const avg = acc / n; acc 
 renderer.shadowMap.needsUpdate = true;
 const frame = () => {
   const dt = Math.min(clock.getDelta(), 0.05), now = clock.elapsedTime; adapt(dt);
-  UN.forEach((u, i) => { cars[i].position.set(u.x, 0.2, u.y); cars[i].rotation.y = -u.heading; });
-  const hp = UN[0] ? { x: UN[0].x, z: UN[0].y } : { x: FOCUS.x, z: FOCUS.z };
+  UN.forEach((u, i) => { cars[i].position.set(u.x, heightAt(u.x, u.y) + 0.2, u.y); cars[i].rotation.y = -u.heading; });
+  const hp = UN[0] ? { x: UN[0].x, z: UN[0].y } : { x: FOCUS.x, z: FOCUS.z }; const hy = heightAt(hp.x, hp.z);
+  glow.position.y = hy + 1.8; pulse.position.y = hy + 1.8;
   glow.position.x = pulse.position.x = hp.x; glow.position.z = pulse.position.z = hp.z;
   const k = (now % 2.4) / 2.4; pulse.scale.setScalar(1 + k * 1.6); pulse.material.opacity = 0.5 * (1 - k);
   if (follow) controls.target.lerp(new THREE.Vector3(hp.x, 0, hp.z), 0.06);
