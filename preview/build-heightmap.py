@@ -23,20 +23,21 @@ water=ndi.binary_closing(water,iterations=2)
 # levels (world units): sea 0 → one plateau for city, suburbs and hills; river and lake carved below it
 PLATEAU, RIVER_DROP = 40.0, 9.0
 d=ndi.distance_transform_edt(~keep)
-ramp=np.clip(d/60,0,1); ramp=ramp*ramp*(3-2*ramp)
+ramp=np.clip(d/50,0,1); ramp=ramp*ramp*(3-2*ramp)
 h=np.full((N,N),PLATEAU)
-# gentle rolling ground away from the city; the north-west ridge is a flat-topped mesa
-hills=[((250,300),120,18),((70,600),90,6),((880,560),130,10),((900,820),110,8),((520,940),120,5),((980,420),80,6),((450,80),90,5)]
+# outer hills: real rises beyond the city zone, shaped by the rock bands (east highlands highest, north-west mesa, west and south ridges)
+hills=[((250,300),150,30),((70,600),100,22),((880,560),160,44),((900,820),140,38),((520,940),150,22),((980,420),100,32),((450,80),110,12),((150,880),110,20)]
 yy,xx=np.mgrid[0:N,0:N]; H=np.zeros((N,N))
 for (cx,cy),rad,hh in hills[1:]: H=np.maximum(H,hh*np.exp(-((xx-cx)**2+(yy-cy)**2)/(2*(rad*0.55)**2)))
-mesa=np.clip(1-(np.sqrt(((xx-250)/150.0)**2+((yy-290)/70.0)**2)-0.8)/0.35,0,1); mesa=mesa*mesa*(3-2*mesa)   # flat top, steep sides
-H=np.maximum(H,22*mesa)
-h+=H*ramp
+mesa=np.clip(1-(np.sqrt(((xx-250)/160.0)**2+((yy-290)/75.0)**2)-0.8)/0.35,0,1); mesa=mesa*mesa*(3-2*mesa)   # flat top, steep sides
+H=np.maximum(H,30*mesa)
+cd=ndi.gaussian_filter(cliff.astype(float),12); cd=cd/max(cd.max(),1e-6)                                    # rock density → extra relief
+h+=(H+16*cd)*ramp
 rng=np.random.default_rng(4)
 noise=ndi.gaussian_filter(rng.standard_normal((N,N)),22); noise=noise/np.abs(noise).max()
 fine=ndi.gaussian_filter(rng.standard_normal((N,N)),7); fine=fine/np.abs(fine).max()
 roll=np.clip(d/25,0,1)                                              # rolling ground everywhere except the city core
-h+=6*noise*roll+1.5*fine*roll
+h+=7*noise*roll+2*fine*roll
 h+=3.5*ndi.gaussian_filter(cliff.astype(float),3)*roll             # rock belts sit a little proud of the grass
 rim=np.exp(-((np.sqrt((xx-250)**2+(yy-400)**2)-150)**2)/(2*28**2)); h+=4*rim*roll   # low rim around the west suburb
 # river / lake channels: drop with soft banks

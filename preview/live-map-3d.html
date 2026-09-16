@@ -1349,14 +1349,13 @@ onTerrain.push(() => { for (const [s, r, x, y] of stops) { const h = heightAt(x,
 [[1332, 275], [1348, 640], [1352, 1452], [880, 1452], [300, 1452]].forEach(p => addStop(p, 0xF0F2F5));
 [[188, 792], [660, 988], [1240, 1330], [1350, 1330]].forEach(p => addStop(p, 0xB8D94A));
 
-// ── water tower (south-west park) ──
+// ── water tower (south-west park): one thick tapered column under a broad rounded tank ──
 const wt = new THREE.Group();
-const wtMat = new THREE.MeshStandardMaterial({ color: 0xF2F3F5, roughness: 0.5 });
-const wtTank = new THREE.Mesh(new THREE.SphereGeometry(6.5, 20, 14), wtMat); wtTank.position.y = 22; wtTank.castShadow = true;
-const wtStem = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.6, 17, 10), wtMat); wtStem.position.y = 8.5; wtStem.castShadow = true;
-wt.add(wtTank, wtStem);
-for (let i = 0; i < 4; i++) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 19, 6), wtMat);
-  const a = i * Math.PI / 2 + Math.PI / 4; leg.position.set(Math.cos(a) * 4.2, 9.5, Math.sin(a) * 4.2); leg.rotation.z = Math.cos(a) * 0.16; leg.rotation.x = -Math.sin(a) * 0.16; wt.add(leg); }
+const wtMat = new THREE.MeshStandardMaterial({ color: 0xF2F3F5, roughness: 0.45 });
+const wtTank = new THREE.Mesh(new THREE.SphereGeometry(7.5, 24, 16), wtMat); wtTank.scale.set(1, 0.82, 1); wtTank.position.y = 27; wtTank.castShadow = true;
+const wtCol = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 3.2, 23, 14), wtMat); wtCol.position.y = 11.5; wtCol.castShadow = true;
+const wtCap = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 1.2, 10), wtMat); wtCap.position.y = 33.4;
+wt.add(wtTank, wtCol, wtCap);
 wt.position.set(380, 0, 1100); scene.add(wt); onTerrain.push(() => { wt.position.y = heightAt(380, 1100) - 0.3; });
 
 // ── vehicles ──
