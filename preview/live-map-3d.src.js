@@ -74,7 +74,7 @@ const hm = new Image(); hm.onload = () => {
 };
 hm.src = document.getElementById('heightsrc').getAttribute('href');
 // apron beyond the map edge
-const apron = new THREE.Mesh(new THREE.PlaneGeometry(W * 4, W * 4), new THREE.MeshStandardMaterial({ color: 0x1C2128, roughness: 1 }));
+const apron = new THREE.Mesh(new THREE.PlaneGeometry(W * 4, W * 4), new THREE.MeshStandardMaterial({ color: 0x2B4658, roughness: 0.35, metalness: 0.1 }));
 apron.rotation.x = -Math.PI / 2; apron.position.set(W / 2, -0.5, W / 2); scene.add(apron);
 
 // ── buildings: footprint colour from the map, storeys as facade bands ──
@@ -209,7 +209,7 @@ const toggleFollow = () => { follow = !follow; zfit?.setAttribute('aria-pressed'
 
 // ── themes ──
 const THEMES = {
-  light: { bg: 0x2A3340, hemi: [0xC9D8EE, 0x4A4F55, 1.35], sun: [0xFFF1DC, 2.6], exp: 1.15, ground: 0xE4E7EB, apron: 0x1C2128, map: tex,
+  light: { bg: 0x2A3340, hemi: [0xC9D8EE, 0x4A4F55, 1.35], sun: [0xFFF1DC, 2.6], exp: 1.15, ground: 0xE4E7EB, apron: 0x2B4658, map: tex,
          },
   dark:  { bg: 0x121214, hemi: [0xB9C2D0, 0x2A2C31, 1.15], sun: [0xE8ECF2, 1.5], exp: 1.0, ground: 0xF2F2F2, apron: 0x111113, map: texDark,
          },

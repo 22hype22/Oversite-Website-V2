@@ -11,11 +11,11 @@ mx=a.max(2); mn=a.min(2); v=mx; s=np.where(mx>0,(mx-mn)/np.maximum(mx,1e-6),0)
 h=np.zeros_like(v); d=np.maximum(mx-mn,1e-6)
 h=np.where(mx==r,((g-b)/d)%6,np.where(mx==g,(b-r)/d+2,(r-g)/d+4))*60
 
-wat=(b>r+0.03)&(v<0.36)
-lab,_=ndi.label(wat); border=set(np.unique(np.concatenate([lab[0],lab[-1],lab[:,0],lab[:,-1]])))-{0}
+# ocean = the dark border-connected region (same definition as the terrain heightmap)
+_dk=(v<0.2); lab,_=ndi.label(_dk); border=set(np.unique(np.concatenate([lab[0],lab[-1],lab[:,0],lab[:,-1]])))-{0}
 ocean=np.isin(lab,list(border))
 land=~ndi.binary_dilation(ocean,iterations=14)
-coast=ndi.distance_transform_edt(~ocean)<34
+coast=ndi.distance_transform_edt(~ocean)<48
 roadgrey=(s<0.13)&(v>0.39)&(v<0.56)
 green=(h>55)&(h<170)&(s>0.16)
 water=(b>r+0.02)&(s>0.08)&(v<0.30)

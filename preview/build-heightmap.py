@@ -16,26 +16,21 @@ keep=ndi.gaussian_filter((np.asarray(kz)>0).astype(float),12)>0.5   # rounded fl
 grey=(s<0.13)&(v>0.39)&(v<0.56)&land
 cliff=grey&~keep
 cliff=ndi.binary_opening(cliff,structure=np.ones((3,3)))
-# base: rise with distance from the flat zone, plateau at ~34 units
+# levels (world units): sea 0 → city basin 22 → plateau 42; the plateau runs to the coast and drops as a sea cliff
+BASIN, PLATEAU = 22.0, 42.0
 d=ndi.distance_transform_edt(~keep)
-base=34*np.clip(d/70,0,1)**1.4
-# cliff bands add stepped relief where the map shows rock
-relief=28*ndi.gaussian_filter(cliff.astype(float),6)
-# big named hills (from the oblique shots): centre (x,y in 1024 px), radius, height
-hills=[((250,300),120,44),((70,600),90,30),((880,560),130,52),((900,820),110,42),((520,940),120,30),((980,420),80,36),((450,80),90,22)]
+ramp=np.clip(d/34,0,1); ramp=ramp*ramp*(3-2*ramp)                 # short, steep step up at the rock bands
+h=BASIN+(PLATEAU-BASIN)*ramp
+h+=10*ndi.gaussian_filter(cliff.astype(float),5)*ramp               # extra relief where the map shows rock
+# gentle rolling hills on the plateau; the north-west ridge is the one real high ground
+hills=[((250,300),120,26),((70,600),90,12),((880,560),130,16),((900,820),110,14),((520,940),120,10),((980,420),80,12),((450,80),90,8)]
 yy,xx=np.mgrid[0:N,0:N]; H=np.zeros((N,N))
 for (cx,cy),rad,hh in hills: H=np.maximum(H,hh*np.exp(-((xx-cx)**2+(yy-cy)**2)/(2*(rad*0.55)**2)))
-h=base+relief+H*(1-keep)
-# rolling noise outside the city
-rng=np.random.default_rng(4); noise=ndi.gaussian_filter(rng.standard_normal((N,N)),18); noise=noise/np.abs(noise).max()
-h+=10*noise*np.clip(d/40,0,1)
-h=np.maximum(h,0)
-# drop to sea level at the coast, keep the city flat, smooth the whole thing
-coast=ndi.distance_transform_edt(land)
-h*=np.clip((coast-6)/18,0,1)
-h*=np.clip(d/12,0,1)
-h=ndi.gaussian_filter(h,3.0)
-h[~land]=0
+h+=H*ramp
+rng=np.random.default_rng(4); noise=ndi.gaussian_filter(rng.standard_normal((N,N)),16); noise=noise/np.abs(noise).max()
+h+=5*noise*ramp
+h=ndi.gaussian_filter(h,2.0)
+h[~land]=0                                                          # sea cliff: sharp edge, no coastal slope
 HMAX=110.0
 img=Image.fromarray((np.clip(h/HMAX,0,1)*255).astype(np.uint8)).resize((OUT,OUT),Image.LANCZOS)
 img.save('preview/liberty-county-height.png',optimize=True)
