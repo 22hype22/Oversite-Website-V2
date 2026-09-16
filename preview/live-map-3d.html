@@ -1288,9 +1288,9 @@ scene.add(bld);
 // ── trees: pines, broadleaf and cherry, sized like the in-game ones ──
 const tMat = new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true });
 const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4A3728, roughness: 1 });
-const pineGeo = new THREE.ConeGeometry(3.2, 11, 7); pineGeo.translate(0, 7.5, 0);
-const leafGeo = new THREE.IcosahedronGeometry(4.2, 1); leafGeo.translate(0, 7.2, 0);
-const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 4, 5); trunkGeo.translate(0, 2, 0);
+const pineGeo = new THREE.ConeGeometry(2.9, 17, 7); pineGeo.translate(0, 9.5, 0);
+const leafGeo = new THREE.IcosahedronGeometry(4.6, 1); leafGeo.translate(0, 8.0, 0);
+const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 5, 5); trunkGeo.translate(0, 2.5, 0);
 const species = GEO.trees.map((_, i) => { const r = rnd(); return r < 0.40 ? 0 : r < 0.78 ? 1 : r < 0.92 ? 3 : 2; });   // 0 pine, 1 broadleaf, 2 cherry, 3 autumn
 const nPine = species.filter(s => s === 0).length, nLeaf = species.length - nPine;
 const pines = new THREE.InstancedMesh(pineGeo, tMat, nPine), leafs = new THREE.InstancedMesh(leafGeo, tMat, nLeaf), trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, nLeaf);

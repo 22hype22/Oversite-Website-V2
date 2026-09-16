@@ -32,8 +32,13 @@ for (cx,cy),rad,hh in hills[1:]: H=np.maximum(H,hh*np.exp(-((xx-cx)**2+(yy-cy)**
 mesa=np.clip(1-(np.sqrt(((xx-250)/150.0)**2+((yy-290)/70.0)**2)-0.8)/0.35,0,1); mesa=mesa*mesa*(3-2*mesa)   # flat top, steep sides
 H=np.maximum(H,22*mesa)
 h+=H*ramp
-rng=np.random.default_rng(4); noise=ndi.gaussian_filter(rng.standard_normal((N,N)),16); noise=noise/np.abs(noise).max()
-h+=3*noise*ramp
+rng=np.random.default_rng(4)
+noise=ndi.gaussian_filter(rng.standard_normal((N,N)),22); noise=noise/np.abs(noise).max()
+fine=ndi.gaussian_filter(rng.standard_normal((N,N)),7); fine=fine/np.abs(fine).max()
+roll=np.clip(d/25,0,1)                                              # rolling ground everywhere except the city core
+h+=6*noise*roll+1.5*fine*roll
+h+=3.5*ndi.gaussian_filter(cliff.astype(float),3)*roll             # rock belts sit a little proud of the grass
+rim=np.exp(-((np.sqrt((xx-250)**2+(yy-400)**2)-150)**2)/(2*28**2)); h+=4*rim*roll   # low rim around the west suburb
 # river / lake channels: drop with soft banks
 wd=ndi.distance_transform_edt(~water)
 h-=RIVER_DROP*np.clip(1-(wd-1)/4,0,1)
