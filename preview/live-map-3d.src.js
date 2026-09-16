@@ -122,20 +122,28 @@ const roofGeo = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1); roofGeo.rotateY(M
 const roofMat = new THREE.MeshStandardMaterial({ roughness: 0.9, flatShading: true });
 const roofs = new THREE.InstancedMesh(roofGeo, roofMat, houseIdx.length); roofs.castShadow = roofs.receiveShadow = true; scene.add(roofs);
 const WALL_H = 4.2, ROOF_H = 3.4;
+const houseStoreys = b => (b[2] * b[3] > 560 ? 2 : 1);                 // bigger footprints are two-storey colonials
+const wallH = b => WALL_H + (houseStoreys(b) - 1) * 3.4;
+const WALLS = { light: [0xE8E6E0, 0xE8E6E0, 0xE8E6E0, 0xD9C28E, 0xD9C28E, 0xBFC3C8], dark: [0x3A3A3E, 0x3A3A3E, 0x3A3A3E, 0x4A4234, 0x4A4234, 0x33363A] };
 const placeBuildings = () => { GEO.buildings.forEach(([x, y, L, Wd, ang, h, k], i) => {
   const base = heightAt(x, y) - 1.5, house = isHouse(GEO.buildings[i]);
-  P.set(x, base, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L, (house ? WALL_H : h) + 1.5, Wd);
+  P.set(x, base, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L, (house ? wallH(GEO.buildings[i]) : h) + 1.5, Wd);
   bld.setMatrixAt(i, M.compose(P, Q, Sc)); }); bld.instanceMatrix.needsUpdate = true;
   houseIdx.forEach((i, r) => { const [x, y, L, Wd, ang] = GEO.buildings[i];
-    P.set(x, heightAt(x, y) + WALL_H - 0.05, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L * 1.12, ROOF_H, Wd * 1.12);
+    P.set(x, heightAt(x, y) + wallH(GEO.buildings[i]) - 0.05, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L * 1.12, ROOF_H, Wd * 1.12);
     roofs.setMatrixAt(r, M.compose(P, Q, Sc)); }); roofs.instanceMatrix.needsUpdate = true; };
 const colourBuildings = theme => { let sd = 3; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
   GEO.buildings.forEach((b, i) => { const [, , , , , , k, hex] = b;
-    if (isHouse(b)) { const hsl = {}; C.set(hex || '#777').getHSL(hsl); C.setHSL(0.09, 0.12, theme === 'dark' ? 0.30 : 0.80).offsetHSL(0, 0, (rn() - 0.5) * 0.06); }   // pale walls
+    if (isHouse(b)) { const w = WALLS[theme === 'dark' ? 'dark' : 'light']; C.setHex(w[Math.floor(rn() * w.length)]).offsetHSL(0, 0, (rn() - 0.5) * 0.05); }   // white / tan / grey walls
     else { wallColour(hex, k, i).offsetHSL(0, 0, (rn() - 0.5) * 0.04); if (theme === 'dark') { const hsl = {}; C.getHSL(hsl); C.setHSL(hsl.h, hsl.s * 0.25, 0.16 + hsl.l * 0.35); } }
     bld.setColorAt(i, C); });
   houseIdx.forEach((i, r) => { const hsl = {}; C.set(GEO.buildings[i][7] || '#555').getHSL(hsl);
-    C.setHSL(hsl.h, Math.min(0.5, hsl.s * 1.2), theme === 'dark' ? 0.16 + hsl.l * 0.3 : Math.max(0.18, Math.min(0.55, hsl.l * 1.1))).offsetHSL(0, 0, (rn() - 0.5) * 0.05); roofs.setColorAt(r, C); });
+    const blue = hsl.h > 0.52 && hsl.h < 0.72 && hsl.s > 0.12, pick = rn();
+    if (blue || pick < 0.22) C.setHSL(0.61, 0.42, theme === 'dark' ? 0.15 : 0.25);                       // dark blue shingles
+    else if (pick < 0.42) C.setHSL(0.07, 0.35, theme === 'dark' ? 0.13 : 0.22);                            // brown
+    else if (pick < 0.55) C.setHSL(0.6, 0.05, theme === 'dark' ? 0.10 : 0.14);                             // charcoal
+    else C.setHSL(0.6, 0.04, theme === 'dark' ? 0.16 : 0.34);                                              // grey
+    C.offsetHSL(0, 0, (rn() - 0.5) * 0.05); roofs.setColorAt(r, C); });
   bld.instanceColor.needsUpdate = true; roofs.instanceColor.needsUpdate = true; };
 colourBuildings('light'); placeBuildings(); onTerrain.push(placeBuildings);
 scene.add(bld);
@@ -152,6 +160,9 @@ const pines = new THREE.InstancedMesh(pineGeo, tMat, nPine), leafs = new THREE.I
 for (const m of [pines, leafs, trunks]) { m.castShadow = true; m.receiveShadow = true; }
 const TREE_COL = { light: [0x214A28, 0x3C7A34, 0xE8B0C4, 0xC8742E], dark: [0x2A3A2E, 0x3A4A3C, 0x6E5560, 0x5A4634] };
 const treeIdx = [];
+const houseCells = new Set(); for (const i of houseIdx) { const [x, y] = GEO.buildings[i]; houseCells.add(`${Math.floor(x / 40)},${Math.floor(y / 40)}`); }
+const nearHouse = (x, y) => { const cx = Math.floor(x / 40), cy = Math.floor(y / 40); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (houseCells.has(`${cx + a},${cy + b}`)) return true; return false; };
+GEO.trees = GEO.trees.filter(([x, y]) => !nearHouse(x, y) || rnd() < 0.45);
 const treeXf = GEO.trees.map((t, i) => { const sp = species[i], sc = t[2] * (0.55 + rnd() * 0.35); return [sp, sc, sp === 0 ? sc * (0.9 + rnd() * 0.4) : sc * (0.85 + rnd() * 0.3), rnd() * 6.28]; });
 const placeTrees = () => { let ip = 0, il = 0; treeIdx.length = 0;
   GEO.trees.forEach(([x, y], i) => { const [sp, sc, sy, rot] = treeXf[i];
