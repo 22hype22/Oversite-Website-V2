@@ -178,7 +178,7 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   let w = 0, h = 0; const measure = () => { const r = minis[0]?.el.getBoundingClientRect(); if (r) { w = r.width; h = r.height; } };
   measure(); addEventListener('resize', measure);
 
-  let last = performance.now(), tick = 0;
+  let last = performance.now(), tick = 0;   // tick = last timer refresh (ms)
   const loop = (ts) => {
     const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
     for (const u of units) { u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
@@ -186,7 +186,7 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
     if (w) { const sc = w / VIEW; const size = 2000 * sc;
       for (const { el, u } of minis) { el.style.backgroundSize = `${size}px ${size}px`; el.style.backgroundPosition = `${w/2 - u.x*sc}px ${h/2 - u.y*sc}px`;
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }
-    if (++tick % 20 === 0) { const now = Date.now();
+    if (ts - tick >= 1000) { tick = ts; const now = Date.now();
       for (const { el, u } of spds) el.textContent = Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9))));
       for (const { el, u } of timers) { const s = Math.floor((now - u.startedAt) / 1000);
         el.textContent = `${Math.floor(s/3600)}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }

@@ -41,7 +41,7 @@ def rrect(xs,ys):
     u=X[0]*c-X[1]*sn; t=X[0]*sn+X[1]*c
     return cx,cy,u.max()-u.min()+1,t.max()-t.min()+1,ang
 
-buildings=[]; bmask=np.zeros_like(cand)
+buildings=[]; bmask=np.zeros_like(cand); towers=[]
 for xs,ys in comps(cand,12):
     cx,cy,L,W,ang=rrect(xs,ys); area=len(xs); sol=area/max(L*W,1)
     if coast[int(cy),int(cx)]: continue
@@ -49,19 +49,29 @@ for xs,ys in comps(cand,12):
     if W<3.2 and L/W>2.2: continue            # lane paint
     if float(v[ys,xs].std())>0.055 and float(v[ys,xs].mean())<0.42: continue   # textured dark = cliff crevice
     if sol<(0.62 if area<60 else 0.55): continue
-    vm=float(v[ys,xs].mean()); sm=float(s[ys,xs].mean())
-    if vm>0.56 and sm<0.15: kind=0; hgt=18+min(42,area*0.3)          # light concrete/white — tall
-    elif vm<0.42 and sm<0.25: kind=1; hgt=(9 if area<40 else 16+min(18,area*0.08))   # dark roofs — houses / mid
-    else: kind=2; hgt=10+min(14,area*0.1)                              # coloured roofs — low commercial
-    buildings.append([round(cx*K,1),round(cy*K,1),round(L*K,1),round(W*K,1),round(ang,3),round(hgt,1),kind])
+    vm=float(v[ys,xs].mean()); sm=float(s[ys,xs].mean()); hm=float(np.median(h[ys,xs]))
+    rgb=a[ys,xs].reshape(-1,3).mean(0)
+    # storeys from roof colour + footprint (1 storey ≈ 3.6 world units); calibrated against in-game shots
+    if vm<0.30 and sm<0.18:      kind=1; st=4 if area>=140 else (2 if area>=40 else 1.5); tower_score=area*(0.32-vm)   # dark roofs; towers picked below
+    elif hm>190 and hm<250 and sm>0.18: kind=1; st=8 if (300<cx*K<830 and 1250<cy*K<1720) else 3                                                        # blue glass office
+    elif vm>0.56 and sm<0.15:    kind=0; st=1.6 if area>=380 else (2 if area>=120 else 1.4)                  # white / concrete: supermarket, dealership, offices
+    elif 20<=hm<=45 and sm>0.22: kind=2; st=3 if area>=45 else 2                                             # tan brick
+    elif sm>0.35 and (hm<20 or hm>330): kind=2; st=2                                                         # red roofs
+    else:                        kind=2; st=2 if area>=60 else 1.5
+    hgt=round(st*3.6,1)
+    if 'tower_score' in dir() and vm<0.30 and sm<0.18 and 300<cx*K<830 and 1250<cy*K<1720: towers.append((tower_score,len(buildings)))
+    hexc='#%02x%02x%02x'%tuple(int(min(255,max(0,c*255))) for c in rgb)
+    buildings.append([round(cx*K,1),round(cy*K,1),round(L*K,1),round(W*K,1),round(ang,3),hgt,kind,hexc])
     bmask[ys,xs]=True
 
+towers.sort(reverse=True)
+for rank,(sc,i) in enumerate(towers[:2]): buildings[i][5]=[50.4,32.4][rank]
 # trees: dark green specks, not on buildings
 dk=(v>0.20)&(v<0.40)&(s<0.30)&~roadgrey&land&~water&~ndi.binary_dilation(bmask,iterations=2)
 trees=[]
 for xs,ys in comps(dk,2):
     if len(xs)>11: continue
-    trees.append([round(xs.mean()*K,1),round(ys.mean()*K,1),round(0.75+min(len(xs),10)*0.09,2)])
+    trees.append([round(xs.mean()*K,1),round(ys.mean()*K,1),round(1.1+min(len(xs),10)*0.12,2)])
 rng=np.random.default_rng(7)
 if len(trees)>4500: trees=[trees[i] for i in sorted(rng.choice(len(trees),4500,replace=False))]
 
