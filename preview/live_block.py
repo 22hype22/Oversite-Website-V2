@@ -3,7 +3,11 @@ admin panel markup/CSS and the live-data script in place (replacing older copies
 import json, re
 
 ADMIN_CSS = r"""  /* admin panel: server link, departments, map calibration */
-  .admin{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:min(420px,calc(100vw - 2*var(--gap)));z-index:9;
+  :root{--adminw:min(400px,calc(100vw - 2*var(--gap)))}
+  .stage{transition:transform .6s cubic-bezier(.32,.72,0,1),opacity .4s,right .36s cubic-bezier(.32,.72,0,1)}
+  body.admin-open .stage{right:calc(var(--adminw) + var(--gap))}
+  body.admin-open .zoomctl,body.admin-open .layers{transition:transform .36s cubic-bezier(.32,.72,0,1)}
+  .admin{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--adminw);z-index:9;
     background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.28);
     transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.32,.72,0,1),opacity .2s;overflow-y:auto;scrollbar-width:none;
     padding:16px 20px 24px;color:var(--ink);font-size:13px;line-height:1.45}
@@ -41,7 +45,7 @@ ADMIN_CSS = r"""  /* admin panel: server link, departments, map calibration */
   .admin code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(240,242,245,.08);padding:1px 5px;border-radius:4px}
   .icons button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
   .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
-  @media (prefers-reduced-motion:reduce){.admin{transition:none}}
+  @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
 """
 
 LANDMARKS = [
