@@ -10,8 +10,9 @@ const stage = document.getElementById('stage');
 const loading = document.getElementById('loading');
 
 // ── renderer / scene ──
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-let pr = Math.min(devicePixelRatio, 1.5); renderer.setPixelRatio(pr);
+const BIG = innerWidth * innerHeight > 1.6e6;
+const renderer = new THREE.WebGLRenderer({ antialias: !BIG && devicePixelRatio <= 1, powerPreference: 'high-performance' });
+let pr = Math.min(devicePixelRatio, BIG ? 0.9 : 1.0); renderer.setPixelRatio(pr);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.shadowMap.autoUpdate = false;      // the city is static: bake the shadow map once
@@ -35,6 +36,7 @@ controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
 controls.screenSpacePanning = false;   // pan along the ground plane
 controls.panSpeed = 1.2;
 renderer.domElement.addEventListener('pointerdown', () => { controls.autoRotate = false; }, { once: true });
+renderer.domElement.addEventListener('pointerdown', () => { controls._dragging = true; }); addEventListener('pointerup', () => { controls._dragging = false; });
 
 // ── light ──
 const hemi = new THREE.HemisphereLight(0xC9D8EE, 0x4A4F55, 1.35); scene.add(hemi);
@@ -42,7 +44,7 @@ const sun = new THREE.DirectionalLight(0xFFF1DC, 2.6);
 sun.position.set(1000 + 520, 900, 1000 - 380);
 sun.target.position.set(1000, 0, 1000);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1536, 1536);
 Object.assign(sun.shadow.camera, { left: -1300, right: 1300, top: 1300, bottom: -1300, near: 100, far: 3000 });
 sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.8;
 scene.add(sun, sun.target);
@@ -53,7 +55,7 @@ let hdata = null;                                  // Float32Array of heights (H
 const heightAt = (x, y) => { if (!hdata) return 0; const u = Math.min(Math.max(x / W * (HN - 1), 0), HN - 1.001), v = Math.min(Math.max(y / W * (HN - 1), 0), HN - 1.001);
   const i = u | 0, j = v | 0, fu = u - i, fv = v - j, k = j * HN + i;
   return (hdata[k] * (1 - fu) + hdata[k + 1] * fu) * (1 - fv) + (hdata[k + HN] * (1 - fu) + hdata[k + HN + 1] * fu) * fv; };
-const SEG = 255;
+const SEG = 191;
 const groundGeo = new THREE.PlaneGeometry(W, W, SEG, SEG); groundGeo.rotateX(-Math.PI / 2); groundGeo.translate(W / 2, 0, W / 2);
 const loader = new THREE.TextureLoader();
 const tex = loader.load(MAP_LIGHT, () => { loading.classList.add('off'); renderer.shadowMap.needsUpdate = true; });
@@ -267,11 +269,14 @@ const clock = new THREE.Clock();
 // adaptive resolution: if frames are slow, drop the pixel ratio (and climb back when they are fast)
 let acc = 0, n = 0;
 const adapt = dt => { acc += dt; if (++n < 40) return; const avg = acc / n; acc = n = 0;
-  const want = avg > 0.03 ? Math.max(0.75, pr - 0.25) : (avg < 0.014 ? Math.min(Math.min(devicePixelRatio, 1.5), pr + 0.25) : pr);
+  const want = avg > 0.03 ? Math.max(0.6, pr - 0.15) : (avg < 0.014 ? Math.min(Math.min(devicePixelRatio, BIG ? 0.9 : 1.0), pr + 0.15) : pr);
   if (want !== pr) { pr = want; renderer.setPixelRatio(pr); } };
 renderer.shadowMap.needsUpdate = true;
+let skip = false;
 const frame = () => {
   const dt = Math.min(clock.getDelta(), 0.05), now = clock.elapsedTime; adapt(dt);
+  // idle pacing: when nothing is being dragged and frames are slow, render every other frame
+  if (!controls._dragging && dt < 0.02 && pr <= 0.6) { skip = !skip; if (skip) return; }
   UN.forEach((u, i) => { cars[i].position.set(u.x, heightAt(u.x, u.y) + 0.2, u.y); cars[i].rotation.y = -u.heading; });
   const hp = UN[0] ? { x: UN[0].x, z: UN[0].y } : { x: FOCUS.x, z: FOCUS.z }; const hy = heightAt(hp.x, hp.z);
   glow.position.y = hy + 1.8; pulse.position.y = hy + 1.8;
