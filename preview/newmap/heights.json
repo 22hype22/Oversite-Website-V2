@@ -90,12 +90,12 @@
   },
   {
    "name": "west headland peak",
-   "photos": "005 013",
+   "photos": "005 013 027",
    "type": "peak",
    "x": 360.4,
    "y": 1607.8,
-   "h": 165,
-   "r": 28
+   "h": 190,
+   "r": 30
   },
   {
    "name": "east bluff, postal 205 hill behind Oceanside Drive",
@@ -194,6 +194,238 @@
      1551.8
     ]
    ]
+  },
+  {
+   "name": "west massif north of the headland (coastal rock band)",
+   "photos": "027 028 033 034 037",
+   "type": "polygon",
+   "h": 115,
+   "edge": 6,
+   "pts": [
+    [
+     300,
+     1000
+    ],
+    [
+     385,
+     1000
+    ],
+    [
+     385,
+     1280
+    ],
+    [
+     372,
+     1330
+    ],
+    [
+     380,
+     1400
+    ],
+    [
+     384,
+     1456
+    ],
+    [
+     399.6,
+     1456.6
+    ],
+    [
+     399.6,
+     1540.6
+    ],
+    [
+     396.8,
+     1588.2
+    ],
+    [
+     391.2,
+     1613.4
+    ],
+    [
+     371.6,
+     1613.4
+    ],
+    [
+     371.6,
+     1540.6
+    ],
+    [
+     368,
+     1456
+    ],
+    [
+     352,
+     1400
+    ],
+    [
+     330,
+     1340
+    ],
+    [
+     310,
+     1280
+    ],
+    [
+     300,
+     1200
+    ]
+   ]
+  },
+  {
+   "name": "headland west tip rise",
+   "photos": "028",
+   "type": "peak",
+   "x": 242,
+   "y": 1652,
+   "h": 140,
+   "r": 16
+  },
+  {
+   "name": "big terraced hill west of the water tower",
+   "photos": "036 037",
+   "type": "polygon",
+   "h": 55,
+   "edge": 8,
+   "pts": [
+    [
+     399,
+     1120
+    ],
+    [
+     440,
+     1115
+    ],
+    [
+     490,
+     1140
+    ],
+    [
+     492,
+     1200
+    ],
+    [
+     470,
+     1250
+    ],
+    [
+     420,
+     1257
+    ],
+    [
+     399,
+     1220
+    ]
+   ]
+  },
+  {
+   "name": "small terraced hill south of the water tower",
+   "photos": "036",
+   "type": "polygon",
+   "h": 40,
+   "edge": 6,
+   "pts": [
+    [
+     497,
+     1190
+    ],
+    [
+     530,
+     1185
+    ],
+    [
+     552,
+     1210
+    ],
+    [
+     545,
+     1245
+    ],
+    [
+     510,
+     1249
+    ],
+    [
+     497,
+     1225
+    ]
+   ]
+  },
+  {
+   "name": "terraced hill east of the water tower",
+   "photos": "036",
+   "type": "polygon",
+   "h": 35,
+   "edge": 6,
+   "pts": [
+    [
+     565,
+     1180
+    ],
+    [
+     654,
+     1179
+    ],
+    [
+     654,
+     1216
+    ],
+    [
+     565,
+     1216
+    ]
+   ]
+  },
+  {
+   "name": "west escarpment north of the massif (continuous cliff wall behind the NW residential)",
+   "photos": "038 042",
+   "type": "polygon",
+   "h": 105,
+   "edge": 6,
+   "pts": [
+    [
+     290,
+     620
+    ],
+    [
+     370,
+     620
+    ],
+    [
+     378,
+     800
+    ],
+    [
+     385,
+     1000
+    ],
+    [
+     300,
+     1000
+    ],
+    [
+     295,
+     800
+    ]
+   ]
+  },
+  {
+   "name": "escarpment table-top 1",
+   "photos": "042",
+   "type": "peak",
+   "x": 345,
+   "y": 760,
+   "h": 130,
+   "r": 22
+  },
+  {
+   "name": "escarpment table-top 2",
+   "photos": "042",
+   "type": "peak",
+   "x": 360,
+   "y": 900,
+   "h": 125,
+   "r": 20
   }
  ]
 }

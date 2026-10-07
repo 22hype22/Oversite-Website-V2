@@ -6,6 +6,7 @@ const LM = JSON.parse(document.getElementById('landmarks').textContent);   // ph
 const ST = 1 / 3.5;                                                        // world units per stud (see REFERENCE.md)
 const inClear = (x, y) => LM.clear.some(([x0, y0, x1, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1);
 GEO.buildings = GEO.buildings.filter(([x, y]) => !inClear(x, y));
+for (const o of LM.heights || []) for (const b of GEO.buildings) if (Math.abs(b[0] - o.x) < o.r && Math.abs(b[1] - o.y) < o.r) { b[5] = o.h * ST; if (o.colour) { b[6] = 9; b[7] = o.colour; } }   // photo-measured heights win
 const MAP_LIGHT = document.getElementById('mapsrc').getAttribute('href');
 const MAP_DARK = document.getElementById('mapsrc-dark').getAttribute('href');
 const W = 2000;                           // world units, same grid as the 2D page

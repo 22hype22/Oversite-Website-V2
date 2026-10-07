@@ -36,6 +36,12 @@
    1440,
    400,
    1672
+  ],
+  [
+   220,
+   600,
+   400,
+   1672
   ]
  ],
  "decks": [
@@ -259,6 +265,50 @@
    "ang": 0,
    "h": 18,
    "colour": "#C9B592"
+  },
+  {
+   "name": "Brookstone Apartments, north wing (4 storeys + ground retail)",
+   "photos": "001 003",
+   "x": 823.5,
+   "y": 1372.5,
+   "L": 15,
+   "W": 71,
+   "ang": 0,
+   "h": 55,
+   "colour": "#C9B99A"
+  },
+  {
+   "name": "Brookstone Apartments, south wing",
+   "photos": "001 003",
+   "x": 798.5,
+   "y": 1396.5,
+   "L": 65,
+   "W": 23,
+   "ang": 0,
+   "h": 55,
+   "colour": "#C9B99A"
+  },
+  {
+   "name": "Brookstone roof tower",
+   "photos": "001 003",
+   "x": 823.5,
+   "y": 1342,
+   "L": 14,
+   "W": 10,
+   "ang": 0,
+   "h": 66,
+   "colour": "#8A7355"
+  },
+  {
+   "name": "FD training tower (fenced lot NW of downtown)",
+   "photos": "033 035 036",
+   "x": 476,
+   "y": 1250,
+   "L": 2.3,
+   "W": 2.3,
+   "ang": 0,
+   "h": 60,
+   "colour": "#D9D4C8"
   }
  ],
  "masts": [
@@ -367,5 +417,49 @@
    }
   ]
  },
- "_clear_doc": "last box: the west headland is bare rock, the extractor read boulders there as houses (photo 004/005)"
+ "_clear_doc": "last box: the west headland is bare rock, the extractor read boulders there as houses (photo 004/005)",
+ "heights": [
+  {
+   "name": "downtown dark glass tower, 12 storeys",
+   "photos": "022-024 030-032",
+   "x": 533,
+   "y": 1346,
+   "r": 14,
+   "h": 135,
+   "colour": "#1C2027"
+  },
+  {
+   "name": "downtown blue glass tower, 10 storeys",
+   "photos": "022-024 030-032",
+   "x": 639,
+   "y": 1377,
+   "r": 12,
+   "h": 110,
+   "colour": "#2C4C80"
+  },
+  {
+   "name": "curved 4-storey office by the fire station",
+   "photos": "033 036 039 040",
+   "x": 586,
+   "y": 1345,
+   "r": 12,
+   "h": 45
+  },
+  {
+   "name": "white 5-storey office next to it",
+   "photos": "039 040",
+   "x": 621,
+   "y": 1335,
+   "r": 10,
+   "h": 60
+  },
+  {
+   "name": "fire station (hip roof + cupola)",
+   "photos": "032 033 035 039",
+   "x": 616,
+   "y": 1237,
+   "r": 18,
+   "h": 30
+  }
+ ]
 }
