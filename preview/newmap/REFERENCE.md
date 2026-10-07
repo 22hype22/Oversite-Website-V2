@@ -97,6 +97,8 @@ Columns: id, file, postal / street, facing, what it shows, what it changes in th
 
 | 038-042 | not saved (sent mid-turn) | free cam: terraced hill by the training lot (W), downtown from that hill (E), NW residential from the top of the water tower (N, two frames), the west escarpment from the residential (W) | | the west escarpment is one continuous cliff wall ~100-110 studs behind the NW residential with two table-top peaks ~125-130; roads run along its foot; residential is 1-2 storey houses on low 10-15 stud terraces; curved office 4 storeys, white office 5 | APPLIED: escarpment polygon y 620-1000 at 105 + two table tops; office heights 45 / 60; fire station 30 |
 
+| 043-051 | not saved (sent mid-turn) | free cam: downtown west from the terraced hill (N, three frames), water tower and NW residential (N, three frames), big retail / hotel row on the NW edge of downtown (N), the river north of the residential (N) | | confirms the applied heights: curved office 4 storeys, white office 5, hotel on the NW edge 4 storeys (~50), big retail stores ~25, houses 1-2 storeys, the three terraced hills 35-55. New: the river north of the residential has low stepped terraces on both banks, 10-25 studs, grass tops with rock risers; the whole west and north horizon is flat-top mesas ~110-130 | TODO: river terraces (10-25 studs) once the north is shot; hotel 50 |
+
 Caveat from the user: objects far from the camera do not load fully in free cam, so terrain can appear to cut through distant buildings. Heights are only read from things near the camera.
 
 ## How to shoot useful photos
