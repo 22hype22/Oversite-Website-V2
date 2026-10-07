@@ -309,6 +309,17 @@
    "ang": 0,
    "h": 60,
    "colour": "#D9D4C8"
+  },
+  {
+   "name": "red brick 3-storey office east of the highway, fenced lot",
+   "photos": "053",
+   "x": 882,
+   "y": 1395,
+   "L": 14,
+   "W": 12,
+   "ang": 0,
+   "h": 40,
+   "colour": "#A8453C"
   }
  ],
  "masts": [
@@ -460,6 +471,14 @@
    "y": 1237,
    "r": 18,
    "h": 30
+  },
+  {
+   "name": "hotel on the river north of downtown, 4 storeys",
+   "photos": "043 052",
+   "x": 811.6,
+   "y": 1296,
+   "r": 10,
+   "h": 50
   }
  ]
 }

@@ -99,6 +99,8 @@ Columns: id, file, postal / street, facing, what it shows, what it changes in th
 
 | 043-051 | not saved (sent mid-turn) | free cam: downtown west from the terraced hill (N, three frames), water tower and NW residential (N, three frames), big retail / hotel row on the NW edge of downtown (N), the river north of the residential (N) | | confirms the applied heights: curved office 4 storeys, white office 5, hotel on the NW edge 4 storeys (~50), big retail stores ~25, houses 1-2 storeys, the three terraced hills 35-55. New: the river north of the residential has low stepped terraces on both banks, 10-25 studs, grass tops with rock risers; the whole west and north horizon is flat-top mesas ~110-130 | TODO: river terraces (10-25 studs) once the north is shot; hotel 50 |
 
+| 052-054 | refs/052..054-freecam-downtown-east.jpg | free cam: river north of downtown with the hotel (NE), Brookstone and the highway from the east bank (NW), terraced hill NE of downtown (N) | | hotel 4 storeys (~50) with a 3-storey red brick office beside it; red brick 3-storey block in a fenced lot east of the 6-lane highway; terraced hill NE of downtown ~45 studs with four grass terraces; low terraces along the river banks 10-20 | APPLIED: hotel 50, brick block 40 (placed by eye at 882,1395), NE hill 45 |
+
 Caveat from the user: objects far from the camera do not load fully in free cam, so terrain can appear to cut through distant buildings. Heights are only read from things near the camera.
 
 ## How to shoot useful photos
