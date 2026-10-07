@@ -236,8 +236,8 @@ const pathOf = pts => { const cp = new THREE.CurvePath(); for (let i = 1; i < pt
   for (let s = 0; s < n; s++) { const t0 = s / n, t1 = (s + 1) / n;
     cp.add(new THREE.LineCurve3(new THREE.Vector3(ax + (bx - ax) * t0, heightAt(ax + (bx - ax) * t0, ay + (by - ay) * t0) + 1.4, ay + (by - ay) * t0),
       new THREE.Vector3(ax + (bx - ax) * t1, heightAt(ax + (bx - ax) * t1, ay + (by - ay) * t1) + 1.4, ay + (by - ay) * t1))); } } return cp; };
-const ROUTE_A = [[1423.9,238.8],[1423.9,264.2],[1423.9,289.6],[1423.9,314.9],[1423.9,340.3],[1410.4,362.7],[1409.0,388.1],[1409.0,413.4],[1409.0,438.8],[1409.0,464.2],[1409.0,489.6],[1409.0,514.9],[1409.0,540.3],[1409.0,565.7],[1409.0,591.0],[1407.5,616.4],[1401.5,641.8],[1385.1,662.7],[1367.2,680.6],[1349.3,698.5],[1331.3,716.4],[1313.4,734.3],[1295.5,752.2],[1277.6,770.1],[1259.7,788.1],[1241.8,806.0],[1223.9,823.9],[1206.0,841.8],[1188.1,859.7],[1167.2,874.6],[1146.3,889.6],[1134.3,867.2],[1134.3,841.8],[1134.3,816.4],[1134.3,791.0],[1134.3,765.7],[1113.4,750.7],[1089.6,759.7],[1114.9,752.2],[1129.9,773.1],[1129.9,798.5],[1129.9,823.9],[1129.9,849.3],[1129.9,874.6],[1144.8,895.5],[1134.3,919.4],[1125.4,943.3],[1107.5,962.7],[1089.6,980.6],[1070.1,998.5],[1052.2,1017.9],[1034.3,1035.8],[1016.4,1053.7],[998.5,1071.6],[980.6,1089.6],[962.7,1107.5],[947.8,1129.9],[934.3,1152.2],[926.9,1176.1],[923.9,1201.5],[923.9,1226.9],[923.9,1252.2],[923.9,1277.6],[923.9,1303.0],[923.9,1328.4],[923.9,1353.7],[926.9,1379.1],[926.9,1404.5],[944.8,1423.9],[950.7,1449.3],[965.7,1471.6],[989.6,1482.1],[1003.0,1504.5],[1003.0,1529.9],[979.1,1538.8],[953.7,1540.3],[929.9,1550.7],[920.9,1559.7]];   // Highway 55
-const ROUTE_B = [[400.0,1417.9],[425.4,1419.4],[450.7,1419.4],[476.1,1419.4],[501.5,1417.9],[526.9,1417.9],[552.2,1417.9],[577.6,1417.9],[603.0,1417.9],[628.4,1417.9],[653.7,1417.9],[679.1,1417.9],[704.5,1417.9],[729.9,1417.9],[755.2,1416.4],[780.6,1416.4],[806.0,1416.4],[831.3,1416.4],[856.7,1416.4],[882.1,1417.9],[907.5,1417.9],[932.8,1416.4],[958.2,1416.4],[983.6,1416.4],[1009.0,1416.4],[1034.3,1416.4],[1059.7,1416.4],[1085.1,1416.4],[1110.4,1416.4],[1135.8,1416.4],[1161.2,1416.4],[1186.6,1416.4],[1211.9,1416.4],[1237.3,1416.4],[1262.7,1416.4],[1288.1,1416.4],[1313.4,1416.4],[1338.8,1417.9],[1364.2,1411.9],[1379.1,1417.9]];   // Freedom Avenue
+const RT = window.ROUTES || {}, U0 = (window.UNITS || [])[0], U1 = (window.UNITS || [])[1];
+const ROUTE_A = (U0 && RT[U0.route]) || [[0, 0], [1, 1]], ROUTE_B = (U1 && RT[U1.route]) || [[0, 0], [1, 1]];   // the first two units' patrol routes
 const routeGroup = new THREE.Group(); scene.add(routeGroup);
 const tube = (curve, color, r, op) => { const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, r, 6, false),
   new THREE.MeshBasicMaterial({ color, transparent: op < 1, opacity: op, depthWrite: false })); m.renderOrder = 2; return m; };
@@ -246,16 +246,6 @@ const buildRoutes = () => { for (const m of [...routeGroup.children]) { m.geomet
   routeGroup.add(tube(routeA, 0xF0F2F5, 1.6, 0.85), tube(routeA, 0xF0F2F5, 5.5, 0.08), tube(routeB, 0xB8D94A, 1.8, 0.95), tube(routeB, 0xB8D94A, 6.5, 0.10)); };
 buildRoutes(); onTerrain.push(buildRoutes);
 
-const stopGeo = new THREE.CylinderGeometry(5, 5, 1.2, 24), ringGeo = new THREE.RingGeometry(5, 6.6, 32);
-const stops = [];
-const addStop = ([x, y], color) => {
-  const s = new THREE.Mesh(stopGeo, new THREE.MeshBasicMaterial({ color: 0x0B0B0C })); s.position.set(x, 1.5, y);
-  const r = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })); r.rotation.x = -Math.PI / 2; r.position.set(x, 2.2, y);
-  scene.add(s, r); stops.push([s, r, x, y]);
-};
-onTerrain.push(() => { for (const [s, r, x, y] of stops) { const h = heightAt(x, y); s.position.y = h + 1.5; r.position.y = h + 2.2; } });
-[[1424, 337], [1311, 736], [1121, 761], [954, 1120], [1003, 1522]].forEach(p => addStop(p, 0xF0F2F5));
-[[449, 1419], [743, 1417], [1038, 1416], [1332, 1417]].forEach(p => addStop(p, 0xB8D94A));
 
 // ── water tower (south-west park): one thick tapered column under a broad rounded tank ──
 const wt = new THREE.Group();

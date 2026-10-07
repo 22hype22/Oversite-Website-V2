@@ -25,14 +25,14 @@ def vehicle(kind):
     return '<span class="badge"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ic+'</svg></span>'
 
 UNITS=[
- dict(id='pd-6023',model='Explorer PPV',dept='pd',name='PD 6023',crew=['22hype22','sppoklex','relukt'],ranks=['Chief of Police', 'Sergeant', 'Officer'],kind='cruiser',uid='45623',route='B',t=0.42,dir=1,speed=0.011,since=6137),
- dict(id='fd-4120',model='Pierce Engine',dept='fd',name='FD 4120',crew=['marlowe_j','ttx_ash'],ranks=['Captain', 'Firefighter'],kind='engine',uid='31564',route='A',t=0.28,dir=1,speed=0.008,since=2711),
- dict(id='dot-2209',model='F-350 Arrow Board',dept='dot',name='DOT 2209',crew=['cone_daddy'],ranks=['Supervisor'],kind='dot',uid='34654',route='A',t=0.88,dir=-1,speed=0.007,since=10422),
- dict(id='pd-1207',model='Charger Pursuit',dept='pd',name='PD 1207',crew=['nova.k','bryce_v'],ranks=['Lieutenant', 'Officer'],kind='cruiser',uid='34664',route='B',t=0.61,dir=-1,speed=0.010,since=1503),
- dict(id='pd-3310',model='Tahoe PPV',dept='pd',name='PD 3310',crew=['ghostrider44'],ranks=['Corporal'],kind='cruiser',uid='38812',route='A',t=0.12,dir=1,speed=0.012,since=4290),
- dict(id='fd-2201',model='Rescue 1',dept='fd',name='FD 2201',crew=['ember_lux','dan.holt','mk_ruiz'],ranks=['Battalion Chief', 'Firefighter', 'Probationary'],kind='engine',uid='29907',route='B',t=0.05,dir=1,speed=0.007,since=8004),
- dict(id='dot-1180',model='Plow Truck',dept='dot',name='DOT 1180',crew=['plow_king','ash_dot'],ranks=['Operator', 'Operator'],kind='dot',uid='36012',route='B',t=0.85,dir=-1,speed=0.006,since=13355),
- dict(id='pd-4501',model='Explorer PPV',dept='pd',name='PD 4501',crew=['kzz_mike'],ranks=['Trainee'],kind='cruiser',uid='41155',route='A',t=0.66,dir=-1,speed=0.011,since=622),
+ dict(id='pd-6023',model='Explorer PPV',dept='pd',name='PD 6023',crew=['22hype22','sppoklex','relukt'],ranks=['Chief of Police', 'Sergeant', 'Officer'],kind='cruiser',uid='45623',route='R0',t=0.42,dir=1,speed=0.011,since=6137),
+ dict(id='fd-4120',model='Pierce Engine',dept='fd',name='FD 4120',crew=['marlowe_j','ttx_ash'],ranks=['Captain', 'Firefighter'],kind='engine',uid='31564',route='R1',t=0.28,dir=1,speed=0.008,since=2711),
+ dict(id='dot-2209',model='F-350 Arrow Board',dept='dot',name='DOT 2209',crew=['cone_daddy'],ranks=['Supervisor'],kind='dot',uid='34654',route='R2',t=0.88,dir=-1,speed=0.007,since=10422),
+ dict(id='pd-1207',model='Charger Pursuit',dept='pd',name='PD 1207',crew=['nova.k','bryce_v'],ranks=['Lieutenant', 'Officer'],kind='cruiser',uid='34664',route='R3',t=0.61,dir=-1,speed=0.010,since=1503),
+ dict(id='pd-3310',model='Tahoe PPV',dept='pd',name='PD 3310',crew=['ghostrider44'],ranks=['Corporal'],kind='cruiser',uid='38812',route='R4',t=0.12,dir=1,speed=0.012,since=4290),
+ dict(id='fd-2201',model='Rescue 1',dept='fd',name='FD 2201',crew=['ember_lux','dan.holt','mk_ruiz'],ranks=['Battalion Chief', 'Firefighter', 'Probationary'],kind='engine',uid='29907',route='R5',t=0.05,dir=1,speed=0.007,since=8004),
+ dict(id='dot-1180',model='Plow Truck',dept='dot',name='DOT 1180',crew=['plow_king','ash_dot'],ranks=['Operator', 'Operator'],kind='dot',uid='36012',route='R6',t=0.85,dir=-1,speed=0.006,since=13355),
+ dict(id='pd-4501',model='Explorer PPV',dept='pd',name='PD 4501',crew=['kzz_mike'],ranks=['Trainee'],kind='cruiser',uid='41155',route='R7',t=0.66,dir=-1,speed=0.011,since=622),
 ]
 def card(u, sel=False):
     arrow='<span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M9 7h8v8"/></svg></span>'
@@ -145,15 +145,18 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
 <script>
 /* ── shared unit simulation: positions for cards, 2D pins and the 3D scene ── */
 (() => {
-  const ROUTES = { A: [[1423.9,238.8],[1423.9,264.2],[1423.9,289.6],[1423.9,314.9],[1423.9,340.3],[1410.4,362.7],[1409.0,388.1],[1409.0,413.4],[1409.0,438.8],[1409.0,464.2],[1409.0,489.6],[1409.0,514.9],[1409.0,540.3],[1409.0,565.7],[1409.0,591.0],[1407.5,616.4],[1401.5,641.8],[1385.1,662.7],[1367.2,680.6],[1349.3,698.5],[1331.3,716.4],[1313.4,734.3],[1295.5,752.2],[1277.6,770.1],[1259.7,788.1],[1241.8,806.0],[1223.9,823.9],[1206.0,841.8],[1188.1,859.7],[1167.2,874.6],[1146.3,889.6],[1134.3,867.2],[1134.3,841.8],[1134.3,816.4],[1134.3,791.0],[1134.3,765.7],[1113.4,750.7],[1089.6,759.7],[1114.9,752.2],[1129.9,773.1],[1129.9,798.5],[1129.9,823.9],[1129.9,849.3],[1129.9,874.6],[1144.8,895.5],[1134.3,919.4],[1125.4,943.3],[1107.5,962.7],[1089.6,980.6],[1070.1,998.5],[1052.2,1017.9],[1034.3,1035.8],[1016.4,1053.7],[998.5,1071.6],[980.6,1089.6],[962.7,1107.5],[947.8,1129.9],[934.3,1152.2],[926.9,1176.1],[923.9,1201.5],[923.9,1226.9],[923.9,1252.2],[923.9,1277.6],[923.9,1303.0],[923.9,1328.4],[923.9,1353.7],[926.9,1379.1],[926.9,1404.5],[944.8,1423.9],[950.7,1449.3],[965.7,1471.6],[989.6,1482.1],[1003.0,1504.5],[1003.0,1529.9],[979.1,1538.8],[953.7,1540.3],[929.9,1550.7],[920.9,1559.7]],
-                   B: [[400.0,1417.9],[425.4,1419.4],[450.7,1419.4],[476.1,1419.4],[501.5,1417.9],[526.9,1417.9],[552.2,1417.9],[577.6,1417.9],[603.0,1417.9],[628.4,1417.9],[653.7,1417.9],[679.1,1417.9],[704.5,1417.9],[729.9,1417.9],[755.2,1416.4],[780.6,1416.4],[806.0,1416.4],[831.3,1416.4],[856.7,1416.4],[882.1,1417.9],[907.5,1417.9],[932.8,1416.4],[958.2,1416.4],[983.6,1416.4],[1009.0,1416.4],[1034.3,1416.4],[1059.7,1416.4],[1085.1,1416.4],[1110.4,1416.4],[1135.8,1416.4],[1161.2,1416.4],[1186.6,1416.4],[1211.9,1416.4],[1237.3,1416.4],[1262.7,1416.4],[1288.1,1416.4],[1313.4,1416.4],[1338.8,1417.9],[1364.2,1411.9],[1379.1,1417.9]] };
+  const ROUTES = __ROUTES__;   // patrol routes along real roads, preview/newmap/routes.json
+  window.ROUTES = ROUTES;
   let units = JSON.parse(document.getElementById('units').textContent);
   const seg = {}; for (const k in ROUTES) { const r = ROUTES[k], L = [0]; for (let i = 1; i < r.length; i++) L.push(L[i-1] + Math.hypot(r[i][0]-r[i-1][0], r[i][1]-r[i-1][1])); seg[k] = L; }
   const at = (k, t) => { const r = ROUTES[k], L = seg[k], d = t * L[L.length-1]; let i = 1; while (i < L.length-1 && L[i] < d) i++;
     const f = (d - L[i-1]) / (L[i] - L[i-1] || 1), a = r[i-1], b = r[i];
     return { x: a[0] + (b[0]-a[0]) * f, y: a[1] + (b[1]-a[1]) * f, heading: Math.atan2(b[1]-a[1], b[0]-a[0]) }; };
   const now0 = Date.now();
-  for (const u of units) { u.startedAt = now0 - u.since * 1000; Object.assign(u, at(u.route, u.t)); }
+  const CRUISE = { pd: 38, fd: 30, dot: 26 };                                  // demo cruising speed, mph
+  for (const u of units) { u.startedAt = now0 - u.since * 1000; u.speed = (CRUISE[u.dept] || 30) / (2.237 * seg[u.route][seg[u.route].length - 1]); Object.assign(u, at(u.route, u.t)); }
+  const svgPath = pts => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
+  for (const [cls, key] of [['a', units[0]?.route], ['b', units[1]?.route]]) if (ROUTES[key]) for (const el of document.querySelectorAll(`.world path.route.${cls}, .world path.route.${cls}2`)) el.setAttribute('d', svgPath(ROUTES[key]));
   window.UNITS = units; window.DEMO_UNITS = units;
 
   // department chips: counts from the unit list, click to filter the cards
@@ -286,7 +289,7 @@ import re
 s=re.sub(r'<script id="units" type="application/json">.*?shared unit simulation.*?</script>\n', '', s, flags=re.S)
 s=re.sub(r'<script>\n/\* ── Unit Availability: real chart.*?</script>\n', '', s, flags=re.S)
 anchor='<script>\n/* ── bottom panels' if '<script>\n/* ── bottom panels' in s else '<script>\n(() => {'
-s=s.replace(anchor, units_js+js_add+anchor,1)
+s=s.replace(anchor, units_js.replace('__ROUTES__', open('preview/newmap/routes.json').read())+js_add+anchor,1)
 import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import live_block; s = live_block.apply(s, ICON)
 open(p,'w').write(s)
 b64=base64.b64encode(open('preview/liberty-county-dark.jpg','rb').read()).decode()
