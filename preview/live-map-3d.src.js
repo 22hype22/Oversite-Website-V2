@@ -264,7 +264,11 @@ let UN = window.UNITS || []; const COL = { pd: 0x4C8DFF, fd: 0xE24B4B, dot: 0xE9
 let cars = UN.map((u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept]));
 addEventListener('units', () => { for (const c of cars) { scene.remove(c); c.material.dispose(); } UN = window.UNITS || []; cars = UN.map((u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept])); });
 const incident = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 12), new THREE.MeshBasicMaterial({ color: 0xE24B4B }));
-incident.position.set(1180, 1300, 1300); scene.add(incident); onTerrain.push(() => { incident.position.y = heightAt(1180, 1300) + 4; });
+incident.visible = false; scene.add(incident);
+const incRing = new THREE.Mesh(new THREE.RingGeometry(10, 12, 40), new THREE.MeshBasicMaterial({ color: 0xE24B4B, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })); incRing.rotation.x = -Math.PI / 2; incRing.visible = false; scene.add(incRing);
+let focusCall = null;
+addEventListener('focuscall', e => { focusCall = e.detail; incident.visible = incRing.visible = !!focusCall; if (focusCall) { incident.position.set(focusCall.x, heightAt(focusCall.x, focusCall.y) + 4, focusCall.y); incRing.position.set(focusCall.x, heightAt(focusCall.x, focusCall.y) + 1.5, focusCall.y); } });
+addEventListener('calls', () => { if (focusCall && !(window.CALLS || []).includes(focusCall)) { focusCall = null; incident.visible = incRing.visible = false; } });
 const glow = new THREE.Mesh(new THREE.RingGeometry(16, 18, 48), new THREE.MeshBasicMaterial({ color: 0xF0F2F5, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
 glow.rotation.x = -Math.PI / 2; glow.position.y = 1.8; scene.add(glow);
 const pulse = glow.clone(); pulse.material = glow.material.clone(); scene.add(pulse);
@@ -321,13 +325,18 @@ const frame = () => {
   glow.position.y = hy + 1.8; pulse.position.y = hy + 1.8;
   glow.position.x = pulse.position.x = hp.x; glow.position.z = pulse.position.z = hp.z;
   const k = (now % 2.4) / 2.4; pulse.scale.setScalar(1 + k * 1.6); pulse.material.opacity = 0.5 * (1 - k);
-  if (follow) controls.target.lerp(new THREE.Vector3(hp.x, 0, hp.z), 0.06);
+  if (incRing.visible) { const q = (now % 1.6) / 1.6; incRing.scale.setScalar(0.5 + q * 1.4); incRing.material.opacity = 0.8 * (1 - q); }
+  if (flight) { const k = Math.min(1, (performance.now() - flight.t0) / flight.ms), e = 1 - Math.pow(1 - k, 3); controls.target.lerpVectors(flight.T0, flight.T, e); camera.position.lerpVectors(flight.P0, flight.P, e); if (k >= 1) flight = null; }
+  else if (follow) controls.target.lerp(new THREE.Vector3(hp.x, 0, hp.z), 0.06);
   controls.update(); projectTip(hp);
   renderer.render(scene, camera);
 };
 let active = false;
 const setActive = on => { if (on === active) return; active = on; renderer.setAnimationLoop(on ? frame : null); if (on) { clock.getDelta(); resize(); } };
-const flyTo = (x, z, dist = 520, az = 0.9) => { controls.target.set(x, 0, z); camera.position.set(x + Math.sin(az) * dist * 0.75, dist * 0.62, z + Math.cos(az) * dist * 0.75); controls.update(); };
+let flight = null;
+const flyTo = (x, z, dist = 520, az = 0.9, smooth = false) => { const y = heightAt(x, z); const T = new THREE.Vector3(x, y, z), P = new THREE.Vector3(x + Math.sin(az) * dist * 0.75, y + dist * 0.62, z + Math.cos(az) * dist * 0.75);
+  if (!smooth) { controls.target.copy(T); camera.position.copy(P); controls.update(); return; }
+  follow = false; flight = { t0: performance.now(), ms: 900, T0: controls.target.clone(), P0: camera.position.clone(), T, P }; };
 window.map3d = { zoomIn: () => dolly(0.78), zoomOut: () => dolly(1.28), toggleFollow, setTheme, setActive, reset, flyTo,
   pose: () => [...camera.position.toArray(), ...controls.target.toArray()].map(n => +n.toFixed(2)), controls };
 setActive(true);

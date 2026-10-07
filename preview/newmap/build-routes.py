@@ -50,5 +50,10 @@ rng = random.Random(7); out = {}
 for i, (wx, wy) in enumerate(SEEDS):
     p = walk(nearest(wx, wy), 1300 + i * 80, rng)
     out[f'R{i}'] = [[round(x * K, 1), round(y * K, 1)] for x, y in simplify(p, 1.2)]
+# coarse road grid for in-page routing (A* in the dashboard): max-pooled to G x G, 1 bit per cell
+import base64
+G = 256; f = N // G; pooled = road[:f * G, :f * G].reshape(G, f, G, f).max(axis=(1, 3))
+bits = np.packbits(pooled.astype(np.uint8).ravel())
+out['_grid'] = { 'n': G, 'bits': base64.b64encode(bits.tobytes()).decode() }
 json.dump(out, open(sys.argv[2], 'w'), separators=(',', ':'))
-print({k: (len(v), round(sum(math.hypot(v[j][0] - v[j - 1][0], v[j][1] - v[j - 1][1]) for j in range(1, len(v)))) ) for k, v in out.items()})
+print({k: (len(v), round(sum(math.hypot(v[j][0] - v[j - 1][0], v[j][1] - v[j - 1][1]) for j in range(1, len(v)))) ) for k, v in out.items() if not k.startswith('_')})

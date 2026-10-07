@@ -147,6 +147,26 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
 (() => {
   const ROUTES = __ROUTES__;   // patrol routes along real roads, preview/newmap/routes.json
   window.ROUTES = ROUTES;
+  // ── road grid + A*: drive a unit to any point along the roads ──
+  const GRID = ROUTES._grid; delete ROUTES._grid;
+  const GN = GRID.n, GB = Uint8Array.from(atob(GRID.bits), c => c.charCodeAt(0)), CELL = 2000 / GN;
+  const road = (cx, cy) => cx >= 0 && cy >= 0 && cx < GN && cy < GN && (GB[(cy * GN + cx) >> 3] >> (7 - ((cy * GN + cx) & 7))) & 1;
+  const snap = (x, y) => { const cx = Math.round(x / CELL - 0.5), cy = Math.round(y / CELL - 0.5); if (road(cx, cy)) return [cx, cy];
+    for (let r = 1; r < 24; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if ((Math.abs(dx) === r || Math.abs(dy) === r) && road(cx + dx, cy + dy)) return [cx + dx, cy + dy]; return null; };
+  const roadRoute = (ax, ay, bx, by) => { const A = snap(ax, ay), B = snap(bx, by); if (!A || !B) return [[ax, ay], [bx, by]];
+    const key = (x, y) => y * GN + x, g = new Map(), came = new Map(), open = [[0, A[0], A[1]]], closed = new Set(); g.set(key(A[0], A[1]), 0);
+    const h = (x, y) => Math.hypot(x - B[0], y - B[1]);
+    while (open.length) { let bi = 0; for (let i = 1; i < open.length; i++) if (open[i][0] < open[bi][0]) bi = i; const [, x, y] = open.splice(bi, 1)[0]; const k = key(x, y); if (closed.has(k)) continue; closed.add(k);
+      if (x === B[0] && y === B[1]) break;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const nx = x + dx, ny = y + dy; if (!road(nx, ny)) continue; const nk = key(nx, ny); if (closed.has(nk)) continue;
+        const ng = g.get(k) + (dx && dy ? 1.414 : 1); if (ng < (g.get(nk) ?? Infinity)) { g.set(nk, ng); came.set(nk, k); open.push([ng + h(nx, ny), nx, ny]); } }
+      if (closed.size > 40000) break; }
+    let k = key(B[0], B[1]); if (!came.has(k) && k !== key(A[0], A[1])) return [[ax, ay], [bx, by]];
+    const cells = []; while (k !== undefined) { cells.push([(k % GN + 0.5) * CELL, (Math.floor(k / GN) + 0.5) * CELL]); k = came.get(k); } cells.reverse();
+    const pts = [[ax, ay]]; for (let i = 1; i < cells.length - 1; i++) { const [px, py] = cells[i - 1], [cx, cy] = cells[i], [qx, qy] = cells[i + 1]; if ((cx - px) * (qy - cy) !== (cy - py) * (qx - cx)) pts.push(cells[i]); } pts.push([bx, by]);
+    const sm = [pts[0]]; for (let i = 1; i < pts.length - 1; i++) { const [a, b, c] = [pts[i - 1], pts[i], pts[i + 1]]; sm.push([b[0] * 0.5 + (a[0] + c[0]) * 0.25, b[1] * 0.5 + (a[1] + c[1]) * 0.25]); } sm.push(pts[pts.length - 1]);
+    return sm; };
+  window.roadRoute = roadRoute;
   let units = JSON.parse(document.getElementById('units').textContent);
   const seg = {}; for (const k in ROUTES) { const r = ROUTES[k], L = [0]; for (let i = 1; i < r.length; i++) L.push(L[i-1] + Math.hypot(r[i][0]-r[i-1][0], r[i][1]-r[i-1][1])); seg[k] = L; }
   const at = (k, t) => { const r = ROUTES[k], L = seg[k], d = t * L[L.length-1]; let i = 1; while (i < L.length-1 && L[i] < d) i++;
@@ -190,6 +210,11 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   const loop = (ts) => {
     const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
     for (const u of units) { if (u.live) { const k = 1 - Math.exp(-dt * 1.5); u.x += (u.tx - u.x) * k; u.y += (u.ty - u.y) * k; let d = u.th - u.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); u.heading += d * k; continue; }
+      if (u.task) { const T = u.task; let left = T.mps * dt;
+        while (left > 0 && T.i < T.path.length - 1) { const [bx, by] = T.path[T.i + 1], d = Math.hypot(bx - u.x, by - u.y); if (d <= left) { u.x = bx; u.y = by; T.i++; left -= d; } else { u.x += (bx - u.x) / d * left; u.y += (by - u.y) / d * left; left = 0; } }
+        const nx = T.path[Math.min(T.i + 1, T.path.length - 1)]; if (Math.hypot(nx[0] - u.x, nx[1] - u.y) > 0.5) u.heading = Math.atan2(nx[1] - u.y, nx[0] - u.x);
+        if (T.i >= T.path.length - 1) { if (T.call) { if (T.call.stage < 2) { T.call.stage = 2; dispatchEvent(new CustomEvent('calls')); } } else { u.task = null; } }
+        continue; }
       u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
       const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
     if (w && ts - miniT >= 200 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
@@ -197,13 +222,22 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
         el.style.backgroundSize = `${size2}px ${size2}px`; el.style.backgroundPosition = `${m.w/2 - u.x*s2}px ${m.h/2 - u.y*s2}px`;
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }
     if (ts - tick >= 1000) { tick = ts; const now = Date.now();
-      for (const { el, u } of spds) el.textContent = u.live ? u.mph : Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9))));
+      for (const { el, u } of spds) el.textContent = u.live ? u.mph : (u.task ? (u.task.i >= u.task.path.length - 1 ? 0 : Math.round(u.task.mps * 2.237)) : Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9)))));
       for (const { el, u } of timers) { const s = Math.floor((now - u.startedAt) / 1000);
         el.textContent = `${Math.floor(s/3600)}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
       for (const { el, u } of bars) if (el) el.style.setProperty('--p', Math.min(100, (now - u.startedAt) / 36e5 / 8 * 100).toFixed(1) + '%'); }
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
+
+  // ── dispatch: a demo unit assigned to a call drives there along the roads; when the call is cleared it drives back to its patrol ──
+  const CRUISE_MPS = { pd: 22, fd: 16, dot: 14 };                              // response speed, world units per second
+  const onCalls = () => { const CALLS = window.CALLS || [];
+    for (const u of units) { if (u.live) continue;
+      const c = CALLS.find(c => c.unit === u.name);
+      if (c && (!u.task || u.task.call !== c)) { u.task = { path: roadRoute(u.x, u.y, c.x, c.y), i: 0, mps: CRUISE_MPS[u.dept] || 18, call: c }; if (c.stage < 1) c.stage = 1; }
+      else if (!c && u.task && u.task.call) { const home = at(u.route, u.t); u.task = { path: roadRoute(u.x, u.y, home.x, home.y), i: 0, mps: CRUISE_MPS[u.dept] || 18, call: null }; } } };
+  addEventListener('calls', onCalls); setTimeout(onCalls, 0);
 })();
 </script>
 """
