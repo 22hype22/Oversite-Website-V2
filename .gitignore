@@ -2,3 +2,7 @@ preview/liberty-county-map-standalone.html
 preview/dispatch-standalone.html
 preview/live-map-standalone.html
 preview/live-map-3d-standalone.html
+
+# never commit an ER:LC server key
+.env
+*.key

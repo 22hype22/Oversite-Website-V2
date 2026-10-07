@@ -270,8 +270,9 @@ wt.position.set(498, 0, 1145); scene.add(wt); onTerrain.push(() => { wt.position
 const busGeo = new THREE.BoxGeometry(14, 5.5, 6); busGeo.translate(0, 2.75, 0);
 const mkBus = color => { const b = new THREE.Mesh(busGeo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.5 }));
   scene.add(b); return b; };
-const UN = window.UNITS || [], COL = { pd: 0x4C8DFF, fd: 0xE24B4B, dot: 0xE9C24C };
-const cars = UN.map((u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept]));
+let UN = window.UNITS || []; const COL = { pd: 0x4C8DFF, fd: 0xE24B4B, dot: 0xE9C24C };
+let cars = UN.map((u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept]));
+addEventListener('units', () => { for (const c of cars) { scene.remove(c); c.material.dispose(); } UN = window.UNITS || []; cars = UN.map((u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept])); });
 const incident = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 12), new THREE.MeshBasicMaterial({ color: 0xE24B4B }));
 incident.position.set(1180, 1300, 1300); scene.add(incident); onTerrain.push(() => { incident.position.y = heightAt(1180, 1300) + 4; });
 const glow = new THREE.Mesh(new THREE.RingGeometry(16, 18, 48), new THREE.MeshBasicMaterial({ color: 0xF0F2F5, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));

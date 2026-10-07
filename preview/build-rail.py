@@ -147,18 +147,18 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
 (() => {
   const ROUTES = { A: [[1423.9,238.8],[1423.9,264.2],[1423.9,289.6],[1423.9,314.9],[1423.9,340.3],[1410.4,362.7],[1409.0,388.1],[1409.0,413.4],[1409.0,438.8],[1409.0,464.2],[1409.0,489.6],[1409.0,514.9],[1409.0,540.3],[1409.0,565.7],[1409.0,591.0],[1407.5,616.4],[1401.5,641.8],[1385.1,662.7],[1367.2,680.6],[1349.3,698.5],[1331.3,716.4],[1313.4,734.3],[1295.5,752.2],[1277.6,770.1],[1259.7,788.1],[1241.8,806.0],[1223.9,823.9],[1206.0,841.8],[1188.1,859.7],[1167.2,874.6],[1146.3,889.6],[1134.3,867.2],[1134.3,841.8],[1134.3,816.4],[1134.3,791.0],[1134.3,765.7],[1113.4,750.7],[1089.6,759.7],[1114.9,752.2],[1129.9,773.1],[1129.9,798.5],[1129.9,823.9],[1129.9,849.3],[1129.9,874.6],[1144.8,895.5],[1134.3,919.4],[1125.4,943.3],[1107.5,962.7],[1089.6,980.6],[1070.1,998.5],[1052.2,1017.9],[1034.3,1035.8],[1016.4,1053.7],[998.5,1071.6],[980.6,1089.6],[962.7,1107.5],[947.8,1129.9],[934.3,1152.2],[926.9,1176.1],[923.9,1201.5],[923.9,1226.9],[923.9,1252.2],[923.9,1277.6],[923.9,1303.0],[923.9,1328.4],[923.9,1353.7],[926.9,1379.1],[926.9,1404.5],[944.8,1423.9],[950.7,1449.3],[965.7,1471.6],[989.6,1482.1],[1003.0,1504.5],[1003.0,1529.9],[979.1,1538.8],[953.7,1540.3],[929.9,1550.7],[920.9,1559.7]],
                    B: [[400.0,1417.9],[425.4,1419.4],[450.7,1419.4],[476.1,1419.4],[501.5,1417.9],[526.9,1417.9],[552.2,1417.9],[577.6,1417.9],[603.0,1417.9],[628.4,1417.9],[653.7,1417.9],[679.1,1417.9],[704.5,1417.9],[729.9,1417.9],[755.2,1416.4],[780.6,1416.4],[806.0,1416.4],[831.3,1416.4],[856.7,1416.4],[882.1,1417.9],[907.5,1417.9],[932.8,1416.4],[958.2,1416.4],[983.6,1416.4],[1009.0,1416.4],[1034.3,1416.4],[1059.7,1416.4],[1085.1,1416.4],[1110.4,1416.4],[1135.8,1416.4],[1161.2,1416.4],[1186.6,1416.4],[1211.9,1416.4],[1237.3,1416.4],[1262.7,1416.4],[1288.1,1416.4],[1313.4,1416.4],[1338.8,1417.9],[1364.2,1411.9],[1379.1,1417.9]] };
-  const units = JSON.parse(document.getElementById('units').textContent);
+  let units = JSON.parse(document.getElementById('units').textContent);
   const seg = {}; for (const k in ROUTES) { const r = ROUTES[k], L = [0]; for (let i = 1; i < r.length; i++) L.push(L[i-1] + Math.hypot(r[i][0]-r[i-1][0], r[i][1]-r[i-1][1])); seg[k] = L; }
   const at = (k, t) => { const r = ROUTES[k], L = seg[k], d = t * L[L.length-1]; let i = 1; while (i < L.length-1 && L[i] < d) i++;
     const f = (d - L[i-1]) / (L[i] - L[i-1] || 1), a = r[i-1], b = r[i];
     return { x: a[0] + (b[0]-a[0]) * f, y: a[1] + (b[1]-a[1]) * f, heading: Math.atan2(b[1]-a[1], b[0]-a[0]) }; };
   const now0 = Date.now();
   for (const u of units) { u.startedAt = now0 - u.since * 1000; Object.assign(u, at(u.route, u.t)); }
-  window.UNITS = units;
+  window.UNITS = units; window.DEMO_UNITS = units;
 
   // department chips: counts from the unit list, click to filter the cards
-  const counts = { all: units.length, pd: 0, fd: 0, dot: 0 }; for (const u of units) counts[u.dept]++;
-  for (const el of document.querySelectorAll('[data-count]')) el.textContent = counts[el.dataset.count] ?? 0;
+  const countUnits = () => { const counts = { all: units.length, pd: 0, fd: 0, dot: 0 }; for (const u of units) counts[u.dept]++;
+    for (const el of document.querySelectorAll('[data-count]')) el.textContent = counts[el.dataset.count] ?? 0; }; countUnits();
   const chips = [...document.querySelectorAll('.chips button[data-filter]')];
   chips.forEach(c => c.addEventListener('click', () => {
     chips.forEach(x => x.setAttribute('aria-pressed', x === c));
@@ -167,10 +167,15 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   }));
 
   const MAP = document.getElementById('mapsrc-mini')?.getAttribute('href') || document.getElementById('mapsrc')?.getAttribute('href') || document.querySelector('.view img')?.getAttribute('src');
-  const minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
-  const timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
-  const spds = [...document.querySelectorAll('.spd[data-unit]')].map(el => ({ el, u: units.find(x => x.id === el.dataset.unit) }));
-  const bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: units.find(x => x.id === el.dataset.unit) }));
+  let minis = [], timers = [], spds = [], bars = [];
+  const bind = () => { const find = el => units.find(x => x.id === el.dataset.unit);
+    minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: find(el) })).filter(m => m.u);
+    timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
+    spds = [...document.querySelectorAll('.spd[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
+    bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: find(el) })).filter(m => m.u); };
+  bind();
+  setTimeout(() => addEventListener('units', () => { units = window.UNITS || []; countUnits(); bind(); if (MAP) setMini(MAP); measure(); const f = document.querySelector('.chips [aria-pressed="true"]')?.dataset.filter || 'all';
+    for (const card of document.querySelectorAll('.veh[data-unit]')) card.hidden = f !== 'all' && !card.classList.contains('dept-' + f); }), 0);
   const VIEW = 300;                                   // world units visible across a mini map
   const setMini = url => { for (const m of minis) m.el.style.backgroundImage = `url("${url}")`; };
   if (MAP) setMini(MAP);
@@ -181,14 +186,15 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   let last = performance.now(), tick = 0, miniT = 0;   // tick = last timer refresh (ms)
   const loop = (ts) => {
     const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
-    for (const u of units) { u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
+    for (const u of units) { if (u.live) { const k = 1 - Math.exp(-dt * 1.5); u.x += (u.tx - u.x) * k; u.y += (u.ty - u.y) * k; let d = u.th - u.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); u.heading += d * k; continue; }
+      u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
       const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
     if (w && ts - miniT >= 200 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
       for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; const s2 = m.w / m.view, size2 = 2000 * s2;
         el.style.backgroundSize = `${size2}px ${size2}px`; el.style.backgroundPosition = `${m.w/2 - u.x*s2}px ${m.h/2 - u.y*s2}px`;
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }
     if (ts - tick >= 1000) { tick = ts; const now = Date.now();
-      for (const { el, u } of spds) el.textContent = Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9))));
+      for (const { el, u } of spds) el.textContent = u.live ? u.mph : Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9))));
       for (const { el, u } of timers) { const s = Math.floor((now - u.startedAt) / 1000);
         el.textContent = `${Math.floor(s/3600)}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
       for (const { el, u } of bars) if (el) el.style.setProperty('--p', Math.min(100, (now - u.startedAt) / 36e5 / 8 * 100).toFixed(1) + '%'); }
@@ -281,6 +287,7 @@ s=re.sub(r'<script id="units" type="application/json">.*?shared unit simulation.
 s=re.sub(r'<script>\n/\* ── Unit Availability: real chart.*?</script>\n', '', s, flags=re.S)
 anchor='<script>\n/* ── bottom panels' if '<script>\n/* ── bottom panels' in s else '<script>\n(() => {'
 s=s.replace(anchor, units_js+js_add+anchor,1)
+import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import live_block; s = live_block.apply(s, ICON)
 open(p,'w').write(s)
 b64=base64.b64encode(open('preview/liberty-county-dark.jpg','rb').read()).decode()
 b64l=base64.b64encode(open('preview/liberty-county.jpg','rb').read()).decode()
