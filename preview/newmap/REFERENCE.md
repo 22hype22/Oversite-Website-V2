@@ -101,6 +101,8 @@ Columns: id, file, postal / street, facing, what it shows, what it changes in th
 
 | 052-054 | refs/052..054-freecam-downtown-east.jpg | free cam: river north of downtown with the hotel (NE), Brookstone and the highway from the east bank (NW), terraced hill NE of downtown (N) | | hotel 4 storeys (~50) with a 3-storey red brick office beside it; red brick 3-storey block in a fenced lot east of the 6-lane highway; terraced hill NE of downtown ~45 studs with four grass terraces; low terraces along the river banks 10-20 | APPLIED: hotel 50, brick block 40 (placed by eye at 882,1395), NE hill 45 |
 
+| 055-059 | refs/055..059-freecam-downtown-south.jpg | free cam: Brookstone from the SE (NW), the SW corner of downtown from the NE hill (W), the same corner from the bluff (N), the beach road and bluff from above (N), downtown core from above the blue tower (N) | | Brookstone is 4 storeys (~48) with a black roof; the red brick 3-storey block with roller doors sits directly NE of it, not across the highway; tan 3-storey office with dark window bands and a 3-storey glass office at the SW corner by the bluff; white 5-storey office with arched ground floor south of the park; brown 8-storey block with two masts; orange-fin office 6 storeys | APPLIED: brick block moved to (851,1362); tan office 40; glass office 35; Brookstone 48 |
+
 Caveat from the user: objects far from the camera do not load fully in free cam, so terrain can appear to cut through distant buildings. Heights are only read from things near the camera.
 
 ## How to shoot useful photos
