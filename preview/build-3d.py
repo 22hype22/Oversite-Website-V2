@@ -3,6 +3,7 @@ S='/tmp/claude-0/-home-user-Oversite-Website-V2/12077a2b-514d-5869-a336-49444aaa
 src=open('preview/live-map.html').read()
 css=open(S+'3d.css').read(); js=open(S+'3d.js').read()
 geo=open('preview/liberty-county-3d.json').read()
+landmarks=open('preview/newmap/landmarks.json').read()
 
 view3d='''<!-- ─────────── 3D map (shares the view with the 2D world) ─────────── -->
 <link id="mapsrc" rel="preload" as="image" href="liberty-county.jpg">
@@ -68,7 +69,7 @@ if (zfit) zfit.onclick = () => state.dim === '3d' ? window.map3d.toggleFollow() 
 apply();
 </script>'''
 j=out.index('</script>\n</body>')
-out=out[:j+len('</script>')]+'\n<script id="geo" type="application/json">'+geo+'</script>\n<script type="module">\n'+js+'</script>\n'+ctl+out[j+len('</script>'):]
+out=out[:j+len('</script>')]+'\n<script id="geo" type="application/json">'+geo+'</script>\n<script id="landmarks" type="application/json">'+landmarks+'</script>\n<script type="module">\n'+js+'</script>\n'+ctl+out[j+len('</script>'):]
 open('preview/live-map-3d.html','w').write(out)
 # standalone: embed the texture (WebGL cannot read a file:// image), link to the standalone 2D page
 b64=base64.b64encode(open('preview/liberty-county.jpg','rb').read()).decode()

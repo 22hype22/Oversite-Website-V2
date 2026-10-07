@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const GEO = JSON.parse(document.getElementById('geo').textContent);
+const LM = JSON.parse(document.getElementById('landmarks').textContent);   // photo-measured objects, preview/newmap/landmarks.json
+const ST = 1 / 3.5;                                                        // world units per stud (see REFERENCE.md)
+const inClear = (x, y) => LM.clear.some(([x0, y0, x1, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1);
+GEO.buildings = GEO.buildings.filter(([x, y]) => !inClear(x, y));
 const MAP_LIGHT = document.getElementById('mapsrc').getAttribute('href');
 const MAP_DARK = document.getElementById('mapsrc-dark').getAttribute('href');
 const W = 2000;                           // world units, same grid as the 2D page
@@ -154,9 +158,9 @@ scene.add(bld);
 // ── trees: pines, broadleaf and cherry, sized like the in-game ones ──
 const tMat = new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true });
 const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4A3728, roughness: 1 });
-const pineGeo = new THREE.ConeGeometry(2.9, 17, 7); pineGeo.translate(0, 9.5, 0);
-const leafGeo = new THREE.IcosahedronGeometry(4.6, 1); leafGeo.translate(0, 8.0, 0);
-const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 5, 5); trunkGeo.translate(0, 2.5, 0);
+const pineGeo = new THREE.ConeGeometry(1.7, 9.4, 7); pineGeo.translate(0, 5.0, 0);          // ~33 studs (photos 002, 013)
+const leafGeo = new THREE.IcosahedronGeometry(2.6, 1); leafGeo.translate(0, 4.4, 0);         // ~22 studs crown top
+const trunkGeo = new THREE.CylinderGeometry(0.28, 0.4, 2.8, 5); trunkGeo.translate(0, 1.4, 0);
 const species = GEO.trees.map((_, i) => { const r = rnd(); return r < 0.40 ? 0 : r < 0.78 ? 1 : r < 0.92 ? 3 : 2; });   // 0 pine, 1 broadleaf, 2 cherry, 3 autumn
 const nPine = species.filter(s => s === 0).length, nLeaf = species.length - nPine;
 const pines = new THREE.InstancedMesh(pineGeo, tMat, nPine), leafs = new THREE.InstancedMesh(leafGeo, tMat, nLeaf), trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, nLeaf);
@@ -166,7 +170,7 @@ const treeIdx = [];
 const houseCells = new Set(); for (const i of houseIdx) { const [x, y] = GEO.buildings[i]; houseCells.add(`${Math.floor(x / 40)},${Math.floor(y / 40)}`); }
 const nearHouse = (x, y) => { const cx = Math.floor(x / 40), cy = Math.floor(y / 40); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (houseCells.has(`${cx + a},${cy + b}`)) return true; return false; };
 GEO.trees = GEO.trees.filter(([x, y]) => !nearHouse(x, y) || rnd() < 0.45);
-const CLEAR = [];
+const CLEAR = LM.clear.map(([x0, y0, x1, y1]) => [x0, x1, y0, y1]);
 GEO.trees = GEO.trees.filter(([x, y]) => !CLEAR.some(([x0, x1, y0, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1));
 const treeXf = GEO.trees.map((t, i) => { const sp = species[i], sc = t[2] * (0.55 + rnd() * 0.35); return [sp, sc, sp === 0 ? sc * (0.9 + rnd() * 0.4) : sc * (0.85 + rnd() * 0.3), rnd() * 6.28]; });
 const placeTrees = () => { let ip = 0, il = 0; treeIdx.length = 0;
@@ -181,6 +185,49 @@ const colourTrees = theme => { const T = TREE_COL[theme] || TREE_COL.light; let 
   pines.instanceColor.needsUpdate = true; leafs.instanceColor.needsUpdate = true; };
 colourTrees('light');
 scene.add(pines, leafs, trunks);
+
+// ── landmarks: pier, shops, office, lifeguard towers, palms, measured from the reference photos ──
+const lmGroup = new THREE.Group(); scene.add(lmGroup);
+const DECK_TOP = 15 * ST;
+const lmMat = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, flatShading: true });
+const unitBox = new THREE.BoxGeometry(1, 1, 1); unitBox.translate(0, 0.5, 0);
+const unitCyl = new THREE.CylinderGeometry(1, 1, 1, 8); unitCyl.translate(0, 0.5, 0);
+const hipGeo = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1); hipGeo.rotateY(Math.PI / 4); hipGeo.translate(0, 0.5, 0);
+const frondGeo = new THREE.BoxGeometry(4.4, 0.1, 1.0); frondGeo.translate(2.1, 0, 0); frondGeo.rotateZ(-0.55);
+const addBox = (x, y, L, Wd, ang, y0, h, mat) => { const m = new THREE.Mesh(unitBox, mat); m.position.set(x, y0, y); m.rotation.y = -ang; m.scale.set(L, h, Wd); m.castShadow = m.receiveShadow = true; lmGroup.add(m); return m; };
+const addCyl = (x, y, r, y0, h, mat) => { const m = new THREE.Mesh(unitCyl, mat); m.position.set(x, y0, y); m.scale.set(r, h, r); m.castShadow = true; lmGroup.add(m); return m; };
+const groundY = (x, y) => Math.max(heightAt(x, y), 0);
+const placeLandmarks = () => {
+  for (const m of [...lmGroup.children]) lmGroup.remove(m);
+  const deckMat = lmMat(0x7A5236), timber = lmMat(0x5E4330), concrete = lmMat(0xB9BCC0);
+  for (const d of LM.decks) { const L = d.x1 - d.x0, Wd = d.y1 - d.y0, t = d.thick * ST;
+    addBox((d.x0 + d.x1) / 2, (d.y0 + d.y1) / 2, L, Wd, 0, DECK_TOP - t, t, deckMat);
+    const r = d.pile_r * ST, mat = d.pile === 'timber' ? timber : concrete;
+    for (let x = d.x0 + r * 2; x <= d.x1 - r; x += d.spacing) for (let y = d.y0 + 1.5; y <= d.y1 - 1; y += d.spacing) { const g = groundY(x, y) - 0.5; addCyl(x, y, r, g, DECK_TOP - t - g, mat); } }
+  for (const rl of LM.rails) { const mat = lmMat(rl.colour), h = rl.h * ST;
+    for (let i = 1; i < rl.pts.length; i++) { const [ax, ay] = rl.pts[i - 1], [bx, by] = rl.pts[i], L = Math.hypot(bx - ax, by - ay), a = Math.atan2(by - ay, bx - ax);
+      addBox((ax + bx) / 2, (ay + by) / 2, L, 0.14, a, DECK_TOP + h - 0.14, 0.14, mat);
+      const n = Math.max(1, Math.round(L / 2.5)); for (let k = 0; k <= n; k++) addBox(ax + (bx - ax) * k / n, ay + (by - ay) * k / n, 0.12, 0.12, 0, DECK_TOP, h, mat); } }
+  for (const b of LM.boxes) { const lift = b.base === 'deck' ? 0 : 0.3, y0 = b.base === 'deck' ? DECK_TOP : groundY(b.x, b.y) - lift, h = b.h * ST + lift;
+    addBox(b.x, b.y, b.L, b.W, b.ang, y0, h, lmMat(b.colour));
+    if (b.roof === 'hip') { const r = new THREE.Mesh(hipGeo, lmMat(b.roof_colour)); r.position.set(b.x, y0 + h - 0.05, b.y); r.rotation.y = -b.ang; r.scale.set(b.L * 1.15, b.roof_h * ST, b.W * 1.15); r.castShadow = true; lmGroup.add(r); } }
+  const mastMat = lmMat(0xD8DCE0);
+  for (const m of LM.masts) addCyl(m.x, m.y, m.r * ST, DECK_TOP + 24 * ST, (m.h - 24) * ST, mastMat);
+  for (const p of LM.posts) { const g = groundY(p.x, p.y) - 0.2; addCyl(p.x, p.y, p.r * ST, g, p.h * ST + 0.2, lmMat(p.colour)); }
+  const lgMat = lmMat(0xC9A66B), legMat = lmMat(0x8A7355), lgRoof = lmMat(0x6B7B8C);
+  for (const t of LM.lifeguard) { const g = groundY(t.x, t.y); addBox(t.x, t.y, 8 * ST, 8 * ST, 0, g + 7 * ST, 5 * ST, lgMat); addBox(t.x, t.y, 9 * ST, 9 * ST, 0, g + 12 * ST, 0.25, lgRoof);
+    for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) addCyl(t.x + dx * 3.2 * ST, t.y + dy * 3.2 * ST, 0.5 * ST, g - 0.2, 7.2 * ST, legMat); }
+  // palms: a leaning trunk and seven fronds each
+  const pts = []; for (const ln of LM.palms.lines) { if (ln.pts) pts.push(...ln.pts); else { const n = Math.max(1, Math.round(Math.hypot(ln.to[0] - ln.from[0], ln.to[1] - ln.from[1]) / ln.step)); for (let i = 0; i <= n; i++) pts.push([ln.from[0] + (ln.to[0] - ln.from[0]) * i / n, ln.from[1] + (ln.to[1] - ln.from[1]) * i / n]); } }
+  const trunkM = new THREE.InstancedMesh(unitCyl, lmMat(0x8C7351), pts.length), frondM = new THREE.InstancedMesh(frondGeo, lmMat(0x4E8A3A), pts.length * 7);
+  trunkM.castShadow = frondM.castShadow = true; let sd = 5; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const E = new THREE.Euler(), top = new THREE.Vector3(), q2 = new THREE.Quaternion();
+  pts.forEach(([x, y], i) => { const h = LM.palms.h * ST * (0.85 + rn() * 0.3), lean = (rn() - 0.5) * 0.18, dir = rn() * 6.28, g = groundY(x, y) - 0.3;
+    E.set(lean * Math.sin(dir), 0, lean * Math.cos(dir)); Q.setFromEuler(E); P.set(x, g, y); Sc.set(0.28, h, 0.28); trunkM.setMatrixAt(i, M.compose(P, Q, Sc));
+    top.set(0, h, 0).applyQuaternion(Q).add(P);
+    for (let k = 0; k < 7; k++) { E.set(0, dir + k * 6.28 / 7, 0); q2.setFromEuler(E); Sc.set(0.9 + rn() * 0.2, 1, 1); frondM.setMatrixAt(i * 7 + k, M.compose(top, q2, Sc)); } });
+  lmGroup.add(trunkM, frondM); };
+placeLandmarks(); onTerrain.push(placeLandmarks);
 
 // ── routes (same polylines as the 2D page) ──
 const pathOf = pts => { const cp = new THREE.CurvePath(); for (let i = 1; i < pts.length; i++) {

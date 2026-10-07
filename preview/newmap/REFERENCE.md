@@ -14,7 +14,8 @@ not from memory. Nothing in the 3D scene should contradict a logged photo.
 | Sedan (police cruiser) | ~17 x 7.5 x 5.5 studs (L x W x H) | to confirm from a photo next to the player |
 | Fire engine | ~34 x 10 x 12 studs | to confirm |
 | Road lane width | ~12 studs | to confirm |
-| Studs per world unit | ~4 (tentative) | bridge road: ~6 lanes over ~21 units on the map, lane ~12 studs. Confirm with a cruiser photo |
+| Studs per world unit | 3.5 (STUD = 1/3.5 units, used by apply-heights.py and 3d.js) | pier width 21 units on the map vs ~70 studs in photo 010, pier length 70 units vs ~280 studs in photo 012. Confirm with a cruiser photo |
+| Sea level | 0 units; flat land 1.43 units (5 studs) | beach photos 004-021: sand meets the water with no step. The generated heightmap had land 22 units above the sea, apply-heights.py rebases it |
 | SUV (civ, blue) | ~17 x 8 x 6.5 studs | photos 002/003, player beside it |
 | Bridge deck (road to underside) | ~3 studs slab + ~4 stud parapet | photo 001/002 |
 | Bridge clearance (water to underside) | ~13 studs | photo 001, player on the abutment rock is ~0.4 of it |
@@ -22,6 +23,21 @@ not from memory. Nothing in the 3D scene should contradict a logged photo.
 | Palm | ~40 studs | photo 007, level with a 3-storey roof |
 | Lifeguard tower | ~12 studs incl. stilts | photos 017-020 |
 | Billboard | ~25 studs to the top | photo 019 |
+
+## Applied so far (build 2026-10-07, Bayside pass)
+
+Files: `heights.json` + `apply-heights.py` (terrain), `landmarks.json` (objects), rendered by `../live-map-3d.src.js`.
+Rebuild: `python3 preview/newmap/apply-heights.py <generated height png> preview/liberty-county-height.png`, then the usual `build-rail.py` and `build-3d.py`.
+
+- Sea level rebase: flat land now sits 5 studs above the water everywhere (was a 76-stud cliff at every shoreline).
+- West headland: plateau 115 studs with a 165 stud peak at the east end, polygon from the map's rock outline (photos 004, 005, 013). Known rough spot: the spit tip renders jagged because the terrain mesh (10.5 units per segment) is coarser than the spit is wide.
+- East bluff (the postal 205 hill behind Oceanside Drive): set to 33 studs (photos 017, 019, 020, 021). Knoll at the east end of the beach: 20 studs.
+- Bayside pier: deck 15 studs, shore section on timber trestle, water section and end platform on concrete piles, teal rails, shop row on the east edge (two trailers, pink arcade, blue Surf's Up, red shed, green Crab Shack), Bayside Grill with red hip roof, tower block with two 59 stud masts, arch posts.
+- Beach office block 40 studs with the red stair tower, tan retail row 18 studs, two lifeguard towers, palm lines along the back of both beaches (40 studs).
+- Trees: pines 33 studs, broadleaf 22 studs (were about twice that).
+- Extracted buildings and trees inside the landmark boxes and on the headland are dropped (`clear` in landmarks.json).
+
+Not yet applied: river bridge (001-003), downtown tower heights, water tower position, Chinatown pagoda roof, beach guardrail, beach road sea wall.
 
 ## Postal grid (from in-game minimap shots)
 
@@ -31,6 +47,8 @@ not from memory. Nothing in the 3D scene should contradict a logged photo.
 | 2002-2004 | pier, tip to entrance | ~ (560, 1660-1600) |
 | 2011-2016 | Chinatown, north of the boardwalk | TBD |
 | 2031 | beach road west of the boardwalk | TBD |
+
+Note: the API's own postal map (`api.erlc.gg/maps`, fall_postals) labels this area 201 (pier), 202 (east beach), 203 (west beach), 204 (Bayside block), 205 (the bluff hill), 206-208 (Southern Avenue), 300 (across the river mouth), with streets Oceanside Drive, Liberty Way, Southern Avenue. The in-game minimap shows 4-digit codes, so one of the two is stale. Log which one the live API returns before wiring units to postals.
 
 ## Photo log
 
@@ -58,6 +76,7 @@ Columns: id, file, postal / street, facing, what it shows, what it changes in th
 | 018 | refs/018-east-beach.jpg | above the east beach, looking back over Bayside | NW | overview: shop row and pier at left, two lifeguard towers, office block, Bayside retail, downtown behind with one dark tower ~10 storeys and two ~8 storey blocks; the west headland on the far left reads as a flat mesa ~2x the height of the town hills; the east bluff with the billboard runs along the right | TODO: downtown tower heights 8-10 storeys (~90-110 studs); mesa vs hill ratio |
 | 019 | refs/019-east-beach.jpg | east beach, mid way along | N | the bluff square on: ~30-35 studs (5 SUV heights), rough faces, flat grassy top, billboard ~25 studs on a pole; a blue water tower tank with masts shows above the bluff to the NE; pagoda-roof building (Chinatown) left of the bluff; lifeguard tower ~12 studs | TODO: water tower is NE of the east beach behind the bluff, find it on the map; Chinatown pagoda roof |
 | 020 | refs/020-east-beach.jpg | east beach, further east, from the shallows | N | same bluff full length, ~30 studs, with a cutting through it; water tower and antenna masts behind; brown 3-storey block (~40 studs) with masts at the right, by the river mouth; palms ~40; a second lifeguard tower | TODO: bluff runs the full length of the east beach (world x ~586-742, y ~1484-1574) with a gap; 3-storey block near the river mouth |
+| 021 | refs/021-east-beach.jpg | in the sea off the east beach | N | full east beach: bluff behind the road, a grassy knoll with autumn trees at the east end (~20 studs), lifeguard tower, palms; the west headland mesa on the far left horizon | APPLIED: knoll polygon 20 studs |
 
 ## How to shoot useful photos
 
