@@ -183,6 +183,7 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -214,6 +215,7 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -505,7 +507,7 @@
   @media (max-width:980px){.page{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
   /* ───────── MDT: an iPad (4:3 landscape) centred on the map; dispatch slides off ───────── */
   .mdt-dock{position:fixed;top:calc(var(--barh) + var(--gap));bottom:var(--gap);left:50%;z-index:7;
-    width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * 1.333));
+    width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * 1.5));
     transform:translateX(calc(-50% + 100vw));transition:transform .6s cubic-bezier(.32,.72,0,1);pointer-events:none;
     display:flex;align-items:center;justify-content:center}
   body.mdt-open .mdt-dock{transform:translateX(-50%);pointer-events:auto}
@@ -513,7 +515,7 @@
   body.mdt-open .rail,body.mdt-open .stage{transform:translateX(calc(-100% - 60px));opacity:0;pointer-events:none}
   body.mdt-open .pins{display:none}
   body.mdt-open .view{filter:brightness(.7)}
-  .tablet{width:100%;aspect-ratio:4/3;max-height:100%}
+  .tablet{width:100%;aspect-ratio:3/2;max-height:100%}
   .mdt-btn[aria-pressed="true"]{color:var(--ink);background:rgba(226,75,75,.22)!important;border-color:rgba(226,75,75,.45)!important}
   .tablet{position:relative;border-radius:34px;padding:14px;background:linear-gradient(160deg,#2A2B30,#101114 40%,#0B0B0D);
     box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.08),inset 0 0 0 3px #16171A}
@@ -613,6 +615,47 @@
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;padding:9px 14px;border-radius:10px;background:rgba(20,20,23,.92);border:1px solid var(--hair2);font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.on{opacity:1}
   @media (prefers-reduced-motion:reduce){.mdt-dock,.stage,.tscreen{transition:none;animation:none}.assist i{animation:none}}
+  /* ───────── MDT: ambient screen + home dashboard ───────── */
+  .tablet .screen{background:radial-gradient(900px 500px at 15% -10%,rgba(255,69,58,.22),transparent 60%),radial-gradient(700px 420px at 110% 110%,rgba(255,159,10,.14),transparent 60%),#050506}
+  .tablet .screen::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:36px 36px;mask-image:radial-gradient(circle at 30% 20%,#000,transparent 70%);-webkit-mask-image:radial-gradient(circle at 30% 20%,#000,transparent 70%)}
+  .tablet{background:linear-gradient(160deg,#34353B,#141518 45%,#0A0A0C);box-shadow:0 40px 100px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.1) inset,0 0 0 3px #17181B inset,0 0 60px rgba(255,69,58,.12)}
+  .tside{width:92px;background:rgba(255,255,255,.025)}
+  .crest{width:46px;height:46px;margin:4px auto 14px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(145deg,#FF6B5E,#C8281E);box-shadow:0 8px 24px rgba(255,69,58,.45),0 0 0 1px rgba(255,255,255,.15) inset}
+  .tuser{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:5px;padding-top:10px}
+  .tuser i{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:700;color:#fff;background:linear-gradient(145deg,#3A3C44,#1C1D22);box-shadow:0 0 0 2px rgba(255,255,255,.08)}
+  .tuser small{font-size:9.5px;color:#8E929B;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tcard{background:rgba(255,255,255,.05);box-shadow:0 0 0 1px rgba(255,255,255,.06) inset;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .hgrid{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;margin-top:8px}
+  .hero{border-radius:22px;padding:18px 18px 14px;background:linear-gradient(160deg,rgba(255,69,58,.22),rgba(255,255,255,.04) 45%,rgba(255,255,255,.03));box-shadow:0 0 0 1px rgba(255,255,255,.08) inset,0 20px 50px rgba(0,0,0,.35);position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(255,69,58,.35),transparent 65%);pointer-events:none}
+  .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .hero-top small{display:block;font-size:10px;font-weight:700;letter-spacing:.16em;color:#FFB4AE}
+  .hero-top h2{margin:2px 0 0;font-size:38px;font-weight:700;letter-spacing:-.03em;line-height:1}
+  .hero-top p{margin:6px 0 0;font-size:12.5px;color:#C9CCD3}
+  .screen .pill.big{font-size:14px;padding:8px 14px;border-radius:12px}
+  .hero .statgrid{margin-bottom:12px}
+  .hero .statgrid button{background:rgba(0,0,0,.35);box-shadow:0 0 0 1px rgba(255,255,255,.06) inset}
+  .hero .assist{margin-bottom:0;background:rgba(0,0,0,.35)}
+  .hcol{display:flex;flex-direction:column;gap:14px;min-height:0}
+  .callcard{flex:none;padding-bottom:14px}
+  .callcard .cc{font-size:13px}
+  .callcard .cc b{display:block;font-size:17px;font-weight:700;letter-spacing:-.01em;margin:2px 0 4px}
+  .callcard .cc span{color:#8E929B;display:block;font-size:12px}
+  .callcard .tl{display:flex;gap:5px;align-items:center;margin:12px 0 10px}
+  .callcard .tl i{height:5px;flex:1;border-radius:3px;background:rgba(255,255,255,.12)} .callcard .tl i.on{background:var(--fd);box-shadow:0 0 10px rgba(255,69,58,.6)}
+  .callcard .tl small{font-size:10px;font-weight:700;color:#8E929B;margin-left:6px;letter-spacing:.1em}
+  .callcard .acts{display:flex;gap:8px}
+  .tmap.small{flex:1;min-height:170px;margin-bottom:0;box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
+  .tmap-cap{position:absolute;left:12px;right:12px;bottom:10px;display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:#D9DBE0;z-index:1}
+  .tmap-cap b{font-weight:600;color:#fff} .tmap-cap span{font-variant-numeric:tabular-nums}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .stat{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);box-shadow:0 0 0 1px rgba(255,255,255,.06) inset}
+  .stat small{display:block;font-size:9.5px;font-weight:700;letter-spacing:.14em;color:#8E929B}
+  .stat b{display:block;font-size:20px;font-weight:600;letter-spacing:-.02em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tside button[aria-selected="true"]{background:rgba(255,69,58,.16);color:#fff;box-shadow:0 0 0 1px rgba(255,69,58,.35) inset}
+  .tside button[aria-selected="true"] svg{filter:drop-shadow(0 0 6px rgba(255,69,58,.8))}
+  .fcall,.app,.rpt{backdrop-filter:none;-webkit-backdrop-filter:none}
+  @media (max-width:1180px){.hgrid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -792,30 +835,41 @@
       <div class="sbar"><span id="tbClock">00:00</span><span class="sb-mid"><i class="dept-dot"></i>LIBERTY COUNTY FIRE · MDT</span><span class="sb-r"><svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="3" y="4" width="2" height="6" rx=".5"/><rect x="6" y="2" width="2" height="8" rx=".5"/><rect x="9" y="0" width="2" height="10" rx=".5"/></svg><svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="18" height="9" rx="2.5"/><rect x="2" y="2" width="13" height="6" rx="1.2" fill="currentColor" stroke="none"/><path d="M20 3.5v3" stroke-width="1.5"/></svg></span></div>
       <div class="tbody">
         <nav class="tside" role="tablist" aria-label="MDT apps">
+          <div class="crest" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 1-3s0 2 2 2c1 0 2-1 2-3 0-2-2-3-2-6 0 0 2 0 2 0z"/></svg></div>
           <button role="tab" data-pane="home" aria-selected="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11 12 3l9 8M5 10v10h5v-6h4v6h5V10"/></svg><span>Home</span></button>
           <button role="tab" data-pane="calls" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke-linecap="round"/></svg><span>Calls</span><i class="badge" id="tnavCalls" hidden></i></button>
           <button role="tab" data-pane="units" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17V8h11l4 4h3v5h-2M3 17h2m4 0h6"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg><span>Units</span></button>
           <button role="tab" data-pane="map" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg><span>Map</span></button>
           <button role="tab" data-pane="reports" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>Reports</span></button>
+          <div class="tuser" aria-hidden="true"><i id="tuserAv">MJ</i><small id="tuserName">marlowe_j</small></div>
         </nav>
         <div class="tscreens">
           <section class="tscreen on" data-pane="home">
-            <header class="thead"><div><small>UNIT</small><h2 id="fdUnitName">FD 4120</h2><p id="fdUnitCrew" class="dim"></p></div><span class="pill st" id="fdStatusPill">10-8</span></header>
-            <div class="assist" id="fdAssist"><i></i><div><b>Assist</b><span id="fdAssistText">Monitoring. No action needed.</span></div></div>
-            <div class="statgrid" id="fdStatus">
-              <button data-st="10-8">10-8<small>Available</small></button>
-              <button data-st="10-76">10-76<small>En route</small></button>
-              <button data-st="10-23">10-23<small>On scene</small></button>
-              <button data-st="10-19">10-19<small>Returning</small></button>
-              <button data-st="10-7">10-7<small>Out of service</small></button>
-              <button data-st="10-6">10-6<small>Busy</small></button>
+            <div class="hgrid">
+              <div class="hero">
+                <div class="hero-top"><div><small>UNIT · STATION 1</small><h2 id="fdUnitName">FD 4120</h2><p id="fdUnitCrew" class="dim"></p></div><span class="pill st big" id="fdStatusPill">10-8</span></div>
+                <div class="statgrid" id="fdStatus">
+                  <button data-st="10-8">10-8<small>Available</small></button>
+                  <button data-st="10-76">10-76<small>En route</small></button>
+                  <button data-st="10-23">10-23<small>On scene</small></button>
+                  <button data-st="10-19">10-19<small>Returning</small></button>
+                  <button data-st="10-7">10-7<small>Out of service</small></button>
+                  <button data-st="10-6">10-6<small>Busy</small></button>
+                </div>
+                <div class="assist" id="fdAssist"><i></i><div><b>Assist</b><span id="fdAssistText">Monitoring. No action needed.</span></div></div>
+              </div>
+              <div class="hcol">
+                <div class="tcard callcard" id="fdHomeCall"><div class="tch"><h3>Assigned call</h3><span class="pill" id="fdHomePri" hidden></span></div><div id="fdHomeCallBody"><div class="empty">No call assigned. You are available.</div></div></div>
+                <div class="mini live tmap small" data-unit="fd-4120" aria-label="My position"><span class="ring"></span><span class="pin"></span><div class="tmap-cap"><b id="fdHomePostal">Liberty County</b><span><span class="spd" data-unit="fd-4120">0</span> mph</span></div></div>
+              </div>
             </div>
-            <div class="tcard">
-              <div class="kv"><span>Station</span><b>Station 1 · Freedom Ave</b></div>
-              <div class="kv"><span>Apparatus</span><b id="fdApparatus">Pierce Engine</b></div>
-              <div class="kv"><span>On duty</span><b id="fdDuty">0:00</b></div>
-              <div class="kv"><span>Assigned call</span><b id="fdAssigned">None</b></div>
+            <div class="stats">
+              <div class="stat"><small>ON DUTY</small><b id="fdDuty">0:00</b></div>
+              <div class="stat"><small>CALLS TODAY</small><b id="fdCallsToday">0</b></div>
+              <div class="stat"><small>APPARATUS</small><b id="fdApparatus">Pierce Engine</b></div>
+              <div class="stat"><small>PENDING</small><b id="fdPending">0</b></div>
             </div>
+            <span id="fdAssigned" hidden></span>
           </section>
           <section class="tscreen" data-pane="calls">
             <header class="thead"><div><small>QUEUE</small><h2>Fire Calls</h2></div><span class="cnt" id="fdCallCount">0</span></header>
@@ -1251,7 +1305,20 @@
     $('fdUnitName').textContent = u.name; $('fdUnitCrew').textContent = u.crew.join(', '); $('fdApparatus').textContent = u.model || 'Engine';
     const pill = $('fdStatusPill'); pill.textContent = myStatus; pill.className = 'pill st ' + stClass(myStatus);
     for (const b of $('fdStatus').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.st === myStatus);
-    const mine = CALLS().find(c => c.unit === u.name); $('fdAssigned').textContent = mine ? `${mine.code} · ${mine.where}` : 'None'; };
+    const mine = CALLS().find(c => c.unit === u.name); $('fdAssigned').textContent = mine ? `${mine.code} · ${mine.where}` : 'None';
+    const hb = $('fdHomeCallBody'), hp = $('fdHomePri');
+    if (mine) { hp.hidden = false; hp.textContent = `P${mine.pri}`; hp.className = `pill p${mine.pri}`;
+      hb.innerHTML = `<div class="cc"><span>${esc(mine.code)}</span><b>${esc(mine.type)}</b><span>${esc(mine.where)} · ${fmtAge((Date.now() - mine.startedAt) / 1000)}</span></div><div class="tl">${STAGES.map((_, i) => `<i class="${i <= mine.stage ? 'on' : ''}"></i>`).join('')}<small>${STAGES[mine.stage].toUpperCase()}</small></div><div class="acts">${mine.stage < 1 ? '<button class="btn" data-home="enroute">En route</button>' : mine.stage < 2 ? '<button class="btn" data-home="onscene">On scene</button>' : '<button class="btn danger" data-home="clear">Clear call</button>'}<button class="btn ghost" data-home="open">Open</button></div>`; }
+    else { hp.hidden = true; hb.innerHTML = '<div class="empty">No call assigned. You are available.</div>'; }
+    const pend = CALLS().filter(c => fdCall(c) && !c.unit).length; $('fdPending').textContent = pend; $('fdCallsToday').textContent = CALLS().filter(c => c.unit === u.name).length + (reportsCount ? reportsCount() : 0);
+    $('fdHomePostal').textContent = u.postal ? 'Postal ' + u.postal : 'Liberty County';
+    const av = $('tuserAv'), nm = $('tuserName'); if (av) { av.textContent = (u.crew[0] || 'FD').replace(/[^a-z0-9]/gi, ' ').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase(); nm.textContent = u.crew[0] || ''; } };
+  let reportsCount = null;
+  $('fdHomeCall').addEventListener('click', e => { const b = e.target.closest('[data-home]'); if (!b) return; const u = me(); const mine = CALLS().find(c => c.unit === u?.name); if (!mine) return;
+    const a = b.dataset.home; if (a === 'open') { selected = key(mine); window.mdtShow && window.mdtShow('calls'); renderCalls(); return; }
+    if (a === 'enroute') { mine.stage = 1; myStatus = '10-76'; } if (a === 'onscene') { mine.stage = 2; myStatus = '10-23'; }
+    if (a === 'clear') { const i = CALLS().indexOf(mine); if (i >= 0) CALLS().splice(i, 1); myStatus = '10-19'; toast(`${mine.code} cleared`); newReportFrom(mine, true); window.mdtShow && window.mdtShow('report'); }
+    unitStatus[u.name] = myStatus; dispatchEvent(new CustomEvent('calls')); renderUnit(); renderApp(); renderCalls(); });
   $('fdStatus').addEventListener('click', e => { const b = e.target.closest('[data-st]'); if (!b) return; myStatus = b.dataset.st; const u = me(); if (u) unitStatus[u.name] = myStatus;
     const mine = CALLS().find(c => c.unit === u?.name); if (mine) { if (myStatus === '10-76') mine.stage = 1; if (myStatus === '10-23') mine.stage = 2; dispatchEvent(new CustomEvent('calls')); }
     renderUnit(); renderApp(); toast(`${u?.name} is ${myStatus}`); });
@@ -1298,6 +1365,7 @@
   const newReport = () => { form.reset(); editing = null; fill({ num: nextNum(), oic: me()?.crew[0] || '', units: me()?.name || '', status: 'Draft', t_disp: hhmm(Date.now()) }); };
   const newReportFrom = (c, cleared) => { newReport(); const map = { '10-70': 'Structure fire', '10-50': 'MVA / extrication', '10-52': 'Medical', '10-45': 'Vehicle fire', '10-53': 'Public assist' };
     fill({ call: `${c.code} · ${c.where}`, type: map[c.code] || 'Other', pri: `P${c.pri}`, addr: c.where, units: c.unit || me()?.name || '', t_disp: hhmm(c.startedAt), t_scene: c.stage >= 2 ? hhmm(Date.now()) : '', t_clear: cleared ? hhmm(Date.now()) : '', narr: `Dispatched to ${c.type.toLowerCase()} at ${c.where}. ` }); form.narr.focus(); };
+  reportsCount = () => reports.length;
   const renderReports = () => { $('rptRows').innerHTML = reports.slice().reverse().map(r => `<div class="rpt" role="button" tabindex="0" data-num="${esc(r.num)}"><b>${esc(r.num)} · ${esc(r.type)}</b><span class="tag ${r.status === 'Submitted' ? 'sub' : ''}">${esc(r.status)}</span><small>${esc(r.addr || r.call || '')} · ${esc(r.saved || '')}</small></div>`).join('') || '<div class="empty">No reports yet.</div>'; $('rptCount').textContent = reports.length; };
   $('rptRows').addEventListener('click', e => { const r = e.target.closest('[data-num]'); if (!r) return; const rec = reports.find(x => x.num === r.dataset.num); if (rec) { editing = rec.num; form.reset(); fill(rec); window.mdtShow && window.mdtShow('report'); toast(`Opened ${rec.num}`); } });
   $('rptSave').addEventListener('click', () => { const r = read(); if (!r.narr.trim() && !r.addr.trim()) { toast('Add an address or narrative first'); return; }
