@@ -176,6 +176,7 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -207,6 +208,7 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -488,6 +490,70 @@
   .upd .by{font-size:10.5px;color:var(--faint);margin-top:8px;display:flex;align-items:center;gap:6px}
   .upd .by i{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7C7F86,#2A2B2F 70%);display:inline-block}
   @media (max-width:980px){.page{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
+  /* ───────── Fire Department MDT ───────── */
+  body[data-view="fire"] .rail,body[data-view="fire"] .stage,body[data-view="fire"] .pins{display:none}
+  body[data-view="fire"] .view{filter:brightness(.55)}
+  .page.mdt{grid-template-columns:minmax(280px,3fr) minmax(320px,4fr) minmax(340px,4fr)}
+  .page.mdt[hidden]{display:none}
+  .mdt .col{display:flex;flex-direction:column;gap:var(--gap);min-height:0}
+  .mdt .col>.panel{flex:1;min-height:0}
+  .mdt .col>.panel.unit{flex:0 0 auto}
+  .mdt .col>.panel.detail{flex:1.2}
+  .mdt .col>.panel.report{flex:2.2}
+  .mdt .col>.panel.saved{flex:1}
+  .mdt .ph h2{font-size:14px}
+  .mdt .ph .dim{display:block;font-size:10.5px;color:var(--dim);margin-top:2px}
+  .mdt .body{padding:12px 16px 14px;overflow-y:auto;min-height:0}
+  .mdt .panel .rows{padding:6px 8px 8px;flex:1;min-height:0;overflow-y:auto}
+  .mdt .pill{font-size:10.5px;padding:3px 9px;border-radius:999px;font-weight:500;background:rgba(240,242,245,.08);border:1px solid var(--hair);color:var(--ink)}
+  .mdt .pill.st{color:#7BE3A1;background:rgba(70,208,124,.14);border-color:rgba(70,208,124,.3)}
+  .mdt .pill.st.busy{color:#F1C48A;background:rgba(233,162,76,.14);border-color:rgba(233,162,76,.3)}
+  .mdt .pill.st.oos{color:#F0A0A0;background:rgba(226,75,75,.16);border-color:rgba(226,75,75,.3)}
+  .mdt .pill.p1{color:#F0A0A0;background:rgba(226,75,75,.16)} .mdt .pill.p2{color:#F1C48A;background:rgba(233,162,76,.14)}
+  .statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+  .statgrid button{padding:9px 6px;border-radius:10px;border:1px solid var(--hair);background:rgba(240,242,245,.04);font-size:12.5px;font-weight:500;line-height:1.1;text-align:center;transition:background .16s,border-color .16s}
+  .statgrid button small{display:block;font-weight:400;font-size:9.5px;color:var(--dim);margin-top:3px}
+  .statgrid button:hover{background:rgba(240,242,245,.08)}
+  .statgrid button[aria-pressed="true"]{background:rgba(226,75,75,.18);border-color:rgba(226,75,75,.45);color:#fff}
+  .kv{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;padding:6px 0;border-bottom:1px solid var(--hair)}
+  .kv:last-child{border-bottom:0} .kv span{color:var(--dim)} .kv b{font-weight:500;text-align:right}
+  .app{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 8px;border-radius:9px;font-size:11.5px}
+  .app:hover{background:rgba(240,242,245,.05)}
+  .app i{width:8px;height:8px;border-radius:50%;background:var(--green);display:block}
+  .app i.busy{background:var(--amber)} .app i.oos{background:var(--red)}
+  .app b{font-weight:500;display:block} .app small{color:var(--dim);font-size:10px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .app .st{font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums;text-align:right}
+  .fcall{display:grid;grid-template-columns:3px 46px 1fr auto;gap:10px;align-items:center;padding:7px 8px 7px 6px;border-radius:9px;font-size:11px;cursor:pointer;border:1px solid transparent}
+  .fcall:hover{background:rgba(240,242,245,.05)} .fcall[aria-selected="true"]{background:rgba(226,75,75,.10);border-color:rgba(226,75,75,.3)}
+  .fcall .bar{width:3px;height:26px;border-radius:2px;background:#5B5F66} .fcall.p1 .bar{background:var(--red);box-shadow:0 0 10px rgba(226,75,75,.7)} .fcall.p2 .bar{background:var(--amber)}
+  .fcall .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;text-align:center;padding:3px 0;border-radius:6px;background:rgba(240,242,245,.06);border:1px solid var(--hair)}
+  .fcall .what b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .fcall .what span{display:block;color:var(--dim);font-size:10px}
+  .fcall .age{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .det .row2{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:11.5px;margin-bottom:10px}
+  .det .row2 span{color:var(--dim);display:block;font-size:10px} .det .row2 b{font-weight:500}
+  .det .tl{display:flex;gap:4px;align-items:center;margin:4px 0 12px}
+  .det .tl i{height:4px;flex:1;border-radius:2px;background:rgba(240,242,245,.12)} .det .tl i.on{background:var(--red)}
+  .det .tl small{font-size:9.5px;color:var(--faint);margin-left:6px;letter-spacing:.03em}
+  .det .notes{font-size:11.5px;color:var(--dim);line-height:1.5;padding:9px 10px;border-radius:9px;background:rgba(240,242,245,.04);border:1px solid var(--hair);margin-bottom:12px}
+  .det .acts{display:flex;gap:6px;flex-wrap:wrap}
+  .btn{font-size:11.5px;font-weight:500;padding:7px 12px;border-radius:8px;background:#F4F6F8;color:#0B0B0C;border:1px solid transparent}
+  .btn:hover{background:#fff} .btn.ghost{background:rgba(240,242,245,.06);color:var(--ink);border-color:var(--hair)} .btn.ghost:hover{background:rgba(240,242,245,.12)}
+  .btn.danger{background:rgba(226,75,75,.18);color:#F6C5C5;border-color:rgba(226,75,75,.35)}
+  .mdt .acts{display:flex;gap:6px}
+  #rptForm label{display:block;font-size:10px;color:var(--dim);margin-bottom:8px}
+  #rptForm input,#rptForm select,#rptForm textarea{display:block;width:100%;margin-top:3px;font:inherit;font-size:12px;color:var(--ink);background:rgba(240,242,245,.05);border:1px solid var(--hair);border-radius:8px;padding:7px 9px;outline:0;resize:vertical}
+  #rptForm input:focus,#rptForm select,#rptForm textarea:focus{border-color:rgba(240,242,245,.3)}
+  #rptForm select option{background:#1C1C1F}
+  #rptForm input[readonly]{color:var(--dim)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+  .rpt{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px;border-radius:9px;cursor:pointer;font-size:11.5px}
+  .rpt:hover{background:rgba(240,242,245,.05)} .rpt b{font-weight:500} .rpt small{color:var(--dim);font-size:10px;grid-column:1/-1}
+  .rpt .tag{font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:6px;color:var(--dim);background:rgba(240,242,245,.07);align-self:start}
+  .rpt .tag.sub{color:#7BE3A1;background:rgba(70,208,124,.12)}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;padding:9px 14px;border-radius:10px;background:rgba(20,20,23,.92);border:1px solid var(--hair2);font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+  @media (max-width:1180px){.page.mdt{grid-template-columns:1fr 1fr}.page.mdt .col:last-child{grid-column:1/-1}}
+  @media (max-width:980px){.page.mdt{grid-template-columns:1fr}.page.mdt .col:last-child{grid-column:auto}}
   /* ───────── 3D view ───────── */
   body.mode-3d{--blur:blur(22px) saturate(1.2)}   /* lighter blur while WebGL repaints under the panels */
   .view3d{position:absolute;inset:0}
@@ -584,7 +650,7 @@
   <nav class="menu" role="tablist" aria-label="Sections">
     <button role="tab" aria-selected="true" data-view="dispatch">Dispatch</button>
     <button role="tab" aria-selected="false">Police Department</button>
-    <button role="tab" aria-selected="false">Fire Department</button>
+    <button role="tab" aria-selected="false" data-view="fire">Fire Department</button>
     <button role="tab" aria-selected="false">Department of Transportation</button>
     <button role="tab" aria-selected="false">Server Staff</button>
     <button role="tab" aria-selected="false" data-view="status">Status &amp; Updates</button>
@@ -703,6 +769,75 @@
   <div class="card panel updates">
     <div class="ph"><h2>Updates</h2><span class="cnt" id="updCount">0</span></div>
     <div class="scroll"><div class="feed" id="feed"></div></div>
+  </div>
+</section>
+
+
+<!-- ─────────── Fire Department MDT ─────────── -->
+<section class="page mdt" id="pageFire" hidden aria-label="Fire Department MDT">
+  <div class="col">
+    <div class="card panel unit">
+      <div class="ph"><div><h2 id="fdUnitName">FD 4120</h2><small id="fdUnitCrew" class="dim"></small></div><span class="pill st" id="fdStatusPill">10-8</span></div>
+      <div class="body">
+        <div class="statgrid" id="fdStatus">
+          <button data-st="10-8">10-8<small>Available</small></button>
+          <button data-st="10-76">10-76<small>En route</small></button>
+          <button data-st="10-23">10-23<small>On scene</small></button>
+          <button data-st="10-19">10-19<small>Returning</small></button>
+          <button data-st="10-7">10-7<small>Out of service</small></button>
+          <button data-st="10-6">10-6<small>Busy</small></button>
+        </div>
+        <div class="kv"><span>Station</span><b>Station 1 · Freedom Ave</b></div>
+        <div class="kv"><span>Apparatus</span><b id="fdApparatus">Pierce Engine</b></div>
+        <div class="kv"><span>On duty</span><b id="fdDuty">0:00</b></div>
+        <div class="kv"><span>Assigned call</span><b id="fdAssigned">None</b></div>
+      </div>
+    </div>
+    <div class="card panel">
+      <div class="ph"><h2>Apparatus</h2><span class="cnt" id="fdAppCount">0</span></div>
+      <div class="scroll rows" id="fdAppRows"></div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card panel calls">
+      <div class="ph"><h2>Fire Calls</h2><span class="cnt" id="fdCallCount">0</span></div>
+      <div class="scroll rows" id="fdCallRows"></div>
+    </div>
+    <div class="card panel detail" id="fdDetail">
+      <div class="ph"><h2 id="fdDetTitle">Select a call</h2><span class="pill" id="fdDetPri" hidden></span></div>
+      <div class="body" id="fdDetBody"><div class="empty">Pick a call from the queue to see details, respond, and write the report.</div></div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card panel report">
+      <div class="ph"><h2>Incident Report</h2><div class="acts"><button class="btn ghost" id="rptNew" type="button">New</button><button class="btn" id="rptSave" type="button">Save</button></div></div>
+      <form class="scroll body" id="rptForm" autocomplete="off">
+        <div class="grid2">
+          <label>Report #<input name="num" readonly></label>
+          <label>Call<input name="call" placeholder="10-70 · 14 Ridge Rd"></label>
+          <label>Incident type<select name="type"><option>Structure fire</option><option>Vehicle fire</option><option>Brush / wildland</option><option>Medical</option><option>MVA / extrication</option><option>Hazmat</option><option>Alarm activation</option><option>Public assist</option><option>Other</option></select></label>
+          <label>Priority<select name="pri"><option>P1</option><option>P2</option><option>P3</option></select></label>
+          <label>Address<input name="addr" placeholder="Street, postal"></label>
+          <label>Units on scene<input name="units" placeholder="FD 4120, FD 2201"></label>
+          <label>Dispatched<input name="t_disp" type="time"></label>
+          <label>On scene<input name="t_scene" type="time"></label>
+          <label>Under control<input name="t_ctrl" type="time"></label>
+          <label>Cleared<input name="t_clear" type="time"></label>
+          <label>Patients<input name="patients" type="number" min="0" value="0"></label>
+          <label>Transported<input name="transported" type="number" min="0" value="0"></label>
+        </div>
+        <label>Actions taken<textarea name="actions" rows="3" placeholder="Size-up, attack line, ventilation, overhaul…"></textarea></label>
+        <label>Narrative<textarea name="narr" rows="7" placeholder="What you found on arrival, what you did, outcome."></textarea></label>
+        <div class="grid2">
+          <label>Officer in charge<input name="oic" placeholder="Username"></label>
+          <label>Status<select name="status"><option>Draft</option><option>Submitted</option></select></label>
+        </div>
+      </form>
+    </div>
+    <div class="card panel saved">
+      <div class="ph"><h2>Saved Reports</h2><span class="cnt" id="rptCount">0</span></div>
+      <div class="scroll rows" id="rptRows"></div>
+    </div>
   </div>
 </section>
 
@@ -998,7 +1133,8 @@
 /* ── tab views + Status & Updates data ── */
 (() => {
   const tabs = [...document.querySelectorAll('.menu button')];
-  const setView = v => { document.body.dataset.view = v; document.getElementById('pageStatus').hidden = v !== 'status';
+  const PAGES = { status: 'pageStatus', fire: 'pageFire' };
+  const setView = v => { document.body.dataset.view = v; for (const [k, id] of Object.entries(PAGES)) { const el = document.getElementById(id); if (el) el.hidden = v !== k; }
     tabs.forEach(t => t.setAttribute('aria-selected', (t.dataset.view || 'dispatch') === v && !!t.dataset.view || (v === 'dispatch' && t.dataset.view === 'dispatch')));
     dispatchEvent(new CustomEvent('viewchange', { detail: v })); };
   tabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.view) setView(t.dataset.view); else tabs.forEach(x => x.setAttribute('aria-selected', x === t)); }));
@@ -1059,6 +1195,88 @@
 
   const checked = document.getElementById('checked'); let t0 = Date.now();
   setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); checked.textContent = s < 5 ? 'Checked just now' : `Checked ${s}s ago`; if (s >= 30) t0 = Date.now(); }, 1000);
+})();
+</script>
+<script>
+/* ── Fire Department MDT ── */
+(() => {
+  const UN = () => window.UNITS || [], CALLS = () => window.CALLS || [];
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const $ = id => document.getElementById(id);
+  const me = () => UN().find(u => u.dept === 'fd') || UN()[0];
+  const STAGES = ['Dispatched', 'En route', 'On scene'];
+  const FD_CODES = new Set(['10-70', '10-50', '10-52', '10-45', '10-53']);
+  const fdCall = c => c.dept === 'fd' || (!c.unit && FD_CODES.has(c.code));
+  const fmtAge = s => s < 60 ? 'now' : s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h ${Math.floor(s / 60) % 60}m`;
+  const hhmm = t => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const toast = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1800); };
+
+  // ── unit status ──
+  const unitStatus = {};                                   // callsign → 10-code
+  let myStatus = '10-8', selected = null;
+  const stClass = st => st === '10-8' ? '' : (st === '10-7' ? 'oos' : 'busy');
+  const renderUnit = () => { const u = me(); if (!u) return;
+    $('fdUnitName').textContent = u.name; $('fdUnitCrew').textContent = u.crew.join(', '); $('fdApparatus').textContent = u.model || 'Engine';
+    const pill = $('fdStatusPill'); pill.textContent = myStatus; pill.className = 'pill st ' + stClass(myStatus);
+    for (const b of $('fdStatus').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.st === myStatus);
+    const mine = CALLS().find(c => c.unit === u.name); $('fdAssigned').textContent = mine ? `${mine.code} · ${mine.where}` : 'None'; };
+  $('fdStatus').addEventListener('click', e => { const b = e.target.closest('[data-st]'); if (!b) return; myStatus = b.dataset.st; const u = me(); if (u) unitStatus[u.name] = myStatus;
+    const mine = CALLS().find(c => c.unit === u?.name); if (mine) { if (myStatus === '10-76') mine.stage = 1; if (myStatus === '10-23') mine.stage = 2; dispatchEvent(new CustomEvent('calls')); }
+    renderUnit(); renderApp(); toast(`${u?.name} is ${myStatus}`); });
+
+  // ── apparatus ──
+  const renderApp = () => { const rows = UN().filter(u => u.dept === 'fd').map(u => { const st = unitStatus[u.name] || (CALLS().some(c => c.unit === u.name) ? '10-6' : '10-8');
+      return `<div class="app"><i class="${stClass(st)}"></i><div><b>${esc(u.name)} · ${esc(u.model || 'Engine')}</b><small>${esc(u.crew.join(', '))}</small></div><div class="st">${st}<br>${esc(u.postal ? 'Postal ' + u.postal : '')}</div></div>`; });
+    $('fdAppRows').innerHTML = rows.join('') || '<div class="empty">No FD units online.</div>'; $('fdAppCount').textContent = rows.length; };
+
+  // ── calls ──
+  const key = c => `${c.code}|${c.startedAt}`;
+  const renderCalls = () => { const now = Date.now(); const list = CALLS().filter(fdCall).sort((a, b) => a.pri - b.pri || b.startedAt - a.startedAt);
+    $('fdCallRows').innerHTML = list.map(c => `<div class="fcall p${c.pri}" role="button" tabindex="0" data-key="${key(c)}" aria-selected="${selected === key(c)}"><span class="bar"></span><span class="code">${c.code}</span><div class="what"><b>${esc(c.type)}</b><span>${esc(c.where)}${c.unit ? ' · ' + esc(c.unit) : ' · Unassigned'}</span></div><span class="age">${fmtAge((now - c.startedAt) / 1000)}</span></div>`).join('') || '<div class="empty">No fire calls.</div>';
+    $('fdCallCount').textContent = list.length; renderDetail(); };
+  $('fdCallRows').addEventListener('click', e => { const r = e.target.closest('[data-key]'); if (!r) return; selected = r.dataset.key; renderCalls(); });
+  $('fdCallRows').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const r = e.target.closest('[data-key]'); if (r) { e.preventDefault(); selected = r.dataset.key; renderCalls(); } } });
+  const cur = () => CALLS().find(c => key(c) === selected);
+  const renderDetail = () => { const c = cur(); const body = $('fdDetBody'), pri = $('fdDetPri');
+    if (!c) { $('fdDetTitle').textContent = 'Select a call'; pri.hidden = true; body.innerHTML = '<div class="empty">Pick a call from the queue to see details, respond, and write the report.</div>'; return; }
+    $('fdDetTitle').textContent = `${c.code} · ${c.type}`; pri.hidden = false; pri.textContent = `P${c.pri}`; pri.className = `pill p${c.pri}`;
+    const u = me(), mine = c.unit === u?.name;
+    body.innerHTML = `<div class="det"><div class="row2"><div><span>Location</span><b>${esc(c.where)}</b></div><div><span>Received</span><b>${hhmm(c.startedAt)} (${fmtAge((Date.now() - c.startedAt) / 1000)} ago)</b></div><div><span>Assigned</span><b>${c.unit ? esc(c.unit) : 'Unassigned'}</b></div><div><span>Call #</span><b>${c.num || '—'}</b></div></div>
+      <div class="tl">${STAGES.map((_, i) => `<i class="${c.unit && i <= c.stage ? 'on' : ''}"></i>`).join('')}<small>${c.unit ? STAGES[c.stage].toUpperCase() : 'PENDING'}</small></div>
+      <div class="notes">${esc(c.notes || 'No additional notes from dispatch.')}</div>
+      <div class="acts">${!c.unit ? `<button class="btn" data-act="respond">Respond (${esc(u?.name || '')})</button>` : mine ? `<button class="btn ghost" data-act="enroute">En route</button><button class="btn ghost" data-act="onscene">On scene</button><button class="btn danger" data-act="clear">Clear call</button>` : `<button class="btn ghost" data-act="assist">Assist</button>`}<button class="btn ghost" data-act="report">Write report</button></div></div>`; };
+  $('fdDetail').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b) return; const c = cur(), u = me(); if (!c || !u) return;
+    const act = b.dataset.act;
+    if (act === 'respond' || act === 'assist') { if (window.assignCall) window.assignCall(c, u.name, 'fd'); else { c.unit = u.name; c.dept = 'fd'; c.stage = 0; } myStatus = '10-76'; c.stage = 1; unitStatus[u.name] = myStatus; toast(`${u.name} responding to ${c.code}`); }
+    if (act === 'enroute') { c.stage = 1; myStatus = '10-76'; }
+    if (act === 'onscene') { c.stage = 2; myStatus = '10-23'; }
+    if (act === 'clear') { const i = CALLS().indexOf(c); if (i >= 0) CALLS().splice(i, 1); myStatus = '10-19'; selected = null; toast(`${c.code} cleared`); newReportFrom(c, true); }
+    if (act === 'report') newReportFrom(c);
+    unitStatus[u.name] = myStatus; dispatchEvent(new CustomEvent('calls')); renderUnit(); renderApp(); renderCalls(); });
+
+  // ── reports ──
+  const KEY = 'oversite.fd.reports';
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } };
+  const store = r => { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch {} };
+  let reports = load(), editing = null;
+  const form = $('rptForm');
+  const nextNum = () => { const d = new Date(); const n = reports.filter(r => r.num.startsWith(`FD-${d.getFullYear()}`)).length + 1; return `FD-${d.getFullYear()}-${String(n).padStart(4, '0')}`; };
+  const fill = r => { for (const el of form.elements) if (el.name && r[el.name] != null) el.value = r[el.name]; };
+  const read = () => { const r = {}; for (const el of form.elements) if (el.name) r[el.name] = el.value; return r; };
+  const newReport = () => { form.reset(); editing = null; fill({ num: nextNum(), oic: me()?.crew[0] || '', units: me()?.name || '', status: 'Draft', t_disp: hhmm(Date.now()) }); };
+  const newReportFrom = (c, cleared) => { newReport(); const map = { '10-70': 'Structure fire', '10-50': 'MVA / extrication', '10-52': 'Medical', '10-45': 'Vehicle fire', '10-53': 'Public assist' };
+    fill({ call: `${c.code} · ${c.where}`, type: map[c.code] || 'Other', pri: `P${c.pri}`, addr: c.where, units: c.unit || me()?.name || '', t_disp: hhmm(c.startedAt), t_scene: c.stage >= 2 ? hhmm(Date.now()) : '', t_clear: cleared ? hhmm(Date.now()) : '', narr: `Dispatched to ${c.type.toLowerCase()} at ${c.where}. ` }); form.narr.focus(); };
+  const renderReports = () => { $('rptRows').innerHTML = reports.slice().reverse().map(r => `<div class="rpt" role="button" tabindex="0" data-num="${esc(r.num)}"><b>${esc(r.num)} · ${esc(r.type)}</b><span class="tag ${r.status === 'Submitted' ? 'sub' : ''}">${esc(r.status)}</span><small>${esc(r.addr || r.call || '')} · ${esc(r.saved || '')}</small></div>`).join('') || '<div class="empty">No reports yet.</div>'; $('rptCount').textContent = reports.length; };
+  $('rptRows').addEventListener('click', e => { const r = e.target.closest('[data-num]'); if (!r) return; const rec = reports.find(x => x.num === r.dataset.num); if (rec) { editing = rec.num; form.reset(); fill(rec); toast(`Opened ${rec.num}`); } });
+  $('rptSave').addEventListener('click', () => { const r = read(); if (!r.narr.trim() && !r.addr.trim()) { toast('Add an address or narrative first'); return; }
+    r.saved = new Date().toLocaleString(); const i = reports.findIndex(x => x.num === (editing || r.num)); if (i >= 0) reports[i] = r; else reports.push(r); editing = r.num; store(reports); renderReports(); toast(`${r.num} ${r.status === 'Submitted' ? 'submitted' : 'saved'}`); });
+  $('rptNew').addEventListener('click', () => { newReport(); toast('New report'); });
+
+  // ── live ──
+  addEventListener('calls', () => { renderCalls(); renderUnit(); renderApp(); });
+  addEventListener('viewchange', e => { if (e.detail === 'fire') { renderUnit(); renderApp(); renderCalls(); renderReports(); } });
+  setInterval(() => { if (document.body.dataset.view !== 'fire') return; const u = me(); if (u) { const s = Math.floor((Date.now() - u.startedAt) / 1000); $('fdDuty').textContent = `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}`; } renderCalls(); }, 5000);
+  newReport(); renderReports();
 })();
 </script>
 <script>
