@@ -182,6 +182,8 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -213,6 +215,8 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -500,16 +504,19 @@
   .upd .by{font-size:10.5px;color:var(--faint);margin-top:8px;display:flex;align-items:center;gap:6px}
   .upd .by i{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7C7F86,#2A2B2F 70%);display:inline-block}
   @media (max-width:980px){.page{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
-  /* ───────── MDT tablet: full screen, dispatch slides off ───────── */
-  .mdt-dock{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);left:var(--gap);z-index:7;
-    transform:translateX(calc(100% + var(--gap) + 40px));transition:transform .6s cubic-bezier(.32,.72,0,1);pointer-events:none}
-  body.mdt-open .mdt-dock{transform:none;pointer-events:auto}
+  /* ───────── MDT: an iPad (4:3 landscape) centred on the map; dispatch slides off ───────── */
+  .mdt-dock{position:fixed;top:calc(var(--barh) + var(--gap));bottom:var(--gap);left:50%;z-index:7;
+    width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * 1.333));
+    transform:translateX(calc(-50% + 100vw));transition:transform .6s cubic-bezier(.32,.72,0,1);pointer-events:none;
+    display:flex;align-items:center;justify-content:center}
+  body.mdt-open .mdt-dock{transform:translateX(-50%);pointer-events:auto}
   .rail,.stage{transition:transform .6s cubic-bezier(.32,.72,0,1),opacity .4s}
   body.mdt-open .rail,body.mdt-open .stage{transform:translateX(calc(-100% - 60px));opacity:0;pointer-events:none}
   body.mdt-open .pins{display:none}
   body.mdt-open .view{filter:brightness(.7)}
+  .tablet{width:100%;aspect-ratio:4/3;max-height:100%}
   .mdt-btn[aria-pressed="true"]{color:var(--ink);background:rgba(226,75,75,.22)!important;border-color:rgba(226,75,75,.45)!important}
-  .tablet{position:relative;height:100%;border-radius:34px;padding:14px;background:linear-gradient(160deg,#2A2B30,#101114 40%,#0B0B0D);
+  .tablet{position:relative;border-radius:34px;padding:14px;background:linear-gradient(160deg,#2A2B30,#101114 40%,#0B0B0D);
     box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.08),inset 0 0 0 3px #16171A}
   .tablet .cam{position:absolute;top:5px;left:50%;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#070708;box-shadow:inset 0 0 0 1px #2A2C33,0 0 0 1px #000;z-index:2}
   .tablet .screen{position:relative;height:100%;border-radius:24px;overflow:hidden;background:#000;color:#F4F5F7;display:flex;flex-direction:column;
@@ -520,7 +527,21 @@
   .sbar .sb-mid{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:600;letter-spacing:.12em;color:#8E929B}
   .sbar .dept-dot{width:6px;height:6px;border-radius:50%;background:var(--fd);box-shadow:0 0 8px var(--fd)}
   .sbar .sb-r{display:flex;gap:6px;align-items:center;color:#D9DBE0}
+  .tbody{flex:1;min-height:0;display:flex}
+  .tside{flex:none;width:84px;display:flex;flex-direction:column;gap:4px;padding:10px 10px 18px;border-right:1px solid rgba(255,255,255,.07)}
+  .tside button{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 0 9px;border-radius:14px;color:#8E929B;font-size:10.5px;font-weight:600;transition:color .18s,background .18s}
+  .tside button:hover{color:#D9DBE0;background:rgba(255,255,255,.05)}
+  .tside button[aria-selected="true"]{color:#fff;background:rgba(255,255,255,.1)}
+  .tside .badge{position:absolute;top:7px;left:calc(50% + 6px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--fd);color:#fff;font-size:10px;font-style:normal;display:flex;align-items:center;justify-content:center}
+  .tside .badge[hidden]{display:none}
   .tscreens{flex:1;min-height:0;position:relative}
+  .tscreen{padding:6px 22px 20px}
+  .thead .back{font-size:13px;font-weight:600;color:var(--fd);padding:0 0 4px}
+  .tmap{height:46%;min-height:220px;border-radius:18px;background:#0E1013 center/cover no-repeat;position:relative;overflow:hidden;margin-bottom:12px}
+  .tmap::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 40px rgba(0,0,0,.6);pointer-events:none}
+  .tmap .pin{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--fd);box-shadow:0 0 0 3px #000,0 0 16px var(--fd)}
+  .tmap .pin::after{content:"";position:absolute;left:50%;top:-11px;margin-left:-4px;border:4px solid transparent;border-bottom:8px solid var(--fd)}
+  .tmap .ring{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:1px solid var(--fd);opacity:.5;animation:ringpulse 2.2s cubic-bezier(.32,.72,0,1) infinite}
   .tscreen{position:absolute;inset:0;overflow-y:auto;padding:10px 18px 18px;display:none;scrollbar-width:none;animation:tin .35s cubic-bezier(.32,.72,0,1)}
   .tscreen::-webkit-scrollbar{display:none}
   .tscreen.on{display:block}
@@ -589,20 +610,6 @@
   .rpt .tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:7px;color:#8E929B;background:rgba(255,255,255,.08);align-self:start}
   .rpt .tag.sub{color:#30D158;background:rgba(48,209,88,.14)}
   .screen .empty{font-size:12.5px;color:#8E929B;padding:8px 0 12px}
-  .tnav{display:grid;grid-template-columns:repeat(3,1fr);padding:6px 16px 18px;gap:4px;background:linear-gradient(180deg,rgba(0,0,0,0),#000 35%)}
-  .tnav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0 6px;border-radius:14px;color:#8E929B;font-size:10.5px;font-weight:600;transition:color .18s,background .18s}
-  .tnav button[aria-selected="true"]{color:#fff;background:rgba(255,255,255,.08)}
-  .tnav .badge{position:absolute;top:6px;left:calc(50% + 6px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--fd);color:#fff;font-size:10px;font-style:normal;display:flex;align-items:center;justify-content:center}
-  .tnav .badge[hidden]{display:none}
-  /* wide tablet: the three panes sit side by side */
-  @media (min-width:1100px){
-    .tscreens{display:grid;grid-template-columns:5fr 6fr 6fr;gap:18px;padding:6px 22px 16px}
-    .tscreen,.tscreen.on{position:static;display:block;padding:6px 0 10px;animation:none;overflow-y:auto}
-    .tscreen+.tscreen{border-left:1px solid rgba(255,255,255,.08);padding-left:18px}
-    .tnav{display:none}
-    .thead h2{font-size:30px}
-    .statgrid button{padding:16px 6px 13px;font-size:17px}
-  }
   .homebar{position:absolute;left:50%;bottom:6px;width:110px;height:4px;margin-left:-55px;border-radius:2px;background:rgba(255,255,255,.35)}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;padding:9px 14px;border-radius:10px;background:rgba(20,20,23,.92);border:1px solid var(--hair2);font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.on{opacity:1}
@@ -836,76 +843,88 @@
 
 
 
-<!-- ─────────── MDT: tablet docked on the right ─────────── -->
+<!-- ─────────── MDT: iPad on the map ─────────── -->
 <aside class="mdt-dock" id="mdt" aria-label="Mobile Data Terminal" aria-hidden="true">
   <div class="tablet">
     <span class="cam"></span>
     <div class="screen">
-      <div class="sbar"><span id="tbClock">00:00</span><span class="sb-mid"><i class="dept-dot"></i>LC FIRE · MDT</span><span class="sb-r"><svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="3" y="4" width="2" height="6" rx=".5"/><rect x="6" y="2" width="2" height="8" rx=".5"/><rect x="9" y="0" width="2" height="10" rx=".5"/></svg><svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="18" height="9" rx="2.5"/><rect x="2" y="2" width="13" height="6" rx="1.2" fill="currentColor" stroke="none"/><path d="M20 3.5v3" stroke-width="1.5"/></svg></span></div>
-
-      <div class="tscreens">
-        <section class="tscreen on" data-pane="home">
-          <header class="thead"><div><small>UNIT</small><h2 id="fdUnitName">FD 4120</h2><p id="fdUnitCrew" class="dim"></p></div><span class="pill st" id="fdStatusPill">10-8</span></header>
-          <div class="assist" id="fdAssist"><i></i><div><b>Assist</b><span id="fdAssistText">Monitoring. No action needed.</span></div></div>
-          <div class="statgrid" id="fdStatus">
-            <button data-st="10-8">10-8<small>Available</small></button>
-            <button data-st="10-76">10-76<small>En route</small></button>
-            <button data-st="10-23">10-23<small>On scene</small></button>
-            <button data-st="10-19">10-19<small>Returning</small></button>
-            <button data-st="10-7">10-7<small>Out of service</small></button>
-            <button data-st="10-6">10-6<small>Busy</small></button>
-          </div>
-          <div class="tcard">
-            <div class="kv"><span>Station</span><b>Station 1 · Freedom Ave</b></div>
-            <div class="kv"><span>Apparatus</span><b id="fdApparatus">Pierce Engine</b></div>
-            <div class="kv"><span>On duty</span><b id="fdDuty">0:00</b></div>
-            <div class="kv"><span>Assigned call</span><b id="fdAssigned">None</b></div>
-          </div>
-          <div class="tcard"><div class="tch"><h3>Apparatus</h3><span class="cnt" id="fdAppCount">0</span></div><div class="rows" id="fdAppRows"></div></div>
-        </section>
-
-        <section class="tscreen" data-pane="calls">
-          <header class="thead"><div><small>QUEUE</small><h2>Fire Calls</h2></div><span class="cnt" id="fdCallCount">0</span></header>
-          <div class="rows" id="fdCallRows"></div>
-          <div class="tcard detail" id="fdDetail">
-            <div class="tch"><h3 id="fdDetTitle">Select a call</h3><span class="pill" id="fdDetPri" hidden></span></div>
-            <div id="fdDetBody"><div class="empty">Tap a call to see details, respond, and write the report.</div></div>
-          </div>
-        </section>
-
-        <section class="tscreen" data-pane="report">
-          <header class="thead"><div><small>REPORT</small><h2>Incident Report</h2></div><div class="acts"><button class="btn ghost" id="rptNew" type="button">New</button><button class="btn" id="rptSave" type="button">Save</button></div></header>
-          <form id="rptForm" autocomplete="off">
-            <div class="grid2">
-              <label>Report #<input name="num" readonly></label>
-              <label>Call<input name="call" placeholder="10-70 · 14 Ridge Rd"></label>
-              <label>Incident type<select name="type"><option>Structure fire</option><option>Vehicle fire</option><option>Brush / wildland</option><option>Medical</option><option>MVA / extrication</option><option>Hazmat</option><option>Alarm activation</option><option>Public assist</option><option>Other</option></select></label>
-              <label>Priority<select name="pri"><option>P1</option><option>P2</option><option>P3</option></select></label>
-              <label>Address<input name="addr" placeholder="Street, postal"></label>
-              <label>Units on scene<input name="units" placeholder="FD 4120, FD 2201"></label>
-              <label>Dispatched<input name="t_disp" type="time"></label>
-              <label>On scene<input name="t_scene" type="time"></label>
-              <label>Under control<input name="t_ctrl" type="time"></label>
-              <label>Cleared<input name="t_clear" type="time"></label>
-              <label>Patients<input name="patients" type="number" min="0" value="0"></label>
-              <label>Transported<input name="transported" type="number" min="0" value="0"></label>
+      <div class="sbar"><span id="tbClock">00:00</span><span class="sb-mid"><i class="dept-dot"></i>LIBERTY COUNTY FIRE · MDT</span><span class="sb-r"><svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="3" y="4" width="2" height="6" rx=".5"/><rect x="6" y="2" width="2" height="8" rx=".5"/><rect x="9" y="0" width="2" height="10" rx=".5"/></svg><svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="18" height="9" rx="2.5"/><rect x="2" y="2" width="13" height="6" rx="1.2" fill="currentColor" stroke="none"/><path d="M20 3.5v3" stroke-width="1.5"/></svg></span></div>
+      <div class="tbody">
+        <nav class="tside" role="tablist" aria-label="MDT apps">
+          <button role="tab" data-pane="home" aria-selected="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11 12 3l9 8M5 10v10h5v-6h4v6h5V10"/></svg><span>Home</span></button>
+          <button role="tab" data-pane="calls" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke-linecap="round"/></svg><span>Calls</span><i class="badge" id="tnavCalls" hidden></i></button>
+          <button role="tab" data-pane="units" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17V8h11l4 4h3v5h-2M3 17h2m4 0h6"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg><span>Units</span></button>
+          <button role="tab" data-pane="map" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg><span>Map</span></button>
+          <button role="tab" data-pane="reports" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>Reports</span></button>
+        </nav>
+        <div class="tscreens">
+          <section class="tscreen on" data-pane="home">
+            <header class="thead"><div><small>UNIT</small><h2 id="fdUnitName">FD 4120</h2><p id="fdUnitCrew" class="dim"></p></div><span class="pill st" id="fdStatusPill">10-8</span></header>
+            <div class="assist" id="fdAssist"><i></i><div><b>Assist</b><span id="fdAssistText">Monitoring. No action needed.</span></div></div>
+            <div class="statgrid" id="fdStatus">
+              <button data-st="10-8">10-8<small>Available</small></button>
+              <button data-st="10-76">10-76<small>En route</small></button>
+              <button data-st="10-23">10-23<small>On scene</small></button>
+              <button data-st="10-19">10-19<small>Returning</small></button>
+              <button data-st="10-7">10-7<small>Out of service</small></button>
+              <button data-st="10-6">10-6<small>Busy</small></button>
             </div>
-            <label>Actions taken<textarea name="actions" rows="3" placeholder="Size-up, attack line, ventilation, overhaul…"></textarea></label>
-            <label>Narrative<textarea name="narr" rows="7" placeholder="What you found on arrival, what you did, outcome."></textarea></label>
-            <div class="grid2">
-              <label>Officer in charge<input name="oic" placeholder="Username"></label>
-              <label>Status<select name="status"><option>Draft</option><option>Submitted</option></select></label>
+            <div class="tcard">
+              <div class="kv"><span>Station</span><b>Station 1 · Freedom Ave</b></div>
+              <div class="kv"><span>Apparatus</span><b id="fdApparatus">Pierce Engine</b></div>
+              <div class="kv"><span>On duty</span><b id="fdDuty">0:00</b></div>
+              <div class="kv"><span>Assigned call</span><b id="fdAssigned">None</b></div>
             </div>
-          </form>
-          <div class="tcard"><div class="tch"><h3>Saved Reports</h3><span class="cnt" id="rptCount">0</span></div><div class="rows" id="rptRows"></div></div>
-        </section>
+          </section>
+          <section class="tscreen" data-pane="calls">
+            <header class="thead"><div><small>QUEUE</small><h2>Fire Calls</h2></div><span class="cnt" id="fdCallCount">0</span></header>
+            <div class="rows" id="fdCallRows"></div>
+            <div class="tcard detail" id="fdDetail">
+              <div class="tch"><h3 id="fdDetTitle">Select a call</h3><span class="pill" id="fdDetPri" hidden></span></div>
+              <div id="fdDetBody"><div class="empty">Tap a call to see details, respond, and write the report.</div></div>
+            </div>
+          </section>
+          <section class="tscreen" data-pane="units">
+            <header class="thead"><div><small>ROSTER</small><h2>Apparatus</h2></div><span class="cnt" id="fdAppCount">0</span></header>
+            <div class="tcard"><div class="rows" id="fdAppRows"></div></div>
+          </section>
+          <section class="tscreen" data-pane="map">
+            <header class="thead"><div><small>AVL</small><h2>My Position</h2></div><span class="pill" id="fdPostal">—</span></header>
+            <div class="mini live tmap" data-unit="fd-4120"><span class="ring"></span><span class="pin"></span></div>
+            <div class="tcard"><div class="kv"><span>Speed</span><b><span class="spd" data-unit="fd-4120">0</span> mph</b></div><div class="kv"><span>Heading</span><b id="fdHeading">—</b></div></div>
+          </section>
+          <section class="tscreen" data-pane="reports">
+            <header class="thead"><div><small>RECORDS</small><h2>Reports</h2></div><button class="btn" id="rptNew" type="button">New report</button></header>
+            <div class="tcard"><div class="rows" id="rptRows"></div></div>
+          </section>
+          <section class="tscreen" data-pane="report">
+            <header class="thead"><div><button class="back" id="rptBack" type="button">‹ Reports</button><h2>Incident Report</h2></div><button class="btn" id="rptSave" type="button">Save</button></header>
+            <form id="rptForm" autocomplete="off">
+              <div class="grid2">
+                <label>Report #<input name="num" readonly></label>
+                <label>Call<input name="call" placeholder="10-70 · 14 Ridge Rd"></label>
+                <label>Incident type<select name="type"><option>Structure fire</option><option>Vehicle fire</option><option>Brush / wildland</option><option>Medical</option><option>MVA / extrication</option><option>Hazmat</option><option>Alarm activation</option><option>Public assist</option><option>Other</option></select></label>
+                <label>Priority<select name="pri"><option>P1</option><option>P2</option><option>P3</option></select></label>
+                <label>Address<input name="addr" placeholder="Street, postal"></label>
+                <label>Units on scene<input name="units" placeholder="FD 4120, FD 2201"></label>
+                <label>Dispatched<input name="t_disp" type="time"></label>
+                <label>On scene<input name="t_scene" type="time"></label>
+                <label>Under control<input name="t_ctrl" type="time"></label>
+                <label>Cleared<input name="t_clear" type="time"></label>
+                <label>Patients<input name="patients" type="number" min="0" value="0"></label>
+                <label>Transported<input name="transported" type="number" min="0" value="0"></label>
+              </div>
+              <label>Actions taken<textarea name="actions" rows="3" placeholder="Size-up, attack line, ventilation, overhaul…"></textarea></label>
+              <label>Narrative<textarea name="narr" rows="7" placeholder="What you found on arrival, what you did, outcome."></textarea></label>
+              <div class="grid2">
+                <label>Officer in charge<input name="oic" placeholder="Username"></label>
+                <label>Status<select name="status"><option>Draft</option><option>Submitted</option></select></label>
+              </div>
+            </form>
+            <span class="cnt" id="rptCount" hidden>0</span>
+          </section>
+        </div>
       </div>
-
-      <nav class="tnav" role="tablist" aria-label="MDT sections">
-        <button role="tab" data-pane="home" aria-selected="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11 12 3l9 8M5 10v10h5v-6h4v6h5V10"/></svg><span>Unit</span></button>
-        <button role="tab" data-pane="calls" aria-selected="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke-linecap="round"/></svg><span>Calls</span><i class="badge" id="tnavCalls" hidden></i></button>
-        <button role="tab" data-pane="report" aria-selected="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>Report</span></button>
-      </nav>
       <span class="homebar"></span>
     </div>
     <button class="mdt-close" id="mdtClose" type="button" aria-label="Close MDT"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -993,8 +1012,8 @@
   const setMini = url => { for (const m of minis) m.el.style.backgroundImage = `url("${url}")`; };
   if (MAP) setMini(MAP);
   addEventListener('maptheme', e => { const l = document.getElementById('mapsrc-mini')?.getAttribute('href') || document.getElementById('mapsrc')?.getAttribute('href'), d = document.getElementById('mapsrc-dark')?.getAttribute('href') || document.querySelector('.view img')?.dataset.dark; setMini(e.detail.theme === 'dark' ? (d || l) : (l || d)); });
-  let w = 0, h = 0; const measure = () => { const r = minis[0]?.el.getBoundingClientRect(); if (r) { w = r.width; h = r.height; } };
-  measure(); addEventListener('resize', measure);
+  let w = 0, h = 0; const measure = () => { for (const m of minis) { const r = m.el.getBoundingClientRect(); m.w = r.width; m.h = r.height; m.view = m.el.classList.contains('tmap') ? 520 : VIEW; } w = minis[0]?.w || 0; h = minis[0]?.h || 0; };
+  measure(); addEventListener('resize', measure); addEventListener('mdt', () => setTimeout(measure, 650)); addEventListener('viewchange', () => setTimeout(measure, 50));
 
   let last = performance.now(), tick = 0, miniT = 0;   // tick = last timer refresh (ms)
   const loop = (ts) => {
@@ -1002,7 +1021,8 @@
     for (const u of units) { u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
       const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
     if (w && ts - miniT >= 200 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
-      for (const { el, u } of minis) { if (el.hidden || el.closest('[hidden]')) continue; el.style.backgroundSize = `${size}px ${size}px`; el.style.backgroundPosition = `${w/2 - u.x*sc}px ${h/2 - u.y*sc}px`;
+      for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; const s2 = m.w / m.view, size2 = 2000 * s2;
+        el.style.backgroundSize = `${size2}px ${size2}px`; el.style.backgroundPosition = `${m.w/2 - u.x*s2}px ${m.h/2 - u.y*s2}px`;
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }
     if (ts - tick >= 1000) { tick = ts; const now = Date.now();
       for (const { el, u } of spds) el.textContent = Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9))));
@@ -1347,16 +1367,17 @@
   const newReportFrom = (c, cleared) => { newReport(); const map = { '10-70': 'Structure fire', '10-50': 'MVA / extrication', '10-52': 'Medical', '10-45': 'Vehicle fire', '10-53': 'Public assist' };
     fill({ call: `${c.code} · ${c.where}`, type: map[c.code] || 'Other', pri: `P${c.pri}`, addr: c.where, units: c.unit || me()?.name || '', t_disp: hhmm(c.startedAt), t_scene: c.stage >= 2 ? hhmm(Date.now()) : '', t_clear: cleared ? hhmm(Date.now()) : '', narr: `Dispatched to ${c.type.toLowerCase()} at ${c.where}. ` }); form.narr.focus(); };
   const renderReports = () => { $('rptRows').innerHTML = reports.slice().reverse().map(r => `<div class="rpt" role="button" tabindex="0" data-num="${esc(r.num)}"><b>${esc(r.num)} · ${esc(r.type)}</b><span class="tag ${r.status === 'Submitted' ? 'sub' : ''}">${esc(r.status)}</span><small>${esc(r.addr || r.call || '')} · ${esc(r.saved || '')}</small></div>`).join('') || '<div class="empty">No reports yet.</div>'; $('rptCount').textContent = reports.length; };
-  $('rptRows').addEventListener('click', e => { const r = e.target.closest('[data-num]'); if (!r) return; const rec = reports.find(x => x.num === r.dataset.num); if (rec) { editing = rec.num; form.reset(); fill(rec); toast(`Opened ${rec.num}`); } });
+  $('rptRows').addEventListener('click', e => { const r = e.target.closest('[data-num]'); if (!r) return; const rec = reports.find(x => x.num === r.dataset.num); if (rec) { editing = rec.num; form.reset(); fill(rec); window.mdtShow && window.mdtShow('report'); toast(`Opened ${rec.num}`); } });
   $('rptSave').addEventListener('click', () => { const r = read(); if (!r.narr.trim() && !r.addr.trim()) { toast('Add an address or narrative first'); return; }
     r.saved = new Date().toLocaleString(); const i = reports.findIndex(x => x.num === (editing || r.num)); if (i >= 0) reports[i] = r; else reports.push(r); editing = r.num; store(reports); renderReports(); toast(`${r.num} ${r.status === 'Submitted' ? 'submitted' : 'saved'}`); });
-  $('rptNew').addEventListener('click', () => { newReport(); toast('New report'); });
+  $('rptNew').addEventListener('click', () => { newReport(); window.mdtShow && window.mdtShow('report'); toast('New report'); });
 
   // ── live ──
   addEventListener('calls', () => { renderCalls(); renderUnit(); renderApp(); });
   // tablet navigation
-  const panes = [...document.querySelectorAll('.tscreen')], navs = [...document.querySelectorAll('.tnav [data-pane]')];
-  const showPane = name => { panes.forEach(p => p.classList.toggle('on', p.dataset.pane === name)); navs.forEach(n => n.setAttribute('aria-selected', n.dataset.pane === name)); };
+  const panes = [...document.querySelectorAll('.tscreen')], navs = [...document.querySelectorAll('.tside [data-pane]')];
+  const showPane = name => { panes.forEach(p => p.classList.toggle('on', p.dataset.pane === name)); const navName = name === 'report' ? 'reports' : name; navs.forEach(n => n.setAttribute('aria-selected', n.dataset.pane === navName)); };
+  $('rptBack').addEventListener('click', () => showPane('reports'));
   navs.forEach(n => n.addEventListener('click', () => showPane(n.dataset.pane)));
   window.mdtShow = showPane;
   const clock = () => { const d = new Date(); $('tbClock').textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }; clock(); setInterval(clock, 15000);
@@ -1367,7 +1388,7 @@
     else if (pend.length) { const c = pend.sort((a, b) => a.pri - b.pri)[0]; const d = Math.hypot(u.x - c.x, u.y - c.y) / 1609 * 1.2; msg = `P${c.pri} ${c.code} at ${c.where} is unassigned, ${d.toFixed(1)} mi away. Suggest responding.`; }
     $('fdAssistText').textContent = msg; const b = $('tnavCalls'); b.hidden = !pend.length; b.textContent = pend.length; };
   addEventListener('calls', assist); addEventListener('mdt', e => { if (e.detail) { renderUnit(); renderApp(); renderCalls(); renderReports(); assist(); } });
-  setInterval(() => { if (!document.body.classList.contains('mdt-open')) return; const u = me(); if (u) { const s = Math.floor((Date.now() - u.startedAt) / 1000); $('fdDuty').textContent = `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}`; } renderCalls(); }, 5000);
+  setInterval(() => { if (!document.body.classList.contains('mdt-open')) return; const mu = me(); if (mu && mu.heading != null) { const deg = ((mu.heading * 180 / Math.PI) + 90 + 360) % 360; $('fdHeading').textContent = `${Math.round(deg)}° ${['N','NE','E','SE','S','SW','W','NW'][Math.round(deg / 45) % 8]}`; $('fdPostal').textContent = mu.postal ? 'Postal ' + mu.postal : 'Liberty County'; } const u = me(); if (u) { const s = Math.floor((Date.now() - u.startedAt) / 1000); $('fdDuty').textContent = `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}`; } renderCalls(); }, 5000);
   newReport(); renderReports(); assist();
 })();
 </script>

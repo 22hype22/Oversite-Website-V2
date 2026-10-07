@@ -175,8 +175,8 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   const setMini = url => { for (const m of minis) m.el.style.backgroundImage = `url("${url}")`; };
   if (MAP) setMini(MAP);
   addEventListener('maptheme', e => { const l = document.getElementById('mapsrc-mini')?.getAttribute('href') || document.getElementById('mapsrc')?.getAttribute('href'), d = document.getElementById('mapsrc-dark')?.getAttribute('href') || document.querySelector('.view img')?.dataset.dark; setMini(e.detail.theme === 'dark' ? (d || l) : (l || d)); });
-  let w = 0, h = 0; const measure = () => { const r = minis[0]?.el.getBoundingClientRect(); if (r) { w = r.width; h = r.height; } };
-  measure(); addEventListener('resize', measure);
+  let w = 0, h = 0; const measure = () => { for (const m of minis) { const r = m.el.getBoundingClientRect(); m.w = r.width; m.h = r.height; m.view = m.el.classList.contains('tmap') ? 520 : VIEW; } w = minis[0]?.w || 0; h = minis[0]?.h || 0; };
+  measure(); addEventListener('resize', measure); addEventListener('mdt', () => setTimeout(measure, 650)); addEventListener('viewchange', () => setTimeout(measure, 50));
 
   let last = performance.now(), tick = 0, miniT = 0;   // tick = last timer refresh (ms)
   const loop = (ts) => {
@@ -184,7 +184,8 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
     for (const u of units) { u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
       const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
     if (w && ts - miniT >= 200 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
-      for (const { el, u } of minis) { if (el.hidden || el.closest('[hidden]')) continue; el.style.backgroundSize = `${size}px ${size}px`; el.style.backgroundPosition = `${w/2 - u.x*sc}px ${h/2 - u.y*sc}px`;
+      for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; const s2 = m.w / m.view, size2 = 2000 * s2;
+        el.style.backgroundSize = `${size2}px ${size2}px`; el.style.backgroundPosition = `${m.w/2 - u.x*s2}px ${m.h/2 - u.y*s2}px`;
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }
     if (ts - tick >= 1000) { tick = ts; const now = Date.now();
       for (const { el, u } of spds) el.textContent = Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9))));
