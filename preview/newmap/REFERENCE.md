@@ -37,3 +37,13 @@ Columns: id, file, postal / street, facing, what it shows, what it changes in th
 - One wide shot plus one close shot per landmark beats many angles of the same wall.
 - Vehicles: one side view with the player beside it, one front view.
 - Terrain: shoot the hills from the road below, and from the top looking down.
+
+## Recorded drives
+
+Record with Xbox Game Bar (Win+Alt+R) or OBS at 1080p, 30 fps. Drive slowly, look at the
+things that matter (hills, bridges, building fronts), and say in the commit or message where
+the drive starts and ends. Clips go in `video/`; `frames.py` extracts one frame per second,
+drops near-duplicates, and writes a contact sheet.
+
+| clip | route | frames kept | notes |
+|---|---|---|---|
