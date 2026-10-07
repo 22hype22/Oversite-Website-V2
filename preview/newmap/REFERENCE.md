@@ -3,6 +3,19 @@
 Every photo the user sends gets a row here. The model is rebuilt from this ledger,
 not from memory. Nothing in the 3D scene should contradict a logged photo.
 
+## Shoot plan (fastest route to a finished map)
+
+The 2D map already gives every footprint. Only heights and silhouettes are missing, and most of the map
+is seen from 500+ studs up on the dispatch view, so street-level detail only matters at a few landmarks.
+
+1. **Helicopter lap, one session.** Fly a loop at a steady height with the minimap open. One wide shot per hill,
+   per district and per bridge, about 25 to 30 shots total. Each shot gives heights for everything in frame
+   at once (storey counts, hill tops against known buildings, bridge decks).
+2. **Downtown street level, ten shots.** One per tall building from across the street, player in frame.
+3. **Landmarks, two shots each.** Water tower, both river bridges, the tunnel, hospitals, PD and FD stations, airport.
+
+After each batch the model is rebuilt straight away. Expected: two sessions of about 30 minutes.
+
 ## Scale anchors (working values, corrected as photos come in)
 
 | Anchor | Value | Source / status |
