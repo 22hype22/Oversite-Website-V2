@@ -19,6 +19,9 @@ not from memory. Nothing in the 3D scene should contradict a logged photo.
 | Bridge deck (road to underside) | ~3 studs slab + ~4 stud parapet | photo 001/002 |
 | Bridge clearance (water to underside) | ~13 studs | photo 001, player on the abutment rock is ~0.4 of it |
 | Apartment storey | ~11 studs, ground floor retail ~14 | photo 003, Brookstone Apartments |
+| Palm | ~40 studs | photo 007, level with a 3-storey roof |
+| Lifeguard tower | ~12 studs incl. stilts | photos 017-020 |
+| Billboard | ~25 studs to the top | photo 019 |
 
 ## Postal grid (from in-game minimap shots)
 
@@ -50,6 +53,11 @@ Columns: id, file, postal / street, facing, what it shows, what it changes in th
 | 013 | refs/013-bayside-pier-end.jpg | in the water south-west of the pier end | NE | pier end from the water: deck ~10 studs above the sea, piles ~8 showing; two stair flights, umbrellas and benches on the end deck; the west headland behind: long flat top with one peak at the east end, same as 004/005 | TODO: confirms headland profile; pier end deck height |
 | 014 | refs/014-bayside-pier-end.jpg | beside the pier end, east side, low | W | tower block carries two masts ~35 studs above its roof with cables between; Crab Shack green with a red roller-door shed in front and a blue shed; concrete piles over water, timber trestle under the shore section; headland again on the horizon | TODO: two masts not one; timber vs concrete pile split at the shoreline |
 | 015 | refs/015-bayside-pier-end.jpg | on the pier, postal 2002, looking back to shore (minimap in frame) | N | pier deck is ~2 SUV heights (~12 studs) above the sand; shop row along the east edge of the pier: food trailers, pink arcade, blue Surf's Up, red shed, green Crab Shack; pier ~45 studs wide clear of the shops; low rocky hill with trees NE of the town behind the boardwalk; office block on shore | TODO: shops on the east edge only, west edge is open railing; low hill NE of Bayside |
+| 016 | refs/016-east-beach.jpg | east beach, just east of the pier, at the water line | W | pier side on from the east: shore section on timber trestle, water section on concrete piles, deck ~12 studs over the sand; shop row backs onto the beach; office block with red fin and the tan retail row behind; palms ~40 studs; hills on the horizon west and north | TODO: nothing new, confirms pier heights from the east side |
+| 017 | refs/017-east-beach.jpg | east beach, in the shallows | N | beach road with white guardrail along the back of the beach; lifeguard tower on stilts ~12 studs; rocky bluff behind the road, ~30 studs, rough grey rock with grass patches and a billboard on top; palms spaced ~60 studs apart along the back of the beach | TODO: bluff behind the east beach road ~30 studs; lifeguard towers x2; guardrail line |
+| 018 | refs/018-east-beach.jpg | above the east beach, looking back over Bayside | NW | overview: shop row and pier at left, two lifeguard towers, office block, Bayside retail, downtown behind with one dark tower ~10 storeys and two ~8 storey blocks; the west headland on the far left reads as a flat mesa ~2x the height of the town hills; the east bluff with the billboard runs along the right | TODO: downtown tower heights 8-10 storeys (~90-110 studs); mesa vs hill ratio |
+| 019 | refs/019-east-beach.jpg | east beach, mid way along | N | the bluff square on: ~30-35 studs (5 SUV heights), rough faces, flat grassy top, billboard ~25 studs on a pole; a blue water tower tank with masts shows above the bluff to the NE; pagoda-roof building (Chinatown) left of the bluff; lifeguard tower ~12 studs | TODO: water tower is NE of the east beach behind the bluff, find it on the map; Chinatown pagoda roof |
+| 020 | refs/020-east-beach.jpg | east beach, further east, from the shallows | N | same bluff full length, ~30 studs, with a cutting through it; water tower and antenna masts behind; brown 3-storey block (~40 studs) with masts at the right, by the river mouth; palms ~40; a second lifeguard tower | TODO: bluff runs the full length of the east beach (world x ~586-742, y ~1484-1574) with a gap; 3-storey block near the river mouth |
 
 ## How to shoot useful photos
 
