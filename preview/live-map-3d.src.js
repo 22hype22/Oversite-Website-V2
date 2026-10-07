@@ -48,7 +48,7 @@ sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.8;
 scene.add(sun, sun.target);
 
 // ── ground: the map draped over the heightmap ──
-const HMAX = 110, HN = 512;
+const HMAX = 150, HN = 512;
 let hdata = null;                                  // Float32Array of heights (HN x HN), filled once the heightmap loads
 const heightAt = (x, y) => { if (!hdata) return 0; const u = Math.min(Math.max(x / W * (HN - 1), 0), HN - 1.001), v = Math.min(Math.max(y / W * (HN - 1), 0), HN - 1.001);
   const i = u | 0, j = v | 0, fu = u - i, fv = v - j, k = j * HN + i;
@@ -164,7 +164,7 @@ const treeIdx = [];
 const houseCells = new Set(); for (const i of houseIdx) { const [x, y] = GEO.buildings[i]; houseCells.add(`${Math.floor(x / 40)},${Math.floor(y / 40)}`); }
 const nearHouse = (x, y) => { const cx = Math.floor(x / 40), cy = Math.floor(y / 40); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (houseCells.has(`${cx + a},${cy + b}`)) return true; return false; };
 GEO.trees = GEO.trees.filter(([x, y]) => !nearHouse(x, y) || rnd() < 0.45);
-const CLEAR = [[212, 312, 1432, 1472], [846, 900, 1660, 1710]];            // tunnel approach, cave mouth
+const CLEAR = [];
 GEO.trees = GEO.trees.filter(([x, y]) => !CLEAR.some(([x0, x1, y0, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1));
 const treeXf = GEO.trees.map((t, i) => { const sp = species[i], sc = t[2] * (0.55 + rnd() * 0.35); return [sp, sc, sp === 0 ? sc * (0.9 + rnd() * 0.4) : sc * (0.85 + rnd() * 0.3), rnd() * 6.28]; });
 const placeTrees = () => { let ip = 0, il = 0; treeIdx.length = 0;
@@ -186,8 +186,8 @@ const pathOf = pts => { const cp = new THREE.CurvePath(); for (let i = 1; i < pt
   for (let s = 0; s < n; s++) { const t0 = s / n, t1 = (s + 1) / n;
     cp.add(new THREE.LineCurve3(new THREE.Vector3(ax + (bx - ax) * t0, heightAt(ax + (bx - ax) * t0, ay + (by - ay) * t0) + 1.4, ay + (by - ay) * t0),
       new THREE.Vector3(ax + (bx - ax) * t1, heightAt(ax + (bx - ax) * t1, ay + (by - ay) * t1) + 1.4, ay + (by - ay) * t1))); } } return cp; };
-const ROUTE_A = [[1332, 275], [1340, 520], [1350, 760], [1350, 1000], [1352, 1452], [300, 1452], [222, 1452]];   // ends inside the tunnel
-const ROUTE_B = [[188, 792], [660, 792], [660, 988], [1180, 988], [1240, 1040], [1240, 1330], [1350, 1330]];
+const ROUTE_A = [[1423.9,238.8],[1423.9,264.2],[1423.9,289.6],[1423.9,314.9],[1423.9,340.3],[1410.4,362.7],[1409.0,388.1],[1409.0,413.4],[1409.0,438.8],[1409.0,464.2],[1409.0,489.6],[1409.0,514.9],[1409.0,540.3],[1409.0,565.7],[1409.0,591.0],[1407.5,616.4],[1401.5,641.8],[1385.1,662.7],[1367.2,680.6],[1349.3,698.5],[1331.3,716.4],[1313.4,734.3],[1295.5,752.2],[1277.6,770.1],[1259.7,788.1],[1241.8,806.0],[1223.9,823.9],[1206.0,841.8],[1188.1,859.7],[1167.2,874.6],[1146.3,889.6],[1134.3,867.2],[1134.3,841.8],[1134.3,816.4],[1134.3,791.0],[1134.3,765.7],[1113.4,750.7],[1089.6,759.7],[1114.9,752.2],[1129.9,773.1],[1129.9,798.5],[1129.9,823.9],[1129.9,849.3],[1129.9,874.6],[1144.8,895.5],[1134.3,919.4],[1125.4,943.3],[1107.5,962.7],[1089.6,980.6],[1070.1,998.5],[1052.2,1017.9],[1034.3,1035.8],[1016.4,1053.7],[998.5,1071.6],[980.6,1089.6],[962.7,1107.5],[947.8,1129.9],[934.3,1152.2],[926.9,1176.1],[923.9,1201.5],[923.9,1226.9],[923.9,1252.2],[923.9,1277.6],[923.9,1303.0],[923.9,1328.4],[923.9,1353.7],[926.9,1379.1],[926.9,1404.5],[944.8,1423.9],[950.7,1449.3],[965.7,1471.6],[989.6,1482.1],[1003.0,1504.5],[1003.0,1529.9],[979.1,1538.8],[953.7,1540.3],[929.9,1550.7],[920.9,1559.7]];   // Highway 55
+const ROUTE_B = [[400.0,1417.9],[425.4,1419.4],[450.7,1419.4],[476.1,1419.4],[501.5,1417.9],[526.9,1417.9],[552.2,1417.9],[577.6,1417.9],[603.0,1417.9],[628.4,1417.9],[653.7,1417.9],[679.1,1417.9],[704.5,1417.9],[729.9,1417.9],[755.2,1416.4],[780.6,1416.4],[806.0,1416.4],[831.3,1416.4],[856.7,1416.4],[882.1,1417.9],[907.5,1417.9],[932.8,1416.4],[958.2,1416.4],[983.6,1416.4],[1009.0,1416.4],[1034.3,1416.4],[1059.7,1416.4],[1085.1,1416.4],[1110.4,1416.4],[1135.8,1416.4],[1161.2,1416.4],[1186.6,1416.4],[1211.9,1416.4],[1237.3,1416.4],[1262.7,1416.4],[1288.1,1416.4],[1313.4,1416.4],[1338.8,1417.9],[1364.2,1411.9],[1379.1,1417.9]];   // Freedom Avenue
 const routeGroup = new THREE.Group(); scene.add(routeGroup);
 const tube = (curve, color, r, op) => { const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, r, 6, false),
   new THREE.MeshBasicMaterial({ color, transparent: op < 1, opacity: op, depthWrite: false })); m.renderOrder = 2; return m; };
@@ -204,8 +204,8 @@ const addStop = ([x, y], color) => {
   scene.add(s, r); stops.push([s, r, x, y]);
 };
 onTerrain.push(() => { for (const [s, r, x, y] of stops) { const h = heightAt(x, y); s.position.y = h + 1.5; r.position.y = h + 2.2; } });
-[[1332, 275], [1348, 640], [1352, 1452], [880, 1452], [300, 1452]].forEach(p => addStop(p, 0xF0F2F5));
-[[188, 792], [660, 988], [1240, 1330], [1350, 1330]].forEach(p => addStop(p, 0xB8D94A));
+[[1424, 337], [1311, 736], [1121, 761], [954, 1120], [1003, 1522]].forEach(p => addStop(p, 0xF0F2F5));
+[[449, 1419], [743, 1417], [1038, 1416], [1332, 1417]].forEach(p => addStop(p, 0xB8D94A));
 
 // ── water tower (south-west park): one thick tapered column under a broad rounded tank ──
 const wt = new THREE.Group();
@@ -214,26 +214,7 @@ const wtTank = new THREE.Mesh(new THREE.SphereGeometry(7.5, 24, 16), wtMat); wtT
 const wtCol = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 3.2, 23, 14), wtMat); wtCol.position.y = 11.5; wtCol.castShadow = true;
 const wtCap = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 1.2, 10), wtMat); wtCap.position.y = 33.4;
 wt.add(wtTank, wtCol, wtCap);
-wt.position.set(380, 0, 1100); scene.add(wt); onTerrain.push(() => { wt.position.y = heightAt(380, 1100) - 0.3; });
-
-// ── tunnel portal where the westbound road enters the hill ──
-const tunnel = new THREE.Group();
-const stone = new THREE.MeshStandardMaterial({ color: 0x8E9196, roughness: 0.95 });
-const bore = new THREE.Mesh(new THREE.BoxGeometry(60, 9, 15), new THREE.MeshBasicMaterial({ color: 0x07080A })); bore.position.set(-30, 4.5, 0); tunnel.add(bore);
-const headwall = new THREE.Mesh(new THREE.BoxGeometry(3, 14, 26), stone); headwall.position.set(0, 7, 0); headwall.castShadow = true; tunnel.add(headwall);
-const arch = new THREE.Mesh(new THREE.RingGeometry(6.2, 8.4, 28, 1, 0, Math.PI), stone); arch.rotation.y = Math.PI / 2; arch.position.set(1.6, 4.6, 0); tunnel.add(arch);
-const cutout = new THREE.Mesh(new THREE.BoxGeometry(3.4, 9.2, 15), new THREE.MeshBasicMaterial({ color: 0x07080A })); cutout.position.set(0, 4.5, 0); tunnel.add(cutout);
-for (const dz of [-14, 14]) { const wing = new THREE.Mesh(new THREE.BoxGeometry(12, 8, 2), stone); wing.position.set(-4, 4, dz); wing.rotation.y = dz < 0 ? 0.35 : -0.35; tunnel.add(wing); }
-tunnel.position.set(236, 0, 1452); scene.add(tunnel); onTerrain.push(() => { tunnel.position.y = heightAt(300, 1452) - 0.2; });
-
-// ── cave at the foot of the south-east hill, opening onto the river ──
-const cave = new THREE.Group();
-const caveMat = new THREE.MeshBasicMaterial({ color: 0x06070A });
-const mouth = new THREE.Mesh(new THREE.SphereGeometry(11, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), caveMat); mouth.scale.set(1.3, 0.8, 1); cave.add(mouth);
-const throat = new THREE.Mesh(new THREE.BoxGeometry(30, 12, 22), caveMat); throat.position.set(15, 5, 0); cave.add(throat);
-const lip = new THREE.Mesh(new THREE.TorusGeometry(12.5, 1.6, 8, 24, Math.PI), new THREE.MeshStandardMaterial({ color: 0x9A9DA2, roughness: 1 })); lip.rotation.y = Math.PI / 2; lip.scale.set(1, 0.8, 1.3); cave.add(lip);
-cave.position.set(866, 0, 1684);                             // mouth at the river bank, throat runs east into the hill
-scene.add(cave); onTerrain.push(() => { cave.position.y = heightAt(858, 1684) + 0.3; });
+wt.position.set(498, 0, 1145); scene.add(wt); onTerrain.push(() => { wt.position.y = heightAt(498, 1145) - 0.3; });
 
 // ── vehicles ──
 const busGeo = new THREE.BoxGeometry(14, 5.5, 6); busGeo.translate(0, 2.75, 0);
@@ -242,14 +223,14 @@ const mkBus = color => { const b = new THREE.Mesh(busGeo, new THREE.MeshStandard
 const UN = window.UNITS || [], COL = { pd: 0x4C8DFF, fd: 0xE24B4B, dot: 0xE9C24C };
 const cars = UN.map((u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept]));
 const incident = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 12), new THREE.MeshBasicMaterial({ color: 0xE24B4B }));
-incident.position.set(1160, 4, 1092); scene.add(incident); onTerrain.push(() => { incident.position.y = heightAt(1160, 1092) + 4; });
+incident.position.set(1180, 1300, 1300); scene.add(incident); onTerrain.push(() => { incident.position.y = heightAt(1180, 1300) + 4; });
 const glow = new THREE.Mesh(new THREE.RingGeometry(16, 18, 48), new THREE.MeshBasicMaterial({ color: 0xF0F2F5, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
 glow.rotation.x = -Math.PI / 2; glow.position.y = 1.8; scene.add(glow);
 const pulse = glow.clone(); pulse.material = glow.material.clone(); scene.add(pulse);
 
 
 // ── camera ──
-const FOCUS = new THREE.Vector3(1040, 0, 1060);
+const FOCUS = new THREE.Vector3(700, 0, 1380);
 let follow = false;
 const reset = () => { controls.target.copy(FOCUS); camera.position.set(FOCUS.x + 470, 600, FOCUS.z + 720); controls.update(); };
 const resize = () => { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); };
