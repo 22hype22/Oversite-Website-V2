@@ -14,7 +14,11 @@ not from memory. Nothing in the 3D scene should contradict a logged photo.
 | Sedan (police cruiser) | ~17 x 7.5 x 5.5 studs (L x W x H) | to confirm from a photo next to the player |
 | Fire engine | ~34 x 10 x 12 studs | to confirm |
 | Road lane width | ~12 studs | to confirm |
-| Studs per world unit | TBD | needs one measured object + its map footprint |
+| Studs per world unit | ~4 (tentative) | bridge road: ~6 lanes over ~21 units on the map, lane ~12 studs. Confirm with a cruiser photo |
+| SUV (civ, blue) | ~17 x 8 x 6.5 studs | photos 002/003, player beside it |
+| Bridge deck (road to underside) | ~3 studs slab + ~4 stud parapet | photo 001/002 |
+| Bridge clearance (water to underside) | ~13 studs | photo 001, player on the abutment rock is ~0.4 of it |
+| Apartment storey | ~11 studs, ground floor retail ~14 | photo 003, Brookstone Apartments |
 
 ## Photo log
 
@@ -22,6 +26,9 @@ Columns: id, file, postal / street, facing, what it shows, what it changes in th
 
 | id | file | where | facing | shows | model change |
 |---|---|---|---|---|---|
+| 001 | refs/001-river-bridge.jpg | south of the downtown river bridge, in the channel; map px ~1115,1830 (world ~871,1430) | N | two-span concrete bridge, one centre pier, river ~37 units wide; Brookstone Apartments (4 storeys + roof tower, brick ground floor) on the west bank just north of the road; rocky abutments both sides | TODO: bridge as its own object (deck 3 + parapet 4 studs, 13 stud clearance, pier ~4 studs wide); apartment block ~50 studs + 10 stud tower |
+| 002 | refs/002-river-bridge.jpg | east abutment rock, below the bridge | SW | bridge side on with hammerhead pier; west knoll south of the bridge, grassy with rock faces, ~20-25 studs above water; pines ~30-35, palms ~35-40, cherry ~20 studs; sea horizon beyond | TODO: knoll heights, tree species per knoll (pine + palm + cherry mix), palms along the coast |
+| 003 | refs/003-river-bridge.jpg | on the bridge, east end | W | road cross-section: sidewalk, 2 lanes WB, centre median/turn, 2 lanes EB, right-turn-only lane peeling north on the east bank; SUV ~17 x 8 x 6.5 studs; teal glass tower ~10 storeys further west; 3-storey pink commercial block NW of the bridge | TODO: lane count on the main downtown road, tower height, bridge parapets |
 
 ## How to shoot useful photos
 
