@@ -179,6 +179,8 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -210,6 +212,8 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -494,70 +498,104 @@
   .upd .by{font-size:10.5px;color:var(--faint);margin-top:8px;display:flex;align-items:center;gap:6px}
   .upd .by i{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7C7F86,#2A2B2F 70%);display:inline-block}
   @media (max-width:980px){.page{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
-  /* ───────── Fire Department MDT ───────── */
-  body[data-view="fire"] .rail,body[data-view="fire"] .stage,body[data-view="fire"] .pins{display:none}
-  body[data-view="fire"] .view{filter:brightness(.55)}
-  .page.mdt{grid-template-columns:minmax(280px,3fr) minmax(320px,4fr) minmax(340px,4fr)}
-  .page.mdt[hidden]{display:none}
-  .mdt .col{display:flex;flex-direction:column;gap:var(--gap);min-height:0}
-  .mdt .col>.panel{flex:1;min-height:0}
-  .mdt .col>.panel.unit{flex:0 0 auto}
-  .mdt .col>.panel.detail{flex:1.2}
-  .mdt .col>.panel.report{flex:2.2}
-  .mdt .col>.panel.saved{flex:1}
-  .mdt .ph h2{font-size:14px}
-  .mdt .ph .dim{display:block;font-size:10.5px;color:var(--dim);margin-top:2px}
-  .mdt .body{padding:12px 16px 14px;overflow-y:auto;min-height:0}
-  .mdt .panel .rows{padding:6px 8px 8px;flex:1;min-height:0;overflow-y:auto}
-  .mdt .pill{font-size:10.5px;padding:3px 9px;border-radius:999px;font-weight:500;background:rgba(240,242,245,.08);border:1px solid var(--hair);color:var(--ink)}
-  .mdt .pill.st{color:#7BE3A1;background:rgba(70,208,124,.14);border-color:rgba(70,208,124,.3)}
-  .mdt .pill.st.busy{color:#F1C48A;background:rgba(233,162,76,.14);border-color:rgba(233,162,76,.3)}
-  .mdt .pill.st.oos{color:#F0A0A0;background:rgba(226,75,75,.16);border-color:rgba(226,75,75,.3)}
-  .mdt .pill.p1{color:#F0A0A0;background:rgba(226,75,75,.16)} .mdt .pill.p2{color:#F1C48A;background:rgba(233,162,76,.14)}
-  .statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
-  .statgrid button{padding:9px 6px;border-radius:10px;border:1px solid var(--hair);background:rgba(240,242,245,.04);font-size:12.5px;font-weight:500;line-height:1.1;text-align:center;transition:background .16s,border-color .16s}
-  .statgrid button small{display:block;font-weight:400;font-size:9.5px;color:var(--dim);margin-top:3px}
-  .statgrid button:hover{background:rgba(240,242,245,.08)}
-  .statgrid button[aria-pressed="true"]{background:rgba(226,75,75,.18);border-color:rgba(226,75,75,.45);color:#fff}
-  .kv{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;padding:6px 0;border-bottom:1px solid var(--hair)}
-  .kv:last-child{border-bottom:0} .kv span{color:var(--dim)} .kv b{font-weight:500;text-align:right}
-  .app{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 8px;border-radius:9px;font-size:11.5px}
-  .app:hover{background:rgba(240,242,245,.05)}
-  .app i{width:8px;height:8px;border-radius:50%;background:var(--green);display:block}
-  .app i.busy{background:var(--amber)} .app i.oos{background:var(--red)}
-  .app b{font-weight:500;display:block} .app small{color:var(--dim);font-size:10px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .app .st{font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums;text-align:right}
-  .fcall{display:grid;grid-template-columns:3px 46px 1fr auto;gap:10px;align-items:center;padding:7px 8px 7px 6px;border-radius:9px;font-size:11px;cursor:pointer;border:1px solid transparent}
-  .fcall:hover{background:rgba(240,242,245,.05)} .fcall[aria-selected="true"]{background:rgba(226,75,75,.10);border-color:rgba(226,75,75,.3)}
-  .fcall .pstripe{width:3px;height:26px;border-radius:2px;background:#5B5F66} .fcall.p1 .pstripe{background:var(--red);box-shadow:0 0 10px rgba(226,75,75,.7)} .fcall.p2 .pstripe{background:var(--amber)}
-  .fcall .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;text-align:center;padding:3px 0;border-radius:6px;background:rgba(240,242,245,.06);border:1px solid var(--hair)}
-  .fcall .what b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .fcall .what span{display:block;color:var(--dim);font-size:10px}
-  .fcall .age{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
-  .det .row2{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:11.5px;margin-bottom:10px}
-  .det .row2 span{color:var(--dim);display:block;font-size:10px} .det .row2 b{font-weight:500}
-  .det .tl{display:flex;gap:4px;align-items:center;margin:4px 0 12px}
-  .det .tl i{height:4px;flex:1;border-radius:2px;background:rgba(240,242,245,.12)} .det .tl i.on{background:var(--red)}
-  .det .tl small{font-size:9.5px;color:var(--faint);margin-left:6px;letter-spacing:.03em}
-  .det .notes{font-size:11.5px;color:var(--dim);line-height:1.5;padding:9px 10px;border-radius:9px;background:rgba(240,242,245,.04);border:1px solid var(--hair);margin-bottom:12px}
-  .det .acts{display:flex;gap:6px;flex-wrap:wrap}
-  .btn{font-size:11.5px;font-weight:500;padding:7px 12px;border-radius:8px;background:#F4F6F8;color:#0B0B0C;border:1px solid transparent}
-  .btn:hover{background:#fff} .btn.ghost{background:rgba(240,242,245,.06);color:var(--ink);border-color:var(--hair)} .btn.ghost:hover{background:rgba(240,242,245,.12)}
-  .btn.danger{background:rgba(226,75,75,.18);color:#F6C5C5;border-color:rgba(226,75,75,.35)}
-  .mdt .acts{display:flex;gap:6px}
-  #rptForm label{display:block;font-size:10px;color:var(--dim);margin-bottom:8px}
-  #rptForm input,#rptForm select,#rptForm textarea{display:block;width:100%;margin-top:3px;font:inherit;font-size:12px;color:var(--ink);background:rgba(240,242,245,.05);border:1px solid var(--hair);border-radius:8px;padding:7px 9px;outline:0;resize:vertical}
-  #rptForm input:focus,#rptForm select,#rptForm textarea:focus{border-color:rgba(240,242,245,.3)}
-  #rptForm select option{background:#1C1C1F}
-  #rptForm input[readonly]{color:var(--dim)}
+  /* ───────── MDT tablet dock ───────── */
+  :root{--mdtw:min(500px,42vw)}
+  .mdt-dock{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--mdtw);z-index:7;
+    transform:translateX(calc(100% + var(--gap) + 24px));transition:transform .55s cubic-bezier(.32,.72,0,1);pointer-events:none}
+  body.mdt-open .mdt-dock{transform:none;pointer-events:auto}
+  body.mdt-open .stage{right:calc(var(--mdtw) + var(--gap)*2);transition:right .55s cubic-bezier(.32,.72,0,1)}
+  .stage{transition:right .55s cubic-bezier(.32,.72,0,1)}
+  .mdt-btn[aria-pressed="true"]{color:var(--ink);background:rgba(226,75,75,.22)!important;border-color:rgba(226,75,75,.45)!important}
+  .tablet{position:relative;height:100%;border-radius:34px;padding:14px;background:linear-gradient(160deg,#2A2B30,#101114 40%,#0B0B0D);
+    box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.08),inset 0 0 0 3px #16171A}
+  .tablet .cam{position:absolute;top:5px;left:50%;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#070708;box-shadow:inset 0 0 0 1px #2A2C33,0 0 0 1px #000;z-index:2}
+  .tablet .screen{position:relative;height:100%;border-radius:24px;overflow:hidden;background:#000;color:#F4F5F7;display:flex;flex-direction:column;
+    font-feature-settings:"tnum";--fd:#FF453A;--fd-soft:rgba(255,69,58,.16)}
+  .mdt-close{position:absolute;top:-6px;left:-6px;width:28px;height:28px;border-radius:50%;background:#1C1C1F;border:1px solid var(--hair2);color:var(--dim);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+  .mdt-close:hover{color:var(--ink)}
+  .sbar{display:flex;align-items:center;justify-content:space-between;padding:12px 22px 4px;font-size:12px;font-weight:600;letter-spacing:.02em;color:#D9DBE0}
+  .sbar .sb-mid{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:600;letter-spacing:.12em;color:#8E929B}
+  .sbar .dept-dot{width:6px;height:6px;border-radius:50%;background:var(--fd);box-shadow:0 0 8px var(--fd)}
+  .sbar .sb-r{display:flex;gap:6px;align-items:center;color:#D9DBE0}
+  .tscreens{flex:1;min-height:0;position:relative}
+  .tscreen{position:absolute;inset:0;overflow-y:auto;padding:10px 18px 18px;display:none;scrollbar-width:none;animation:tin .35s cubic-bezier(.32,.72,0,1)}
+  .tscreen::-webkit-scrollbar{display:none}
+  .tscreen.on{display:block}
+  @keyframes tin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .thead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 2px 14px}
+  .thead small{display:block;font-size:10px;font-weight:700;letter-spacing:.16em;color:#8E929B}
+  .thead h2{margin:2px 0 0;font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+  .thead p{margin:4px 0 0;font-size:12px;color:#8E929B}
+  .thead .acts{display:flex;gap:6px;padding-top:6px}
+  .screen .pill{font-size:11px;font-weight:600;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.08);color:#F4F5F7}
+  .screen .pill.st{color:#30D158;background:rgba(48,209,88,.14);box-shadow:0 0 0 1px rgba(48,209,88,.25) inset}
+  .screen .pill.st.busy{color:#FFD60A;background:rgba(255,214,10,.14);box-shadow:0 0 0 1px rgba(255,214,10,.25) inset}
+  .screen .pill.st.oos{color:var(--fd);background:var(--fd-soft);box-shadow:0 0 0 1px rgba(255,69,58,.3) inset}
+  .screen .pill.p1{color:var(--fd);background:var(--fd-soft)} .screen .pill.p2{color:#FFD60A;background:rgba(255,214,10,.14)}
+  .assist{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:18px;margin-bottom:12px;
+    background:linear-gradient(135deg,rgba(255,69,58,.18),rgba(255,159,10,.08) 60%,rgba(255,255,255,.03));box-shadow:0 0 0 1px rgba(255,255,255,.06) inset}
+  .assist i{flex:none;width:30px;height:30px;border-radius:50%;background:conic-gradient(from 180deg,#FF453A,#FF9F0A,#FF453A);box-shadow:0 0 18px rgba(255,69,58,.5);animation:spin 6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .assist b{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;color:#FFB4AE;text-transform:uppercase}
+  .assist span{display:block;font-size:13px;line-height:1.35;margin-top:2px}
+  .statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .statgrid button{padding:13px 6px 11px;border-radius:16px;background:rgba(255,255,255,.06);font-size:15px;font-weight:600;line-height:1;text-align:center;color:#F4F5F7;
+    transition:background .18s,transform .12s cubic-bezier(.32,.72,0,1),box-shadow .18s}
+  .statgrid button small{display:block;font-weight:500;font-size:10px;color:#8E929B;margin-top:5px}
+  .statgrid button:hover{background:rgba(255,255,255,.1)} .statgrid button:active{transform:scale(.96)}
+  .statgrid button[aria-pressed="true"]{background:var(--fd);color:#fff;box-shadow:0 8px 24px rgba(255,69,58,.35)} .statgrid button[aria-pressed="true"] small{color:rgba(255,255,255,.8)}
+  .tcard{border-radius:18px;background:rgba(255,255,255,.06);padding:4px 14px;margin-bottom:10px}
+  .tcard.detail{padding-bottom:12px}
+  .tch{display:flex;align-items:center;justify-content:space-between;padding:12px 0 6px}
+  .tch h3{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .screen .cnt{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.1)}
+  .kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  .kv:last-child{border-bottom:0} .kv span{color:#8E929B} .kv b{font-weight:500;text-align:right}
+  .screen .rows{padding:0 0 8px}
+  .app{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:13px}
+  .app:last-child{border-bottom:0}
+  .app i{width:9px;height:9px;border-radius:50%;background:#30D158;box-shadow:0 0 8px rgba(48,209,88,.6);display:block}
+  .app i.busy{background:#FFD60A;box-shadow:0 0 8px rgba(255,214,10,.5)} .app i.oos{background:var(--fd);box-shadow:0 0 8px rgba(255,69,58,.6)}
+  .app b{font-weight:600;display:block} .app small{color:#8E929B;font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .app .st{font-size:11px;color:#8E929B;text-align:right;font-variant-numeric:tabular-nums}
+  .fcall{display:grid;grid-template-columns:4px 52px 1fr auto;gap:12px;align-items:center;padding:12px 12px 12px 10px;border-radius:16px;margin-bottom:8px;font-size:13px;cursor:pointer;background:rgba(255,255,255,.06);transition:background .18s,transform .12s}
+  .fcall:hover{background:rgba(255,255,255,.1)} .fcall:active{transform:scale(.985)} .fcall[aria-selected="true"]{background:var(--fd-soft);box-shadow:0 0 0 1px rgba(255,69,58,.35) inset}
+  .fcall .pstripe{width:4px;height:30px;border-radius:2px;background:#5B5F66} .fcall.p1 .pstripe{background:var(--fd);box-shadow:0 0 12px rgba(255,69,58,.8)} .fcall.p2 .pstripe{background:#FFD60A}
+  .fcall .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:600;text-align:center;padding:5px 0;border-radius:9px;background:rgba(255,255,255,.08)}
+  .fcall .what b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .fcall .what span{display:block;color:#8E929B;font-size:11px;margin-top:2px}
+  .fcall .age{font-size:11px;color:#8E929B;font-variant-numeric:tabular-nums}
+  .det .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;font-size:13px;margin:4px 0 12px}
+  .det .row2 span{color:#8E929B;display:block;font-size:10.5px;margin-bottom:2px} .det .row2 b{font-weight:600}
+  .det .tl{display:flex;gap:5px;align-items:center;margin:4px 0 12px}
+  .det .tl i{height:5px;flex:1;border-radius:3px;background:rgba(255,255,255,.12)} .det .tl i.on{background:var(--fd);box-shadow:0 0 10px rgba(255,69,58,.6)}
+  .det .tl small{font-size:10px;font-weight:700;color:#8E929B;margin-left:6px;letter-spacing:.1em}
+  .det .notes{font-size:13px;color:#C9CCD3;line-height:1.5;padding:11px 12px;border-radius:12px;background:rgba(255,255,255,.05);margin-bottom:12px}
+  .det .acts{display:flex;gap:8px;flex-wrap:wrap}
+  .screen .btn{font-size:13px;font-weight:600;padding:11px 16px;border-radius:14px;background:#F4F5F7;color:#000;transition:transform .12s,background .18s}
+  .screen .btn:active{transform:scale(.96)} .screen .btn:hover{background:#fff}
+  .screen .btn.ghost{background:rgba(255,255,255,.1);color:#F4F5F7} .screen .btn.ghost:hover{background:rgba(255,255,255,.16)}
+  .screen .btn.danger{background:var(--fd);color:#fff}
+  .thead .acts .btn{padding:8px 14px;font-size:12px}
+  #rptForm label{display:block;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8E929B;margin-bottom:10px}
+  #rptForm input,#rptForm select,#rptForm textarea{display:block;width:100%;margin-top:5px;font:inherit;font-size:14px;letter-spacing:0;text-transform:none;font-weight:400;color:#F4F5F7;background:rgba(255,255,255,.07);border:0;border-radius:12px;padding:11px 12px;outline:0;resize:vertical}
+  #rptForm input:focus,#rptForm select:focus,#rptForm textarea:focus{box-shadow:0 0 0 2px rgba(255,69,58,.6)}
+  #rptForm select option{background:#1C1C1F} #rptForm input[readonly]{color:#8E929B}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
-  .rpt{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px;border-radius:9px;cursor:pointer;font-size:11.5px}
-  .rpt:hover{background:rgba(240,242,245,.05)} .rpt b{font-weight:500} .rpt small{color:var(--dim);font-size:10px;grid-column:1/-1}
-  .rpt .tag{font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:6px;color:var(--dim);background:rgba(240,242,245,.07);align-self:start}
-  .rpt .tag.sub{color:#7BE3A1;background:rgba(70,208,124,.12)}
+  .rpt{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer;font-size:13px}
+  .rpt:last-child{border-bottom:0} .rpt b{font-weight:600} .rpt small{color:#8E929B;font-size:11px;grid-column:1/-1}
+  .rpt .tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:7px;color:#8E929B;background:rgba(255,255,255,.08);align-self:start}
+  .rpt .tag.sub{color:#30D158;background:rgba(48,209,88,.14)}
+  .screen .empty{font-size:12.5px;color:#8E929B;padding:8px 0 12px}
+  .tnav{display:grid;grid-template-columns:repeat(3,1fr);padding:6px 16px 18px;gap:4px;background:linear-gradient(180deg,rgba(0,0,0,0),#000 35%)}
+  .tnav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0 6px;border-radius:14px;color:#8E929B;font-size:10.5px;font-weight:600;transition:color .18s,background .18s}
+  .tnav button[aria-selected="true"]{color:#fff;background:rgba(255,255,255,.08)}
+  .tnav .badge{position:absolute;top:6px;left:calc(50% + 6px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--fd);color:#fff;font-size:10px;font-style:normal;display:flex;align-items:center;justify-content:center}
+  .tnav .badge[hidden]{display:none}
+  .homebar{position:absolute;left:50%;bottom:6px;width:110px;height:4px;margin-left:-55px;border-radius:2px;background:rgba(255,255,255,.35)}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;padding:9px 14px;border-radius:10px;background:rgba(20,20,23,.92);border:1px solid var(--hair2);font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.on{opacity:1}
-  @media (max-width:1180px){.page.mdt{grid-template-columns:1fr 1fr}.page.mdt .col:last-child{grid-column:1/-1}}
-  @media (max-width:980px){.page.mdt{grid-template-columns:1fr}.page.mdt .col:last-child{grid-column:auto}}
+  @media (max-width:980px){:root{--mdtw:calc(100vw - 28px)} body.mdt-open .stage{right:var(--gap)}}
+  @media (prefers-reduced-motion:reduce){.mdt-dock,.stage,.tscreen{transition:none;animation:none}.assist i{animation:none}}
   /* ───────── 3D view ───────── */
     /* no backdrop blur while WebGL is live: the blur forces a full repaint of every panel each frame */
   body.mode-3d{--blur:none;--glass:rgba(13,13,15,.82);--glass2:rgba(20,20,23,.84)}
@@ -670,6 +708,7 @@
     <span>Search</span><kbd>Ctrl+Shift+F</kbd>
   </div>
   <div class="icons">
+    <button id="mdtToggle" class="mdt-btn" aria-label="Open MDT" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><path d="M10 18.5h4" stroke-linecap="round"/></svg></button>
     <button aria-label="Notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><i class="dot"></i></button>
     <button aria-label="Settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     <div class="avatar" aria-label="Account"></div>
@@ -783,73 +822,84 @@
 </section>
 
 
-<!-- ─────────── Fire Department MDT ─────────── -->
-<section class="page mdt" id="pageFire" hidden aria-label="Fire Department MDT">
-  <div class="col">
-    <div class="card panel unit">
-      <div class="ph"><div><h2 id="fdUnitName">FD 4120</h2><small id="fdUnitCrew" class="dim"></small></div><span class="pill st" id="fdStatusPill">10-8</span></div>
-      <div class="body">
-        <div class="statgrid" id="fdStatus">
-          <button data-st="10-8">10-8<small>Available</small></button>
-          <button data-st="10-76">10-76<small>En route</small></button>
-          <button data-st="10-23">10-23<small>On scene</small></button>
-          <button data-st="10-19">10-19<small>Returning</small></button>
-          <button data-st="10-7">10-7<small>Out of service</small></button>
-          <button data-st="10-6">10-6<small>Busy</small></button>
-        </div>
-        <div class="kv"><span>Station</span><b>Station 1 · Freedom Ave</b></div>
-        <div class="kv"><span>Apparatus</span><b id="fdApparatus">Pierce Engine</b></div>
-        <div class="kv"><span>On duty</span><b id="fdDuty">0:00</b></div>
-        <div class="kv"><span>Assigned call</span><b id="fdAssigned">None</b></div>
+
+
+
+<!-- ─────────── MDT: tablet docked on the right ─────────── -->
+<aside class="mdt-dock" id="mdt" aria-label="Mobile Data Terminal" aria-hidden="true">
+  <div class="tablet">
+    <span class="cam"></span>
+    <div class="screen">
+      <div class="sbar"><span id="tbClock">00:00</span><span class="sb-mid"><i class="dept-dot"></i>LC FIRE · MDT</span><span class="sb-r"><svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="3" y="4" width="2" height="6" rx=".5"/><rect x="6" y="2" width="2" height="8" rx=".5"/><rect x="9" y="0" width="2" height="10" rx=".5"/></svg><svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="18" height="9" rx="2.5"/><rect x="2" y="2" width="13" height="6" rx="1.2" fill="currentColor" stroke="none"/><path d="M20 3.5v3" stroke-width="1.5"/></svg></span></div>
+
+      <div class="tscreens">
+        <section class="tscreen on" data-pane="home">
+          <header class="thead"><div><small>UNIT</small><h2 id="fdUnitName">FD 4120</h2><p id="fdUnitCrew" class="dim"></p></div><span class="pill st" id="fdStatusPill">10-8</span></header>
+          <div class="assist" id="fdAssist"><i></i><div><b>Assist</b><span id="fdAssistText">Monitoring. No action needed.</span></div></div>
+          <div class="statgrid" id="fdStatus">
+            <button data-st="10-8">10-8<small>Available</small></button>
+            <button data-st="10-76">10-76<small>En route</small></button>
+            <button data-st="10-23">10-23<small>On scene</small></button>
+            <button data-st="10-19">10-19<small>Returning</small></button>
+            <button data-st="10-7">10-7<small>Out of service</small></button>
+            <button data-st="10-6">10-6<small>Busy</small></button>
+          </div>
+          <div class="tcard">
+            <div class="kv"><span>Station</span><b>Station 1 · Freedom Ave</b></div>
+            <div class="kv"><span>Apparatus</span><b id="fdApparatus">Pierce Engine</b></div>
+            <div class="kv"><span>On duty</span><b id="fdDuty">0:00</b></div>
+            <div class="kv"><span>Assigned call</span><b id="fdAssigned">None</b></div>
+          </div>
+          <div class="tcard"><div class="tch"><h3>Apparatus</h3><span class="cnt" id="fdAppCount">0</span></div><div class="rows" id="fdAppRows"></div></div>
+        </section>
+
+        <section class="tscreen" data-pane="calls">
+          <header class="thead"><div><small>QUEUE</small><h2>Fire Calls</h2></div><span class="cnt" id="fdCallCount">0</span></header>
+          <div class="rows" id="fdCallRows"></div>
+          <div class="tcard detail" id="fdDetail">
+            <div class="tch"><h3 id="fdDetTitle">Select a call</h3><span class="pill" id="fdDetPri" hidden></span></div>
+            <div id="fdDetBody"><div class="empty">Tap a call to see details, respond, and write the report.</div></div>
+          </div>
+        </section>
+
+        <section class="tscreen" data-pane="report">
+          <header class="thead"><div><small>REPORT</small><h2>Incident Report</h2></div><div class="acts"><button class="btn ghost" id="rptNew" type="button">New</button><button class="btn" id="rptSave" type="button">Save</button></div></header>
+          <form id="rptForm" autocomplete="off">
+            <div class="grid2">
+              <label>Report #<input name="num" readonly></label>
+              <label>Call<input name="call" placeholder="10-70 · 14 Ridge Rd"></label>
+              <label>Incident type<select name="type"><option>Structure fire</option><option>Vehicle fire</option><option>Brush / wildland</option><option>Medical</option><option>MVA / extrication</option><option>Hazmat</option><option>Alarm activation</option><option>Public assist</option><option>Other</option></select></label>
+              <label>Priority<select name="pri"><option>P1</option><option>P2</option><option>P3</option></select></label>
+              <label>Address<input name="addr" placeholder="Street, postal"></label>
+              <label>Units on scene<input name="units" placeholder="FD 4120, FD 2201"></label>
+              <label>Dispatched<input name="t_disp" type="time"></label>
+              <label>On scene<input name="t_scene" type="time"></label>
+              <label>Under control<input name="t_ctrl" type="time"></label>
+              <label>Cleared<input name="t_clear" type="time"></label>
+              <label>Patients<input name="patients" type="number" min="0" value="0"></label>
+              <label>Transported<input name="transported" type="number" min="0" value="0"></label>
+            </div>
+            <label>Actions taken<textarea name="actions" rows="3" placeholder="Size-up, attack line, ventilation, overhaul…"></textarea></label>
+            <label>Narrative<textarea name="narr" rows="7" placeholder="What you found on arrival, what you did, outcome."></textarea></label>
+            <div class="grid2">
+              <label>Officer in charge<input name="oic" placeholder="Username"></label>
+              <label>Status<select name="status"><option>Draft</option><option>Submitted</option></select></label>
+            </div>
+          </form>
+          <div class="tcard"><div class="tch"><h3>Saved Reports</h3><span class="cnt" id="rptCount">0</span></div><div class="rows" id="rptRows"></div></div>
+        </section>
       </div>
+
+      <nav class="tnav" role="tablist" aria-label="MDT sections">
+        <button role="tab" data-pane="home" aria-selected="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11 12 3l9 8M5 10v10h5v-6h4v6h5V10"/></svg><span>Unit</span></button>
+        <button role="tab" data-pane="calls" aria-selected="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke-linecap="round"/></svg><span>Calls</span><i class="badge" id="tnavCalls" hidden></i></button>
+        <button role="tab" data-pane="report" aria-selected="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>Report</span></button>
+      </nav>
+      <span class="homebar"></span>
     </div>
-    <div class="card panel">
-      <div class="ph"><h2>Apparatus</h2><span class="cnt" id="fdAppCount">0</span></div>
-      <div class="scroll rows" id="fdAppRows"></div>
-    </div>
+    <button class="mdt-close" id="mdtClose" type="button" aria-label="Close MDT"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </div>
-  <div class="col">
-    <div class="card panel calls">
-      <div class="ph"><h2>Fire Calls</h2><span class="cnt" id="fdCallCount">0</span></div>
-      <div class="scroll rows" id="fdCallRows"></div>
-    </div>
-    <div class="card panel detail" id="fdDetail">
-      <div class="ph"><h2 id="fdDetTitle">Select a call</h2><span class="pill" id="fdDetPri" hidden></span></div>
-      <div class="body" id="fdDetBody"><div class="empty">Pick a call from the queue to see details, respond, and write the report.</div></div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="card panel report">
-      <div class="ph"><h2>Incident Report</h2><div class="acts"><button class="btn ghost" id="rptNew" type="button">New</button><button class="btn" id="rptSave" type="button">Save</button></div></div>
-      <form class="scroll body" id="rptForm" autocomplete="off">
-        <div class="grid2">
-          <label>Report #<input name="num" readonly></label>
-          <label>Call<input name="call" placeholder="10-70 · 14 Ridge Rd"></label>
-          <label>Incident type<select name="type"><option>Structure fire</option><option>Vehicle fire</option><option>Brush / wildland</option><option>Medical</option><option>MVA / extrication</option><option>Hazmat</option><option>Alarm activation</option><option>Public assist</option><option>Other</option></select></label>
-          <label>Priority<select name="pri"><option>P1</option><option>P2</option><option>P3</option></select></label>
-          <label>Address<input name="addr" placeholder="Street, postal"></label>
-          <label>Units on scene<input name="units" placeholder="FD 4120, FD 2201"></label>
-          <label>Dispatched<input name="t_disp" type="time"></label>
-          <label>On scene<input name="t_scene" type="time"></label>
-          <label>Under control<input name="t_ctrl" type="time"></label>
-          <label>Cleared<input name="t_clear" type="time"></label>
-          <label>Patients<input name="patients" type="number" min="0" value="0"></label>
-          <label>Transported<input name="transported" type="number" min="0" value="0"></label>
-        </div>
-        <label>Actions taken<textarea name="actions" rows="3" placeholder="Size-up, attack line, ventilation, overhaul…"></textarea></label>
-        <label>Narrative<textarea name="narr" rows="7" placeholder="What you found on arrival, what you did, outcome."></textarea></label>
-        <div class="grid2">
-          <label>Officer in charge<input name="oic" placeholder="Username"></label>
-          <label>Status<select name="status"><option>Draft</option><option>Submitted</option></select></label>
-        </div>
-      </form>
-    </div>
-    <div class="card panel saved">
-      <div class="ph"><h2>Saved Reports</h2><span class="cnt" id="rptCount">0</span></div>
-      <div class="scroll rows" id="rptRows"></div>
-    </div>
-  </div>
-</section>
+</aside>
 
 <!-- ─────────── overlays on the map ─────────── -->
 <main class="stage" id="stage">
@@ -1143,10 +1193,19 @@
 /* ── tab views + Status & Updates data ── */
 (() => {
   const tabs = [...document.querySelectorAll('.menu button')];
-  const PAGES = { status: 'pageStatus', fire: 'pageFire' };
-  const setView = v => { document.body.dataset.view = v; for (const [k, id] of Object.entries(PAGES)) { const el = document.getElementById(id); if (el) el.hidden = v !== k; }
-    tabs.forEach(t => t.setAttribute('aria-selected', (t.dataset.view || 'dispatch') === v && !!t.dataset.view || (v === 'dispatch' && t.dataset.view === 'dispatch')));
-    dispatchEvent(new CustomEvent('viewchange', { detail: v })); };
+  const PAGES = { status: 'pageStatus' };
+  const mdt = document.getElementById('mdt'), mdtBtn = document.getElementById('mdtToggle');
+  const openMdt = on => { document.body.classList.toggle('mdt-open', on); mdt.setAttribute('aria-hidden', !on); mdtBtn.setAttribute('aria-pressed', on);
+    tabs.forEach(t => { if (t.dataset.view === 'fire') t.setAttribute('aria-selected', on); if (t.dataset.view === 'dispatch') t.setAttribute('aria-selected', !on && document.body.dataset.view === 'dispatch'); });
+    dispatchEvent(new CustomEvent('mdt', { detail: on })); };
+  window.openMdt = openMdt;
+  const setView = v => { const real = v === 'fire' ? 'dispatch' : v; document.body.dataset.view = real;
+    for (const [k, id] of Object.entries(PAGES)) { const el = document.getElementById(id); if (el) el.hidden = real !== k; }
+    tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.view === v));
+    if (real !== 'dispatch') openMdt(false); else openMdt(v === 'fire');
+    dispatchEvent(new CustomEvent('viewchange', { detail: real })); };
+  mdtBtn.addEventListener('click', () => { if (document.body.dataset.view !== 'dispatch') setView('dispatch'); openMdt(!document.body.classList.contains('mdt-open')); });
+  document.getElementById('mdtClose').addEventListener('click', () => setView('dispatch'));
   tabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.view) setView(t.dataset.view); else tabs.forEach(x => x.setAttribute('aria-selected', x === t)); }));
   document.body.dataset.view = 'dispatch';
 
@@ -1260,8 +1319,8 @@
     if (act === 'respond' || act === 'assist') { if (window.assignCall) window.assignCall(c, u.name, 'fd'); else { c.unit = u.name; c.dept = 'fd'; c.stage = 0; } myStatus = '10-76'; c.stage = 1; unitStatus[u.name] = myStatus; toast(`${u.name} responding to ${c.code}`); }
     if (act === 'enroute') { c.stage = 1; myStatus = '10-76'; }
     if (act === 'onscene') { c.stage = 2; myStatus = '10-23'; }
-    if (act === 'clear') { const i = CALLS().indexOf(c); if (i >= 0) CALLS().splice(i, 1); myStatus = '10-19'; selected = null; toast(`${c.code} cleared`); newReportFrom(c, true); }
-    if (act === 'report') newReportFrom(c);
+    if (act === 'clear') { const i = CALLS().indexOf(c); if (i >= 0) CALLS().splice(i, 1); myStatus = '10-19'; selected = null; toast(`${c.code} cleared`); newReportFrom(c, true); window.mdtShow && window.mdtShow('report'); }
+    if (act === 'report') { newReportFrom(c); window.mdtShow && window.mdtShow('report'); }
     unitStatus[u.name] = myStatus; dispatchEvent(new CustomEvent('calls')); renderUnit(); renderApp(); renderCalls(); });
 
   // ── reports ──
@@ -1284,9 +1343,21 @@
 
   // ── live ──
   addEventListener('calls', () => { renderCalls(); renderUnit(); renderApp(); });
-  addEventListener('viewchange', e => { if (e.detail === 'fire') { renderUnit(); renderApp(); renderCalls(); renderReports(); } });
-  setInterval(() => { if (document.body.dataset.view !== 'fire') return; const u = me(); if (u) { const s = Math.floor((Date.now() - u.startedAt) / 1000); $('fdDuty').textContent = `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}`; } renderCalls(); }, 5000);
-  newReport(); renderReports();
+  // tablet navigation
+  const panes = [...document.querySelectorAll('.tscreen')], navs = [...document.querySelectorAll('.tnav [data-pane]')];
+  const showPane = name => { panes.forEach(p => p.classList.toggle('on', p.dataset.pane === name)); navs.forEach(n => n.setAttribute('aria-selected', n.dataset.pane === name)); };
+  navs.forEach(n => n.addEventListener('click', () => showPane(n.dataset.pane)));
+  window.mdtShow = showPane;
+  const clock = () => { const d = new Date(); $('tbClock').textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }; clock(); setInterval(clock, 15000);
+  const assist = () => { const u = me(); if (!u) return; const open = CALLS().filter(fdCall); const mine = open.find(c => c.unit === u.name); const pend = open.filter(c => !c.unit);
+    let msg = 'Monitoring. No action needed.';
+    if (mine && mine.stage < 2) msg = `${mine.code} at ${mine.where}. Mark 10-23 when on scene.`;
+    else if (mine) msg = `On scene at ${mine.where}. Clear the call when done; the report will prefill.`;
+    else if (pend.length) { const c = pend.sort((a, b) => a.pri - b.pri)[0]; const d = Math.hypot(u.x - c.x, u.y - c.y) / 1609 * 1.2; msg = `P${c.pri} ${c.code} at ${c.where} is unassigned, ${d.toFixed(1)} mi away. Suggest responding.`; }
+    $('fdAssistText').textContent = msg; const b = $('tnavCalls'); b.hidden = !pend.length; b.textContent = pend.length; };
+  addEventListener('calls', assist); addEventListener('mdt', e => { if (e.detail) { renderUnit(); renderApp(); renderCalls(); renderReports(); assist(); } });
+  setInterval(() => { if (!document.body.classList.contains('mdt-open')) return; const u = me(); if (u) { const s = Math.floor((Date.now() - u.startedAt) / 1000); $('fdDuty').textContent = `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}`; } renderCalls(); }, 5000);
+  newReport(); renderReports(); assist();
 })();
 </script>
 <script>
