@@ -8,3 +8,8 @@ preview/live-map-3d-standalone.html
 *.key
 .oversite-cal.json
 .erlc.key
+.data/
+*.db
+*.db-wal
+*.db-shm
+app.secret

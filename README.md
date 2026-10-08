@@ -1,25 +1,47 @@
 # Oversite
 
-Live dispatch map for ER:LC private servers: 2D and 3D Liberty County map, unit cards, calls board,
-Fire Department MDT, and an admin panel that links the dashboard to the ER:LC API.
+A live CAD for ER:LC private servers. Each community (one ER:LC server) signs up, connects its server key, invites
+its members, and gets its own live 2D/3D map of Liberty County, dispatch board and department MDTs at
+`/c/<address>`.
+
+## How it fits together
+
+- `server.mjs`: routes, private-preview lock, community API under `/c/<address>/api/...`.
+- `app/db.mjs`: SQLite (Node's built-in driver) in `DATA_DIR` (`/data` on Railway). Server keys are encrypted at rest.
+- `app/feed.mjs`: one live ER:LC feed per community, paced by the API's rate-limit headers, streamed to members.
+- `app/auth.mjs`: Discord sign-in, owner-code sign-in, sessions, Roblox account linking (profile phrase check).
+- `app/pages.mjs`: landing, dashboard, community settings and invite pages.
+- `preview/`: the CAD page itself (built by the generators below); the server injects each community's settings.
 
 ## Run it
 
 ```
-node server.mjs
+npm start        # node --experimental-sqlite server.mjs (Node 22.5 or newer)
 ```
 
-Opens on http://localhost:8080. Set `ACCESS_CODE` to put the site behind a numeric preview code (visitors enter it once, remembered 30 days; `/lock` signs out). Set `ERLC_SERVER_KEY` and the relay at `/api/v2/server` uses it, so the
-browser never sees the key. Without it, the key typed into the admin panel (gear icon) is forwarded instead.
+Opens on http://localhost:8080.
+
+| Variable | What it does |
+|---|---|
+| `ACCESS_CODE` | Puts the whole site behind a numeric preview code. Also the owner sign-in code unless `OWNER_CODE` is set. |
+| `OWNER_CODE` | Code for the owner sign-in, which is offered until Discord sign-in is configured (or always with `OWNER_LOGIN=1`). |
+| `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | Turn on "Continue with Discord". |
+| `PUBLIC_URL` | Optional, e.g. `https://www.oversitescad.com`; used for the Discord redirect and invite links. |
+| `APP_SECRET` | Optional; encrypts server keys. Without it a random secret is created next to the database. |
+| `DATA_DIR` | Where the database lives (default `/data` if present, else `./.data`). |
+
+## Discord sign-in
+
+1. https://discord.com/developers/applications, New Application, name it Oversite.
+2. OAuth2: copy the Client ID and reset/copy the Client Secret. Add the redirect
+   `https://www.oversitescad.com/auth/discord/callback`.
+3. Add `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` to the Railway service variables and redeploy.
+   An owner who signed in with the code can then press "Link Discord" on the dashboard.
 
 ## Deploy on Railway
 
-1. New project, deploy from this GitHub repo. Railway detects Node and runs `node server.mjs`.
-2. Variables: add `ERLC_SERVER_KEY` (from the in-game Settings, ER:LC API section). Never commit it.
-3. Settings, Networking: add the custom domain `oversitescad.com` (and `www.oversitescad.com`) and create the
-   CNAME records Railway shows at the registrar.
-4. In the dashboard admin panel leave Relay URL empty: when the page is served over https it uses `/api` on
-   the same origin automatically.
+Railway builds with Nixpacks on Node 22 (`.nixpacks.toml`) and needs a volume mounted at `/data` for the database.
+Custom domains: `oversitescad.com` redirects to `www.oversitescad.com`.
 
 ## Rebuild the pages
 

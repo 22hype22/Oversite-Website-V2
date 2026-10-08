@@ -1,149 +1,160 @@
 #!/usr/bin/env node
-// Oversite web server: serves the dashboard from preview/ and relays /api/v2/server to the ER:LC API.
-// Railway runs `npm start`; set ERLC_SERVER_KEY in the service variables so the key never touches the browser.
+// Oversite: a multi-community CAD for ER:LC. Each community connects its own server and gets its own live map and MDTs at /c/<slug>.
+// Railway runs `npm start`. Data lives in SQLite on the /data volume (see app/db.mjs).
 import http from 'node:http';
-import { createReadStream, statSync, existsSync, writeFileSync } from 'node:fs';
-import { join, extname, normalize, dirname } from 'node:path';
+import { createReadStream, statSync, existsSync, readFileSync, renameSync } from 'node:fs';
+import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { users, communities, members, invites, roblox, RESERVED } from './app/db.mjs';
+import { Feed, testKey, NOKEY } from './app/feed.mjs';
+import * as auth from './app/auth.mjs';
+import * as pages from './app/pages.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'preview');
 const PORT = +(process.env.PORT || 8080);
-const KEY_FILE = process.env.KEY_FILE || (existsSync('/data') ? '/data/erlc.key' : join(ROOT, '..', '.erlc.key'));   // Railway volume at /data keeps it across deploys
-let KEY = process.env.ERLC_SERVER_KEY || '';                      // can also be saved from the admin panel (POST /admin/key)
-if (!KEY) { try { KEY = readFileSync(KEY_FILE, 'utf8').trim(); } catch (e) {} }
-const CAL_FILE = process.env.CAL_FILE || join(dirname(KEY_FILE), existsSync('/data') ? 'cal.json' : '.oversite-cal.json');
-let CAL = { auto: {}, manual: [] };                                  // auto: postal -> mean stud position seen there; manual: hand-placed points
-try { CAL = { ...CAL, ...JSON.parse(readFileSync(CAL_FILE, 'utf8')) }; } catch (e) {}
-let calDirty = false, calSaved = 0; const seenAt = new Map();
-const learn = body => { let j; try { j = JSON.parse(body); } catch (e) { return; } const now = Date.now();
-  for (const p of j.Players || []) { const L = p.Location, code = String(L?.PostalCode || '').trim(); if (!L || !code || !Number.isFinite(L.LocationX) || !Number.isFinite(L.LocationZ)) continue;
-    const prev = seenAt.get(p.Player); if (prev && Math.hypot(L.LocationX - prev.x, L.LocationZ - prev.z) < 8 && now - prev.t < 15000) continue;   // count a spot once, not every snapshot
-    seenAt.set(p.Player, { x: L.LocationX, z: L.LocationZ, t: now });
-    const a = CAL.auto[code] || { sx: 0, sz: 0, n: 0 }, n = Math.min(a.n + 1, 400); a.sx += (L.LocationX - a.sx) / n; a.sz += (L.LocationZ - a.sz) / n; a.n = n; CAL.auto[code] = a; calDirty = true; }
-  if (calDirty && now - calSaved > 20000) saveCal(); };
-const saveCal = () => { calDirty = false; calSaved = Date.now(); try { writeFileSync(CAL_FILE, JSON.stringify(CAL)); } catch (e) {} };
-const saveKey = k => { try { writeFileSync(KEY_FILE, k + '\n', { mode: 0o600 }); return true; } catch (e) { return false; } };
-const RW = process.env.RAILWAY_TOKEN || '', RW_IDS = { project: process.env.RAILWAY_PROJECT_ID, env: process.env.RAILWAY_ENVIRONMENT_ID, service: process.env.RAILWAY_SERVICE_ID };
-const CODE = (process.env.ACCESS_CODE || '').trim();          // preview lock: digits visitors must enter; empty = site is open
-const CANON = (process.env.CANONICAL_HOST || 'www.oversitescad.com').toLowerCase();   // apex requests are sent here so every visit shares one origin (and one saved key)
+const CODE = (process.env.ACCESS_CODE || '').trim();          // private preview lock: digits visitors must enter; empty = site is open
+const CANON = (process.env.CANONICAL_HOST || 'www.oversitescad.com').toLowerCase();
 const LOGO = readFileSync(join(ROOT, 'logo.png')).toString('base64');
-const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg', MIN_GAP = 600;   // fastest the feed will ever ask the API, whatever the headers say
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.md': 'text/plain; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.woff2': 'font/woff2' };
-const cache = new Map();
-const RL = ['x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset', 'retry-after'];
-const pickRL = h => { const out = {}; for (const k of RL) if (h.get(k)) out[k] = h.get(k); return out; };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
+const DATA = existsSync('/data') ? '/data' : join(ROOT, '..');
+const LEGACY_KEY = join(DATA, existsSync('/data') ? 'erlc.key' : '.erlc.key');   // the single-server key from before communities: given to the first community created
 
-// ── live feed: one upstream loop paced by the API's rate-limit headers, fanned out to every open dashboard over server-sent events ──
-const QUERY = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true&JoinLogs=true';
-const QUERY_FAST = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true';   // join logs only change on joins: fetched every 20th request and reused
-const IDLE_STOP = 30000;                                            // keep polling this long after the last dashboard closes
-const FLOOR = +(process.env.FEED_FLOOR_MS || 250);                  // never ask more often than this, whatever the headers allow
-const feed = { snap: null, clients: new Set(), timer: null, inflight: 0, lastClient: 0, nextAt: 0, seq: 0, shown: 0, rl: null, rlSeq: 0, holdUntil: 0, penaltyUntil: 0, n: 0, joins: null, sent: [] };
-const NOKEY = '{"code":2000,"message":"No server key: set ERLC_SERVER_KEY on the server or enter it in the admin panel"}';
-const bcast = (ev, data, id) => { const msg = `event: ${ev}\n${id ? `id: ${id}\n` : ''}data: ${data}\n\n`; for (const c of feed.clients) c.write(msg); };
-// time between requests: spread what the rate limit has left evenly until it resets, keep 3 in reserve, and count requests still in flight
-const pace = () => { let g = 700; const h = feed.rl;
-  const keep = Date.now() < feed.penaltyUntil ? 10 : 4;               // requests kept in reserve; more for a few minutes after a 429
-  if (h && Number.isFinite(h.left) && Number.isFinite(h.reset) && h.reset > 0) { const left = h.left - feed.inflight, win = Math.max(0, (h.reset > 1e12 ? h.reset : h.reset * 1000) - Date.now()) + (left <= keep ? 1200 : 300); g = left <= keep ? win : win / (left - keep); }   // the reset time comes in whole seconds: wait a full second past it before spending the reserve
-  return Math.min(15000, Math.max(FLOOR, g)); };
-const takeRL = (headers, seq) => { if (seq < feed.rlSeq) return; feed.rlSeq = seq; feed.rl = { left: +headers['x-ratelimit-remaining'], reset: +headers['x-ratelimit-reset'] }; };
-// requests go out on a steady beat (up to two in flight) instead of waiting for each answer: the API takes 0.4 to 0.8 s to reply
-const tick = async () => {
-  feed.timer = null; const now = Date.now();
-  if (!feed.clients.size && now - feed.lastClient > IDLE_STOP) return;
-  if (!KEY) { bcast('err', NOKEY); feed.timer = setTimeout(tick, 3000); return; }
-  if (now < feed.holdUntil) { feed.timer = setTimeout(tick, feed.holdUntil - now); return; }
-  if (feed.inflight >= 2) { feed.timer = setTimeout(tick, 40); return; }
-  const seq = ++feed.seq, full = !feed.joins || feed.n++ % 20 === 0;
-  feed.inflight++; feed.nextAt = now + pace(); feed.timer = setTimeout(tick, feed.nextAt - now);
-  feed.sent.push(now); while (feed.sent.length && now - feed.sent[0] > 60000) feed.sent.shift();
-  try {
-    const up = await fetch(UPSTREAM + (full ? QUERY : QUERY_FAST), { headers: { 'server-key': KEY } }); const body = await up.text(); const headers = pickRL(up.headers);
-    const taken = Math.round((now + Date.now()) / 2);                  // best guess at when the API read the positions: halfway through the request
-    takeRL(headers, seq);
-    if (up.status === 429) { feed.holdUntil = Date.now() + Math.max(1, +headers['retry-after'] || 30) * 1000; feed.penaltyUntil = Date.now() + 180000; feed.n429 = (feed.n429 || 0) + 1;
-      bcast('err', JSON.stringify({ status: 429, retry_after: +headers['retry-after'] || 30 })); }
-    else if (up.ok) { if (seq > feed.shown) { feed.shown = seq; let out = body;                       // an older answer arriving late is dropped
-        if (full) { try { feed.joins = JSON.parse(body).JoinLogs || []; } catch (e) {} }
-        else if (feed.joins) out = body.replace(/}\s*$/, `,"JoinLogs":${JSON.stringify(feed.joins)}}`);
-        out = steady(out, taken);
-        if (out) { feed.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; cache.set(QUERY, feed.snap); bcast('server', out, taken); learn(body); } } }   // a stale answer is dropped entirely
-    else { let j = {}; try { j = JSON.parse(body); } catch (e) {} bcast('err', JSON.stringify({ status: up.status, ...j })); if (up.status >= 400) feed.holdUntil = Date.now() + 3000; }
-  } catch (e) { bcast('err', JSON.stringify({ status: 502, message: 'relay could not reach api.erlc.gg: ' + e.message })); feed.holdUntil = Date.now() + 3000; }
-  finally { feed.inflight--; } };
-// per player: recent distinct positions. If an answer brings back a position the player already left (a stale cache behind another API node),
-// keep the newest one instead, so the dashboard never sees them jump backwards. The last 15 minutes are kept for diagnosis (GET /api/track).
-// ER:LC refreshes positions about every 5 s, so turning round between two updates is normal: the direction check only applies to updates under 2 s apart.
-const hist = new Map(), track = new Map(), pending = new Map(), lastAt = new Map();
-const steady = (body, taken) => { let j; try { j = JSON.parse(body); } catch (e) { return body; } let stale = false; const adds = [];
-  for (const p of j.Players || []) { const L = p.Location; if (!L || !Number.isFinite(L.LocationX)) continue; const h = hist.get(p.Player) || []; const cur = [L.LocationX, L.LocationZ];
-    const same = q => Math.abs(q[0] - cur[0]) < 0.01 && Math.abs(q[1] - cur[1]) < 0.01;
-    if (h.length && same(h[h.length - 1])) continue;
-    if (h.slice(0, -1).some(same)) { stale = true; break; }         // a position this player already left: the whole answer came from an old cache
-    if (h.length >= 2 && taken - (lastAt.get(p.Player) || 0) < 2000) { const a = h[h.length - 2], b = h[h.length - 1], mv = [b[0] - a[0], b[1] - a[1]], d = [cur[0] - b[0], cur[1] - b[1]], lm = Math.hypot(...mv), ld = Math.hypot(...d);
-      if (lm > 3 && ld > 1 && (mv[0] * d[0] + mv[1] * d[1]) < -0.3 * lm * ld) {          // a moving car suddenly behind where it was: most likely an old cache
-        const pend = pending.get(p.Player); if (!(pend && Math.hypot(cur[0] - pend[0], cur[1] - pend[1]) < ld + 40 && (cur[0] - pend[0]) * d[0] + (cur[1] - pend[1]) * d[1] >= 0)) { pending.set(p.Player, cur); stale = true; break; } } }   // unless the next answer confirms it really turned round
-    pending.delete(p.Player); adds.push([p, h, cur, L]); }
-  if (stale) { feed.reverts = (feed.reverts || 0) + 1; return null; }
-  for (const [p, h, cur, L] of adds) { lastAt.set(p.Player, taken); h.push(cur); if (h.length > 12) h.shift(); hist.set(p.Player, h);
-    const tr = track.get(p.Player) || []; tr.push([taken, +cur[0].toFixed(2), +cur[1].toFixed(2), L.PostalCode || '']); while (tr.length && taken - tr[0][0] > 900000) tr.shift(); track.set(p.Player, tr); }
-  return body; };
-const wake = () => { if (!feed.timer) feed.timer = setTimeout(tick, Math.max(0, feed.nextAt - Date.now())); };
-const stream = (req, res) => {
-  res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
-  res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(CAL)}\n\n`);
-  if (feed.snap && Date.now() - feed.snap.t < 10000) res.write(`event: server\nid: ${feed.snap.taken}\ndata: ${feed.snap.body}\n\n`); else if (!KEY) res.write(`event: err\ndata: ${NOKEY}\n\n`);
-  feed.clients.add(res); feed.lastClient = Date.now();
-  const ka = setInterval(() => res.write(': ping\n\n'), 15000);
-  req.on('close', () => { clearInterval(ka); feed.clients.delete(res); feed.lastClient = Date.now(); });
-  wake();
-};
+// ── small helpers ──
+const html = (res, body, status = 200, extra = {}) => { res.writeHead(status, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-frame-options': 'SAMEORIGIN', ...extra }); res.end(body); };
+const json = (res, obj, status = 200) => { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(obj)); };
+const redirect = (res, to, extra = {}) => { res.writeHead(303, { location: to, 'cache-control': 'no-store', ...extra }); res.end(); };
+const body = (req, limit = 1e5) => new Promise(resolve => { let b = ''; req.on('data', c => { b += c; if (b.length > limit) req.destroy(); }); req.on('end', () => resolve(b)); req.on('error', () => resolve('')); });
+const jsonBody = async req => { try { return JSON.parse(await body(req) || '{}'); } catch (e) { return {}; } };
+const formBody = async req => new URLSearchParams(await body(req));
+const sameOrigin = req => { const o = req.headers.origin || req.headers.referer; if (!o) return true; try { return new URL(o).host === req.headers.host; } catch (e) { return false; } };
+const page = (res, p, status) => html(res, p, status);
+const msg = (res, user, title, text, action, status = 200) => page(res, pages.message({ logo: LOGO, user, title, text, action }), status);
 
-const relay = async (req, res) => {
-  res.setHeader('access-control-expose-headers', RL.join(', '));
-  const path = req.url.replace(/^\/api/, '');
-  if (req.method === 'GET' && path === '/stream') return stream(req, res);
-  if (req.method === 'GET' && path === '/track') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify({ reverts: feed.reverts || 0, players: Object.fromEntries([...track].map(([k, v]) => [k.split(':')[0], v])) })); }
-  if (path === '/cal') {                                              // shared calibration: every browser draws units with the same transform
-    if (req.method === 'GET') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify(CAL)); }
-    if (req.method === 'POST') { let body = ''; req.on('data', c => { body += c; if (body.length > 2e5) req.destroy(); }); req.on('end', () => { let j = {}; try { j = JSON.parse(body || '{}'); } catch (e) {}
-        const num = v => typeof v === 'number' && Number.isFinite(v);
-        if (j.clear) CAL = { auto: {}, manual: [] };
-        if (Array.isArray(j.manual)) CAL.manual = j.manual.filter(p => p && num(p.sx) && num(p.sz) && num(p.wx) && num(p.wy)).slice(0, 20).map(p => ({ name: String(p.name || 'Point').slice(0, 60), sx: p.sx, sz: p.sz, wx: p.wx, wy: p.wy }));
-        saveCal(); bcast('cal', JSON.stringify(CAL)); res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(CAL)); }); return; } }
-  if (req.method !== 'GET' || !path.startsWith('/v2/server')) { res.writeHead(404, { 'content-type': 'application/json' }); return res.end('{"message":"only GET /api/v2/server... is relayed"}'); }
-  const key = KEY || req.headers['server-key'];
-  if (!key) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end(NOKEY); }
-  const hit = cache.get(path); if (hit && Date.now() - hit.t < (feed.clients.size ? 5000 : MIN_GAP)) return send(res, hit);   // the feed loop keeps the snapshot fresh
-  try {
-    const up = await fetch(UPSTREAM + path, { headers: { 'server-key': key } }); const body = await up.text(); const headers = pickRL(up.headers);
-    const out = { t: Date.now(), status: up.status, body, headers }; if (up.ok) cache.set(path, out); if (key === KEY) takeRL(headers, feed.seq); send(res, out);
-  } catch (e) { res.writeHead(502, { 'content-type': 'application/json' }); res.end(JSON.stringify({ message: 'relay could not reach api.erlc.gg: ' + e.message })); }
-};
-const send = (res, r) => { res.writeHead(r.status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...r.headers }); res.end(r.body); };
+// ── live feeds, one per community ──
+const feeds = new Map();
+const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id)); feeds.set(c.id, f); } return f; };
+const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 
-const serve = (req, res) => {
-  let url = decodeURIComponent(req.url.split('?')[0]);
-  if (url === '/' || url === '/index.html') url = '/live-map-3d.html';
-  if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${feed.sent.length}/min ${feed.rl ? feed.rl.left + ' left' : ''} ${feed.n429 || 0} limited ${feed.reverts || 0} stale dropped`); }
+// ── the CAD page, with this community's settings injected ──
+let mapHtml = null, mapMtime = 0;
+const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
+  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', user: user.name, depts: c.settings.depts, teams: c.settings.teams, canEdit: role !== 'member' };
+  const inject = `<base href="/"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};</script>`;
+  return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
+
+// ── community access ──
+const ROLE_RANK = { member: 1, admin: 2, owner: 3 };
+const access = (req, slug) => { const user = auth.currentUser(req), c = communities.bySlug(slug); if (!c) return { c: null, user }; const role = user ? members.role(c.id, user.id) : null; return { c, user, role }; };
+const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
+
+const communityApi = async (req, res, slug, rest) => {
+  const { c, user, role } = access(req, slug);
+  if (!c) return json(res, { error: 'No such community.' }, 404);
+  if (!user) return json(res, { error: 'Sign in first.' }, 401);
+  if (!role) return json(res, { error: 'You are not a member of this community.' }, 403);
+  if (req.method !== 'GET' && req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
+  const f = feedFor(c), M = req.method;
+  if (rest === 'stream' && M === 'GET') return f.stream(req, res, calOf(c));
+  if (rest.startsWith('v2/server') && M === 'GET') { const s = await f.snapshot(); res.writeHead(s.status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...s.headers }); return res.end(s.body); }
+  if (rest === 'cal') { if (M === 'GET') return json(res, calOf(c)); if (!can(role, 'admin')) return json(res, { error: 'Only admins can move the map calibration.' }, 403);
+    const j = await jsonBody(req), num = v => typeof v === 'number' && Number.isFinite(v);
+    c.settings.cal = j.clear ? [] : (Array.isArray(j.manual) ? j.manual.filter(p => p && num(p.sx) && num(p.sz) && num(p.wx) && num(p.wy)).slice(0, 20).map(p => ({ name: String(p.name || 'Point').slice(0, 60), sx: p.sx, sz: p.sz, wx: p.wx, wy: p.wy })) : c.settings.cal);
+    communities.saveSettings(c.id, c.settings); f.bcast('cal', JSON.stringify(calOf(c))); return json(res, calOf(c)); }
+  if (rest === 'key') {
+    if (M === 'GET') return json(res, { hasKey: !!communities.key(c.id), persistent: true, canEdit: can(role, 'admin') });
+    if (!can(role, 'admin')) return json(res, { error: 'Only admins can change the server key.' }, 403);
+    if (M === 'DELETE') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can disconnect the server.' }, 403); communities.setKey(c.id, null); f.setKey(''); return json(res, { ok: true }); }
+    const k = String((await jsonBody(req)).key || '').trim(); if (!/^[A-Za-z0-9_\-]{8,200}$/.test(k)) return json(res, { error: 'That does not look like an ER:LC server key.' }, 400);
+    const t = await testKey(k); if (!t.ok) return json(res, { error: t.message }, 400);
+    communities.setKey(c.id, k); f.setKey(k); return json(res, { ok: true, persistent: true, name: t.name, players: t.players }); }
+  if (rest === 'track' && M === 'GET') { if (!can(role, 'admin')) return json(res, { error: 'Admins only.' }, 403); return json(res, { stats: f.stats(), players: Object.fromEntries([...f.track].map(([k, v]) => [k.split(':')[0], v])) }); }
+  if (!can(role, 'admin')) return json(res, { error: 'Only admins can do that.' }, 403);
+  if (rest === 'settings' && M === 'POST') { const j = await jsonBody(req), s = c.settings;
+    const name = String(j.name || '').trim(); if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400);
+    for (const d of ['pd', 'fd', 'dot']) { const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); s.depts[d] = { name: n, short: sh }; }
+    for (const [t, d] of Object.entries(j.teams || {})) if (t in s.teams && ['pd', 'fd', 'dot', ''].includes(d)) s.teams[t] = d;
+    communities.rename(c.id, name); communities.saveSettings(c.id, s); return json(res, { ok: true }); }
+  if (rest === 'invites' && M === 'POST') { const code = invites.create(c.id, user.id); return json(res, { code, url: `${origin(req)}/join/${code}` }); }
+  if (rest === 'invites/revoke' && M === 'POST') { invites.revoke(c.id, String((await jsonBody(req)).code || '')); return json(res, { ok: true }); }
+  if (rest === 'members/role' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can change roles.' }, 403); const j = await jsonBody(req);
+    if (!['member', 'admin'].includes(j.role)) return json(res, { error: 'Unknown role.' }, 400); members.setRole(c.id, +j.userId, j.role); return json(res, { ok: true }); }
+  if (rest === 'members/remove' && M === 'POST') { const j = await jsonBody(req), target = members.role(c.id, +j.userId);
+    if (!target || target === 'owner' || +j.userId === user.id) return json(res, { error: 'That member cannot be removed.' }, 400);
+    if (target === 'admin' && !can(role, 'owner')) return json(res, { error: 'Only the owner can remove an admin.' }, 403); members.remove(c.id, +j.userId); return json(res, { ok: true }); }
+  if (rest === 'delete' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can delete the community.' }, 403);
+    if ((await jsonBody(req)).confirm !== c.slug) return json(res, { error: 'Type the address to confirm.' }, 400); communities.remove(c.id); feeds.delete(c.id); return json(res, { ok: true }); }
+  return json(res, { error: 'Not found.' }, 404); };
+const origin = req => (process.env.PUBLIC_URL || `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers.host}`).replace(/\/$/, '');
+
+const globalApi = async (req, res, rest) => {
+  const user = auth.currentUser(req); if (!user) return json(res, { error: 'Sign in first.' }, 401);
+  if (req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
+  if (rest === 'communities' && req.method === 'POST') { const j = await jsonBody(req), name = String(j.name || '').trim(), slug = String(j.slug || '').trim().toLowerCase();
+    if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400);
+    if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(slug) || slug.includes('--')) return json(res, { error: 'The address must be 3 to 32 lowercase letters, numbers or single dashes.' }, 400);
+    if (RESERVED.has(slug) || communities.bySlug(slug)) return json(res, { error: 'That address is taken. Try another.' }, 409);
+    if (communities.forUser(user.id).filter(c => c.role === 'owner').length >= 10) return json(res, { error: 'You can own up to 10 communities.' }, 400);
+    const id = communities.create(user.id, slug, name);
+    if (existsSync(LEGACY_KEY) && !communities.all().some(c => c.erlc_key)) { try { const k = readFileSync(LEGACY_KEY, 'utf8').trim(); if (k) { communities.setKey(id, k); renameSync(LEGACY_KEY, LEGACY_KEY + '.migrated'); } } catch (e) {} }   // the first community keeps the server key the site already had
+    return json(res, { slug }); }
+  if (rest === 'roblox/start' && req.method === 'POST') { const r = await auth.robloxStart(user, (await jsonBody(req)).username); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
+  if (rest === 'roblox/verify' && req.method === 'POST') { const r = await auth.robloxVerify(user); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
+  if (rest === 'roblox/cancel' && req.method === 'POST') { roblox.clear(user.id); return json(res, { ok: true }); }
+  if (rest === 'roblox/unlink' && req.method === 'POST') { auth.robloxUnlink(user); return json(res, { ok: true }); }
+  return json(res, { error: 'Not found.' }, 404); };
+
+// ── routes ──
+const route = async (req, res) => {
+  const url = new URL(req.url, 'http://x'), path = decodeURIComponent(url.pathname);
+  if (path === '/health') { let w = 0, perMin = 0; for (const f of feeds.values()) { w += f.clients.size; perMin += f.sent.length; } res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${communities.all().length} communities, ${w} watching, ${perMin}/min`); }
+  if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
+  if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
+    const p = roblox.pending(user.id); return page(res, pages.dashboard({ logo: LOGO, user, comms: communities.forUser(user.id), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null })); }
+  if (path === '/auth/discord') { if (!auth.discordReady()) return msg(res, auth.currentUser(req), 'Discord sign-in is not set up yet', 'The site owner needs to connect a Discord application first.', { href: '/', label: 'Back' });
+    const { url: to, cookie } = auth.discordStart(req, url.searchParams.get('next')); return redirect(res, to, { 'set-cookie': cookie }); }
+  if (path === '/auth/discord/callback') { try { const { user, next } = await auth.discordFinish(req, url.searchParams); return redirect(res, next, { 'set-cookie': [auth.signIn(req, user.id), auth.setCookie(req, 'ov_oauth', '', 0)] }); }
+    catch (e) { return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), owner: auth.ownerLoginOn(), error: e.message }), 400); } }
+  if (path === '/auth/owner' && req.method === 'POST') { if (!sameOrigin(req)) return msg(res, null, 'Request blocked', 'Please sign in from the Oversite page.', { href: '/', label: 'Back' }, 400);
+    const f = await formBody(req), r = auth.ownerLogin(req, String(f.get('code') || '').trim());
+    if (r.error) return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(f.get('next')), error: r.error }), 401);
+    return redirect(res, auth.safeNext(f.get('next')), { 'set-cookie': auth.signIn(req, r.user.id) }); }
+  if (path === '/auth/logout' && req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, '/'); return redirect(res, '/', { 'set-cookie': auth.signOut(req) }); }
+  let m;
+  if ((m = path.match(/^\/join\/([0-9a-f]{10})$/))) { const user = auth.currentUser(req), inv = invites.get(m[1]), c = inv && communities.byId(inv.community_id);
+    if (!inv || !c) return msg(res, user, 'This invite has expired', 'Ask your community for a new link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
+    if (!user) return redirect(res, `/?next=/join/${m[1]}`);
+    if (members.role(c.id, user.id)) return redirect(res, `/c/${c.slug}`);
+    if (req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, `/join/${m[1]}`); members.add(c.id, user.id); invites.use(m[1]); return redirect(res, `/c/${c.slug}`); }
+    return page(res, pages.join({ logo: LOGO, user, c, code: m[1] })); }
+  if ((m = path.match(/^\/c\/([a-z0-9-]{3,32})(\/.*)?$/))) { const slug = m[1], sub = (m[2] || '/').replace(/\/+$/, '') || '/';
+    if (sub.startsWith('/api/')) return communityApi(req, res, slug, sub.slice(5));
+    const { c, user, role } = access(req, slug);
+    if (!c) return msg(res, user, 'Community not found', 'Check the address, or ask your community for an invite link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
+    if (!user) return redirect(res, `/?next=${encodeURIComponent(path)}`);
+    if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', { href: '/dashboard', label: 'Go to dashboard' }, 403);
+    if (sub === '/') return html(res, mapPage(c, user, role));
+    if (sub === '/settings') { if (!can(role, 'admin')) return msg(res, user, 'Admins only', 'Only owners and admins can change community settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
+      const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
+      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new') })); }
+    return msg(res, user, 'Not found', 'That page does not exist.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 404); }
+  if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
+  return serve(req, res, path); };
+
+const serve = (req, res, url) => {
   const file = normalize(join(ROOT, url));
-  if (!file.startsWith(ROOT) || !existsSync(file) || !statSync(file).isFile()) { res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('Not found'); }
+  if (!file.startsWith(ROOT) || /\.(py|md)$/i.test(file) || !existsSync(file) || !statSync(file).isFile()) return msg(res, auth.currentUser(req), 'Not found', 'That page does not exist.', { href: '/', label: 'Home' }, 404);
   const ext = extname(file).toLowerCase();
-  const headers = { 'content-type': TYPES[ext] || 'application/octet-stream', 'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=86400' };
-  if (ext === '.html') headers['x-frame-options'] = 'SAMEORIGIN';
-  res.writeHead(200, headers); createReadStream(file).pipe(res);
-};
+  res.writeHead(200, { 'content-type': TYPES[ext] || 'application/octet-stream', 'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=86400' }); createReadStream(file).pipe(res); };
 
-// ── preview lock: a numeric access code, remembered in a cookie for 30 days ──
+// ── private preview lock: a numeric access code, remembered in a cookie for 30 days ──
 const sign = v => createHmac('sha256', 'oversite-preview:' + CODE).update(v).digest('hex');
 const COOKIE = 'ov_access';
 const hasAccess = req => { if (!CODE) return true; const m = /(?:^|;\s*)ov_access=([0-9a-f]{64})/.exec(req.headers.cookie || ''); if (!m) return false;
   const want = Buffer.from(sign(CODE)), got = Buffer.from(m[1]); return want.length === got.length && timingSafeEqual(want, got); };
-const attempts = new Map();                                                  // ip -> { n, until }
+const attempts = new Map();
 const ipOf = req => (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-const lockPage = (msg = '') => { const n = Math.min(8, Math.max(4, CODE.length || 4)); return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oversite</title>
+const lockPage = (m = '') => { const n = Math.min(8, Math.max(4, CODE.length || 4)); return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oversite</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,${LOGO}">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -153,11 +164,11 @@ body{font:15px/1.45 "Geist",system-ui,-apple-system,"Segoe UI",sans-serif;color:
 .map::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(11,11,12,.35),rgba(11,11,12,.78))}
 .wrap{position:fixed;inset:0;display:grid;place-items:center;padding:16px}
 form{text-align:center;width:min(440px,100%)}
-.mark{width:40px;height:40px;border-radius:10px;background:rgba(28,28,31,.66);border:1px solid rgba(240,242,245,.08);display:grid;place-items:center;margin:0 auto 18px;backdrop-filter:blur(40px) saturate(1.25)}.mark img{width:22px;height:22px}
+.mark{width:40px;height:40px;border-radius:10px;background:rgba(28,28,31,.66);border:1px solid rgba(240,242,245,.08);display:grid;place-items:center;margin:0 auto 18px}.mark img{width:22px;height:22px}
 h1{margin:0;font-size:22px;font-weight:300;letter-spacing:-.02em}h1 b{font-weight:600}
 p{margin:6px 0 0;color:var(--dim);font-size:13px}
 .boxes{display:flex;gap:10px;justify-content:center;margin:26px 0 18px;cursor:text}
-.boxes i{width:52px;height:64px;border-radius:12px;background:rgba(13,13,15,.62);border:1px solid var(--hair2);backdrop-filter:blur(40px) saturate(1.25);display:grid;place-items:center;font-style:normal;font-size:28px;font-weight:500;transition:border-color .15s}
+.boxes i{width:52px;height:64px;border-radius:12px;background:rgba(13,13,15,.62);border:1px solid var(--hair2);display:grid;place-items:center;font-style:normal;font-size:28px;font-weight:500;transition:border-color .15s}
 .boxes i.on{border-color:rgba(240,242,245,.5)}.boxes i.cur{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 form.err .boxes i{border-color:#E24B4B}form.shake .boxes{animation:shake .4s}
 @keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
@@ -166,46 +177,35 @@ input{position:absolute;opacity:0;width:1px;height:1px;left:-9999px}
 @media (max-width:420px){.boxes{gap:6px}.boxes i{width:44px;height:56px;font-size:24px}}
 @media (prefers-reduced-motion:reduce){form.shake .boxes{animation:none}}
 </style></head><body><div class="map"></div><div class="wrap">
-<form method="post" action="/unlock" autocomplete="off" id="f" class="${msg ? 'err shake' : ''}">
+<form method="post" action="/unlock" autocomplete="off" id="f" class="${m ? 'err shake' : ''}">
 <div class="mark"><img src="data:image/png;base64,${LOGO}" alt=""></div>
-<h1><b>Oversite</b> is in private preview</h1><p>Enter your ${['four','five','six','seven','eight'][n - 4]}-digit access code.</p>
+<h1><b>Oversite</b> is in private preview</h1><p>Enter your ${['four', 'five', 'six', 'seven', 'eight'][n - 4]}-digit access code.</p>
 <label class="boxes" id="boxes" for="code">${'<i></i>'.repeat(n)}</label>
 <input id="code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="${n}" autofocus aria-label="Access code">
-${msg ? `<p class="msg">${msg}</p>` : ''}<span class="hint">Remembered on this browser for 30 days.</span></form></div>
+${m ? `<p class="msg">${m}</p>` : ''}<span class="hint">Remembered on this browser for 30 days.</span></form></div>
 <script>
 const f=document.getElementById('f'),inp=document.getElementById('code'),cells=[...document.querySelectorAll('#boxes i')],N=${n};
 const paint=()=>{const v=inp.value.replace(/\\D/g,'').slice(0,N);inp.value=v;cells.forEach((c,i)=>{c.textContent=v[i]||'';c.className=v[i]?'on':(i===v.length?'cur':'');});if(v.length===N)f.submit();};
 inp.addEventListener('input',paint);document.getElementById('boxes').addEventListener('click',()=>inp.focus());document.addEventListener('click',()=>inp.focus());
 f.addEventListener('animationend',()=>f.classList.remove('shake'));paint();inp.focus();
 </script></body></html>`; };
-const unlock = (req, res, code) => { const ip = ipOf(req), a = attempts.get(ip) || { n: 0, until: 0 };
-  if (Date.now() < a.until) { res.writeHead(429, { 'content-type': 'text/html; charset=utf-8' }); return res.end(lockPage('Too many tries. Wait a minute and try again.')); }
+const unlock = (req, res, code, next = '/') => { const ip = ipOf(req), a = attempts.get(ip) || { n: 0, until: 0 };
+  if (Date.now() < a.until) return html(res, lockPage('Too many tries. Wait a minute and try again.'), 429);
   if (code && code === CODE) { attempts.delete(ip); const secure = (req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : '';
-    res.writeHead(303, { location: '/', 'set-cookie': `${COOKIE}=${sign(CODE)}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${secure}` }); return res.end(); }
-  a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } attempts.set(ip, a);
-  res.writeHead(401, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end(lockPage('That code is not right.')); };
-const gate = (req, res, next) => {
-  const [path, qs] = req.url.split('?');
-  if (path === '/health' || path === '/liberty-county.jpg') return next();           // the lock page shows the map behind it
-  if (path === '/admin/key' && hasAccess(req)) {                                      // save the ER:LC key on the server so every browser gets live data
-    if (req.method === 'GET') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify({ hasKey: !!KEY, persistent: !!process.env.ERLC_SERVER_KEY || existsSync(KEY_FILE) })); }
-    if (req.method === 'POST') { let body = ''; req.on('data', c => { body += c; if (body.length > 1e4) req.destroy(); }); req.on('end', async () => {
-      let k = ''; try { k = String(JSON.parse(body || '{}').key || '').trim(); } catch (e) {} if (!/^[A-Za-z0-9_\-]{8,200}$/.test(k)) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"message":"that does not look like a server key"}'); }
-      const changed = k !== KEY; KEY = k; cache.clear(); feed.snap = null; let saved = saveKey(k), err = ''; if (changed) { feed.nextAt = 0; wake(); }
-      if (RW && RW_IDS.project) { try { const r = await fetch('https://backboard.railway.app/graphql/v2', { method: 'POST', headers: { 'Project-Access-Token': RW, 'content-type': 'application/json' },
-          body: JSON.stringify({ query: 'mutation($i: VariableUpsertInput!) { variableUpsert(input: $i) }', variables: { i: { projectId: RW_IDS.project, environmentId: RW_IDS.env, serviceId: RW_IDS.service, name: 'ERLC_SERVER_KEY', value: k } } }) });
-          const j = await r.json(); saved = !!(j.data && j.data.variableUpsert); if (!saved) err = JSON.stringify(j.errors || j).slice(0, 200); } catch (e) { err = e.message; } }
-      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify({ ok: true, persistent: saved, error: err })); }); return; } }
-  if (path === '/unlock' && req.method === 'POST') { let body = ''; req.on('data', c => { body += c; if (body.length > 1e4) req.destroy(); }); req.on('end', () => unlock(req, res, decodeURIComponent((body.match(/(?:^|&)code=([^&]*)/) || [])[1] || '').trim())); return; }
-  if (path === '/lock') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` }); return res.end(lockPage()); }
-  const q = new URLSearchParams(qs || '').get('code'); if (q && CODE) return unlock(req, res, q.trim());
-  if (hasAccess(req)) return next();
-  if (path.startsWith('/api/')) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"message":"locked"}'); }
-  res.writeHead(401, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end(lockPage());
-};
+    return redirect(res, next, { 'set-cookie': `${COOKIE}=${sign(CODE)}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${secure}` }); }
+  a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } attempts.set(ip, a); return html(res, lockPage('That code is not right.'), 401); };
+const gate = async (req, res) => {
+  const url = new URL(req.url, 'http://x'), path = url.pathname;
+  if (path === '/health' || path === '/liberty-county.jpg') return route(req, res);
+  if (path === '/unlock' && req.method === 'POST') { const f = await formBody(req); return unlock(req, res, String(f.get('code') || '').trim()); }
+  if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });
+  const q = url.searchParams.get('code'); if (q && CODE && !hasAccess(req)) { url.searchParams.delete('code'); return unlock(req, res, q.trim(), url.pathname + (url.search || '')); }
+  if (hasAccess(req)) return route(req, res);
+  if (path.includes('/api/')) return json(res, { error: 'locked' }, 401);
+  return html(res, lockPage(), 401); };
 
 http.createServer((req, res) => {
   const host = (req.headers.host || '').toLowerCase().replace(/:\d+$/, '');
   if (CANON.startsWith('www.') && host === CANON.slice(4)) { res.writeHead(301, { location: `https://${CANON}${req.url}`, 'cache-control': 'no-store' }); return res.end(); }
-  gate(req, res, () => (req.url.startsWith('/api/') ? relay(req, res) : serve(req, res))); })
-  .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${process.env.ERLC_SERVER_KEY ? 'server key from env' : KEY ? 'server key from ' + KEY_FILE : 'no server key set, the dashboard must supply one'}; ${CODE ? 'preview lock on' : 'no access code, site is open'})`));
+  gate(req, res).catch(e => { console.error(e); if (!res.headersSent) json(res, { error: 'Server error.' }, 500); else res.end(); }); })
+  .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));

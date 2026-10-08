@@ -103,12 +103,16 @@ LIVE_JS = r"""<script id="live">
   const $ = id => document.getElementById(id);
   const ICON = __ICON__;
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const DEPT = { pd: 'LE', fd: 'FD', dot: 'DOT' }, KIND = { pd: 'cruiser', fd: 'engine', dot: 'dot' };
-  const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay at /api
+  const OV = window.OVERSITE || null;                                       // set by the server on a community's CAD page: its API, the user's linked Roblox name, department names
+  const DEPT = { pd: OV?.depts?.pd?.short || 'LE', fd: OV?.depts?.fd?.short || 'FD', dot: OV?.depts?.dot?.short || 'DOT' }, KIND = { pd: 'cruiser', fd: 'engine', dot: 'dot' };
+  const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay
+  const API = OV ? OV.api : location.origin + '/api';
+  const post = (path, body, method = 'POST') => fetch(API + path, { method, headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: body ? JSON.stringify(body) : undefined });
   const DEFAULTS = { key: '', relay: '', live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
-  const KEY = 'oversite.admin';
+  const KEY = 'oversite.admin' + (OV ? '.' + OV.slug : '');               // each community keeps its own panel settings
   let S = { ...DEFAULTS };
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+  if (OV) { S.key = ''; S.relay = ''; S.me = OV.me || ''; S.teams = { ...S.teams, ...(OV.teams || {}) }; }   // the community decides these; the key never lives in the browser
   if (HOSTED) { S.live = true; delete S.fit; delete S.nudge; S.cal = []; }       // the server owns hand-placed points on the hosted site                                             // the hosted dashboard is always live; an old saved 'off' must never stick
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
@@ -122,19 +126,24 @@ LIVE_JS = r"""<script id="live">
   // ── fields ──
   const F = { key: $('adKey'), relay: $('adRelay'), live: $('adLive'), me: $('adMe'), callsignOnly: $('adCallsignOnly') };
   F.key.value = S.key; F.relay.value = S.relay; F.live.checked = S.live; F.me.value = S.me; F.callsignOnly.checked = S.callsignOnly;
+  if (OV) { F.me.readOnly = true; F.me.placeholder = 'Link your Roblox account on the dashboard'; F.me.title = 'Your linked Roblox account. Change it on the dashboard.';
+    F.relay.closest('label').style.display = 'none'; for (const sel of document.querySelectorAll('#adTeams select')) sel.disabled = true;
+    const note = F.key.closest('section, div')?.querySelector('.ad-note'); if (note) note.textContent = OV.canEdit ? 'The key is stored encrypted on the server for this community. Paste a new one and save to replace it, or manage it in Settings.' : 'Only community admins can change the server connection.';
+    if (!OV.canEdit) { F.key.closest('label').style.display = 'none'; $('adKeyRow').style.display = 'none'; }
+    const links = document.createElement('div'); links.className = 'ad-row'; links.innerHTML = `<a class="ad-btn" href="/dashboard">Dashboard</a>${OV.canEdit ? `<a class="ad-btn" href="/c/${OV.slug}/settings">Community settings</a>` : ''}`; $('admin').querySelector('section')?.prepend(links); }
   if (HOSTED) { const l = F.live.closest('label'); if (l) l.hidden = true; }
   for (const sel of document.querySelectorAll('#adTeams select')) { sel.value = S.teams[sel.dataset.team] ?? ''; sel.addEventListener('change', () => { S.teams[sel.dataset.team] = sel.value; save(); }); }
   F.key.addEventListener('input', () => { S.key = F.key.value.trim(); save(); });
   F.key.addEventListener('change', () => { S.key = F.key.value.trim(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
   const keyRow = $('adKeyRow'), keyState = $('adKeyState');
-  const keyStatus = async () => { if (!HOSTED) return; try { const j = await (await fetch('/admin/key', { cache: 'no-store' })).json(); keyRow.hidden = false;
+  const keyStatus = async () => { if (!HOSTED) return; try { const j = await (await fetch(API + '/key', { cache: 'no-store' })).json(); keyRow.hidden = false; if (OV && !j.canEdit) keyRow.style.display = 'none';
       keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.') : 'Not saved on the server yet.'; if (j.hasKey) F.key.placeholder = 'Saved on the server'; if (j.hasKey && !S.key) start(); if (!j.hasKey && S.key) seedKey(); } catch (e) {} };
   let seededAt = 0;                                                     // the browser remembers the key, so after a redeploy it quietly hands it back to the server
-  const seedKey = async () => { if (!HOSTED || !S.key || Date.now() - seededAt < 10000) return; seededAt = Date.now();
-    try { const j = await (await fetch('/admin/key', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: S.key }) })).json(); if (j.ok) { keyState.textContent = j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.'; startStream(); } } catch (e) {} };
+  const seedKey = async () => { if (OV || !HOSTED || !S.key || Date.now() - seededAt < 10000) return; seededAt = Date.now();
+    try { const j = await (await post('/key', { key: S.key })).json(); if (j.ok) { keyState.textContent = j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.'; startStream(); } } catch (e) {} };
   $('adKeySave').addEventListener('click', async () => { const k = F.key.value.trim(); if (!k) return status('Paste the key first.', 'err'); keyState.textContent = 'Saving…';
-    try { const j = await (await fetch('/admin/key', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: k }) })).json();
-      keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy.') : (j.message || 'Could not save.'); if (j.ok) start(); } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
+    try { const j = await (await post('/key', { key: k })).json();
+      keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy.') : (j.error || j.message || 'Could not save.'); if (j.ok) { F.key.value = ''; start(); } } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
   keyStatus();
   F.relay.addEventListener('change', () => { S.relay = F.relay.value.trim().replace(/\/+$/, ''); F.relay.value = S.relay; save(); });
   F.me.addEventListener('change', () => { S.me = F.me.value.trim(); save(); });
@@ -188,10 +197,10 @@ LIVE_JS = r"""<script id="live">
     $('adOffset').textContent = `${Math.round(cal.bx - DEF_B)}, ${Math.round(cal.bz - DEF_B)}`;
     $('adPoints').innerHTML = S.cal.map((p, i) => `<div class="ad-pt"><span>${esc(p.name)}</span><small>${p.sx.toFixed(0)}, ${p.sz.toFixed(0)} studs</small><button type="button" data-rm="${i}">Remove</button></div>`).join('') || '<div class="ad-note">No points yet.</div>';
     if (lastUnits) applyPositions(); };
-  const pushCal = body => { if (!HOSTED) return; fetch((S.relay || location.origin + '/api') + '/cal', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).catch(() => {}); };
+  const pushCal = body => { if (!HOSTED || (OV && !OV.canEdit)) return; post('/cal', body).catch(() => {}); };
   const takeCal = j => { if (!j || typeof j !== 'object') return; S.auto = j.auto || {}; const manual = Array.isArray(j.manual) ? j.manual : [];
     const changed = JSON.stringify(manual) !== JSON.stringify(S.cal); S.cal = manual; save(); if (changed) renderCal(); };   // only a hand-placed point moves anyone; postal stats never reset motion
-  if (HOSTED) fetch(location.origin + '/api/cal', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(takeCal).catch(() => {});
+  if (HOSTED) fetch(API + '/cal', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(takeCal).catch(() => {});
   $('adPoints').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.cal.splice(+b.dataset.rm, 1); save(); renderCal(); pushCal({ manual: S.cal }); });
   $('adClearCal').addEventListener('click', () => { S.cal = []; S.auto = {}; delete S.fit; delete S.nudge; SAMPLES.length = 0; save(); renderCal(); pushCal({ clear: true }); });
   $('adHere').addEventListener('click', () => { const me = (S.me || '').toLowerCase(); if (!me) return status('Enter your username first.', 'err');
@@ -228,7 +237,7 @@ LIVE_JS = r"""<script id="live">
   const status = (msg, cls = '') => { st.textContent = msg; st.className = 'ad-status ' + cls; };
 
   // ── fetching ──
-  const base = () => S.relay || (HOSTED ? location.origin + '/api' : 'https://api.erlc.gg');
+  const base = () => S.relay || (HOSTED ? API : 'https://api.erlc.gg');
   let timer = null, lastPlayers = null, lastUnits = null, lastServer = null, lastVehicles = [], seenCalls = new Set(), inflight = false;
   const fetchServer = async () => {
     if (!S.key && !S.relay && !HOSTED) throw new Error('No server key.');

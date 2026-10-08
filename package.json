@@ -2,11 +2,13 @@
   "name": "oversite",
   "version": "0.1.0",
   "private": true,
-  "description": "Oversite: live dispatch map for ER:LC private servers",
+  "description": "Oversite: a live CAD for ER:LC private servers, one community per server",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=22.5"
+  },
   "scripts": {
-    "start": "node server.mjs",
+    "start": "node --experimental-sqlite --disable-warning=ExperimentalWarning server.mjs",
     "pages": "python3 preview/build-rail.py && python3 preview/build-3d.py"
   }
 }

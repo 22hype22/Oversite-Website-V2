@@ -1,7 +1,7 @@
-# Railway: Node only, no python build step (the built pages are committed)
+# Railway: Node 22 (built-in SQLite), no python build step (the built pages are committed)
 [phases.setup]
-nixPkgs = ["nodejs_20"]
+nixPkgs = ["nodejs_22"]
 [phases.install]
 cmds = ["echo no install step"]
 [start]
-cmd = "node server.mjs"
+cmd = "node --experimental-sqlite --disable-warning=ExperimentalWarning server.mjs"
