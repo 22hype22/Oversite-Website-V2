@@ -75,18 +75,19 @@ const tick = async () => {
   finally { feed.inflight--; } };
 // per player: recent distinct positions. If an answer brings back a position the player already left (a stale cache behind another API node),
 // keep the newest one instead, so the dashboard never sees them jump backwards. The last 15 minutes are kept for diagnosis (GET /api/track).
-const hist = new Map(), track = new Map(), pending = new Map();
+// ER:LC refreshes positions about every 5 s, so turning round between two updates is normal: the direction check only applies to updates under 2 s apart.
+const hist = new Map(), track = new Map(), pending = new Map(), lastAt = new Map();
 const steady = (body, taken) => { let j; try { j = JSON.parse(body); } catch (e) { return body; } let stale = false; const adds = [];
   for (const p of j.Players || []) { const L = p.Location; if (!L || !Number.isFinite(L.LocationX)) continue; const h = hist.get(p.Player) || []; const cur = [L.LocationX, L.LocationZ];
     const same = q => Math.abs(q[0] - cur[0]) < 0.01 && Math.abs(q[1] - cur[1]) < 0.01;
     if (h.length && same(h[h.length - 1])) continue;
     if (h.slice(0, -1).some(same)) { stale = true; break; }         // a position this player already left: the whole answer came from an old cache
-    if (h.length >= 2) { const a = h[h.length - 2], b = h[h.length - 1], mv = [b[0] - a[0], b[1] - a[1]], d = [cur[0] - b[0], cur[1] - b[1]], lm = Math.hypot(...mv), ld = Math.hypot(...d);
+    if (h.length >= 2 && taken - (lastAt.get(p.Player) || 0) < 2000) { const a = h[h.length - 2], b = h[h.length - 1], mv = [b[0] - a[0], b[1] - a[1]], d = [cur[0] - b[0], cur[1] - b[1]], lm = Math.hypot(...mv), ld = Math.hypot(...d);
       if (lm > 3 && ld > 1 && (mv[0] * d[0] + mv[1] * d[1]) < -0.3 * lm * ld) {          // a moving car suddenly behind where it was: most likely an old cache
         const pend = pending.get(p.Player); if (!(pend && Math.hypot(cur[0] - pend[0], cur[1] - pend[1]) < ld + 40 && (cur[0] - pend[0]) * d[0] + (cur[1] - pend[1]) * d[1] >= 0)) { pending.set(p.Player, cur); stale = true; break; } } }   // unless the next answer confirms it really turned round
     pending.delete(p.Player); adds.push([p, h, cur, L]); }
   if (stale) { feed.reverts = (feed.reverts || 0) + 1; return null; }
-  for (const [p, h, cur, L] of adds) { h.push(cur); if (h.length > 12) h.shift(); hist.set(p.Player, h);
+  for (const [p, h, cur, L] of adds) { lastAt.set(p.Player, taken); h.push(cur); if (h.length > 12) h.shift(); hist.set(p.Player, h);
     const tr = track.get(p.Player) || []; tr.push([taken, +cur[0].toFixed(2), +cur[1].toFixed(2), L.PostalCode || '']); while (tr.length && taken - tr[0][0] > 900000) tr.shift(); track.set(p.Player, tr); }
   return body; };
 const wake = () => { if (!feed.timer) feed.timer = setTimeout(tick, Math.max(0, feed.nextAt - Date.now())); };
