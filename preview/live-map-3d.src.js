@@ -274,7 +274,8 @@ const pulse = glow.clone(); pulse.material = glow.material.clone(); scene.add(pu
 const FOCUS = new THREE.Vector3(700, 0, 1380);
 let follow = false;
 const reset = () => { controls.target.copy(FOCUS); camera.position.set(FOCUS.x + 470, 600, FOCUS.z + 720); controls.update(); };
-const resize = () => { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); };
+let sizeW = 0, sizeH = 0;
+const resize = () => { const w = innerWidth, h = innerHeight; if (w === sizeW && h === sizeH) return; sizeW = w; sizeH = h; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); };
 addEventListener('resize', resize); resize(); reset();
 
 // ── screen-space tooltip ──
@@ -311,11 +312,18 @@ const adapt = dt => { acc += dt; if (++n < 40) return; const avg = acc / n; acc 
   const want = avg > 0.03 ? Math.max(0.6, pr - 0.15) : (avg < 0.014 ? Math.min(Math.min(devicePixelRatio, BIG ? 0.9 : 1.0), pr + 0.15) : pr);
   if (want !== pr) { pr = want; renderer.setPixelRatio(pr); } };
 renderer.shadowMap.needsUpdate = true;
-let skip = false;
+// pacing: full frame rate only while something on the map is changing; otherwise let the GPU rest so clicks and page animations stay smooth
+let lastDrawn = 0, lastInteract = 0, quietUntil = 0;
+controls.addEventListener('change', () => { lastInteract = performance.now(); });
+const quiet = () => { quietUntil = performance.now() + 550; };              // a page transition is running: give it the GPU
+addEventListener('viewchange', quiet); addEventListener('mdt', quiet);
 const frame = () => {
-  const dt = Math.min(clock.getDelta(), 0.05), now = clock.elapsedTime; adapt(dt);
-  // idle pacing: when nothing is being dragged and frames are slow, render every other frame
-  if (!controls._dragging && dt < 0.02 && pr <= 0.6) { skip = !skip; if (skip) return; }
+  const t = performance.now(), moving = UN.some(u => u.m && Math.hypot(u.m.Dv[0], u.m.Dv[1]) > 0.3);
+  const busy = controls._dragging || !!flight || follow || t - lastInteract < 900 || moving;
+  const fps = t < quietUntil ? 20 : document.body.classList.contains('mdt-open') ? 15 : busy ? 0 : 30;   // 0 = every display frame
+  if (fps && t - lastDrawn < 1000 / fps - 3) return;
+  lastDrawn = t;
+  const dt = Math.min(clock.getDelta(), 0.1), now = clock.elapsedTime; if (!fps) adapt(dt); else acc = n = 0;   // only judge speed at full rate
   const camD = camera.position.distanceTo(controls.target), grow = Math.min(6, Math.max(1, camD / 160));
   UN.forEach((u, i) => { const c = cars[i]; if (!c) return; const ch = Math.cos(u.heading), sh = Math.sin(u.heading), f = CAR_L * 0.45, w = CAR_W * 0.45;
     const hc = heightAt(u.x, u.y), hf = heightAt(u.x + ch * f, u.y + sh * f), hb = heightAt(u.x - ch * f, u.y - sh * f), hl = heightAt(u.x + sh * w, u.y - ch * w), hr = heightAt(u.x - sh * w, u.y + ch * w);
@@ -345,6 +353,6 @@ const flyTo = (x, z, dist = 520, az = 0.9, smooth = false) => { const y = height
 const rayc = new THREE.Raycaster(), ndc = new THREE.Vector2();
 const pick = (cx, cy) => { ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); rayc.setFromCamera(ndc, camera); const hit = rayc.intersectObject(ground, false)[0]; return hit ? [hit.point.x, hit.point.z] : null; };
 window.map3d = { zoomIn: () => dolly(0.78), zoomOut: () => dolly(1.28), toggleFollow, setTheme, setActive, reset, flyTo, pick,
-  pose: () => [...camera.position.toArray(), ...controls.target.toArray()].map(n => +n.toFixed(2)), controls };
+  pose: () => [...camera.position.toArray(), ...controls.target.toArray()].map(n => +n.toFixed(2)), controls, info: () => ({ frames: renderer.info.render.frame, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, tex: renderer.info.memory.textures, pr, objects: (() => { let n = 0; scene.traverse(() => n++); return n; })() }) };
 window.map3dReady = true;
 setActive(true);
