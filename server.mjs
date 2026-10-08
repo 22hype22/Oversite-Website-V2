@@ -46,7 +46,7 @@ const bcast = (ev, data, id) => { const msg = `event: ${ev}\n${id ? `id: ${id}\n
 // time between requests: spread what the rate limit has left evenly until it resets, keep 3 in reserve, and count requests still in flight
 const pace = () => { let g = 700; const h = feed.rl;
   const keep = Date.now() < feed.penaltyUntil ? 10 : 4;               // requests kept in reserve; more for a few minutes after a 429
-  if (h && Number.isFinite(h.left) && Number.isFinite(h.reset) && h.reset > 0) { const left = h.left - feed.inflight, win = Math.max(0, (h.reset > 1e12 ? h.reset : h.reset * 1000) - Date.now()) + 300; g = left <= keep ? win : win / (left - keep); }
+  if (h && Number.isFinite(h.left) && Number.isFinite(h.reset) && h.reset > 0) { const left = h.left - feed.inflight, win = Math.max(0, (h.reset > 1e12 ? h.reset : h.reset * 1000) - Date.now()) + (left <= keep ? 1200 : 300); g = left <= keep ? win : win / (left - keep); }   // the reset time comes in whole seconds: wait a full second past it before spending the reserve
   return Math.min(15000, Math.max(FLOOR, g)); };
 const takeRL = (headers, seq) => { if (seq < feed.rlSeq) return; feed.rlSeq = seq; feed.rl = { left: +headers['x-ratelimit-remaining'], reset: +headers['x-ratelimit-reset'] }; };
 // requests go out on a steady beat (up to two in flight) instead of waiting for each answer: the API takes 0.4 to 0.8 s to reply
