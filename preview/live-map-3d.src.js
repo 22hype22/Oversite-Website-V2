@@ -326,6 +326,8 @@ let flight = null;
 const flyTo = (x, z, dist = 520, az = 0.9, smooth = false) => { const y = heightAt(x, z); const T = new THREE.Vector3(x, y, z), P = new THREE.Vector3(x + Math.sin(az) * dist * 0.75, y + dist * 0.62, z + Math.cos(az) * dist * 0.75);
   if (!smooth) { controls.target.copy(T); camera.position.copy(P); controls.update(); return; }
   follow = false; flight = { t0: performance.now(), ms: 900, T0: controls.target.clone(), P0: camera.position.clone(), T, P }; };
-window.map3d = { zoomIn: () => dolly(0.78), zoomOut: () => dolly(1.28), toggleFollow, setTheme, setActive, reset, flyTo,
+const rayc = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const pick = (cx, cy) => { ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); rayc.setFromCamera(ndc, camera); const hit = rayc.intersectObject(ground, false)[0]; return hit ? [hit.point.x, hit.point.z] : null; };
+window.map3d = { zoomIn: () => dolly(0.78), zoomOut: () => dolly(1.28), toggleFollow, setTheme, setActive, reset, flyTo, pick,
   pose: () => [...camera.position.toArray(), ...controls.target.toArray()].map(n => +n.toFixed(2)), controls };
 setActive(true);

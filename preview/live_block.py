@@ -34,6 +34,7 @@ ADMIN_CSS = r"""  /* admin panel: server link, departments, map calibration */
   .admin .ad-btn{font-size:12.5px;font-weight:500;padding:7px 12px;border-radius:8px;background:rgba(240,242,245,.08);color:var(--ink);border:1px solid var(--hair2)}
   .admin .ad-btn:hover{background:rgba(240,242,245,.14)} .admin .ad-btn:active{transform:translateY(1px)}
   .admin .ad-btn.pri{background:var(--ink);color:#0B0B0C;border-color:var(--ink)}
+  .admin .ad-btn[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
   .admin .ad-status{margin:6px 0 2px;padding:9px 11px;border-radius:8px;background:rgba(240,242,245,.05);color:var(--dim);font-size:12px;white-space:pre-line}
   .admin .ad-status.ok{color:var(--green)} .admin .ad-status.err{color:#F0A0A0}
   .admin .ad-kv{display:flex;justify-content:space-between;padding:6px 0;color:var(--dim)} .admin .ad-kv b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
@@ -87,7 +88,8 @@ def admin_html():
     <div class="ad-kv"><span>Auto-calibration</span><b id="adAuto">waiting for players</b></div>
     <div class="ad-kv"><span>You</span><b id="adYou">not seen yet</b></div>
     <label><span>Your username</span><input id="adMe" autocomplete="off" spellcheck="false" placeholder="Roblox username"></label>
-    <div class="ad-row"><select id="adLandmark">{opts}</select><button type="button" class="ad-btn pri" id="adHere">I'm here</button></div>
+    <div class="ad-row"><button type="button" class="ad-btn pri" id="adPlace">Place me on the map</button><span class="ad-note" id="adPlaceHint" style="margin:0">Then click the exact spot you are standing on.</span></div>
+    <div class="ad-row"><select id="adLandmark">{opts}</select><button type="button" class="ad-btn" id="adHere">I'm here</button></div>
     <div class="ad-pts" id="adPoints"></div>
     <div class="ad-kv"><span>Studs per map unit</span><b id="adScale">3.50 (default)</b></div>
     <div class="ad-kv"><span>Map centre offset</span><b id="adOffset">0, 0</b></div>
@@ -149,7 +151,9 @@ LIVE_JS = r"""<script id="live">
     const spread = Math.sqrt(den / W);                                   // studs: need points far enough apart to trust the scale
     let a = spread > 400 && den > 1e-6 ? num / den : DEF_A; if (!(a > 1 / 20 && a < 1)) a = DEF_A;
     cal = { a, bx: mwx - a * mx, bz: mwy - a * mz };
-    if (S.cal.length < 2 && S.fit && S.fit.score >= 0.55) cal = { a: S.fit.a, bx: S.fit.bx, bz: S.fit.bz }; };
+    if (S.cal.length < 2 && S.fit && S.fit.score >= 0.55) cal = { a: S.fit.a, bx: S.fit.bx, bz: S.fit.bz };
+    if (S.cal.length === 1) { const p = S.cal[0]; cal = { a: cal.a, bx: p.wx - cal.a * p.sx, bz: p.wy - cal.a * p.sz }; }   // one hand-placed point: keep the scale, pin the offset to it
+    if (S.nudge) { cal = { a: cal.a, bx: cal.bx + S.nudge[0], bz: cal.bz + S.nudge[1] }; } };
   // road fit: players drive on roads, so the transform that puts the most position samples onto the road grid is the right one
   const SAMPLES = []; const lastSeen = {}; let newSamples = 0, lastFitAt = 0;
   const addSamples = players => { for (const p of players) { const L = p.Location; if (!L) continue; const k = p.Player, prev = lastSeen[k];
@@ -180,10 +184,24 @@ LIVE_JS = r"""<script id="live">
     $('adPoints').innerHTML = S.cal.map((p, i) => `<div class="ad-pt"><span>${esc(p.name)}</span><small>${p.sx.toFixed(0)}, ${p.sz.toFixed(0)} studs</small><button type="button" data-rm="${i}">Remove</button></div>`).join('') || '<div class="ad-note">No points yet.</div>';
     if (lastUnits) applyPositions(); };
   $('adPoints').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.cal.splice(+b.dataset.rm, 1); save(); renderCal(); });
-  $('adClearCal').addEventListener('click', () => { S.cal = []; S.auto = {}; delete S.fit; SAMPLES.length = 0; save(); renderCal(); });
+  $('adClearCal').addEventListener('click', () => { S.cal = []; S.auto = {}; delete S.fit; delete S.nudge; SAMPLES.length = 0; save(); renderCal(); });
   $('adHere').addEventListener('click', () => { const me = (S.me || '').toLowerCase(); if (!me) return status('Enter your username first.', 'err');
     const p = (lastPlayers || []).find(x => x.Player.split(':')[0].toLowerCase() === me); if (!p || !p.Location) return status('You are not in the last player list. Turn on live data, wait for a poll, then try again.', 'err');
     const [wx, wy] = $('adLandmark').value.split(',').map(Number); S.cal.push({ name: $('adLandmark').selectedOptions[0].textContent, sx: p.Location.LocationX, sz: p.Location.LocationZ, wx, wy }); save(); renderCal(); status(`Point added: ${$('adLandmark').selectedOptions[0].textContent}.`, 'ok'); });
+
+  // ── place me: one click on the map pins the offset so the user's unit sits exactly where they click ──
+  let placing = false; const placeBtn = $('adPlace'), placeHint = $('adPlaceHint');
+  placeBtn.addEventListener('click', () => { const me = (S.me || '').toLowerCase(); if (!me) return status('Enter your username first.', 'err');
+    const p = (lastPlayers || []).find(x => x.Player.split(':')[0].toLowerCase() === me); if (!p || !p.Location) return status('You are not in the player list yet.', 'err');
+    placing = !placing; placeBtn.setAttribute('aria-pressed', placing); placeHint.textContent = placing ? 'Now click your exact spot on the map (Esc to cancel).' : 'Then click the exact spot you are standing on.'; if (placing) setOpen(false); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && placing) { placing = false; placeBtn.setAttribute('aria-pressed', false); } });
+  let down = null; const view = document.getElementById('view');
+  view.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; }, true);
+  view.addEventListener('pointerup', e => { if (!placing || !down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) { down = null; return; } down = null;
+    const w = document.body.classList.contains('mode-3d') ? window.map3d?.pick?.(e.clientX, e.clientY) : window.map2d?.screenToWorld?.(e.clientX, e.clientY); if (!w) return;
+    const me = (S.me || '').toLowerCase(), p = (lastPlayers || []).find(x => x.Player.split(':')[0].toLowerCase() === me); if (!p || !p.Location) return;
+    S.cal = [{ name: 'Placed by hand', sx: p.Location.LocationX, sz: p.Location.LocationZ, wx: w[0], wy: w[1] }]; delete S.nudge; save(); placing = false; placeBtn.setAttribute('aria-pressed', false); placeHint.textContent = 'Placed. Everyone is now lined up to that point.';
+    fitCal(); renderCal(); applyPositions(); for (const u of units.values()) { u.x = u.tx; u.y = u.ty; } status('Position pinned to where you clicked.', 'ok'); }, true);
 
   // ── status line ──
   const st = $('adStatus');
