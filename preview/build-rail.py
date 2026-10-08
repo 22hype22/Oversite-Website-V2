@@ -178,8 +178,6 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   const now0 = Date.now();
   const CRUISE = { pd: 38, fd: 30, dot: 26 };                                  // demo cruising speed, mph
   for (const u of units) { u.startedAt = now0 - u.since * 1000; u.speed = (CRUISE[u.dept] || 30) / (2.237 * seg[u.route][seg[u.route].length - 1]); Object.assign(u, at(u.route, u.t)); }
-  const svgPath = pts => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
-  for (const [cls, key] of [['a', units[0]?.route], ['b', units[1]?.route]]) if (ROUTES[key]) for (const el of document.querySelectorAll(`.world path.route.${cls}, .world path.route.${cls}2`)) el.setAttribute('d', svgPath(ROUTES[key]));
   window.UNITS = units; window.DEMO_UNITS = units;
 
   // department chips: counts from the unit list, click to filter the cards

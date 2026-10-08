@@ -230,21 +230,6 @@ const placeLandmarks = () => {
   lmGroup.add(trunkM, frondM); };
 placeLandmarks(); onTerrain.push(placeLandmarks);
 
-// ── routes (same polylines as the 2D page) ──
-const pathOf = pts => { const cp = new THREE.CurvePath(); for (let i = 1; i < pts.length; i++) {
-  const [ax, ay] = pts[i - 1], [bx, by] = pts[i], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 12));
-  for (let s = 0; s < n; s++) { const t0 = s / n, t1 = (s + 1) / n;
-    cp.add(new THREE.LineCurve3(new THREE.Vector3(ax + (bx - ax) * t0, heightAt(ax + (bx - ax) * t0, ay + (by - ay) * t0) + 1.4, ay + (by - ay) * t0),
-      new THREE.Vector3(ax + (bx - ax) * t1, heightAt(ax + (bx - ax) * t1, ay + (by - ay) * t1) + 1.4, ay + (by - ay) * t1))); } } return cp; };
-const RT = window.ROUTES || {}, U0 = (window.UNITS || [])[0], U1 = (window.UNITS || [])[1];
-const ROUTE_A = (U0 && RT[U0.route]) || [[0, 0], [1, 1]], ROUTE_B = (U1 && RT[U1.route]) || [[0, 0], [1, 1]];   // the first two units' patrol routes
-const routeGroup = new THREE.Group(); scene.add(routeGroup);
-const tube = (curve, color, r, op) => { const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 400, r, 6, false),
-  new THREE.MeshBasicMaterial({ color, transparent: op < 1, opacity: op, depthWrite: false })); m.renderOrder = 2; return m; };
-const buildRoutes = () => { for (const m of [...routeGroup.children]) { m.geometry.dispose(); routeGroup.remove(m); }
-  const routeA = pathOf(ROUTE_A), routeB = pathOf(ROUTE_B);
-  routeGroup.add(tube(routeA, 0xF0F2F5, 1.6, 0.85), tube(routeA, 0xF0F2F5, 5.5, 0.08), tube(routeB, 0xB8D94A, 1.8, 0.95), tube(routeB, 0xB8D94A, 6.5, 0.10)); };
-buildRoutes(); onTerrain.push(buildRoutes);
 
 
 // ── water tower (south-west park): one thick tapered column under a broad rounded tank ──
