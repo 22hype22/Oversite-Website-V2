@@ -12,11 +12,11 @@ view3d='''<!-- ─────────── 3D map (shares the view with th
 <link id="mapsrc-mini" rel="preload" as="image" href="liberty-county-mini.jpg">
 <div class="loading" id="loading">BUILDING CITY…</div>
 <div class="pins" id="pins3d" aria-hidden="true">
-  <div class="pin" id="tip" style="transform:none;left:-999px">
+  <div class="pin" id="tip" style="transform:none;left:-999px;display:none">
     <div class="tip">
-      <div class="k">PD 6023</div>
-      <div class="s">22hype22, sppoklex, relukt</div>
-      <div class="v">10-8<small>available</small></div>
+      <div class="k"></div>
+      <div class="s"></div>
+      <div class="v"></div>
     </div>
   </div>
 </div>
