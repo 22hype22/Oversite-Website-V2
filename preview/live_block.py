@@ -109,7 +109,7 @@ LIVE_JS = r"""<script id="live">
   const KEY = 'oversite.admin';
   let S = { ...DEFAULTS };
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
-  if (HOSTED) { S.live = true; delete S.fit; delete S.nudge; }                                             // the hosted dashboard is always live; an old saved 'off' must never stick
+  if (HOSTED) { S.live = true; delete S.fit; delete S.nudge; S.cal = []; }       // the server owns hand-placed points on the hosted site                                             // the hosted dashboard is always live; an old saved 'off' must never stick
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
   // ── panel open / close ──
@@ -142,32 +142,22 @@ LIVE_JS = r"""<script id="live">
   F.live.addEventListener('change', () => { S.live = F.live.checked; save(); S.live ? start() : stop(); });
 
   // ── calibration: studs -> world units (0..2000) ──
-  const DEF_A = 1 / 3.5, DEF_B = 1000;
-  let cal = { a: DEF_A, bx: DEF_B, bz: DEF_B, zs: 1 };                  // world = a * studs + b; zs flips Z if the data says north is +Z
+  // ER:LC reports LocationX / LocationZ as pixels on its official 5355 px map (checked against the in-game map: same spot to within a few pixels),
+  // and our map grid is that image scaled to 0..2000, so the conversion is exact: no fitting needed.
+  const DEF_A = 2000 / 5355, DEF_B = 0;
+  let cal = { a: DEF_A, bx: DEF_B, bz: DEF_B, zs: 1 };                  // world = a * reported + b
   const POSTALS = __POSTALS__;                                           // postal code -> map centre, read off the official postal map
   S.auto = S.auto || {};                                                 // postal -> running mean of reported stud coords
-  const pairs = () => { const out = S.cal.map(p => ({ ...p, w: 4 }));
-    for (const [code, a] of Object.entries(S.auto)) { const c = POSTALS[code]; if (c && a.n) out.push({ sx: a.sx, sz: a.sz, wx: c[0], wy: c[1], w: Math.min(1, a.n / 3) }); } return out; };
-  const fitWith = (P, zs) => { const W = P.reduce((t, p) => t + p.w, 0);
-    const mx = P.reduce((t, p) => t + p.w * p.sx, 0) / W, mz = P.reduce((t, p) => t + p.w * zs * p.sz, 0) / W, mwx = P.reduce((t, p) => t + p.w * p.wx, 0) / W, mwy = P.reduce((t, p) => t + p.w * p.wy, 0) / W;
-    let num = 0, den = 0; for (const p of P) { num += p.w * ((p.sx - mx) * (p.wx - mwx) + (zs * p.sz - mz) * (p.wy - mwy)); den += p.w * ((p.sx - mx) ** 2 + (zs * p.sz - mz) ** 2); }
-    const spread = Math.sqrt(den / W);                                   // studs: need points far enough apart to trust the scale
-    let a = spread > 400 && den > 1e-6 ? num / den : DEF_A; if (!(a > 1 / 20 && a < 1)) a = DEF_A;
-    const c = { a, bx: mwx - a * mx, bz: mwy - a * mz, zs, spread };
-    c.err = P.reduce((t, p) => t + p.w * Math.hypot(a * p.sx + c.bx - p.wx, a * zs * p.sz + c.bz - p.wy), 0) / W; return c; };
-  const fitCal = () => { const P = pairs(); if (!P.length) { cal = { a: DEF_A, bx: DEF_B, bz: DEF_B, zs: 1 }; return; }
-    const down = fitWith(P, 1), up = fitWith(P, -1);                     // ER:LC documents +Z as down; trust the data once it is spread out enough to tell
-    cal = P.length >= 3 && down.spread > 600 && up.err < down.err * 0.7 ? up : down;
-    if (S.cal.length < 2 && S.fit && S.fit.score >= 0.55 && cal.zs === 1) cal = { a: S.fit.a, bx: S.fit.bx, bz: S.fit.bz, zs: 1 };
-    if (S.cal.length === 1) { const p = S.cal[0]; cal = { ...cal, bx: p.wx - cal.a * p.sx, bz: p.wy - cal.a * cal.zs * p.sz }; }   // one hand-placed point: keep the scale, pin the offset to it
-    if (S.nudge) { cal = { ...cal, bx: cal.bx + S.nudge[0], bz: cal.bz + S.nudge[1] }; } };
+  const fitCal = () => { cal = { a: DEF_A, bx: DEF_B, bz: DEF_B, zs: 1 };
+    if (S.cal.length) { const n = S.cal.length;                          // hand-placed points can only shift the map, never rescale it
+      const ox = S.cal.reduce((t, p) => t + p.wx - DEF_A * p.sx, 0) / n, oz = S.cal.reduce((t, p) => t + p.wy - DEF_A * p.sz, 0) / n; cal = { ...cal, bx: ox, bz: oz }; } };
   // road fit: players drive on roads, so the transform that puts the most position samples onto the road grid is the right one
   const SAMPLES = []; const lastSeen = {}; let newSamples = 0, lastFitAt = 0;
   const addSamples = players => { for (const p of players) { const L = p.Location; if (!L) continue; const k = p.Player, prev = lastSeen[k];
       if (prev && Math.hypot(L.LocationX - prev[0], L.LocationZ - prev[1]) < 4) continue; lastSeen[k] = [L.LocationX, L.LocationZ]; SAMPLES.push([L.LocationX, L.LocationZ]); newSamples++; if (SAMPLES.length > 1200) SAMPLES.shift(); } };
   const roadScore = (a, bx, bz) => { const R = window.roadAt; if (!R) return 0; let t = 0; for (const [sx, sz] of SAMPLES) t += R(a * sx + bx, a * sz + bz); return t / SAMPLES.length; };
   const postalCal = () => { const keep = S.fit; delete S.fit; fitCal(); const c = { ...cal }; if (keep) S.fit = keep; return c; };
-  const roadFit = () => { if (cal.zs !== 1 || !window.roadAt || SAMPLES.length < 150 || newSamples < 40 || Date.now() - lastFitAt < 15000) return; newSamples = 0; lastFitAt = Date.now();
+  const roadFit = () => { if (true || !window.roadAt || SAMPLES.length < 150 || newSamples < 40 || Date.now() - lastFitAt < 15000) return; newSamples = 0; lastFitAt = Date.now();
     const xs = SAMPLES.map(p => p[0]), zs = SAMPLES.map(p => p[1]), mx = xs.reduce((a, b) => a + b) / xs.length, mz = zs.reduce((a, b) => a + b) / zs.length;
     const spread = Math.sqrt(SAMPLES.reduce((t, p) => t + (p[0] - mx) ** 2 + (p[1] - mz) ** 2, 0) / SAMPLES.length); if (spread < 250) return;   // need driving over a real distance
     const prior = postalCal();                                           // the postal fit is right to within a block; the road fit sharpens it
@@ -186,13 +176,13 @@ LIVE_JS = r"""<script id="live">
   const POSTAL_LIST = Object.entries(POSTALS);
   const nearestPostal = (x, y) => { let best = null, bd = 1e9; for (const [k, c] of POSTAL_LIST) { const d = Math.hypot(c[0] - x, c[1] - y); if (d < bd) { bd = d; best = k; } } return [best, bd]; };
   const toWorldP = (sx, sz, code) => { const [x, y] = toWorld(sx, sz); code = String(code || '').trim(); const c = POSTALS[code]; if (!c) return [x, y];
-    const [, nd] = nearestPostal(x, y), d = Math.hypot(x - c[0], y - c[1]); if (d <= nd + 30) return [x, y];          // already in (or next to) the right postal
+    const [, nd] = nearestPostal(x, y), d = Math.hypot(x - c[0], y - c[1]); if (d <= Math.max(220, nd + 30)) return [x, y];   // exact transform: only a wildly wrong position (API change) falls back to the postal
     const m = S.auto[code];                                              // otherwise: postal centre plus how far they are from where players usually are in that postal
     const lx = m && m.n ? c[0] + cal.a * (sx - m.sx) : c[0], ly = m && m.n ? c[1] + cal.a * cal.zs * (sz - m.sz) : c[1];
     const k = Math.min(1, 45 / (Math.hypot(lx - c[0], ly - c[1]) || 1)); return [c[0] + (lx - c[0]) * k, c[1] + (ly - c[1]) * k]; };
   const renderCal = () => { fitCal();
-    const n = Object.keys(S.auto).length; $('adAuto').textContent = (S.fit ? `road fit, ${Math.round(S.fit.score * 100)}% of ${S.fit.n} positions on roads` : (n ? `${n} postal area${n === 1 ? '' : 's'} seen` : 'waiting for players'));
-    $('adScale').textContent = Math.abs(cal.a - DEF_A) > 1e-9 ? (1 / cal.a).toFixed(2) : `${(1 / DEF_A).toFixed(2)} (default)`;
+    const n = Object.keys(S.auto).length; $('adAuto').textContent = S.cal.length ? `Official map coordinates, shifted by ${S.cal.length} hand-placed point${S.cal.length === 1 ? '' : 's'}` : 'Exact: official ER:LC map coordinates';
+    $('adScale').textContent = `${(1 / cal.a).toFixed(4)} (official map)`;
     const me = (S.me || '').toLowerCase(), mp = me && (lastPlayers || []).find(x => x.Player.split(':')[0].toLowerCase() === me);
     $('adYou').textContent = mp && mp.Location ? (() => { const [x, y] = toWorldP(mp.Location.LocationX, mp.Location.LocationZ, mp.Location.PostalCode); const onMap = x >= 0 && x <= 2000 && y >= 0 && y <= 2000; return `${mp.Location.LocationX.toFixed(0)}, ${mp.Location.LocationZ.toFixed(0)} studs, postal ${mp.Location.PostalCode || '?'} → map ${x.toFixed(0)}, ${y.toFixed(0)}${onMap ? '' : ' (off the map, calibrate)'}`; })() : (me ? 'not in the player list' : 'enter your username');
     $('adOffset').textContent = `${Math.round(cal.bx - DEF_B)}, ${Math.round(cal.bz - DEF_B)}`;
