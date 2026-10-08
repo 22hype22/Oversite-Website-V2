@@ -6,3 +6,5 @@ preview/live-map-3d-standalone.html
 # never commit an ER:LC server key
 .env
 *.key
+.oversite-cal.json
+.erlc.key

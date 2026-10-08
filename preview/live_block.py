@@ -109,6 +109,7 @@ LIVE_JS = r"""<script id="live">
   const KEY = 'oversite.admin';
   let S = { ...DEFAULTS };
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+  if (HOSTED) { S.live = true; delete S.fit; delete S.nudge; }                                             // the hosted dashboard is always live; an old saved 'off' must never stick
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
   // ── panel open / close ──
@@ -121,12 +122,13 @@ LIVE_JS = r"""<script id="live">
   // ── fields ──
   const F = { key: $('adKey'), relay: $('adRelay'), live: $('adLive'), me: $('adMe'), callsignOnly: $('adCallsignOnly') };
   F.key.value = S.key; F.relay.value = S.relay; F.live.checked = S.live; F.me.value = S.me; F.callsignOnly.checked = S.callsignOnly;
+  if (HOSTED) { const l = F.live.closest('label'); if (l) l.hidden = true; }
   for (const sel of document.querySelectorAll('#adTeams select')) { sel.value = S.teams[sel.dataset.team] ?? ''; sel.addEventListener('change', () => { S.teams[sel.dataset.team] = sel.value; save(); }); }
   F.key.addEventListener('input', () => { S.key = F.key.value.trim(); save(); });
   F.key.addEventListener('change', () => { S.key = F.key.value.trim(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
   const keyRow = $('adKeyRow'), keyState = $('adKeyState');
   const keyStatus = async () => { if (!HOSTED) return; try { const j = await (await fetch('/admin/key', { cache: 'no-store' })).json(); keyRow.hidden = false;
-      keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.') : 'Not saved on the server yet.'; if (j.hasKey && !S.key) start(); if (!j.hasKey && S.key) seedKey(); } catch (e) {} };
+      keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.') : 'Not saved on the server yet.'; if (j.hasKey) F.key.placeholder = 'Saved on the server'; if (j.hasKey && !S.key) start(); if (!j.hasKey && S.key) seedKey(); } catch (e) {} };
   let seededAt = 0;                                                     // the browser remembers the key, so after a redeploy it quietly hands it back to the server
   const seedKey = async () => { if (!HOSTED || !S.key || Date.now() - seededAt < 10000) return; seededAt = Date.now();
     try { const j = await (await fetch('/admin/key', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: S.key }) })).json(); if (j.ok) { keyState.textContent = j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.'; startStream(); } } catch (e) {} };
@@ -141,27 +143,31 @@ LIVE_JS = r"""<script id="live">
 
   // ── calibration: studs -> world units (0..2000) ──
   const DEF_A = 1 / 3.5, DEF_B = 1000;
-  let cal = { a: DEF_A, bx: DEF_B, bz: DEF_B };
+  let cal = { a: DEF_A, bx: DEF_B, bz: DEF_B, zs: 1 };                  // world = a * studs + b; zs flips Z if the data says north is +Z
   const POSTALS = __POSTALS__;                                           // postal code -> map centre, read off the official postal map
   S.auto = S.auto || {};                                                 // postal -> running mean of reported stud coords
   const pairs = () => { const out = S.cal.map(p => ({ ...p, w: 4 }));
     for (const [code, a] of Object.entries(S.auto)) { const c = POSTALS[code]; if (c && a.n) out.push({ sx: a.sx, sz: a.sz, wx: c[0], wy: c[1], w: Math.min(1, a.n / 3) }); } return out; };
-  const fitCal = () => { const P = pairs(); const W = P.reduce((t, p) => t + p.w, 0); if (!P.length) { cal = { a: DEF_A, bx: DEF_B, bz: DEF_B }; return; }
-    const mx = P.reduce((t, p) => t + p.w * p.sx, 0) / W, mz = P.reduce((t, p) => t + p.w * p.sz, 0) / W, mwx = P.reduce((t, p) => t + p.w * p.wx, 0) / W, mwy = P.reduce((t, p) => t + p.w * p.wy, 0) / W;
-    let num = 0, den = 0; for (const p of P) { num += p.w * ((p.sx - mx) * (p.wx - mwx) + (p.sz - mz) * (p.wy - mwy)); den += p.w * ((p.sx - mx) ** 2 + (p.sz - mz) ** 2); }
+  const fitWith = (P, zs) => { const W = P.reduce((t, p) => t + p.w, 0);
+    const mx = P.reduce((t, p) => t + p.w * p.sx, 0) / W, mz = P.reduce((t, p) => t + p.w * zs * p.sz, 0) / W, mwx = P.reduce((t, p) => t + p.w * p.wx, 0) / W, mwy = P.reduce((t, p) => t + p.w * p.wy, 0) / W;
+    let num = 0, den = 0; for (const p of P) { num += p.w * ((p.sx - mx) * (p.wx - mwx) + (zs * p.sz - mz) * (p.wy - mwy)); den += p.w * ((p.sx - mx) ** 2 + (zs * p.sz - mz) ** 2); }
     const spread = Math.sqrt(den / W);                                   // studs: need points far enough apart to trust the scale
     let a = spread > 400 && den > 1e-6 ? num / den : DEF_A; if (!(a > 1 / 20 && a < 1)) a = DEF_A;
-    cal = { a, bx: mwx - a * mx, bz: mwy - a * mz };
-    if (S.cal.length < 2 && S.fit && S.fit.score >= 0.55) cal = { a: S.fit.a, bx: S.fit.bx, bz: S.fit.bz };
-    if (S.cal.length === 1) { const p = S.cal[0]; cal = { a: cal.a, bx: p.wx - cal.a * p.sx, bz: p.wy - cal.a * p.sz }; }   // one hand-placed point: keep the scale, pin the offset to it
-    if (S.nudge) { cal = { a: cal.a, bx: cal.bx + S.nudge[0], bz: cal.bz + S.nudge[1] }; } };
+    const c = { a, bx: mwx - a * mx, bz: mwy - a * mz, zs, spread };
+    c.err = P.reduce((t, p) => t + p.w * Math.hypot(a * p.sx + c.bx - p.wx, a * zs * p.sz + c.bz - p.wy), 0) / W; return c; };
+  const fitCal = () => { const P = pairs(); if (!P.length) { cal = { a: DEF_A, bx: DEF_B, bz: DEF_B, zs: 1 }; return; }
+    const down = fitWith(P, 1), up = fitWith(P, -1);                     // ER:LC documents +Z as down; trust the data once it is spread out enough to tell
+    cal = P.length >= 3 && down.spread > 600 && up.err < down.err * 0.7 ? up : down;
+    if (S.cal.length < 2 && S.fit && S.fit.score >= 0.55 && cal.zs === 1) cal = { a: S.fit.a, bx: S.fit.bx, bz: S.fit.bz, zs: 1 };
+    if (S.cal.length === 1) { const p = S.cal[0]; cal = { ...cal, bx: p.wx - cal.a * p.sx, bz: p.wy - cal.a * cal.zs * p.sz }; }   // one hand-placed point: keep the scale, pin the offset to it
+    if (S.nudge) { cal = { ...cal, bx: cal.bx + S.nudge[0], bz: cal.bz + S.nudge[1] }; } };
   // road fit: players drive on roads, so the transform that puts the most position samples onto the road grid is the right one
   const SAMPLES = []; const lastSeen = {}; let newSamples = 0, lastFitAt = 0;
   const addSamples = players => { for (const p of players) { const L = p.Location; if (!L) continue; const k = p.Player, prev = lastSeen[k];
       if (prev && Math.hypot(L.LocationX - prev[0], L.LocationZ - prev[1]) < 4) continue; lastSeen[k] = [L.LocationX, L.LocationZ]; SAMPLES.push([L.LocationX, L.LocationZ]); newSamples++; if (SAMPLES.length > 1200) SAMPLES.shift(); } };
   const roadScore = (a, bx, bz) => { const R = window.roadAt; if (!R) return 0; let t = 0; for (const [sx, sz] of SAMPLES) t += R(a * sx + bx, a * sz + bz); return t / SAMPLES.length; };
   const postalCal = () => { const keep = S.fit; delete S.fit; fitCal(); const c = { ...cal }; if (keep) S.fit = keep; return c; };
-  const roadFit = () => { if (!window.roadAt || SAMPLES.length < 150 || newSamples < 40 || Date.now() - lastFitAt < 15000) return; newSamples = 0; lastFitAt = Date.now();
+  const roadFit = () => { if (cal.zs !== 1 || !window.roadAt || SAMPLES.length < 150 || newSamples < 40 || Date.now() - lastFitAt < 15000) return; newSamples = 0; lastFitAt = Date.now();
     const xs = SAMPLES.map(p => p[0]), zs = SAMPLES.map(p => p[1]), mx = xs.reduce((a, b) => a + b) / xs.length, mz = zs.reduce((a, b) => a + b) / zs.length;
     const spread = Math.sqrt(SAMPLES.reduce((t, p) => t + (p[0] - mx) ** 2 + (p[1] - mz) ** 2, 0) / SAMPLES.length); if (spread < 250) return;   // need driving over a real distance
     const prior = postalCal();                                           // the postal fit is right to within a block; the road fit sharpens it
@@ -172,23 +178,34 @@ LIVE_JS = r"""<script id="live">
     search(0.02, 6, 10, 12); search(0.006, 4, 3, 5); search(0.002, 3, 1, 4);
     const onRoad = roadScore(best.a, best.bx, best.bz);
     if (onRoad >= 0.6) { S.fit = { a: best.a, bx: best.bx, bz: best.bz, score: onRoad, n: SAMPLES.length, t: Date.now() }; save(); fitCal(); renderCal(); } };
-  const learnPostals = players => { let changed = false; for (const p of players) { const code = String(p.Location?.PostalCode || '').trim(); if (!code || !POSTALS[code] || !p.Location) continue;
+  const learnPostals = players => { if (HOSTED) return; let changed = false; for (const p of players) { const code = String(p.Location?.PostalCode || '').trim(); if (!code || !POSTALS[code] || !p.Location) continue;
       const a = S.auto[code] || { sx: 0, sz: 0, n: 0 }; const n = Math.min(a.n + 1, 20); a.sx += (p.Location.LocationX - a.sx) / n; a.sz += (p.Location.LocationZ - a.sz) / n; a.n = n; S.auto[code] = a; changed = true; }
     if (changed) { save(); fitCal(); renderCal(); } };
-  const toWorld = (sx, sz) => [Math.max(-40, Math.min(2040, cal.a * sx + cal.bx)), Math.max(-40, Math.min(2040, cal.a * sz + cal.bz))];
+  const toWorld = (sx, sz) => [Math.max(-40, Math.min(2040, cal.a * sx + cal.bx)), Math.max(-40, Math.min(2040, cal.a * cal.zs * sz + cal.bz))];
+  // the game also reports the postal each player is in: a unit is never drawn outside that postal area, whatever the transform says
+  const POSTAL_LIST = Object.entries(POSTALS);
+  const nearestPostal = (x, y) => { let best = null, bd = 1e9; for (const [k, c] of POSTAL_LIST) { const d = Math.hypot(c[0] - x, c[1] - y); if (d < bd) { bd = d; best = k; } } return [best, bd]; };
+  const toWorldP = (sx, sz, code) => { const [x, y] = toWorld(sx, sz); code = String(code || '').trim(); const c = POSTALS[code]; if (!c) return [x, y];
+    const [, nd] = nearestPostal(x, y), d = Math.hypot(x - c[0], y - c[1]); if (d <= nd + 30) return [x, y];          // already in (or next to) the right postal
+    const m = S.auto[code];                                              // otherwise: postal centre plus how far they are from where players usually are in that postal
+    const lx = m && m.n ? c[0] + cal.a * (sx - m.sx) : c[0], ly = m && m.n ? c[1] + cal.a * cal.zs * (sz - m.sz) : c[1];
+    const k = Math.min(1, 45 / (Math.hypot(lx - c[0], ly - c[1]) || 1)); return [c[0] + (lx - c[0]) * k, c[1] + (ly - c[1]) * k]; };
   const renderCal = () => { fitCal();
     const n = Object.keys(S.auto).length; $('adAuto').textContent = (S.fit ? `road fit, ${Math.round(S.fit.score * 100)}% of ${S.fit.n} positions on roads` : (n ? `${n} postal area${n === 1 ? '' : 's'} seen` : 'waiting for players'));
     $('adScale').textContent = Math.abs(cal.a - DEF_A) > 1e-9 ? (1 / cal.a).toFixed(2) : `${(1 / DEF_A).toFixed(2)} (default)`;
     const me = (S.me || '').toLowerCase(), mp = me && (lastPlayers || []).find(x => x.Player.split(':')[0].toLowerCase() === me);
-    $('adYou').textContent = mp && mp.Location ? (() => { const [x, y] = toWorld(mp.Location.LocationX, mp.Location.LocationZ); const onMap = x >= 0 && x <= 2000 && y >= 0 && y <= 2000; return `${mp.Location.LocationX.toFixed(0)}, ${mp.Location.LocationZ.toFixed(0)} studs, postal ${mp.Location.PostalCode || '?'} → map ${x.toFixed(0)}, ${y.toFixed(0)}${onMap ? '' : ' (off the map, calibrate)'}`; })() : (me ? 'not in the player list' : 'enter your username');
+    $('adYou').textContent = mp && mp.Location ? (() => { const [x, y] = toWorldP(mp.Location.LocationX, mp.Location.LocationZ, mp.Location.PostalCode); const onMap = x >= 0 && x <= 2000 && y >= 0 && y <= 2000; return `${mp.Location.LocationX.toFixed(0)}, ${mp.Location.LocationZ.toFixed(0)} studs, postal ${mp.Location.PostalCode || '?'} → map ${x.toFixed(0)}, ${y.toFixed(0)}${onMap ? '' : ' (off the map, calibrate)'}`; })() : (me ? 'not in the player list' : 'enter your username');
     $('adOffset').textContent = `${Math.round(cal.bx - DEF_B)}, ${Math.round(cal.bz - DEF_B)}`;
     $('adPoints').innerHTML = S.cal.map((p, i) => `<div class="ad-pt"><span>${esc(p.name)}</span><small>${p.sx.toFixed(0)}, ${p.sz.toFixed(0)} studs</small><button type="button" data-rm="${i}">Remove</button></div>`).join('') || '<div class="ad-note">No points yet.</div>';
     if (lastUnits) applyPositions(); };
-  $('adPoints').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.cal.splice(+b.dataset.rm, 1); save(); renderCal(); });
-  $('adClearCal').addEventListener('click', () => { S.cal = []; S.auto = {}; delete S.fit; delete S.nudge; SAMPLES.length = 0; save(); renderCal(); });
+  const pushCal = body => { if (!HOSTED) return; fetch((S.relay || location.origin + '/api') + '/cal', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).catch(() => {}); };
+  const takeCal = j => { if (!j || typeof j !== 'object') return; S.auto = j.auto || {}; S.cal = Array.isArray(j.manual) ? j.manual : []; save(); renderCal(); if (lastUnits) { applyPositions(); } };
+  if (HOSTED) fetch(location.origin + '/api/cal', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(takeCal).catch(() => {});
+  $('adPoints').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.cal.splice(+b.dataset.rm, 1); save(); renderCal(); pushCal({ manual: S.cal }); });
+  $('adClearCal').addEventListener('click', () => { S.cal = []; S.auto = {}; delete S.fit; delete S.nudge; SAMPLES.length = 0; save(); renderCal(); pushCal({ clear: true }); });
   $('adHere').addEventListener('click', () => { const me = (S.me || '').toLowerCase(); if (!me) return status('Enter your username first.', 'err');
     const p = (lastPlayers || []).find(x => x.Player.split(':')[0].toLowerCase() === me); if (!p || !p.Location) return status('You are not in the last player list. Turn on live data, wait for a poll, then try again.', 'err');
-    const [wx, wy] = $('adLandmark').value.split(',').map(Number); S.cal.push({ name: $('adLandmark').selectedOptions[0].textContent, sx: p.Location.LocationX, sz: p.Location.LocationZ, wx, wy }); save(); renderCal(); status(`Point added: ${$('adLandmark').selectedOptions[0].textContent}.`, 'ok'); });
+    const [wx, wy] = $('adLandmark').value.split(',').map(Number); S.cal.push({ name: $('adLandmark').selectedOptions[0].textContent, sx: p.Location.LocationX, sz: p.Location.LocationZ, wx, wy }); save(); renderCal(); pushCal({ manual: S.cal }); status(`Point added: ${$('adLandmark').selectedOptions[0].textContent}.`, 'ok'); });
 
   // ── place me: one click on the map pins the offset so the user's unit sits exactly where they click ──
   let placing = false; const placeBtn = $('adPlace'), placeHint = $('adPlaceHint');
@@ -201,13 +218,18 @@ LIVE_JS = r"""<script id="live">
   view.addEventListener('pointerup', e => { if (!placing || !down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) { down = null; return; } down = null;
     const w = document.body.classList.contains('mode-3d') ? window.map3d?.pick?.(e.clientX, e.clientY) : window.map2d?.screenToWorld?.(e.clientX, e.clientY); if (!w) return;
     const me = (S.me || '').toLowerCase(), p = (lastPlayers || []).find(x => x.Player.split(':')[0].toLowerCase() === me); if (!p || !p.Location) return;
-    S.cal = [{ name: 'Placed by hand', sx: p.Location.LocationX, sz: p.Location.LocationZ, wx: w[0], wy: w[1] }]; delete S.nudge; save(); placing = false; placeBtn.setAttribute('aria-pressed', false); placeHint.textContent = 'Placed. Everyone is now lined up to that point.';
+    S.cal = [{ name: 'Placed by hand', sx: p.Location.LocationX, sz: p.Location.LocationZ, wx: w[0], wy: w[1] }]; delete S.nudge; save(); pushCal({ manual: S.cal }); placing = false; placeBtn.setAttribute('aria-pressed', false); placeHint.textContent = 'Placed. Everyone is now lined up to that point.';
     fitCal(); renderCal(); applyPositions(); for (const u of units.values()) { u.x = u.tx; u.y = u.ty; } status('Position pinned to where you clicked.', 'ok'); }, true);
 
   // ── who am I: the player whose username is in the admin panel, with the department their team maps to ──
   const updateMe = players => { const me = (S.me || '').toLowerCase(); const p = me && (players || []).find(x => x.Player.split(':')[0].toLowerCase() === me);
     const next = p ? { name: p.Player.split(':')[0], team: p.Team, dept: S.teams[p.Team] || null, callsign: p.Callsign || '' } : null;
+    if (next?.dept && (!window.ME?.dept || window.ME.team !== next.team)) flyMe = true;   // just joined a team (or the page just opened): show them
     const same = JSON.stringify(next) === JSON.stringify(window.ME || null); window.ME = next; if (!same) dispatchEvent(new CustomEvent('me', { detail: next })); };
+  let flyMe = false;
+  const flyToMe = () => { if (!flyMe || !window.ME) return; const n = window.ME.name.toLowerCase(), u = [...units.values()].find(v => v.crew.some(c => c.toLowerCase() === n)); if (!u) return;
+    const cl = document.body.classList, in3d = cl.contains('mode-3d'), m = in3d ? window.map3d : window.map2d; if ((!in3d && !cl.contains('mode-2d')) || !m?.flyTo || (in3d && !window.map3dReady)) { setTimeout(flyToMe, 400); return; }   // wait for the map to finish loading
+    flyMe = false; u.x = u.tx; u.y = u.ty; in3d ? m.flyTo(u.tx, u.ty, 420, 0.9, true) : m.flyTo(u.tx, u.ty, 1.6); };
   F.me.addEventListener('change', () => updateMe(lastPlayers));
 
   // ── status line ──
@@ -244,7 +266,7 @@ LIVE_JS = r"""<script id="live">
       groups.get(id).members.push({ name, pid, perm: p.Permission, join: joinAt[p.Player] }); }
     for (const g of groups.values()) { ids.add(g.id); let u = units.get(g.id);
       const veh = vehicles.find(v => g.members.some(m => m.name === v.Owner));
-      const [wx, wy] = g.loc ? toWorld(g.loc.LocationX, g.loc.LocationZ) : [1000, 1000];
+      const [wx, wy] = g.loc ? toWorldP(g.loc.LocationX, g.loc.LocationZ, g.loc.PostalCode) : [1000, 1000];
       if (!u) { u = { id: g.id, live: true, dept: g.dept, kind: KIND[g.dept], route: 'B', t: 0, dir: 1, speed: 0, x: wx, y: wy, tx: wx, ty: wy, lx: wx, ly: wy, heading: 0, th: 0, mph: 0, sx: g.loc?.LocationX, sz: g.loc?.LocationZ, seen: now,
           startedAt: Math.min(...g.members.map(m => m.join || now)) }; units.set(g.id, u); }
       else if (g.loc) { const dt = (now - u.seen) / 1000, dx = g.loc.LocationX - (u.sx ?? g.loc.LocationX), dz = g.loc.LocationZ - (u.sz ?? g.loc.LocationZ);
@@ -259,7 +281,7 @@ LIVE_JS = r"""<script id="live">
     const me = (S.me || '').toLowerCase(); const mine = u => me && u.crew.some(n => n.toLowerCase() === me) ? 0 : 1;
     return [...units.values()].sort((a, b) => mine(a) - mine(b) || a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name));
   };
-  const applyPositions = () => { for (const u of units.values()) if (u.sx != null) { const [wx, wy] = toWorld(u.sx, u.sz); u.tx = wx; u.ty = wy; u.x = wx; u.y = wy; } };
+  const applyPositions = () => { for (const u of units.values()) if (u.sx != null) { const [wx, wy] = toWorldP(u.sx, u.sz, u.postal); u.tx = wx; u.ty = wy; u.x = wx; u.y = wy; } };
 
   // ── cards ──
   const fleet = document.querySelector('.fleet'); const demoHTML = fleet ? fleet.innerHTML : ''; const demoUnits = window.UNITS;
@@ -291,7 +313,7 @@ LIVE_JS = r"""<script id="live">
   let lastUpdate = 0, updates = 0, source = '', fixAt = 0; const eventTimes = [];                 // fixAt = last time any unit's reported position changed
   const ERR = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
   const handle = (body, rl, src) => { lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
-    updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
+    updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls); flyToMe();
     const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
     status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
   const paceMs = rl => { let g = 1500; const left = +rl?.left, reset = +rl?.reset;              // spend the API window evenly, never the last two requests
@@ -318,20 +340,21 @@ LIVE_JS = r"""<script id="live">
   const startStream = () => { if (!S.live || !canStream()) return; stopStream(); let got = false;
     es = new EventSource(`${base()}/stream`);
     es.addEventListener('server', e => { got = true; esFails = 0; let body; try { body = JSON.parse(e.data); } catch (x) { return; } handle(body, null, 'stream'); schedule(20000); });
+    es.addEventListener('cal', e => { try { takeCal(JSON.parse(e.data)); } catch (x) {} });
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }
       if (j.status === 429) return status(`Rate limited by the API. Resuming in ${j.retry_after || 30}s.`, 'err');
       status(ERR[j.code] || j.message || `HTTP ${j.status}`, 'err'); });
     es.onerror = () => { if (es && es.readyState === 2 || !got) { esFails++; stopStream(); schedule(500); esRetry = setTimeout(startStream, Math.min(60000, 3000 * esFails)); } }; };
   const start = () => { if (!S.key && !S.relay && !HOSTED) { status('Enter the server key (or a relay URL) first.', 'err'); F.live.checked = S.live = false; save(); return; } clearTimeout(timer); startStream(); poll(); };
-  const stop = () => { clearTimeout(timer); stopStream(); restoreDemo(); status('Live data off. Demo units are showing.'); };
+  const stop = () => { if (HOSTED) return; clearTimeout(timer); stopStream(); restoreDemo(); status('Live data off. Demo units are showing.'); };
   $('adTest').addEventListener('click', async () => { S.key = F.key.value.trim(); S.relay = F.relay.value.trim().replace(/\/+$/, ''); save(); status('Testing…');
     try { const { body, rl } = await fetchServer(); lastPlayers = body.Players || []; status(`OK: ${body.Name}, ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastPlayers.filter(p => p.Callsign).length} with callsigns, ${(body.Vehicles || []).length} vehicles.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : ''), 'ok'); }
     catch (e) { status(e.message, 'err'); } });
 
   renderCal();
   if (S.live) start();
-  window.live = { settings: S, units, toWorld, poll, roadScore, stats: () => ({ lastUpdate, updates, source, streaming: streaming(), fixAt, rate: eventTimes.length / 10 }), samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
+  window.live = { settings: S, units, toWorld, toWorldP, cal: () => cal, poll, roadScore, stats: () => ({ lastUpdate, updates, source, streaming: streaming(), fixAt, rate: eventTimes.length / 10 }), samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
 })();
 </script>
 """

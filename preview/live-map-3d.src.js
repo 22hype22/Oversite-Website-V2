@@ -309,7 +309,8 @@ const frame = () => {
   const hp = UN[0] ? { x: UN[0].x, z: UN[0].y } : { x: FOCUS.x, z: FOCUS.z }; const hy = heightAt(hp.x, hp.z);
   glow.visible = pulse.visible = !!UN[0]; tip.style.display = UN[0] ? '' : 'none';
   if (UN[0]) { const u = UN[0], key = u.name + '|' + u.crew.join(',') + '|' + (u.postal || '') + '|' + (u.model || ''); if (tip.dataset.key !== key) { tip.dataset.key = key;
-    tip.querySelector('.k').textContent = u.name; tip.querySelector('.s').textContent = u.crew.join(', '); const v = tip.querySelector('.v'); v.textContent = u.postal ? 'Postal ' + u.postal : '10-8'; const sm = document.createElement('small'); sm.textContent = u.live ? (u.model || '') : 'available'; v.appendChild(sm); } }
+    tip.querySelector('.k').textContent = u.name; tip.querySelector('.s').textContent = u.crew.join(', '); const v = tip.querySelector('.v'); v.textContent = u.postal || '10-8'; const sm = document.createElement('small'); sm.textContent = u.postal ? 'postal' : ''; v.appendChild(sm);
+    const md = document.createElement('div'); md.className = 's'; md.textContent = u.live ? (u.model || '') : 'available'; v.appendChild(md); } }
   glow.position.y = hy + 1.8; pulse.position.y = hy + 1.8;
   glow.position.x = pulse.position.x = hp.x; glow.position.z = pulse.position.z = hp.z;
   const k = (now % 2.4) / 2.4; pulse.scale.setScalar(1 + k * 1.6); pulse.material.opacity = 0.5 * (1 - k);
@@ -330,4 +331,5 @@ const rayc = new THREE.Raycaster(), ndc = new THREE.Vector2();
 const pick = (cx, cy) => { ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); rayc.setFromCamera(ndc, camera); const hit = rayc.intersectObject(ground, false)[0]; return hit ? [hit.point.x, hit.point.z] : null; };
 window.map3d = { zoomIn: () => dolly(0.78), zoomOut: () => dolly(1.28), toggleFollow, setTheme, setActive, reset, flyTo, pick,
   pose: () => [...camera.position.toArray(), ...controls.target.toArray()].map(n => +n.toFixed(2)), controls };
+window.map3dReady = true;
 setActive(true);
