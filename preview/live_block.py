@@ -67,9 +67,9 @@ def admin_html():
   <header><h2>Admin</h2><button type="button" id="adminClose">Close</button></header>
   <section>
     <h3>Server link</h3>
-    <p class="ad-note">The key stays in this browser. It is only sent to <code>api.erlc.gg</code>, or to your relay if you set one. Get it in game under Settings, ER:LC API.</p>
+    <p class="ad-note">The key stays in this browser. It is only sent to this site's relay (or to <code>api.erlc.gg</code> when opened as a file). If the server already has a key set, leave this empty. Get it in game under Settings, ER:LC API.</p>
     <label><span>Server key</span><input type="password" id="adKey" autocomplete="off" spellcheck="false" placeholder="paste the private server key"></label>
-    <label><span>Relay URL</span><input id="adRelay" autocomplete="off" spellcheck="false" placeholder="optional, e.g. http://localhost:8787"></label>
+    <label><span>Relay URL</span><input id="adRelay" autocomplete="off" spellcheck="false" placeholder="optional, blank uses this site's own relay"></label>
     <label><span>Poll every</span><input type="number" id="adPoll" min="5" max="120" step="1" value="10"><span style="min-width:0">seconds</span></label>
     <div class="ad-row"><button type="button" class="ad-btn" id="adTest">Test connection</button><label><input type="checkbox" id="adLive"> Use live data</label></div>
     <div class="ad-status" id="adStatus">Not connected. Demo units are showing.</div>
@@ -149,10 +149,11 @@ LIVE_JS = r"""<script id="live">
   const status = (msg, cls = '') => { st.textContent = msg; st.className = 'ad-status ' + cls; };
 
   // ── fetching ──
-  const base = () => S.relay || 'https://api.erlc.gg';
+  const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay at /api
+  const base = () => S.relay || (HOSTED ? location.origin + '/api' : 'https://api.erlc.gg');
   let timer = null, lastPlayers = null, lastUnits = null, lastServer = null, lastVehicles = [], seenCalls = new Set(), inflight = false;
   const fetchServer = async () => {
-    if (!S.key && !S.relay) throw new Error('No server key.');
+    if (!S.key && !S.relay && !HOSTED) throw new Error('No server key.');
     const url = `${base()}/v2/server?Players=true&Vehicles=true&EmergencyCalls=true&JoinLogs=true`;
     const headers = {}; if (S.key) headers['server-key'] = S.key;
     let r; try { r = await fetch(url, { headers, cache: 'no-store' }); }
@@ -225,7 +226,7 @@ LIVE_JS = r"""<script id="live">
     catch (e) { status(e.message, 'err'); schedule((e.wait || Math.max(S.poll, 30)) * 1000); }
     finally { inflight = false; } };
   const schedule = ms => { clearTimeout(timer); if (S.live) timer = setTimeout(poll, ms); };
-  const start = () => { if (!S.key && !S.relay) { status('Enter the server key (or a relay URL) first.', 'err'); F.live.checked = S.live = false; save(); return; } clearTimeout(timer); poll(); };
+  const start = () => { if (!S.key && !S.relay && !HOSTED) { status('Enter the server key (or a relay URL) first.', 'err'); F.live.checked = S.live = false; save(); return; } clearTimeout(timer); poll(); };
   const stop = () => { clearTimeout(timer); restoreDemo(); status('Live data off. Demo units are showing.'); };
   $('adTest').addEventListener('click', async () => { S.key = F.key.value.trim(); S.relay = F.relay.value.trim().replace(/\/+$/, ''); save(); status('Testing…');
     try { const { body, rl } = await fetchServer(); lastPlayers = body.Players || []; status(`OK: ${body.Name}, ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastPlayers.filter(p => p.Callsign).length} with callsigns, ${(body.Vehicles || []).length} vehicles.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : ''), 'ok'); }

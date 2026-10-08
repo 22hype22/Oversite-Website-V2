@@ -1,0 +1,12 @@
+{
+  "name": "oversite",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Oversite: live dispatch map for ER:LC private servers",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.mjs",
+    "build": "python3 preview/build-rail.py && python3 preview/build-3d.py"
+  }
+}
