@@ -246,7 +246,7 @@ LIVE_JS = r"""<script id="live">
 
   // ── motion: between snapshots each unit keeps going at its measured speed, braking and turn rate; the dot follows that prediction on a spring ──
   const KPX = 5355 / 2000;                                              // reported units (official map px) per map unit
-  const MO = { delay: 0, delaySlow: 0.4, spring: 4.5, horizon: 1.5, turnDamp: 0.8, accDamp: 0.6, stopAfter: 1.35, weight: 1.1, maxTurn: 1.1, maxAcc: 25 };   // tuning, exposed for testing
+  const MO = { delay: 0, delaySlow: 1.0, maxDelay: 1.0, spring: 4.5, horizon: 1.5, turnDamp: 0.8, accDamp: 0.6, stopAfter: 1.35, weight: 1.1, maxTurn: 1.1, maxAcc: 25 };   // tuning, exposed for testing
   // predicted position τ seconds after the anchor fix: speed changes by the measured acceleration (never reversing), heading turns at the measured rate
   const pred = (m, tau) => { let x = m.pf[0], y = m.pf[1], h = m.h, v = m.sp; const n = Math.max(1, Math.ceil(tau / 0.05)), d = tau / n;
     for (let i = 0; i < n; i++) { const v2 = Math.max(0, v + m.acc * d); const vm = (v + v2) / 2, hm = h + m.w * d / 2; x += Math.cos(hm) * vm * d; y += Math.sin(hm) * vm * d; h += m.w * d * (vm > 0.5 ? 1 : 0); v = v2; if (v <= 0 && m.acc <= 0) break; }
@@ -256,7 +256,9 @@ LIVE_JS = r"""<script id="live">
     const m1 = [(p2.x - p0.x) / Math.max(0.05, p2.t - p0.t) * d, (p2.y - p0.y) / Math.max(0.05, p2.t - p0.t) * d], m2 = [(p3.x - p1.x) / Math.max(0.05, p3.t - p1.t) * d, (p3.y - p1.y) / Math.max(0.05, p3.t - p1.t) * d];
     const h00 = 2 * s ** 3 - 3 * s * s + 1, h10 = s ** 3 - 2 * s * s + s, h01 = -2 * s ** 3 + 3 * s * s, h11 = s ** 3 - s * s;
     return [h00 * p1.x + h10 * m1[0] + h01 * p2.x + h11 * m2[0], h00 * p1.y + h10 * m1[1] + h01 * p2.y + h11 * m2[1]]; };
-  const traj = (m, t) => { const F = m.fixes, dl = m.stale > 0.2 ? MO.delaySlow : MO.delay; if (dl > 0 && F.length >= 2) { const tt = t - dl * Math.min(2.5, m.gap);
+  // coarser game updates are drawn further behind, through the real positions, so the dot never has to back up
+  const delayFor = m => Math.max(m.df || 0, m.stale > 0.2 ? MO.delaySlow + (MO.maxDelay - MO.delaySlow) * Math.min(1, Math.max(0, (m.gap - 0.8) / 0.8)) : MO.delay) * Math.min(6, m.gap);   // seconds
+  const traj = (m, t) => { const F = m.fixes, dl = m.dls || 0; if (dl > 0.005 && F.length >= 2) { const tt = t - dl;
       if (tt <= F[F.length - 1].t) { if (tt <= F[0].t) return [F[0].x, F[0].y]; let i = F.length - 2; while (i > 0 && F[i].t > tt) i--; return hermite(F, i, tt); }
       t = tt; }
     let tau = Math.max(0, t - m.tf); const H = Math.min(3.5, Math.max(0.7, m.gap * MO.horizon));
@@ -266,31 +268,33 @@ LIVE_JS = r"""<script id="live">
     for (let i = -9; i <= 9; i++) for (let j = -9; j <= 9; j++) { const dx = i * 5, dy = j * 5; if (dx * dx + dy * dy > 2050 || R(x + dx, y + dy) < 1) continue; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; n++; }
     if (n < 6) return null; const ang = 0.5 * Math.atan2(2 * sxy, sxx - syy), l1 = (sxx + syy) / 2 + Math.hypot((sxx - syy) / 2, sxy), l2 = (sxx + syy) / 2 - Math.hypot((sxx - syy) / 2, sxy);
     return l1 > l2 * 1.6 ? ang : null; };                               // only when there is a clear direction (not a junction or a car park)
-  const motionReset = (u, wx, wy, t) => { const g = u.m?.gap || 1, gs = u.m?.gaps || [], sr = u.m?.stale || 0;
-    u.m = { fixes: [{ t, x: wx, y: wy }], pf: [wx, wy], tf: t, h: u.heading || 0, sp: 0, acc: 0, w: 0, gap: g, gaps: gs, stale: sr, poll: t, D: [wx, wy], Dv: [0, 0], lastT: 0 }; u.x = wx; u.y = wy; };
+  const motionReset = (u, wx, wy, t) => { const g = u.m?.gap || 1, gs = u.m?.gaps || [], sr = u.m?.stale || 0, df = u.m?.df || 0;
+    u.m = { fixes: [{ t, x: wx, y: wy }], pf: [wx, wy], tf: t, h: u.heading || 0, sp: 0, acc: 0, w: 0, gap: g, gaps: gs, stale: sr, df, poll: t, D: [wx, wy], Dv: [0, 0], lastT: 0 }; u.x = wx; u.y = wy; };
   const motionFix = (u, wx, wy, tPoll) => { const m = u.m; if (!m) return motionReset(u, wx, wy, tPoll), true;
     const F = m.fixes, L = F[F.length - 1], prevPoll = m.poll; m.poll = tPoll;
     if (Math.hypot(wx - L.x, wy - L.y) < 0.12) {                        // the same position again: parked, or the game has not refreshed it yet
-      if (m.sp > 3) m.stale = m.stale * 0.85 + 0.15;                     // learn how often a moving car repeats: that means the game refreshes slower than we poll
+      if (m.sp > 3) { m.stale = m.stale * 0.85 + 0.15;                   // learn how often a moving car repeats: that means the game refreshes slower than we poll
+        if (prevPoll < tPoll) { const N = m.nowins || (m.nowins = []); N.push([prevPoll, tPoll]); while (N.length > 16 || tPoll - N[0][1] > 25) N.shift(); } }   // and no refresh happened in this stretch
       if (m.sp > 0 && tPoll - L.t > Math.max(0.6, m.gap * MO.stopAfter)) { m.sp = 0; m.acc = 0; m.w = 0; m.tf = tPoll; m.pf = [L.x, L.y]; }   // it really stopped
       return false; }
     if (m.sp > 3) m.stale *= 0.85;
     // when the game refreshes slower than we poll, the move happened somewhere since the previous poll. If the game refreshes on a steady beat,
     // find that beat from these windows and time the fix to it exactly; otherwise take the middle of the window.
     let t = tPoll;
-    if (m.stale > 0.2 && prevPoll < tPoll) { t = (prevPoll + tPoll) / 2;
-      const W = m.wins || (m.wins = []); W.push([prevPoll, tPoll]); while (W.length > 14 || tPoll - W[0][1] > 25) W.shift();
-      if (W.length >= 5) { const R0 = (W[W.length - 1][1] - W[0][1]) / (W.length - 1) || 1;                // rough beat; refined together with its phase below
-        if (R0 > 0.3 && R0 < 6) { let best = -1, bR = R0, bPh = 0; const tol = 0.03, ref = W[W.length - 1][1];
-          for (let j = -20; j <= 20; j++) { const R = R0 * (1 + j * 0.006);
-            for (let i = 0; i < 40; i++) { const ph = i / 40 * R; let c = 0, slack = 0;
-              for (const [a, b2] of W) { const k = Math.floor((b2 - ref - ph) / R), r = ref + ph + k * R; if (r > a - tol && r <= b2 + tol) { c++; slack += Math.min(r - a, b2 - r); } }
-              const sc = c + slack / R * 0.02; if (sc > best) { best = sc; bR = R; bPh = ph; } } }
-          if (Math.floor(best) >= W.length * 0.75) { const k = Math.floor((tPoll - ref - bPh) / bR), r = ref + bPh + k * bR; if (r > prevPoll - 0.05) { t = Math.min(tPoll, Math.max(prevPoll, r)); m.R = bR; } } } } }
-    else if (m.wins && m.stale < 0.1) m.wins.length = 0;
+    if (prevPoll < tPoll) { const W = m.wins || (m.wins = []); W.push([prevPoll, tPoll]); while (W.length > 16 || tPoll - W[0][1] > 25) W.shift();
+      if (m.stale > 0.12) { t = (prevPoll + tPoll) / 2;                     // the move happened somewhere since the previous poll
+        if (W.length >= 6) { const R0 = (W[W.length - 1][1] - W[0][1]) / (W.length - 1);   // each refresh is seen once, so this is the average beat
+          if (R0 > 0.25 && R0 < 6) { let best = -1, bR = R0, bPh = 0; const tol = 0.03, ref = W[W.length - 1][1];
+            for (let j = -15; j <= 15; j++) { const R = R0 * (1 + j * 0.008);
+              for (let i = 0; i < 32; i++) { const ph = i / 32 * R; let c = 0, slack = 0;
+                for (const [a, b2] of W) { const k = Math.floor((b2 - ref - ph) / R), r = ref + ph + k * R; if (r > a - tol && r <= b2 + tol) { c++; slack += Math.min(r - a, b2 - r); } }
+                for (const [a, b2] of (m.nowins || [])) { const k = Math.floor((b2 - tol - ref - ph) / R), r = ref + ph + k * R; if (r > a + tol) c -= 1; }   // a beat inside an unchanged stretch is wrong
+                const sc = c + slack / R * 0.02; if (sc > best) { best = sc; bR = R; bPh = ph; } } }
+            if (best >= W.length * 0.8) { const k = Math.floor((tPoll - ref - bPh) / bR), r = ref + bPh + k * bR; if (r > prevPoll - 0.05) { t = Math.min(tPoll, Math.max(prevPoll, r)); m.R = bR; } } } } } }
     if (Math.hypot(wx - m.D[0], wy - m.D[1]) > 90 || t - L.t > 8) { motionReset(u, wx, wy, tPoll); return true; }   // teleport, respawn or a long silence
     if (t - L.t < 0.05) t = L.t + 0.05;
     const dg = t - L.t; if (dg < 6) { m.gaps.push(dg); if (m.gaps.length > 9) m.gaps.shift(); const g = [...m.gaps].sort((a, b) => a - b); m.gap = Math.min(5, Math.max(0.25, g[g.length >> 1])); }
+    if (m.R && m.stale > 0.12) m.gap = m.R;
     F.push({ t, x: wx, y: wy }); while (F.length > 8 || (F.length > 2 && t - F[0].t > 3.5)) F.shift();
     // speeds of the recent legs, then a weighted straight-line fit of speed against time: today's speed plus how fast it is changing
     const legs = []; for (let i = 1; i < F.length; i++) { const dt = F[i].t - F[i - 1].t; if (dt > 0.04) legs.push({ t: (F[i].t + F[i - 1].t) / 2, v: Math.hypot(F[i].x - F[i - 1].x, F[i].y - F[i - 1].y) / dt }); }
@@ -302,11 +306,17 @@ LIVE_JS = r"""<script id="live">
     const b = F[F.length - 2], c = F[F.length - 1], h2 = Math.atan2(c.y - b.y, c.x - b.x); let w = 0;
     if (F.length >= 3 && sp > 4) { const a = F[F.length - 3]; if (Math.hypot(b.x - a.x, b.y - a.y) > 0.4 && Math.hypot(c.x - b.x, c.y - b.y) > 0.4) {
       const h1 = Math.atan2(b.y - a.y, b.x - a.x), dh = Math.atan2(Math.sin(h2 - h1), Math.cos(h2 - h1)), dt = (c.t - a.t) / 2; if (dt > 0.05) w = Math.max(-MO.maxTurn, Math.min(MO.maxTurn, dh / dt)) * MO.turnDamp; } }
-    m.h = h2 + w * (c.t - b.t) / 2; m.sp = sp; m.acc = acc; m.w = w; m.tf = t; m.pf = [wx, wy]; return true; };
+    const wasMoving = m.sp > 3;
+    m.h = h2 + w * (c.t - b.t) / 2; m.sp = sp; m.acc = acc; m.w = w; m.tf = t; m.pf = [wx, wy];
+    // self-tuning: if the dot had run past where the car really is, draw a little further behind; if it keeps landing right, creep back to now
+    if (wasMoving && sp > 3) { const now = performance.now() / 1000, P = pred(m, Math.max(0, now - t)), over = (m.D[0] - P[0]) * Math.cos(m.h) + (m.D[1] - P[1]) * Math.sin(m.h);
+      m.df = over > Math.max(2, sp * 0.08) ? Math.min(MO.maxDelay, (m.df || 0) + 0.2) : Math.max(0, (m.df || 0) - 0.04); }
+    return true; };
   // each frame: a critically damped spring pulls the dot onto the predicted path, matching its velocity too, so corrections glide instead of jump
   const motionStep = (u, tsMs) => { const m = u.m; if (!m) return;
     if (!u.headed && window.roadAt) { u.headed = true; if (m.sp === 0) { const a = roadDir(m.D[0], m.D[1]); if (a != null) u.heading = a; } }   // first sight, parked: face along the road
     const now = tsMs / 1000; let dt = m.lastT ? Math.min(0.5, Math.max(0, now - m.lastT)) : 0; m.lastT = now;
+    m.dls = (m.dls ?? delayFor(m)) + (delayFor(m) - (m.dls ?? delayFor(m))) * (1 - Math.exp(-dt / 1.5));   // the drawing delay eases, never switches
     const k = MO.spring; let left = dt;
     while (left > 1e-6) { const h = Math.min(1 / 60, left); left -= h; const tt = now - left;
       const E = traj(m, tt), E2 = traj(m, tt + 0.02), Ev = [(E2[0] - E[0]) / 0.02, (E2[1] - E[1]) / 0.02];

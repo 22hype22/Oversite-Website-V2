@@ -68,10 +68,27 @@ const tick = async () => {
     else if (up.ok) { if (seq > feed.shown) { feed.shown = seq; let out = body;                       // an older answer arriving late is dropped
         if (full) { try { feed.joins = JSON.parse(body).JoinLogs || []; } catch (e) {} }
         else if (feed.joins) out = body.replace(/}\s*$/, `,"JoinLogs":${JSON.stringify(feed.joins)}}`);
-        feed.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; cache.set(QUERY, feed.snap); bcast('server', out, taken); learn(body); } }
+        out = steady(out, taken);
+        if (out) { feed.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; cache.set(QUERY, feed.snap); bcast('server', out, taken); learn(body); } } }   // a stale answer is dropped entirely
     else { let j = {}; try { j = JSON.parse(body); } catch (e) {} bcast('err', JSON.stringify({ status: up.status, ...j })); if (up.status >= 400) feed.holdUntil = Date.now() + 3000; }
   } catch (e) { bcast('err', JSON.stringify({ status: 502, message: 'relay could not reach api.erlc.gg: ' + e.message })); feed.holdUntil = Date.now() + 3000; }
   finally { feed.inflight--; } };
+// per player: recent distinct positions. If an answer brings back a position the player already left (a stale cache behind another API node),
+// keep the newest one instead, so the dashboard never sees them jump backwards. The last 15 minutes are kept for diagnosis (GET /api/track).
+const hist = new Map(), track = new Map(), pending = new Map();
+const steady = (body, taken) => { let j; try { j = JSON.parse(body); } catch (e) { return body; } let stale = false; const adds = [];
+  for (const p of j.Players || []) { const L = p.Location; if (!L || !Number.isFinite(L.LocationX)) continue; const h = hist.get(p.Player) || []; const cur = [L.LocationX, L.LocationZ];
+    const same = q => Math.abs(q[0] - cur[0]) < 0.01 && Math.abs(q[1] - cur[1]) < 0.01;
+    if (h.length && same(h[h.length - 1])) continue;
+    if (h.slice(0, -1).some(same)) { stale = true; break; }         // a position this player already left: the whole answer came from an old cache
+    if (h.length >= 2) { const a = h[h.length - 2], b = h[h.length - 1], mv = [b[0] - a[0], b[1] - a[1]], d = [cur[0] - b[0], cur[1] - b[1]], lm = Math.hypot(...mv), ld = Math.hypot(...d);
+      if (lm > 3 && ld > 1 && (mv[0] * d[0] + mv[1] * d[1]) < -0.3 * lm * ld) {          // a moving car suddenly behind where it was: most likely an old cache
+        const pend = pending.get(p.Player); if (!(pend && Math.hypot(cur[0] - pend[0], cur[1] - pend[1]) < ld + 40 && (cur[0] - pend[0]) * d[0] + (cur[1] - pend[1]) * d[1] >= 0)) { pending.set(p.Player, cur); stale = true; break; } } }   // unless the next answer confirms it really turned round
+    pending.delete(p.Player); adds.push([p, h, cur, L]); }
+  if (stale) { feed.reverts = (feed.reverts || 0) + 1; return null; }
+  for (const [p, h, cur, L] of adds) { h.push(cur); if (h.length > 12) h.shift(); hist.set(p.Player, h);
+    const tr = track.get(p.Player) || []; tr.push([taken, +cur[0].toFixed(2), +cur[1].toFixed(2), L.PostalCode || '']); while (tr.length && taken - tr[0][0] > 900000) tr.shift(); track.set(p.Player, tr); }
+  return body; };
 const wake = () => { if (!feed.timer) feed.timer = setTimeout(tick, Math.max(0, feed.nextAt - Date.now())); };
 const stream = (req, res) => {
   res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
@@ -87,6 +104,7 @@ const relay = async (req, res) => {
   res.setHeader('access-control-expose-headers', RL.join(', '));
   const path = req.url.replace(/^\/api/, '');
   if (req.method === 'GET' && path === '/stream') return stream(req, res);
+  if (req.method === 'GET' && path === '/track') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify({ reverts: feed.reverts || 0, players: Object.fromEntries([...track].map(([k, v]) => [k.split(':')[0], v])) })); }
   if (path === '/cal') {                                              // shared calibration: every browser draws units with the same transform
     if (req.method === 'GET') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify(CAL)); }
     if (req.method === 'POST') { let body = ''; req.on('data', c => { body += c; if (body.length > 2e5) req.destroy(); }); req.on('end', () => { let j = {}; try { j = JSON.parse(body || '{}'); } catch (e) {}
@@ -108,7 +126,7 @@ const send = (res, r) => { res.writeHead(r.status, { 'content-type': 'applicatio
 const serve = (req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/' || url === '/index.html') url = '/live-map-3d.html';
-  if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${feed.sent.length}/min ${feed.rl ? feed.rl.left + ' left' : ''} ${feed.n429 || 0} limited`); }
+  if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${feed.sent.length}/min ${feed.rl ? feed.rl.left + ' left' : ''} ${feed.n429 || 0} limited ${feed.reverts || 0} stale dropped`); }
   const file = normalize(join(ROOT, url));
   if (!file.startsWith(ROOT) || !existsSync(file) || !statSync(file).isFile()) { res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('Not found'); }
   const ext = extname(file).toLowerCase();
