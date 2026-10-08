@@ -222,7 +222,7 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
     if (w && ts - miniT >= 33 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
       for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; const s2 = m.w / m.view, size2 = 2000 * s2;
         el.style.backgroundSize = `${size2}px ${size2}px`; el.style.backgroundPosition = `${m.w/2 - u.x*s2}px ${m.h/2 - u.y*s2}px`;
-        el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }
+        el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; const nh = !!u.live && !u.headingKnown; if (el.classList.contains('nohead') !== nh) el.classList.toggle('nohead', nh); } }
     if (ts - tick >= 1000) { tick = ts; const now = Date.now();
       for (const { el, u } of spds) el.textContent = u.live ? u.mph : (u.task ? (u.task.i >= u.task.path.length - 1 ? 0 : Math.round(u.task.mps * 2.237)) : Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9)))));
       for (const { el, u } of timers) { const s = Math.floor((now - u.startedAt) / 1000);

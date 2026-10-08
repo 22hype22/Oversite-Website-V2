@@ -37,33 +37,42 @@ const pickRL = h => { const out = {}; for (const k of RL) if (h.get(k)) out[k] =
 
 // ── live feed: one upstream loop paced by the API's rate-limit headers, fanned out to every open dashboard over server-sent events ──
 const QUERY = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true&JoinLogs=true';
+const QUERY_FAST = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true';   // join logs only change on joins: fetched every 20th request and reused
 const IDLE_STOP = 30000;                                            // keep polling this long after the last dashboard closes
-const feed = { snap: null, clients: new Set(), timer: null, busy: false, lastClient: 0, nextAt: 0 };
+const FLOOR = +(process.env.FEED_FLOOR_MS || 250);                  // never ask more often than this, whatever the headers allow
+const feed = { snap: null, clients: new Set(), timer: null, inflight: 0, lastClient: 0, nextAt: 0, seq: 0, shown: 0, rl: null, rlSeq: 0, holdUntil: 0, penaltyUntil: 0, n: 0, joins: null, sent: [] };
 const NOKEY = '{"code":2000,"message":"No server key: set ERLC_SERVER_KEY on the server or enter it in the admin panel"}';
 const bcast = (ev, data, id) => { const msg = `event: ${ev}\n${id ? `id: ${id}\n` : ''}data: ${data}\n\n`; for (const c of feed.clients) c.write(msg); };
-const pace = (h, status) => {                                       // ms until the next upstream request: spend the window evenly, never the last two requests
-  if (status === 429) return Math.max(MIN_GAP, (+h['retry-after'] || 30) * 1000);
-  const left = +h['x-ratelimit-remaining'], reset = +h['x-ratelimit-reset'];
-  if (!Number.isFinite(left) || !Number.isFinite(reset) || reset <= 0) return 2000;
-  const win = Math.max(0, (reset > 1e12 ? reset : reset * 1000) - Date.now());
-  if (left <= 2) return Math.max(MIN_GAP, win + 250);
-  return Math.min(15000, Math.max(MIN_GAP, win / (left - 2)));
-};
+// time between requests: spread what the rate limit has left evenly until it resets, keep 3 in reserve, and count requests still in flight
+const pace = () => { let g = 700; const h = feed.rl;
+  if (h && Number.isFinite(h.left) && Number.isFinite(h.reset) && h.reset > 0) { const left = h.left - feed.inflight, win = Math.max(0, (h.reset > 1e12 ? h.reset : h.reset * 1000) - Date.now()) + 300; g = left <= 3 ? win : win / (left - 3); }
+  const floor = Date.now() < feed.penaltyUntil ? FLOOR * 3 : FLOOR;   // after a 429, stay well clear for five minutes
+  return Math.min(15000, Math.max(floor, g)); };
+const takeRL = (headers, seq) => { if (seq < feed.rlSeq) return; feed.rlSeq = seq; feed.rl = { left: +headers['x-ratelimit-remaining'], reset: +headers['x-ratelimit-reset'] }; };
+// requests go out on a steady beat (up to two in flight) instead of waiting for each answer: the API takes 0.4 to 0.8 s to reply
 const tick = async () => {
-  feed.timer = null;
-  if (!feed.clients.size && Date.now() - feed.lastClient > IDLE_STOP) return;
+  feed.timer = null; const now = Date.now();
+  if (!feed.clients.size && now - feed.lastClient > IDLE_STOP) return;
   if (!KEY) { bcast('err', NOKEY); feed.timer = setTimeout(tick, 3000); return; }
-  feed.busy = true; let gap = 2000;
+  if (now < feed.holdUntil) { feed.timer = setTimeout(tick, feed.holdUntil - now); return; }
+  if (feed.inflight >= 2) { feed.timer = setTimeout(tick, 40); return; }
+  const seq = ++feed.seq, full = !feed.joins || feed.n++ % 20 === 0;
+  feed.inflight++; feed.nextAt = now + pace(); feed.timer = setTimeout(tick, feed.nextAt - now);
+  feed.sent.push(now); while (feed.sent.length && now - feed.sent[0] > 60000) feed.sent.shift();
   try {
-    const sent = Date.now(); const up = await fetch(UPSTREAM + QUERY, { headers: { 'server-key': KEY } }); const body = await up.text(); const headers = pickRL(up.headers);
-    const taken = Math.round((sent + Date.now()) / 2);                 // best guess at when the API read the positions: halfway through the request
-    gap = pace(headers, up.status);
-    if (up.ok) { feed.snap = { t: Date.now(), taken, status: up.status, body, headers }; cache.set(QUERY, feed.snap); bcast('server', body, taken); learn(body); }
-    else { let j = {}; try { j = JSON.parse(body); } catch (e) {} bcast('err', JSON.stringify({ status: up.status, retry_after: +headers['retry-after'] || undefined, ...j })); }
-  } catch (e) { bcast('err', JSON.stringify({ status: 502, message: 'relay could not reach api.erlc.gg: ' + e.message })); gap = 5000; }
-  feed.busy = false; feed.nextAt = Date.now() + gap; feed.timer = setTimeout(tick, gap);
-};
-const wake = () => { if (!feed.timer && !feed.busy) feed.timer = setTimeout(tick, Math.max(0, feed.nextAt - Date.now())); };
+    const up = await fetch(UPSTREAM + (full ? QUERY : QUERY_FAST), { headers: { 'server-key': KEY } }); const body = await up.text(); const headers = pickRL(up.headers);
+    const taken = Math.round((now + Date.now()) / 2);                  // best guess at when the API read the positions: halfway through the request
+    takeRL(headers, seq);
+    if (up.status === 429) { feed.holdUntil = Date.now() + (+headers['retry-after'] || 30) * 1000; feed.penaltyUntil = Date.now() + 300000;
+      bcast('err', JSON.stringify({ status: 429, retry_after: +headers['retry-after'] || 30 })); }
+    else if (up.ok) { if (seq > feed.shown) { feed.shown = seq; let out = body;                       // an older answer arriving late is dropped
+        if (full) { try { feed.joins = JSON.parse(body).JoinLogs || []; } catch (e) {} }
+        else if (feed.joins) out = body.replace(/}\s*$/, `,"JoinLogs":${JSON.stringify(feed.joins)}}`);
+        feed.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; cache.set(QUERY, feed.snap); bcast('server', out, taken); learn(body); } }
+    else { let j = {}; try { j = JSON.parse(body); } catch (e) {} bcast('err', JSON.stringify({ status: up.status, ...j })); if (up.status >= 400) feed.holdUntil = Date.now() + 3000; }
+  } catch (e) { bcast('err', JSON.stringify({ status: 502, message: 'relay could not reach api.erlc.gg: ' + e.message })); feed.holdUntil = Date.now() + 3000; }
+  finally { feed.inflight--; } };
+const wake = () => { if (!feed.timer) feed.timer = setTimeout(tick, Math.max(0, feed.nextAt - Date.now())); };
 const stream = (req, res) => {
   res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
   res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(CAL)}\n\n`);
@@ -91,7 +100,7 @@ const relay = async (req, res) => {
   const hit = cache.get(path); if (hit && Date.now() - hit.t < (feed.clients.size ? 5000 : MIN_GAP)) return send(res, hit);   // the feed loop keeps the snapshot fresh
   try {
     const up = await fetch(UPSTREAM + path, { headers: { 'server-key': key } }); const body = await up.text(); const headers = pickRL(up.headers);
-    const out = { t: Date.now(), status: up.status, body, headers }; if (up.ok) cache.set(path, out); if (key === KEY) feed.nextAt = Math.max(feed.nextAt, Date.now() + pace(headers, up.status)); send(res, out);
+    const out = { t: Date.now(), status: up.status, body, headers }; if (up.ok) cache.set(path, out); if (key === KEY) takeRL(headers, feed.seq); send(res, out);
   } catch (e) { res.writeHead(502, { 'content-type': 'application/json' }); res.end(JSON.stringify({ message: 'relay could not reach api.erlc.gg: ' + e.message })); }
 };
 const send = (res, r) => { res.writeHead(r.status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...r.headers }); res.end(r.body); };
@@ -99,7 +108,7 @@ const send = (res, r) => { res.writeHead(r.status, { 'content-type': 'applicatio
 const serve = (req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/' || url === '/index.html') url = '/live-map-3d.html';
-  if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('ok'); }
+  if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${feed.sent.length}/min ${feed.rl ? feed.rl.left + ' left' : ''}`); }
   const file = normalize(join(ROOT, url));
   if (!file.startsWith(ROOT) || !existsSync(file) || !statSync(file).isFile()) { res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('Not found'); }
   const ext = extname(file).toLowerCase();

@@ -246,7 +246,7 @@ LIVE_JS = r"""<script id="live">
 
   // ── motion: between snapshots each unit keeps going at its measured speed, braking and turn rate; the dot follows that prediction on a spring ──
   const KPX = 5355 / 2000;                                              // reported units (official map px) per map unit
-  const MO = { delay: 0.5, delaySlow: 0.8, spring: 4.5, horizon: 1.5, turnDamp: 0.8, accDamp: 0.6, stopAfter: 1.35, weight: 1.1, maxTurn: 1.1, maxAcc: 25 };   // tuning, exposed for testing
+  const MO = { delay: 0, delaySlow: 0.4, spring: 4.5, horizon: 1.5, turnDamp: 0.8, accDamp: 0.6, stopAfter: 1.35, weight: 1.1, maxTurn: 1.1, maxAcc: 25 };   // tuning, exposed for testing
   // predicted position τ seconds after the anchor fix: speed changes by the measured acceleration (never reversing), heading turns at the measured rate
   const pred = (m, tau) => { let x = m.pf[0], y = m.pf[1], h = m.h, v = m.sp; const n = Math.max(1, Math.ceil(tau / 0.05)), d = tau / n;
     for (let i = 0; i < n; i++) { const v2 = Math.max(0, v + m.acc * d); const vm = (v + v2) / 2, hm = h + m.w * d / 2; x += Math.cos(hm) * vm * d; y += Math.sin(hm) * vm * d; h += m.w * d * (vm > 0.5 ? 1 : 0); v = v2; if (v <= 0 && m.acc <= 0) break; }
@@ -313,7 +313,8 @@ LIVE_JS = r"""<script id="live">
       const ax = -k * k * (m.D[0] - E[0]) - 2 * k * (m.Dv[0] - Ev[0]), ay = -k * k * (m.D[1] - E[1]) - 2 * k * (m.Dv[1] - Ev[1]);
       m.Dv = [m.Dv[0] + ax * h, m.Dv[1] + ay * h]; m.D = [m.D[0] + m.Dv[0] * h, m.D[1] + m.Dv[1] * h]; }
     u.x = m.D[0]; u.y = m.D[1];
-    const sp = Math.hypot(...m.Dv); if (sp > 1.2 && dt > 0) { const target = Math.atan2(m.Dv[1], m.Dv[0]), d = Math.atan2(Math.sin(target - u.heading), Math.cos(target - u.heading)); u.heading += d * (1 - Math.exp(-dt * 9)); }
+    const sp = Math.hypot(...m.Dv); if (m.sp > 3 && sp > 1.2) u.headingKnown = true;
+    if (sp > 1.2 && dt > 0) { const target = Math.atan2(m.Dv[1], m.Dv[0]), d = Math.atan2(Math.sin(target - u.heading), Math.cos(target - u.heading)); u.heading += d * (1 - Math.exp(-dt * 9)); }
     u.mph = m.sp > 0 ? Math.round(sp * KPX * 0.626) : 0; };
   window.liveStep = motionStep; window.liveMotion = MO;
   // when each snapshot was taken, on this page's clock: the server stamps it; extra network delay beyond the fastest delivery seen is taken back out
