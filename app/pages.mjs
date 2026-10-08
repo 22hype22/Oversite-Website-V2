@@ -85,7 +85,7 @@ export const landing = ({ logo, discord, owner, next = '/dashboard', error = '' 
 <form class="card path" id="makeform" autocomplete="off"><h2>Create a server</h2><p class="note">Set up a CAD for your ER:LC server.</p>
 <input id="mname" maxlength="48" placeholder="Server name" aria-label="Server name" required>
 <input id="mslug" maxlength="32" placeholder="address" aria-label="Address" required><p class="hint addr">oversitescad.com/c/<span id="slugp">your-server</span></p>
-<input id="mcode" maxlength="24" placeholder="Your owner code" aria-label="Owner code" spellcheck="false" required><p class="hint">6 to 24 letters or numbers. You sign in with it, so keep it private.</p>
+<input id="mcode" maxlength="24" placeholder="Your owner code" aria-label="Owner code" spellcheck="false" required><p class="hint">2 to 24 letters or numbers. You sign in with it, so keep it private.</p>
 <button class="btn pri">Create server</button><p class="msg" id="makemsg"></p></form>
 </div>
 ${discord ? `<div class="or">or</div><a class="btn discord" href="/auth/discord?next=${encodeURIComponent(next)}">Continue with Discord</a>` : ''}
@@ -115,7 +115,7 @@ ${c.role !== 'member' ? `<a class="btn sm" href="/c/${esc(c.slug)}/settings">Set
 <section class="card"><h2>Create a server</h2><p class="note">One per ER:LC server. Members join with the member code you get afterwards.</p>
 <form id="create" autocomplete="off"><label for="cname">Server name</label><input id="cname" maxlength="48" placeholder="Liberty County Roleplay" required>
 <label for="cslug">Address</label><input id="cslug" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="liberty-county" required><p class="hint">oversitescad.com/c/<span id="slugp">liberty-county</span></p>
-<label for="ccode">Owner code</label><input id="ccode" maxlength="24" placeholder="6 to 24 letters or numbers" spellcheck="false" required>
+<label for="ccode">Owner code</label><input id="ccode" maxlength="24" placeholder="2 to 24 letters or numbers" spellcheck="false" required>
 <div class="row" style="margin-top:14px"><button class="btn pri">Create server</button></div><p class="msg" id="cmsg"></p></form></section>
 </div><div>
 <section class="card" id="rbx"><h2>Roblox account</h2>
