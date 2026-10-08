@@ -211,8 +211,7 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   let last = performance.now(), tick = 0, miniT = 0;   // tick = last timer refresh (ms)
   const loop = (ts) => {
     const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
-    for (const u of units) { if (u.live) { if (u.vx || u.vy) { u.tx += u.vx * dt; u.ty += u.vy * dt; const f = Math.exp(-dt / 6); u.vx *= f; u.vy *= f; }   // dead-reckon between polls, fading out
-        const k = 1 - Math.exp(-dt * 4); u.x += (u.tx - u.x) * k; u.y += (u.ty - u.y) * k; let d = u.th - u.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); u.heading += d * k; continue; }
+    for (const u of units) { if (u.live) { window.liveStep?.(u, ts); continue; }        // live units: speed-and-turn prediction between snapshots (live block)
       if (u.task) { const T = u.task; let left = T.mps * dt;
         while (left > 0 && T.i < T.path.length - 1) { const [bx, by] = T.path[T.i + 1], d = Math.hypot(bx - u.x, by - u.y); if (d <= left) { u.x = bx; u.y = by; T.i++; left -= d; } else { u.x += (bx - u.x) / d * left; u.y += (by - u.y) / d * left; left = 0; } }
         const nx = T.path[Math.min(T.i + 1, T.path.length - 1)]; if (Math.hypot(nx[0] - u.x, nx[1] - u.y) > 0.5) u.heading = Math.atan2(nx[1] - u.y, nx[0] - u.x);
@@ -220,7 +219,7 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
         continue; }
       u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
       const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
-    if (w && ts - miniT >= 200 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
+    if (w && ts - miniT >= 33 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
       for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; const s2 = m.w / m.view, size2 = 2000 * s2;
         el.style.backgroundSize = `${size2}px ${size2}px`; el.style.backgroundPosition = `${m.w/2 - u.x*s2}px ${m.h/2 - u.y*s2}px`;
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; } }

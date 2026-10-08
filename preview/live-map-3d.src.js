@@ -242,12 +242,23 @@ wt.add(wtTank, wtCol, wtCap);
 wt.position.set(498, 0, 1145); scene.add(wt); onTerrain.push(() => { wt.position.y = heightAt(498, 1145) - 0.3; });
 
 // ── vehicles ──
-const busGeo = new THREE.BoxGeometry(14, 5.5, 6); busGeo.translate(0, 2.75, 0);
-const mkBus = color => { const b = new THREE.Mesh(busGeo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.5 }));
-  scene.add(b); return b; };
+// a car at real size (about 18 x 7.5 studs), facing +x: body, glass cabin, and a light bar for emergency units. Grows with camera distance so it stays visible.
+const CAR_L = 18 * ST, CAR_W = 7.6 * ST, CAR_H = 4.6 * ST;
+const bodyGeo = new THREE.BoxGeometry(CAR_L, CAR_H * 0.55, CAR_W); bodyGeo.translate(0, CAR_H * 0.275 + 0.15, 0);
+const cabGeo = new THREE.BoxGeometry(CAR_L * 0.5, CAR_H * 0.42, CAR_W * 0.9); cabGeo.translate(-CAR_L * 0.06, CAR_H * 0.55 + CAR_H * 0.21 + 0.15, 0);
+const barGeo = new THREE.BoxGeometry(CAR_L * 0.1, CAR_H * 0.09, CAR_W * 0.4);
+const glassMat = new THREE.MeshStandardMaterial({ color: 0x1b2430, roughness: 0.25, metalness: 0.3 });
+const barRed = new THREE.MeshStandardMaterial({ color: 0xff3b3b, emissive: 0xff3b3b, emissiveIntensity: 0.6 }), barBlue = new THREE.MeshStandardMaterial({ color: 0x3b7bff, emissive: 0x3b7bff, emissiveIntensity: 0.6 });   // steady: the API does not say when lights are on
+const mkBus = (color, lights) => { const g = new THREE.Group(); g.rotation.order = 'YXZ';
+  const paint = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.35, roughness: 0.45, metalness: 0.1 });
+  g.add(new THREE.Mesh(bodyGeo, paint), new THREE.Mesh(cabGeo, glassMat));
+  if (lights) { const top = CAR_H * 0.97 + 0.15 + CAR_H * 0.045; const a = new THREE.Mesh(barGeo, barRed), b = new THREE.Mesh(barGeo, barBlue); a.position.set(-CAR_L * 0.06, top, -CAR_W * 0.2); b.position.set(-CAR_L * 0.06, top, CAR_W * 0.2); g.add(a, b); }
+  g.userData.paint = paint; g.userData.pitch = 0; g.userData.roll = 0; scene.add(g); return g; };
+const dropCar = c => { scene.remove(c); c.userData.paint?.dispose(); };
 let UN = window.UNITS || []; const COL = { pd: 0x4C8DFF, fd: 0xE24B4B, dot: 0xE9C24C };
-let cars = UN.map((u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept]));
-addEventListener('units', () => { for (const c of cars) { scene.remove(c); c.material.dispose(); } UN = window.UNITS || []; cars = UN.map((u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept])); });
+const carFor = (u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept], u.dept === 'pd' || u.dept === 'fd');
+let cars = UN.map(carFor);
+addEventListener('units', () => { for (const c of cars) dropCar(c); UN = window.UNITS || []; cars = UN.map(carFor); });
 const incident = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 12), new THREE.MeshBasicMaterial({ color: 0xE24B4B }));
 incident.visible = false; scene.add(incident);
 const incRing = new THREE.Mesh(new THREE.RingGeometry(10, 12, 40), new THREE.MeshBasicMaterial({ color: 0xE24B4B, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })); incRing.rotation.x = -Math.PI / 2; incRing.visible = false; scene.add(incRing);
@@ -305,7 +316,11 @@ const frame = () => {
   const dt = Math.min(clock.getDelta(), 0.05), now = clock.elapsedTime; adapt(dt);
   // idle pacing: when nothing is being dragged and frames are slow, render every other frame
   if (!controls._dragging && dt < 0.02 && pr <= 0.6) { skip = !skip; if (skip) return; }
-  UN.forEach((u, i) => { cars[i].position.set(u.x, heightAt(u.x, u.y) + 0.2, u.y); cars[i].rotation.y = -u.heading; });
+  const camD = camera.position.distanceTo(controls.target), grow = Math.min(6, Math.max(1, camD / 160));
+  UN.forEach((u, i) => { const c = cars[i]; if (!c) return; const ch = Math.cos(u.heading), sh = Math.sin(u.heading), f = CAR_L * 0.45, w = CAR_W * 0.45;
+    const hc = heightAt(u.x, u.y), hf = heightAt(u.x + ch * f, u.y + sh * f), hb = heightAt(u.x - ch * f, u.y - sh * f), hl = heightAt(u.x + sh * w, u.y - ch * w), hr = heightAt(u.x - sh * w, u.y + ch * w);
+    const k = 1 - Math.exp(-dt * 8); c.userData.pitch += (Math.atan2(hf - hb, 2 * f) - c.userData.pitch) * k; c.userData.roll += (Math.atan2(hl - hr, 2 * w) - c.userData.roll) * k;   // sit on the slope
+    c.position.set(u.x, Math.max(hc, (hf + hb) / 2), u.y); c.rotation.set(c.userData.roll * 0.6, -u.heading, c.userData.pitch); c.scale.setScalar(grow); });
   const hp = UN[0] ? { x: UN[0].x, z: UN[0].y } : { x: FOCUS.x, z: FOCUS.z }; const hy = heightAt(hp.x, hp.z);
   glow.visible = pulse.visible = !!UN[0]; tip.style.display = UN[0] ? '' : 'none';
   if (UN[0]) { const u = UN[0], key = u.name + '|' + u.crew.join(',') + '|' + (u.postal || '') + '|' + (u.model || ''); if (tip.dataset.key !== key) { tip.dataset.key = key;

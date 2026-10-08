@@ -189,7 +189,8 @@ LIVE_JS = r"""<script id="live">
     $('adPoints').innerHTML = S.cal.map((p, i) => `<div class="ad-pt"><span>${esc(p.name)}</span><small>${p.sx.toFixed(0)}, ${p.sz.toFixed(0)} studs</small><button type="button" data-rm="${i}">Remove</button></div>`).join('') || '<div class="ad-note">No points yet.</div>';
     if (lastUnits) applyPositions(); };
   const pushCal = body => { if (!HOSTED) return; fetch((S.relay || location.origin + '/api') + '/cal', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).catch(() => {}); };
-  const takeCal = j => { if (!j || typeof j !== 'object') return; S.auto = j.auto || {}; S.cal = Array.isArray(j.manual) ? j.manual : []; save(); renderCal(); if (lastUnits) { applyPositions(); } };
+  const takeCal = j => { if (!j || typeof j !== 'object') return; S.auto = j.auto || {}; const manual = Array.isArray(j.manual) ? j.manual : [];
+    const changed = JSON.stringify(manual) !== JSON.stringify(S.cal); S.cal = manual; save(); if (changed) renderCal(); };   // only a hand-placed point moves anyone; postal stats never reset motion
   if (HOSTED) fetch(location.origin + '/api/cal', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(takeCal).catch(() => {});
   $('adPoints').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.cal.splice(+b.dataset.rm, 1); save(); renderCal(); pushCal({ manual: S.cal }); });
   $('adClearCal').addEventListener('click', () => { S.cal = []; S.auto = {}; delete S.fit; delete S.nudge; SAMPLES.length = 0; save(); renderCal(); pushCal({ clear: true }); });
@@ -242,11 +243,88 @@ LIVE_JS = r"""<script id="live">
     return { body, rl };
   };
 
+
+  // ── motion: between snapshots each unit keeps going at its measured speed, braking and turn rate; the dot follows that prediction on a spring ──
+  const KPX = 5355 / 2000;                                              // reported units (official map px) per map unit
+  const MO = { delay: 0.5, delaySlow: 0.8, spring: 4.5, horizon: 1.5, turnDamp: 0.8, accDamp: 0.6, stopAfter: 1.35, weight: 1.1, maxTurn: 1.1, maxAcc: 25 };   // tuning, exposed for testing
+  // predicted position τ seconds after the anchor fix: speed changes by the measured acceleration (never reversing), heading turns at the measured rate
+  const pred = (m, tau) => { let x = m.pf[0], y = m.pf[1], h = m.h, v = m.sp; const n = Math.max(1, Math.ceil(tau / 0.05)), d = tau / n;
+    for (let i = 0; i < n; i++) { const v2 = Math.max(0, v + m.acc * d); const vm = (v + v2) / 2, hm = h + m.w * d / 2; x += Math.cos(hm) * vm * d; y += Math.sin(hm) * vm * d; h += m.w * d * (vm > 0.5 ? 1 : 0); v = v2; if (v <= 0 && m.acc <= 0) break; }
+    return [x, y]; };
+  // a smooth curve through the real fixes (Catmull-Rom with uneven spacing): drawing a little behind the newest fix keeps the dot exactly on the driven path
+  const hermite = (F, i, t) => { const p0 = F[Math.max(0, i - 1)], p1 = F[i], p2 = F[i + 1], p3 = F[Math.min(F.length - 1, i + 2)], d = p2.t - p1.t, s = (t - p1.t) / d;
+    const m1 = [(p2.x - p0.x) / Math.max(0.05, p2.t - p0.t) * d, (p2.y - p0.y) / Math.max(0.05, p2.t - p0.t) * d], m2 = [(p3.x - p1.x) / Math.max(0.05, p3.t - p1.t) * d, (p3.y - p1.y) / Math.max(0.05, p3.t - p1.t) * d];
+    const h00 = 2 * s ** 3 - 3 * s * s + 1, h10 = s ** 3 - 2 * s * s + s, h01 = -2 * s ** 3 + 3 * s * s, h11 = s ** 3 - s * s;
+    return [h00 * p1.x + h10 * m1[0] + h01 * p2.x + h11 * m2[0], h00 * p1.y + h10 * m1[1] + h01 * p2.y + h11 * m2[1]]; };
+  const traj = (m, t) => { const F = m.fixes, dl = m.stale > 0.2 ? MO.delaySlow : MO.delay; if (dl > 0 && F.length >= 2) { const tt = t - dl * Math.min(2.5, m.gap);
+      if (tt <= F[F.length - 1].t) { if (tt <= F[0].t) return [F[0].x, F[0].y]; let i = F.length - 2; while (i > 0 && F[i].t > tt) i--; return hermite(F, i, tt); }
+      t = tt; }
+    let tau = Math.max(0, t - m.tf); const H = Math.min(3.5, Math.max(0.7, m.gap * MO.horizon));
+    if (tau > H) tau = H + 0.3 * (1 - Math.exp(-(tau - H) / 0.3)); return pred(m, tau); };    // past the expected next fix: coast to a stop, never run away
+  // which way the road runs here (main axis of the road cells nearby), so a car seen parked faces along its road instead of due east
+  const roadDir = (x, y) => { const R = window.roadAt; if (!R) return null; let sxx = 0, syy = 0, sxy = 0, n = 0;
+    for (let i = -9; i <= 9; i++) for (let j = -9; j <= 9; j++) { const dx = i * 5, dy = j * 5; if (dx * dx + dy * dy > 2050 || R(x + dx, y + dy) < 1) continue; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; n++; }
+    if (n < 6) return null; const ang = 0.5 * Math.atan2(2 * sxy, sxx - syy), l1 = (sxx + syy) / 2 + Math.hypot((sxx - syy) / 2, sxy), l2 = (sxx + syy) / 2 - Math.hypot((sxx - syy) / 2, sxy);
+    return l1 > l2 * 1.6 ? ang : null; };                               // only when there is a clear direction (not a junction or a car park)
+  const motionReset = (u, wx, wy, t) => { const g = u.m?.gap || 1, gs = u.m?.gaps || [], sr = u.m?.stale || 0;
+    u.m = { fixes: [{ t, x: wx, y: wy }], pf: [wx, wy], tf: t, h: u.heading || 0, sp: 0, acc: 0, w: 0, gap: g, gaps: gs, stale: sr, poll: t, D: [wx, wy], Dv: [0, 0], lastT: 0 }; u.x = wx; u.y = wy; };
+  const motionFix = (u, wx, wy, tPoll) => { const m = u.m; if (!m) return motionReset(u, wx, wy, tPoll), true;
+    const F = m.fixes, L = F[F.length - 1], prevPoll = m.poll; m.poll = tPoll;
+    if (Math.hypot(wx - L.x, wy - L.y) < 0.12) {                        // the same position again: parked, or the game has not refreshed it yet
+      if (m.sp > 3) m.stale = m.stale * 0.85 + 0.15;                     // learn how often a moving car repeats: that means the game refreshes slower than we poll
+      if (m.sp > 0 && tPoll - L.t > Math.max(0.6, m.gap * MO.stopAfter)) { m.sp = 0; m.acc = 0; m.w = 0; m.tf = tPoll; m.pf = [L.x, L.y]; }   // it really stopped
+      return false; }
+    if (m.sp > 3) m.stale *= 0.85;
+    // when the game refreshes slower than we poll, the move happened somewhere since the previous poll. If the game refreshes on a steady beat,
+    // find that beat from these windows and time the fix to it exactly; otherwise take the middle of the window.
+    let t = tPoll;
+    if (m.stale > 0.2 && prevPoll < tPoll) { t = (prevPoll + tPoll) / 2;
+      const W = m.wins || (m.wins = []); W.push([prevPoll, tPoll]); while (W.length > 14 || tPoll - W[0][1] > 25) W.shift();
+      if (W.length >= 5) { const R0 = (W[W.length - 1][1] - W[0][1]) / (W.length - 1) || 1;                // rough beat; refined together with its phase below
+        if (R0 > 0.3 && R0 < 6) { let best = -1, bR = R0, bPh = 0; const tol = 0.03, ref = W[W.length - 1][1];
+          for (let j = -20; j <= 20; j++) { const R = R0 * (1 + j * 0.006);
+            for (let i = 0; i < 40; i++) { const ph = i / 40 * R; let c = 0, slack = 0;
+              for (const [a, b2] of W) { const k = Math.floor((b2 - ref - ph) / R), r = ref + ph + k * R; if (r > a - tol && r <= b2 + tol) { c++; slack += Math.min(r - a, b2 - r); } }
+              const sc = c + slack / R * 0.02; if (sc > best) { best = sc; bR = R; bPh = ph; } } }
+          if (Math.floor(best) >= W.length * 0.75) { const k = Math.floor((tPoll - ref - bPh) / bR), r = ref + bPh + k * bR; if (r > prevPoll - 0.05) { t = Math.min(tPoll, Math.max(prevPoll, r)); m.R = bR; } } } } }
+    else if (m.wins && m.stale < 0.1) m.wins.length = 0;
+    if (Math.hypot(wx - m.D[0], wy - m.D[1]) > 90 || t - L.t > 8) { motionReset(u, wx, wy, tPoll); return true; }   // teleport, respawn or a long silence
+    if (t - L.t < 0.05) t = L.t + 0.05;
+    const dg = t - L.t; if (dg < 6) { m.gaps.push(dg); if (m.gaps.length > 9) m.gaps.shift(); const g = [...m.gaps].sort((a, b) => a - b); m.gap = Math.min(5, Math.max(0.25, g[g.length >> 1])); }
+    F.push({ t, x: wx, y: wy }); while (F.length > 8 || (F.length > 2 && t - F[0].t > 3.5)) F.shift();
+    // speeds of the recent legs, then a weighted straight-line fit of speed against time: today's speed plus how fast it is changing
+    const legs = []; for (let i = 1; i < F.length; i++) { const dt = F[i].t - F[i - 1].t; if (dt > 0.04) legs.push({ t: (F[i].t + F[i - 1].t) / 2, v: Math.hypot(F[i].x - F[i - 1].x, F[i].y - F[i - 1].y) / dt }); }
+    let sp = 0, acc = 0;
+    if (legs.length) { let sw = 0, st = 0, sv = 0; for (const l of legs) { const k = Math.exp((l.t - t) / MO.weight); sw += k; st += k * l.t; sv += k * l.v; } const mt = st / sw, mv = sv / sw;
+      let stt = 0, stv = 0; for (const l of legs) { const k = Math.exp((l.t - t) / MO.weight), q = l.t - mt; stt += k * q * q; stv += k * q * (l.v - mv); }
+      acc = legs.length >= 2 && stt > 1e-4 ? stv / stt : 0; acc = Math.max(-MO.maxAcc, Math.min(MO.maxAcc, acc)) * MO.accDamp; sp = Math.max(0, Math.min(140, mv + acc / MO.accDamp * (t - mt))); }
+    // heading and turn rate from the last three fixes, so the dot follows bends instead of cutting across them
+    const b = F[F.length - 2], c = F[F.length - 1], h2 = Math.atan2(c.y - b.y, c.x - b.x); let w = 0;
+    if (F.length >= 3 && sp > 4) { const a = F[F.length - 3]; if (Math.hypot(b.x - a.x, b.y - a.y) > 0.4 && Math.hypot(c.x - b.x, c.y - b.y) > 0.4) {
+      const h1 = Math.atan2(b.y - a.y, b.x - a.x), dh = Math.atan2(Math.sin(h2 - h1), Math.cos(h2 - h1)), dt = (c.t - a.t) / 2; if (dt > 0.05) w = Math.max(-MO.maxTurn, Math.min(MO.maxTurn, dh / dt)) * MO.turnDamp; } }
+    m.h = h2 + w * (c.t - b.t) / 2; m.sp = sp; m.acc = acc; m.w = w; m.tf = t; m.pf = [wx, wy]; return true; };
+  // each frame: a critically damped spring pulls the dot onto the predicted path, matching its velocity too, so corrections glide instead of jump
+  const motionStep = (u, tsMs) => { const m = u.m; if (!m) return;
+    if (!u.headed && window.roadAt) { u.headed = true; if (m.sp === 0) { const a = roadDir(m.D[0], m.D[1]); if (a != null) u.heading = a; } }   // first sight, parked: face along the road
+    const now = tsMs / 1000; let dt = m.lastT ? Math.min(0.5, Math.max(0, now - m.lastT)) : 0; m.lastT = now;
+    const k = MO.spring; let left = dt;
+    while (left > 1e-6) { const h = Math.min(1 / 60, left); left -= h; const tt = now - left;
+      const E = traj(m, tt), E2 = traj(m, tt + 0.02), Ev = [(E2[0] - E[0]) / 0.02, (E2[1] - E[1]) / 0.02];
+      const ax = -k * k * (m.D[0] - E[0]) - 2 * k * (m.Dv[0] - Ev[0]), ay = -k * k * (m.D[1] - E[1]) - 2 * k * (m.Dv[1] - Ev[1]);
+      m.Dv = [m.Dv[0] + ax * h, m.Dv[1] + ay * h]; m.D = [m.D[0] + m.Dv[0] * h, m.D[1] + m.Dv[1] * h]; }
+    u.x = m.D[0]; u.y = m.D[1];
+    const sp = Math.hypot(...m.Dv); if (sp > 1.2 && dt > 0) { const target = Math.atan2(m.Dv[1], m.Dv[0]), d = Math.atan2(Math.sin(target - u.heading), Math.cos(target - u.heading)); u.heading += d * (1 - Math.exp(-dt * 9)); }
+    u.mph = m.sp > 0 ? Math.round(sp * KPX * 0.626) : 0; };
+  window.liveStep = motionStep; window.liveMotion = MO;
+  // when each snapshot was taken, on this page's clock: the server stamps it; extra network delay beyond the fastest delivery seen is taken back out
+  const lats = []; const fixTime = taken => { const arr = performance.now() / 1000; if (!taken) return arr;
+    const lat = Date.now() - taken; lats.push(lat); if (lats.length > 60) lats.shift(); return arr - Math.max(0, lat - Math.min(...lats)) / 1000; };
+
   // ── players -> units ──
   const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const units = new Map();                     // id -> unit object (kept across polls so timers and 3D cars persist)
   const mph = (dx, dz, dt) => dt > 0 ? Math.hypot(dx, dz) / dt * 0.626 : 0;   // 1 stud = 0.28 m
-  const buildUnits = (players, vehicles, joins) => {
+  const buildUnits = (players, vehicles, joins, tFix = performance.now() / 1000) => {
     const now = Date.now(), ids = new Set();
     const joinAt = {}; for (const j of joins || []) if (j.Join) joinAt[j.Player] = Math.max(joinAt[j.Player] || 0, j.Timestamp * 1000);
     const groups = new Map();
@@ -257,21 +335,16 @@ LIVE_JS = r"""<script id="live">
     for (const g of groups.values()) { ids.add(g.id); let u = units.get(g.id);
       const veh = vehicles.find(v => g.members.some(m => m.name === v.Owner));
       const [wx, wy] = g.loc ? toWorldP(g.loc.LocationX, g.loc.LocationZ, g.loc.PostalCode) : [1000, 1000];
-      if (!u) { u = { id: g.id, live: true, dept: g.dept, kind: KIND[g.dept], route: 'B', t: 0, dir: 1, speed: 0, x: wx, y: wy, tx: wx, ty: wy, lx: wx, ly: wy, heading: 0, th: 0, mph: 0, sx: g.loc?.LocationX, sz: g.loc?.LocationZ, seen: now,
-          startedAt: Math.min(...g.members.map(m => m.join || now)) }; units.set(g.id, u); }
-      else if (g.loc) { const dt = (now - u.seen) / 1000, dx = g.loc.LocationX - (u.sx ?? g.loc.LocationX), dz = g.loc.LocationZ - (u.sz ?? g.loc.LocationZ);
-        if (Math.hypot(dx, dz) > 0.5) {                                   // a new fix: aim at it and carry the speed forward until the next one
-          u.th = Math.atan2(dz, dx); u.mph = Math.round(Math.min(160, mph(dx, dz, dt))); u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ;
-          if (dt > 0.2 && dt < 60) { u.vx = (wx - u.lx) / dt; u.vy = (wy - u.ly) / dt; const sp = Math.hypot(u.vx, u.vy); if (sp > 60) { u.vx *= 60 / sp; u.vy *= 60 / sp; } } else { u.vx = u.vy = 0; }
-          u.tx = wx; u.ty = wy; u.lx = wx; u.ly = wy; u.gap = dt; u.seen = now; fixAt = now; }
-        else if (now - u.seen > Math.max(2500, 2.5 * (u.gap || 1) * 1000)) { u.vx = u.vy = 0; u.mph = 0; u.tx = wx; u.ty = wy; } }   // same fix for a while: they have stopped
+      if (!u) { u = { id: g.id, live: true, dept: g.dept, kind: KIND[g.dept], route: 'B', t: 0, dir: 1, speed: 0, x: wx, y: wy, tx: wx, ty: wy, heading: 0, th: 0, mph: 0, sx: g.loc?.LocationX, sz: g.loc?.LocationZ, seen: now,
+          startedAt: Math.min(...g.members.map(m => m.join || now)) }; units.set(g.id, u); motionReset(u, wx, wy, tFix); }
+      else if (g.loc) { if (motionFix(u, wx, wy, tFix)) { fixAt = now; u.seen = now; } u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ; u.tx = wx; u.ty = wy; }
       u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
       u.uid = g.pid; u.model = veh ? veh.Name : 'On foot'; u.postal = g.loc?.PostalCode || ''; u.street = g.loc?.StreetName || ''; }
     for (const id of [...units.keys()]) if (!ids.has(id)) units.delete(id);
     const me = (S.me || '').toLowerCase(); const mine = u => me && u.crew.some(n => n.toLowerCase() === me) ? 0 : 1;
     return [...units.values()].sort((a, b) => mine(a) - mine(b) || a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name));
   };
-  const applyPositions = () => { for (const u of units.values()) if (u.sx != null) { const [wx, wy] = toWorldP(u.sx, u.sz, u.postal); u.tx = wx; u.ty = wy; u.x = wx; u.y = wy; } };
+  const applyPositions = () => { for (const u of units.values()) if (u.sx != null) { const [wx, wy] = toWorldP(u.sx, u.sz, u.postal); u.tx = wx; u.ty = wy; motionReset(u, wx, wy, performance.now() / 1000); } };
 
   // ── cards ──
   const fleet = document.querySelector('.fleet'); const demoHTML = fleet ? fleet.innerHTML : ''; const demoUnits = window.UNITS;
@@ -289,7 +362,8 @@ LIVE_JS = r"""<script id="live">
     if (ids !== shownIds) { shownIds = ids; const sel = fleet?.querySelector('[aria-pressed="true"]')?.dataset.unit;
       if (fleet) fleet.innerHTML = list.length ? list.map((u, i) => cardHTML(u, sel ? u.id === sel : i === 0)).join('') : '<div class="empty" style="padding:18px 6px;color:var(--dim)">No units on duty. Players need a callsign on a mapped team.</div>';
       window.UNITS = list; if (!demoCleared) { demoCleared = true; clearDemo(); } dispatchEvent(new CustomEvent('units', { detail: { live: true } })); }
-    else for (const u of list) { const sp = fleet?.querySelector(`.spd[data-unit="${u.id}"]`); if (sp) sp.textContent = u.mph; const code = fleet?.querySelector(`[data-unit="${u.id}"] .code`); if (code) code.textContent = u.postal ? 'Postal ' + u.postal : '10-8'; } };
+    else for (const u of list) { const code = fleet?.querySelector(`[data-unit="${u.id}"] .code`); if (code) code.textContent = u.postal ? 'Postal ' + u.postal : '10-8'; }
+    dispatchEvent(new CustomEvent('unitsupdate')); };                 // every snapshot: labels that show postal or street refresh
   const clearDemo = () => { const C = window.CALLS || []; for (let i = C.length - 1; i >= 0; i--) if (!C[i].live) C.splice(i, 1); window.demoCalls?.stop(); dispatchEvent(new CustomEvent('calls')); };
   const restoreDemo = () => { if (!fleet || shownIds === '') return; fleet.innerHTML = demoHTML; shownIds = ''; units.clear(); lastUnits = null; window.UNITS = demoUnits; demoCleared = false; if (!HOSTED) window.demoCalls?.start(); dispatchEvent(new CustomEvent('units', { detail: { live: false } })); };
 
@@ -302,8 +376,8 @@ LIVE_JS = r"""<script id="live">
   // ── live updates: a server-sent stream when the page is served by server.mjs (or a relay), paced polling otherwise ──
   let lastUpdate = 0, updates = 0, source = '', fixAt = 0; const eventTimes = [];                 // fixAt = last time any unit's reported position changed
   const ERR = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
-  const handle = (body, rl, src) => { lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
-    updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls); flyToMe();
+  const handle = (body, rl, src, taken) => { const tFix = fixTime(taken); lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
+    updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs, tFix); publish(lastUnits); pushCalls(body.EmergencyCalls); flyToMe();
     const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
     status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
   const paceMs = rl => { let g = 1500; const left = +rl?.left, reset = +rl?.reset;              // spend the API window evenly, never the last two requests
@@ -329,7 +403,7 @@ LIVE_JS = r"""<script id="live">
   const stopStream = () => { clearTimeout(esRetry); esRetry = null; if (es) { es.close(); es = null; } };
   const startStream = () => { if (!S.live || !canStream()) return; stopStream(); let got = false;
     es = new EventSource(`${base()}/stream`);
-    es.addEventListener('server', e => { got = true; esFails = 0; let body; try { body = JSON.parse(e.data); } catch (x) { return; } handle(body, null, 'stream'); schedule(20000); });
+    es.addEventListener('server', e => { got = true; esFails = 0; let body; try { body = JSON.parse(e.data); } catch (x) { return; } handle(body, null, 'stream', +e.lastEventId || 0); schedule(20000); });
     es.addEventListener('cal', e => { try { takeCal(JSON.parse(e.data)); } catch (x) {} });
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }

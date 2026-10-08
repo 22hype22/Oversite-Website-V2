@@ -16,13 +16,12 @@ if (!KEY) { try { KEY = readFileSync(KEY_FILE, 'utf8').trim(); } catch (e) {} }
 const CAL_FILE = process.env.CAL_FILE || join(dirname(KEY_FILE), existsSync('/data') ? 'cal.json' : '.oversite-cal.json');
 let CAL = { auto: {}, manual: [] };                                  // auto: postal -> mean stud position seen there; manual: hand-placed points
 try { CAL = { ...CAL, ...JSON.parse(readFileSync(CAL_FILE, 'utf8')) }; } catch (e) {}
-let calDirty = false, calSaved = 0, calSent = 0; const seenAt = new Map();
+let calDirty = false, calSaved = 0; const seenAt = new Map();
 const learn = body => { let j; try { j = JSON.parse(body); } catch (e) { return; } const now = Date.now();
   for (const p of j.Players || []) { const L = p.Location, code = String(L?.PostalCode || '').trim(); if (!L || !code || !Number.isFinite(L.LocationX) || !Number.isFinite(L.LocationZ)) continue;
     const prev = seenAt.get(p.Player); if (prev && Math.hypot(L.LocationX - prev.x, L.LocationZ - prev.z) < 8 && now - prev.t < 15000) continue;   // count a spot once, not every snapshot
     seenAt.set(p.Player, { x: L.LocationX, z: L.LocationZ, t: now });
     const a = CAL.auto[code] || { sx: 0, sz: 0, n: 0 }, n = Math.min(a.n + 1, 400); a.sx += (L.LocationX - a.sx) / n; a.sz += (L.LocationZ - a.sz) / n; a.n = n; CAL.auto[code] = a; calDirty = true; }
-  if (calDirty && now - calSent > 3000) { calSent = now; bcast('cal', JSON.stringify(CAL)); }
   if (calDirty && now - calSaved > 20000) saveCal(); };
 const saveCal = () => { calDirty = false; calSaved = Date.now(); try { writeFileSync(CAL_FILE, JSON.stringify(CAL)); } catch (e) {} };
 const saveKey = k => { try { writeFileSync(KEY_FILE, k + '\n', { mode: 0o600 }); return true; } catch (e) { return false; } };
@@ -41,7 +40,7 @@ const QUERY = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true&JoinLog
 const IDLE_STOP = 30000;                                            // keep polling this long after the last dashboard closes
 const feed = { snap: null, clients: new Set(), timer: null, busy: false, lastClient: 0, nextAt: 0 };
 const NOKEY = '{"code":2000,"message":"No server key: set ERLC_SERVER_KEY on the server or enter it in the admin panel"}';
-const bcast = (ev, data) => { const msg = `event: ${ev}\ndata: ${data}\n\n`; for (const c of feed.clients) c.write(msg); };
+const bcast = (ev, data, id) => { const msg = `event: ${ev}\n${id ? `id: ${id}\n` : ''}data: ${data}\n\n`; for (const c of feed.clients) c.write(msg); };
 const pace = (h, status) => {                                       // ms until the next upstream request: spend the window evenly, never the last two requests
   if (status === 429) return Math.max(MIN_GAP, (+h['retry-after'] || 30) * 1000);
   const left = +h['x-ratelimit-remaining'], reset = +h['x-ratelimit-reset'];
@@ -56,9 +55,10 @@ const tick = async () => {
   if (!KEY) { bcast('err', NOKEY); feed.timer = setTimeout(tick, 3000); return; }
   feed.busy = true; let gap = 2000;
   try {
-    const up = await fetch(UPSTREAM + QUERY, { headers: { 'server-key': KEY } }); const body = await up.text(); const headers = pickRL(up.headers);
+    const sent = Date.now(); const up = await fetch(UPSTREAM + QUERY, { headers: { 'server-key': KEY } }); const body = await up.text(); const headers = pickRL(up.headers);
+    const taken = Math.round((sent + Date.now()) / 2);                 // best guess at when the API read the positions: halfway through the request
     gap = pace(headers, up.status);
-    if (up.ok) { feed.snap = { t: Date.now(), status: up.status, body, headers }; cache.set(QUERY, feed.snap); bcast('server', body); learn(body); }
+    if (up.ok) { feed.snap = { t: Date.now(), taken, status: up.status, body, headers }; cache.set(QUERY, feed.snap); bcast('server', body, taken); learn(body); }
     else { let j = {}; try { j = JSON.parse(body); } catch (e) {} bcast('err', JSON.stringify({ status: up.status, retry_after: +headers['retry-after'] || undefined, ...j })); }
   } catch (e) { bcast('err', JSON.stringify({ status: 502, message: 'relay could not reach api.erlc.gg: ' + e.message })); gap = 5000; }
   feed.busy = false; feed.nextAt = Date.now() + gap; feed.timer = setTimeout(tick, gap);
@@ -67,7 +67,7 @@ const wake = () => { if (!feed.timer && !feed.busy) feed.timer = setTimeout(tick
 const stream = (req, res) => {
   res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
   res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(CAL)}\n\n`);
-  if (feed.snap && Date.now() - feed.snap.t < 10000) res.write(`event: server\ndata: ${feed.snap.body}\n\n`); else if (!KEY) res.write(`event: err\ndata: ${NOKEY}\n\n`);
+  if (feed.snap && Date.now() - feed.snap.t < 10000) res.write(`event: server\nid: ${feed.snap.taken}\ndata: ${feed.snap.body}\n\n`); else if (!KEY) res.write(`event: err\ndata: ${NOKEY}\n\n`);
   feed.clients.add(res); feed.lastClient = Date.now();
   const ka = setInterval(() => res.write(': ping\n\n'), 15000);
   req.on('close', () => { clearInterval(ka); feed.clients.delete(res); feed.lastClient = Date.now(); });
