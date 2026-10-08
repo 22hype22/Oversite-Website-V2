@@ -16,7 +16,7 @@ browser never sees the key. Without it, the key typed into the admin panel (gear
 
 1. New project, deploy from this GitHub repo. Railway detects Node and runs `node server.mjs`.
 2. Variables: add `ERLC_SERVER_KEY` (from the in-game Settings, ER:LC API section). Never commit it.
-3. Settings, Networking: add the custom domain `oversitecad.com` (and `www.oversitecad.com`) and create the
+3. Settings, Networking: add the custom domain `oversitescad.com` (and `www.oversitescad.com`) and create the
    CNAME records Railway shows at the registrar.
 4. In the dashboard admin panel leave Relay URL empty: when the page is served over https it uses `/api` on
    the same origin automatically.
