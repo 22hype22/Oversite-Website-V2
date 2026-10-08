@@ -52,7 +52,9 @@ for i, (wx, wy) in enumerate(SEEDS):
     out[f'R{i}'] = [[round(x * K, 1), round(y * K, 1)] for x, y in simplify(p, 1.2)]
 # coarse road grid for in-page routing (A* in the dashboard): max-pooled to G x G, 1 bit per cell
 import base64
-G = 256; f = N // G; pooled = road[:f * G, :f * G].reshape(G, f, G, f).max(axis=(1, 3))
+G = 512
+from PIL import Image as _I
+pooled = np.asarray(_I.fromarray((road * 255).astype(np.uint8)).resize((G, G), _I.BOX)) > 30     # whole map, thin roads survive
 bits = np.packbits(pooled.astype(np.uint8).ravel())
 out['_grid'] = { 'n': G, 'bits': base64.b64encode(bits.tobytes()).decode() }
 json.dump(out, open(sys.argv[2], 'w'), separators=(',', ':'))

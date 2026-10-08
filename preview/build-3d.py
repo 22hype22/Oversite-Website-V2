@@ -24,8 +24,8 @@ view3d='''<!-- ─────────── 3D map (shares the view with th
 '''
 out=src.replace('  <div class="vig"></div>\n</div>','  <div class="view3d" id="view3d"></div>\n  <div class="vig"></div>\n</div>',1)
 assert 'id="view3d"' in out
-out=out.replace('<img src="liberty-county-dark.jpg" data-light="liberty-county.jpg" data-hd="liberty-county-hd.jpg" data-dark="liberty-county-darkmode.jpg" alt="">','<img alt="">')
-assert '<img alt="">' in out
+out=out.replace('<img src="liberty-county-dark.jpg" data-light="liberty-county.jpg" data-hd="liberty-county-hd.jpg" data-dark="liberty-county-darkmode.jpg" alt="">','<img alt="" data-hd="liberty-county-hd.jpg">')
+assert '<img alt="" data-hd' in out
 b=out.index('<!-- ─────────── top bar ─────────── -->'); out=out[:b]+view3d+out[b:]
 out=out.replace('<title>Oversite Live Map</title>','<title>Oversite Live Map 3D</title>')
 out=out.replace('</style>',css+'</style>')
@@ -53,8 +53,7 @@ const state = { dim: '3d', theme: 'light' };
 const body = document.body, picker = document.getElementById('layers'), zfit = document.getElementById('zfit');
 const L = document.getElementById('mapsrc').getAttribute('href'), D = document.getElementById('mapsrc-dark').getAttribute('href');
 const img2d = document.querySelector('.view img'); img2d.dataset.light = L; img2d.dataset.dark = D;
-// hosted pages: swap the 2D light map for the full-resolution one once it has loaded, so zooming in stays sharp
-if (/^https?:$/.test(location.protocol)) { const hd = new Image(); hd.onload = () => { img2d.dataset.light = 'liberty-county-hd.jpg'; if (state.dim === '2d' && state.theme === 'light') img2d.setAttribute('src', 'liberty-county-hd.jpg'); }; hd.src = 'liberty-county-hd.jpg'; }
+
 for (const t of picker.querySelectorAll('.thumb i')) t.style.backgroundImage = `url("${t.parentElement.classList.contains('dark') ? D : L}")`;
 const apply = () => {
   body.classList.toggle('mode-3d', state.dim === '3d'); body.classList.toggle('mode-2d', state.dim === '2d');

@@ -151,6 +151,7 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   const GRID = ROUTES._grid; delete ROUTES._grid;
   const GN = GRID.n, GB = Uint8Array.from(atob(GRID.bits), c => c.charCodeAt(0)), CELL = 2000 / GN;
   const road = (cx, cy) => cx >= 0 && cy >= 0 && cx < GN && cy < GN && (GB[(cy * GN + cx) >> 3] >> (7 - ((cy * GN + cx) & 7))) & 1;
+  window.roadAt = (x, y) => { const cx = Math.round(x / CELL - 0.5), cy = Math.round(y / CELL - 0.5); if (road(cx, cy)) return 1; return (road(cx + 1, cy) || road(cx - 1, cy) || road(cx, cy + 1) || road(cx, cy - 1)) ? 0.5 : 0; };
   const snap = (x, y) => { const cx = Math.round(x / CELL - 0.5), cy = Math.round(y / CELL - 0.5); if (road(cx, cy)) return [cx, cy];
     for (let r = 1; r < 24; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if ((Math.abs(dx) === r || Math.abs(dy) === r) && road(cx + dx, cy + dy)) return [cx + dx, cy + dy]; return null; };
   const roadRoute = (ax, ay, bx, by) => { const A = snap(ax, ay), B = snap(bx, by); if (!A || !B) return [[ax, ay], [bx, by]];
