@@ -47,7 +47,7 @@ def card(u, sel=False):
 </button>"""
 chips='''  <div class="chips" role="group" aria-label="Filter units by department">
     <button aria-pressed="true" data-filter="all"><b data-count="all">0</b> All Units</button>
-    <button aria-pressed="false" data-filter="pd"><b data-count="pd">0</b> PD</button>
+    <button aria-pressed="false" data-filter="pd"><b data-count="pd">0</b> LE</button>
     <button aria-pressed="false" data-filter="fd"><b data-count="fd">0</b> FD</button>
     <button aria-pressed="false" data-filter="dot"><b data-count="dot">0</b> DOT</button>
   </div>'''

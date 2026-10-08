@@ -63,7 +63,7 @@ LANDMARKS = [
 
 def admin_html():
     opts = ''.join(f'<option value="{x},{y}">{n}</option>' for n, x, y in LANDMARKS)
-    teams = ''.join(f'<span>{t}</span><select data-team="{t}"><option value="pd">PD</option><option value="fd">FD</option><option value="dot">DOT</option><option value="">Ignore</option></select>' for t in ['Police', 'Sheriff', 'Fire', 'DOT', 'Civilian'])
+    teams = ''.join(f'<span>{t}</span><select data-team="{t}"><option value="pd">LE</option><option value="fd">FD</option><option value="dot">DOT</option><option value="">Ignore</option></select>' for t in ['Police', 'Sheriff', 'Fire', 'DOT', 'Civilian'])
     return f"""<aside class="admin" id="admin" aria-label="Admin panel" aria-hidden="true">
   <header><h2>Admin</h2><button type="button" id="adminClose">Close</button></header>
   <section>
@@ -103,7 +103,7 @@ LIVE_JS = r"""<script id="live">
   const $ = id => document.getElementById(id);
   const ICON = __ICON__;
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const DEPT = { pd: 'PD', fd: 'FD', dot: 'DOT' }, KIND = { pd: 'cruiser', fd: 'engine', dot: 'dot' };
+  const DEPT = { pd: 'LE', fd: 'FD', dot: 'DOT' }, KIND = { pd: 'cruiser', fd: 'engine', dot: 'dot' };
   const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay at /api
   const DEFAULTS = { key: '', relay: '', live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
   const KEY = 'oversite.admin';
@@ -291,7 +291,7 @@ LIVE_JS = r"""<script id="live">
                 for (const [a, b2] of (m.nowins || [])) { const k = Math.floor((b2 - tol - ref - ph) / R), r = ref + ph + k * R; if (r > a + tol) c -= 1; }   // a beat inside an unchanged stretch is wrong
                 const sc = c + slack / R * 0.02; if (sc > best) { best = sc; bR = R; bPh = ph; } } }
             if (best >= W.length * 0.8) { const k = Math.floor((tPoll - ref - bPh) / bR), r = ref + bPh + k * bR; if (r > prevPoll - 0.05) { t = Math.min(tPoll, Math.max(prevPoll, r)); m.R = bR; } } } } } }
-    if (Math.hypot(wx - m.D[0], wy - m.D[1]) > 90 || t - L.t > 8) { motionReset(u, wx, wy, tPoll); return true; }   // teleport, respawn or a long silence
+    if (Math.hypot(wx - m.D[0], wy - m.D[1]) > 90 + 70 * Math.max(0, tPoll - L.t) || t - L.t > 12) { motionReset(u, wx, wy, tPoll); return true; }   // teleport, respawn or a long silence (a car covers ~70 units a second at most)
     if (t - L.t < 0.05) t = L.t + 0.05;
     const dg = t - L.t; if (dg < 6) { m.gaps.push(dg); if (m.gaps.length > 9) m.gaps.shift(); const g = [...m.gaps].sort((a, b) => a - b); m.gap = Math.min(5, Math.max(0.25, g[g.length >> 1])); }
     if (m.R && m.stale > 0.12) m.gap = m.R;
