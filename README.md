@@ -9,7 +9,7 @@ Fire Department MDT, and an admin panel that links the dashboard to the ER:LC AP
 node server.mjs
 ```
 
-Opens on http://localhost:8080. Set `ERLC_SERVER_KEY` and the relay at `/api/v2/server` uses it, so the
+Opens on http://localhost:8080. Set `ACCESS_CODE` to put the site behind a numeric preview code (visitors enter it once, remembered 30 days; `/lock` signs out). Set `ERLC_SERVER_KEY` and the relay at `/api/v2/server` uses it, so the
 browser never sees the key. Without it, the key typed into the admin panel (gear icon) is forwarded instead.
 
 ## Deploy on Railway
