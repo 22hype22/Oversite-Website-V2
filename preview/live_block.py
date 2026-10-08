@@ -342,6 +342,6 @@ def apply(s, ICON):
     s = re.sub(r'<script id="live">.*?</script>\n', '', s, flags=re.S)
     s = s.replace('</style>', ADMIN_CSS + '</style>', 1)
     s = s.replace('<button aria-label="Settings">', '<button aria-label="Settings" id="adminToggle" aria-pressed="false" title="Admin">', 1)
-    s = s.replace('Online</div><div class="n">65</div>', 'Online</div><div class="n" id="statOnline">65</div>', 1)
+    s = s.replace('id="statFeed" hidden></small></div><div class="n">65</div>', 'id="statFeed" hidden></small></div><div class="n" id="statOnline">65</div>', 1)
     s = s.replace('</body>', admin_html() + LIVE_JS.replace('__ICON__', json.dumps(ICON)).replace('__POSTALS__', open('preview/newmap/postals.json').read()) + '</body>', 1)
     return s
