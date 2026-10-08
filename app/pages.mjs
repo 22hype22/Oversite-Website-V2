@@ -58,6 +58,9 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:30px;text-align:left}.feats div{font-size:12.5px;color:var(--dim)}.feats b{display:block;color:var(--ink);font-weight:500;margin-bottom:2px}
 @media (max-width:520px){.feats{grid-template-columns:1fr}}
 .danger-zone{border-color:rgba(226,75,75,.25)}
+.invites{margin-top:14px;display:grid;gap:8px}.inv{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--hair);border-radius:12px;background:rgba(255,255,255,.02);min-width:0}
+.inv .tx{flex:1;min-width:0}.inv code{display:block;font:12.5px/1.4 ui-monospace,"Geist Mono",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.inv small{color:var(--dim);font-size:12px}.inv .acts{display:flex;gap:6px;flex:none}
+.card{min-width:0}
 .empty{color:var(--dim);font-size:13px;padding:6px 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 `;
@@ -102,7 +105,7 @@ ms.addEventListener('input',()=>{touched=true;ms.value=slugify(ms.value);sp.text
 document.getElementById('makeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/create',{name:mn.value.trim(),slug:ms.value,ownerCode:document.getElementById('mcode').value},document.getElementById('makemsg'))});
 ` });
 
-export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome }) => layout({ title: 'Dashboard · Oversite', logo, user, body: `
+export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord }) => layout({ title: 'Dashboard · Oversite', logo, user, body: `
 <main><h1>Welcome, <b>${esc(user.name)}</b></h1><p class="lead">Open a server's CAD, join another with its code, or create your own.</p>
 ${welcome && !user.roblox_name ? `<section class="card" style="margin-bottom:18px;border-color:rgba(76,141,255,.35)"><h2>You're in ${esc(welcome.name)}</h2><p class="note" style="margin-bottom:10px">Link your Roblox account below so the CAD knows which player you are and opens your department's MDT. Or skip it for now.</p><a class="btn sm" href="/c/${esc(welcome.slug)}">Skip and open the CAD</a></section>` : ''}
 <div class="grid"><div>
@@ -119,10 +122,10 @@ ${c.role !== 'member' ? `<a class="btn sm" href="/c/${esc(c.slug)}/settings">Set
 <div class="row" style="margin-top:14px"><button class="btn pri">Create server</button></div><p class="msg" id="cmsg"></p></form></section>
 </div><div>
 <section class="card" id="rbx"><h2>Roblox account</h2>
-${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>. Your servers use this to find you in game and open your department's MDT.</p><button class="btn sm" id="unlink">Unlink</button>`
+${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>${user.roblox_via === 'discord' ? ', the Roblox account verified on your Discord' : ''}. Your servers use this to find you in game and open your department's MDT.</p>${user.roblox_via === 'discord' ? '<p class="hint" style="margin:-6px 0 0">To change it, change the Roblox connection in Discord and sign in with Discord again.</p>' : '<button class="btn sm" id="unlink">Unlink</button>'}`
 : pending ? `<p class="note">Add this phrase anywhere in the <b>About</b> section of <a href="https://www.roblox.com/users/${esc(pending.roblox_id)}/profile" target="_blank" rel="noopener">${esc(pending.roblox_name)}'s profile</a>, save, then press Verify. You can remove it afterwards.</p>
 <div class="phrase">${esc(pending.phrase)}</div><div class="row"><button class="btn pri" id="verify">Verify</button><button class="btn sm" id="restart">Use a different account</button></div><p class="msg" id="rmsg"></p>`
-: `<p class="note">Link your Roblox account so your servers know which player you are. No password needed.</p><form id="rstart" autocomplete="off"><label for="ruser">Roblox username</label><input id="ruser" placeholder="Your Roblox username" required><div class="row" style="margin-top:12px"><button class="btn pri">Continue</button></div><p class="msg" id="rmsg"></p></form>`}
+: `<p class="note">Link your Roblox account so your servers know which player you are. No password needed.</p>${discord ? `<a class="btn discord" href="/auth/discord?next=/dashboard" style="width:100%">Use the Roblox account on my Discord</a><p class="hint" style="margin:8px 0 2px">Works if Roblox is connected in Discord (Settings, Connections). Or link it here:</p>` : ''}<form id="rstart" autocomplete="off"><label for="ruser">Roblox username</label><input id="ruser" placeholder="Your Roblox username" required><div class="row" style="margin-top:12px"><button class="btn pri">Continue</button></div><p class="msg" id="rmsg"></p></form>`}
 </section>
 ${discordLinkable ? `<section class="card"><h2>Discord</h2><p class="note">You signed in with the owner code. Link Discord so you can sign in with it from now on.</p><a class="btn discord" href="/auth/discord?next=/dashboard">Link Discord</a></section>` : ''}
 </div></div></main>`, script: `
@@ -161,7 +164,7 @@ ${codes.owner !== null ? `<label style="margin-top:16px">Owner code</label><div 
 <div class="row" style="margin-top:8px"><button class="btn sm" id="saveo">Save owner code</button></div>` : ''}<p class="msg" id="codemsg"></p></section>` : ''}
 <section class="card"><h2>Invite links</h2><p class="note">An alternative to the member code. Anyone with the link can join. Links last 7 days.</p>
 <div class="row"><button class="btn pri" id="newinv">Create invite link</button></div><p class="msg" id="imsg"></p>
-${invites.length ? `<table><tr><th>Link</th><th>Uses</th><th></th></tr>${invites.map(i => `<tr><td><code>${esc(origin)}/join/${esc(i.code)}</code></td><td>${i.uses}</td><td style="text-align:right"><button class="btn sm" data-copy="${esc(origin)}/join/${esc(i.code)}">Copy</button> <button class="btn sm danger" data-revoke="${esc(i.code)}">Revoke</button></td></tr>`).join('')}</table>` : '<p class="empty">No active invite links.</p>'}
+${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><div class="tx"><code title="${esc(origin)}/join/${esc(i.code)}">${esc(origin.replace(/^https?:\/\//, ''))}/join/${esc(i.code)}</code><small>${i.uses} ${i.uses === 1 ? 'use' : 'uses'}${i.expires ? ` · expires ${new Date(i.expires).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</small></div><div class="acts"><button class="btn sm" data-copy="${esc(origin)}/join/${esc(i.code)}">Copy</button><button class="btn sm danger" data-revoke="${esc(i.code)}">Revoke</button></div></div>`).join('')}</div>` : '<p class="empty">No active invite links.</p>'}
 </section>
 <section class="card"><h2>Members</h2>
 <table><tr><th>Member</th><th>Roblox</th><th>Role</th><th></th></tr>${members.map(m => `<tr><td>${esc(m.name)}</td><td>${m.roblox_name ? esc(m.roblox_name) : '<span style="color:var(--faint)">Not linked</span>'}</td>
@@ -176,7 +179,7 @@ const kd=document.getElementById('kdel');if(kd)kd.addEventListener('click',async
 document.getElementById('depts').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),m=document.getElementById('dmsg');const depts={},teams={};for(const d of['pd','fd','dot'])depts[d]={name:f.get(d+'-name'),short:f.get(d+'-short')};for(const[k,v]of f.entries())if(k.startsWith('team-'))teams[k.slice(5)]=v;
 try{await api(A+'/settings',{name:f.get('name'),depts,teams});say(m,'Saved.',true)}catch(x){say(m,x.message)}});
 document.getElementById('newinv').addEventListener('click',async()=>{const m=document.getElementById('imsg');try{const j=await api(A+'/invites');await navigator.clipboard?.writeText(j.url).catch(()=>{});say(m,'Link created and copied: '+j.url,true);setTimeout(()=>location.reload(),1500)}catch(x){say(m,x.message)}});
-document.addEventListener('click',async e=>{const c=e.target.closest('[data-copy]');if(c){await navigator.clipboard?.writeText(c.dataset.copy).catch(()=>{});c.textContent='Copied';setTimeout(()=>c.textContent='Copy',1200)}
+document.addEventListener('click',async e=>{const c=e.target.closest('[data-copy]');if(c){await navigator.clipboard?.writeText(c.dataset.copy).catch(()=>{});const t=c.textContent;c.textContent='Copied';setTimeout(()=>c.textContent=t,1200)}
 const r=e.target.closest('[data-revoke]');if(r){await api(A+'/invites/revoke',{code:r.dataset.revoke});location.reload()}
 const x=e.target.closest('[data-remove]');if(x){if(!confirm('Remove this member?'))return;try{await api(A+'/members/remove',{userId:+x.dataset.remove});location.reload()}catch(err){say(document.getElementById('mmsg'),err.message)}}});
 document.addEventListener('change',async e=>{const s=e.target.closest('[data-role]');if(!s)return;try{await api(A+'/members/role',{userId:+s.dataset.role,role:s.value});say(document.getElementById('mmsg'),'Role updated.',true)}catch(x){say(document.getElementById('mmsg'),x.message)}});

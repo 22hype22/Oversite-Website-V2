@@ -10,26 +10,32 @@ export const signOut = req => { sessions.drop(cookies(req).ov_sess); return setC
 export const safeNext = n => (typeof n === 'string' && /^\/(?!\/)[\w\-\/?=&.%]*$/.test(n) ? n : '/dashboard');
 
 // ── Discord ──
-const DID = process.env.DISCORD_CLIENT_ID || '', DSECRET = process.env.DISCORD_CLIENT_SECRET || '';
+const DID = process.env.DISCORD_CLIENT_ID || '', DSECRET = process.env.DISCORD_CLIENT_SECRET || '', DAPI = process.env.DISCORD_API || 'https://discord.com/api';
 export const discordReady = () => !!(DID && DSECRET);
 const base = req => (process.env.PUBLIC_URL || `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers.host}`).replace(/\/$/, '');
 export const discordStart = (req, next) => { const state = token(16);
-  const url = `https://discord.com/oauth2/authorize?${new URLSearchParams({ client_id: DID, redirect_uri: base(req) + '/auth/discord/callback', response_type: 'code', scope: 'identify', state, prompt: 'none' })}`;
+  const url = `https://discord.com/oauth2/authorize?${new URLSearchParams({ client_id: DID, redirect_uri: base(req) + '/auth/discord/callback', response_type: 'code', scope: 'identify connections', state, prompt: 'none' })}`;
   return { url, cookie: setCookie(req, 'ov_oauth', `${state}|${safeNext(next)}`, 600) }; };
 export const discordFinish = async (req, params) => {
   const [state, next] = (cookies(req).ov_oauth || '').split('|');
   if (!state || state !== params.get('state')) throw new Error('The sign-in link expired. Please try again.');
   if (params.get('error')) throw new Error('Discord sign-in was cancelled.');
-  const tok = await fetch('https://discord.com/api/oauth2/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+  const tok = await fetch(DAPI + '/oauth2/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: DID, client_secret: DSECRET, grant_type: 'authorization_code', code: params.get('code') || '', redirect_uri: base(req) + '/auth/discord/callback' }) }).then(r => r.json());
   if (!tok.access_token) throw new Error('Discord did not accept the sign-in. Please try again.');
-  const me = await fetch('https://discord.com/api/users/@me', { headers: { authorization: `Bearer ${tok.access_token}` } }).then(r => r.json());
+  const me = await fetch(DAPI + '/users/@me', { headers: { authorization: `Bearer ${tok.access_token}` } }).then(r => r.json());
   if (!me.id) throw new Error('Could not read your Discord account.');
   const name = me.global_name || me.username, avatar = me.avatar ? `https://cdn.discordapp.com/avatars/${me.id}/${me.avatar}.png?size=64` : null;
   let u = users.byDiscord(me.id); const current = currentUser(req);
   if (!u && current && !current.discord_id) { users.update(current.id, { discord_id: me.id, name, avatar }); u = users.byId(current.id); }   // an owner signed in with the code links their Discord
   else if (!u) u = users.byId(users.create({ discord_id: me.id, name, avatar }));
   else users.update(u.id, { name, avatar });
+  // the Roblox account they verified on Discord (Settings, Connections) becomes their Roblox link: no phrase needed
+  try { const conns = await fetch(DAPI + '/users/@me/connections', { headers: { authorization: `Bearer ${tok.access_token}` } }).then(r => r.json());
+    const rb = Array.isArray(conns) && conns.find(c => c.type === 'roblox' && c.verified !== false);
+    if (rb && rb.id) { const rid = String(rb.id), existing = users.byRoblox(rid);
+      if (existing && existing.id !== u.id) { if (!existing.discord_id || existing.discord_id === me.id) { users.merge(u.id, existing.id); users.update(existing.id, { discord_id: me.id, name, avatar, roblox_name: rb.name, roblox_via: 'discord' }); u = users.byId(existing.id); } }   // same person, another device
+      else { users.update(u.id, { roblox_id: rid, roblox_name: rb.name, roblox_via: 'discord' }); roblox.clear(u.id); u = users.byId(u.id); } } } catch (e) {}
   return { user: u, next: safeNext(next) }; };
 
 // ── owner sign-in: available until Discord is configured (or when OWNER_LOGIN=1), protected by the owner code ──
@@ -57,7 +63,7 @@ export const robloxVerify = async user => { const p = roblox.pending(user.id); i
   const name = r.name || p.roblox_name; roblox.clear(user.id);
   const existing = users.byRoblox(p.roblox_id);                         // the same person already has an account (another device): fold this one into it
   if (existing && existing.id !== user.id) { users.merge(user.id, existing.id); return { ok: true, name, mergedInto: existing.id }; }
-  users.update(user.id, { roblox_id: p.roblox_id, roblox_name: name, ...(['Owner', 'Member'].includes(user.name) ? { name } : {}) }); return { ok: true, name }; };
+  users.update(user.id, { roblox_id: p.roblox_id, roblox_name: name, roblox_via: 'profile', ...(['Owner', 'Member'].includes(user.name) ? { name } : {}) }); return { ok: true, name }; };
 export const robloxUnlink = user => users.update(user.id, { roblox_id: null, roblox_name: null });
 
 // ── server codes: create a server with your own owner code, or sign in to one with the code its owner gave you ──

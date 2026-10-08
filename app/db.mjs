@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS roblox_pending (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, roblox_id TEXT NOT NULL, roblox_name TEXT NOT NULL, phrase TEXT NOT NULL, expires INTEGER NOT NULL);
 `);
 
+try { db.exec('ALTER TABLE users ADD COLUMN roblox_via TEXT'); } catch (e) {}   // how the Roblox link was proven: 'discord' or 'profile'
 // server keys are encrypted at rest with a secret that lives in the environment or, failing that, next to the database
 const SECRET_FILE = join(DATA, 'app.secret');
 let secret = process.env.APP_SECRET ? createHash('sha256').update(process.env.APP_SECRET).digest() : null;
@@ -49,7 +50,7 @@ export const users = {
   byDiscord: did => q('SELECT * FROM users WHERE discord_id = ?').get(did),
   localOwner: () => q('SELECT * FROM users WHERE is_local_owner = 1').get(),
   create: ({ discord_id = null, name, avatar = null, is_local_owner = 0 }) => q('INSERT INTO users (discord_id, name, avatar, is_local_owner, created) VALUES (?, ?, ?, ?, ?)').run(discord_id, name, avatar, is_local_owner, now()).lastInsertRowid,
-  update: (id, f) => { for (const [k, v] of Object.entries(f)) if (['discord_id', 'name', 'avatar', 'roblox_id', 'roblox_name'].includes(k)) q(`UPDATE users SET ${k} = ? WHERE id = ?`).run(v, id); },
+  update: (id, f) => { for (const [k, v] of Object.entries(f)) if (['discord_id', 'name', 'avatar', 'roblox_id', 'roblox_name', 'roblox_via'].includes(k)) q(`UPDATE users SET ${k} = ? WHERE id = ?`).run(v, id); },
   byRoblox: rid => q('SELECT * FROM users WHERE roblox_id = ? ORDER BY id LIMIT 1').get(rid),
   // fold a duplicate account (same person signed in with a code on another device) into the one that already has their Roblox link
   merge: (from, into) => { for (const m of q('SELECT community_id, role FROM members WHERE user_id = ?').all(from)) { const cur = q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(m.community_id, into);
