@@ -83,6 +83,9 @@ css_rep=[
   ".veh .tl .bar2::after{content:\"\";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}\n  .veh .tl .bar2::before{content:\"\";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}"),
 ]
 for x,y in css_rep:
+    # rules that add lines next to an existing one: undo earlier builds first so they never pile up
+    if x in y:
+        while y in s: s=s.replace(y,x)
     s=s.replace(x,y)
 css_add = """  /* unit render backdrop + availability chart */
   .veh .pic::before{content:"";position:absolute;left:-2px;right:34%;top:-6px;bottom:-4px;border-radius:12px;

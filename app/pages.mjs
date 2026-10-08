@@ -62,11 +62,31 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .inv .tx{flex:1;min-width:0}.inv code{display:block;font:12.5px/1.4 ui-monospace,"Geist Mono",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.inv small{color:var(--dim);font-size:12px}.inv .acts{display:flex;gap:6px;flex:none}
 .card{min-width:0}
 .empty{color:var(--dim);font-size:13px;padding:6px 0}
+/* in-page confirm dialog (replaces the browser's own prompt and confirm boxes) */
+.dlg{width:min(420px,calc(100vw - 32px));padding:0;border:1px solid var(--hair2);border-radius:18px;background:rgba(20,21,24,.97);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.55);opacity:0;transform:translateY(8px) scale(.98);transition:opacity .18s,transform .22s cubic-bezier(.32,.72,0,1)}
+.dlg[open].in{opacity:1;transform:none}
+.dlg::backdrop{background:rgba(6,7,8,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.dlg form{padding:22px 22px 18px}
+.dlg .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.06);margin-bottom:14px}
+.dlg.danger .ic{background:rgba(226,75,75,.14);color:#F3A3A3}
+.dlg h2{font-size:17px;margin:0 0 6px}
+.dlg p{color:var(--dim);font-size:13.5px;margin:0}
+.dlg label{margin:16px 0 6px}.dlg label code{font:500 12.5px ui-monospace,"Geist Mono",monospace;color:var(--ink);background:rgba(255,255,255,.07);padding:2px 6px;border-radius:6px;user-select:all}
+.dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+.btn.dz{background:var(--bad);border-color:var(--bad);color:#fff}.btn.dz:hover{background:#ea5c5c}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 `;
 const JS = `
 const api=async(url,body,method='POST')=>{const r=await fetch(url,{method,headers:{'content-type':'application/json','x-oversite':'1'},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||('Something went wrong ('+r.status+')'));return j};
 const say=(el,t,ok)=>{el.textContent=t;el.className='msg '+(ok?'ok':'err')};
+/* ask({title,text,ok,danger,typed}) shows the site's own dialog and resolves true when confirmed; typed = word the user must type first */
+const ask=o=>new Promise(res=>{const d=document.createElement('dialog');d.className='dlg'+(o.danger?' danger':'');
+d.innerHTML='<form method="dialog"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(o.danger?'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/>':'<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/>')+'</svg></div><h2></h2><p></p>'+(o.typed?'<label>Type <code></code> to confirm</label><input autocomplete="off" spellcheck="false" autocapitalize="off">':'')+'<div class="acts"><button type="button" class="btn" data-no>Cancel</button><button value="yes" class="btn '+(o.danger?'dz':'pri')+'" data-yes></button></div></form>';
+d.querySelector('h2').textContent=o.title;d.querySelector('p').textContent=o.text||'';const y=d.querySelector('[data-yes]');y.textContent=o.ok||'Confirm';
+const inp=d.querySelector('input');if(inp){d.querySelector('label code').textContent=o.typed;y.disabled=true;inp.addEventListener('input',()=>{y.disabled=inp.value.trim()!==o.typed})}
+d.querySelector('[data-no]').onclick=()=>d.close('no');d.addEventListener('click',e=>{if(e.target===d)d.close('no')});
+d.addEventListener('close',()=>{d.classList.remove('in');res(d.returnValue==='yes');setTimeout(()=>d.remove(),200)});
+document.body.appendChild(d);d.showModal();requestAnimationFrame(()=>d.classList.add('in'));(inp||d.querySelector('[data-no]')).focus()});
 `;
 export const layout = ({ title, logo, user, body, bg = true, script = '' }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title><link rel="icon" type="image/png" href="data:image/png;base64,${logo}">
@@ -138,7 +158,7 @@ document.getElementById('join').addEventListener('submit',async e=>{e.preventDef
 const rs=document.getElementById('rstart');if(rs)rs.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('rmsg');try{await api('/api/roblox/start',{username:document.getElementById('ruser').value});location.reload()}catch(x){say(m,x.message)}});
 const v=document.getElementById('verify');if(v)v.addEventListener('click',async()=>{const m=document.getElementById('rmsg');v.disabled=true;try{await api('/api/roblox/verify');location.reload()}catch(x){say(m,x.message);v.disabled=false}});
 const re=document.getElementById('restart');if(re)re.addEventListener('click',async()=>{await api('/api/roblox/cancel');location.reload()});
-const ul=document.getElementById('unlink');if(ul)ul.addEventListener('click',async()=>{if(!confirm('Unlink your Roblox account?'))return;await api('/api/roblox/unlink');location.reload()});
+const ul=document.getElementById('unlink');if(ul)ul.addEventListener('click',async()=>{if(!await ask({title:'Unlink your Roblox account?',text:'Your name on the CAD goes back to your sign-in name until you link again.',ok:'Unlink'}))return;await api('/api/roblox/unlink');location.reload()});
 ` });
 
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
@@ -175,20 +195,20 @@ ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p
 </div></div></main>`, script: `
 const A='/c/${esc(c.slug)}/api';
 document.getElementById('key').addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('kmsg'),b=e.target.querySelector('button');b.disabled=true;say(m,'Checking the key with ER:LC…',true);try{const j=await api(A+'/key',{key:document.getElementById('kin').value.trim()});say(m,'Connected to '+(j.name||'your server')+'. '+(j.players??0)+' players online.',true);setTimeout(()=>location.reload(),1200)}catch(x){say(m,x.message);b.disabled=false}});
-const kd=document.getElementById('kdel');if(kd)kd.addEventListener('click',async()=>{if(!confirm('Disconnect the ER:LC server? The CAD stops receiving live data.'))return;await api(A+'/key',null,'DELETE');location.reload()});
+const kd=document.getElementById('kdel');if(kd)kd.addEventListener('click',async()=>{if(!await ask({title:'Disconnect the ER:LC server?',text:'The CAD stops receiving live data until a key is connected again.',ok:'Disconnect',danger:true}))return;await api(A+'/key',null,'DELETE');location.reload()});
 document.getElementById('depts').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),m=document.getElementById('dmsg');const depts={},teams={};for(const d of['pd','fd','dot'])depts[d]={name:f.get(d+'-name'),short:f.get(d+'-short')};for(const[k,v]of f.entries())if(k.startsWith('team-'))teams[k.slice(5)]=v;
 try{await api(A+'/settings',{name:f.get('name'),depts,teams});say(m,'Saved.',true)}catch(x){say(m,x.message)}});
 document.getElementById('newinv').addEventListener('click',async()=>{const m=document.getElementById('imsg');try{const j=await api(A+'/invites');await navigator.clipboard?.writeText(j.url).catch(()=>{});say(m,'Link created and copied: '+j.url,true);setTimeout(()=>location.reload(),1500)}catch(x){say(m,x.message)}});
 document.addEventListener('click',async e=>{const c=e.target.closest('[data-copy]');if(c){await navigator.clipboard?.writeText(c.dataset.copy).catch(()=>{});const t=c.textContent;c.textContent='Copied';setTimeout(()=>c.textContent=t,1200)}
 const r=e.target.closest('[data-revoke]');if(r){await api(A+'/invites/revoke',{code:r.dataset.revoke});location.reload()}
-const x=e.target.closest('[data-remove]');if(x){if(!confirm('Remove this member?'))return;try{await api(A+'/members/remove',{userId:+x.dataset.remove});location.reload()}catch(err){say(document.getElementById('mmsg'),err.message)}}});
+const x=e.target.closest('[data-remove]');if(x){if(!await ask({title:'Remove this member?',text:'They lose access to the CAD for this server. They can rejoin with the member code or an invite link.',ok:'Remove',danger:true}))return;try{await api(A+'/members/remove',{userId:+x.dataset.remove});location.reload()}catch(err){say(document.getElementById('mmsg'),err.message)}}});
 document.addEventListener('change',async e=>{const s=e.target.closest('[data-role]');if(!s)return;try{await api(A+'/members/role',{userId:+s.dataset.role,role:s.value});say(document.getElementById('mmsg'),'Role updated.',true)}catch(x){say(document.getElementById('mmsg'),x.message)}});
 const cm=document.getElementById('codemsg'),setc=async(body)=>{try{const j=await api(A+'/codes',body);say(cm,'Saved: '+j.code,true);return j.code}catch(x){say(cm,x.message)}};
 const sm=document.getElementById('savem');if(sm){sm.addEventListener('click',()=>setc({role:'member',code:document.getElementById('mcode').value}));
 document.getElementById('genm').addEventListener('click',async()=>{const c=await setc({role:'member',generate:true});if(c){document.getElementById('mcode').value=c;document.querySelector('[data-copy]').dataset.copy=c}});
 const so=document.getElementById('saveo');if(so){so.addEventListener('click',()=>setc({role:'owner',code:document.getElementById('ocode').value}));
 document.getElementById('showo').addEventListener('click',e=>{const o=document.getElementById('ocode');o.type=o.type==='password'?'text':'password';e.target.textContent=o.type==='password'?'Show':'Hide'})}}
-const del=document.getElementById('del');if(del)del.addEventListener('click',async()=>{const t=prompt('Type ${esc(c.slug)} to delete this server.');if(t!=='${esc(c.slug)}')return;await api(A+'/delete',{confirm:t});location.href='/dashboard'});
+const del=document.getElementById('del');if(del)del.addEventListener('click',async()=>{if(!await ask({title:${JSON.stringify('Delete ' + c.name + '?').replace(/</g, '\\u003c')},text:'This removes the server from Oversite with its settings, codes and member list. It cannot be undone.',ok:'Delete server',danger:true,typed:'${esc(c.slug)}'}))return;await api(A+'/delete',{confirm:'${esc(c.slug)}'});location.href='/dashboard'});
 ` });
 
 export const join = ({ logo, user, c, code }) => layout({ title: `Join ${c.name} · Oversite`, logo, user, body: `

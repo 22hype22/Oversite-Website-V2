@@ -12,6 +12,8 @@ ADMIN_CSS = r"""  /* admin panel: server link, departments, map calibration */
     transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.32,.72,0,1),opacity .2s;overflow-y:auto;scrollbar-width:none;
     padding:16px 20px 24px;color:var(--ink);font-size:13px;line-height:1.45}
   .admin::-webkit-scrollbar{display:none}
+  /* clipping the scroller to its own rounded box stops Chrome from blanking the map in a band above the panel */
+  .admin{clip-path:inset(0 round 16px)}
   body.admin-open .admin{transform:none;opacity:1;pointer-events:auto}
   body.mode-3d .admin{background:#141518}
   .admin header{display:flex;align-items:center;justify-content:space-between;padding:4px 0 12px;border-bottom:1px solid var(--hair)}
@@ -46,6 +48,9 @@ ADMIN_CSS = r"""  /* admin panel: server link, departments, map calibration */
   .admin code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(240,242,245,.08);padding:1px 5px;border-radius:4px}
   .icons button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
   .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
+  /* empty unit list: the message sits in the middle of the free space in the rail */
+  .fleet:has(> .empty){flex:1;display:flex;align-items:center;justify-content:center;min-height:160px}
+  .fleet > .empty{text-align:center;max-width:250px;margin:0 auto}
   @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
 """
 
@@ -444,7 +449,7 @@ LIVE_JS = r"""<script id="live">
 """
 
 def apply(s, ICON):
-    s = re.sub(r'  /\* admin panel: server link.*?(?=\n  @media \(prefers-reduced-motion:reduce\)\{\.admin\{transition:none\}\}\n)\n  @media \(prefers-reduced-motion:reduce\)\{\.admin\{transition:none\}\}\n', '', s, flags=re.S)
+    s = re.sub(r'  /\* admin panel: server link.*?\n  @media \(prefers-reduced-motion:reduce\)\{\.admin(,\.stage)?\{transition:none\}\}\n', '', s, flags=re.S)
     s = re.sub(r'<aside class="admin" id="admin".*?</aside>\n', '', s, flags=re.S)
     s = re.sub(r'<script id="live">.*?</script>\n', '', s, flags=re.S)
     s = s.replace('</style>', ADMIN_CSS + '</style>', 1)
