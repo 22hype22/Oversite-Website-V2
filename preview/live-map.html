@@ -143,12 +143,18 @@
   .stat{padding:14px 14px 12px;display:flex;align-items:flex-end;justify-content:space-between;gap:8px;min-height:74px}
   .stat .l{display:flex;flex-direction:column;gap:12px;color:var(--dim);font-size:11.5px}
   .stat .l svg{display:block}
+  .stat .feed{display:block;font-size:10.5px;line-height:1.2;margin-top:-6px;color:var(--dim);white-space:nowrap}
+  .stat .feed.on{color:#46D07C}
+  .stat .feed.stale{color:#E8B04B}
+  .stat .feed.off{color:#F0616B}
   .stat .n{font-size:26px;font-weight:300;letter-spacing:-.02em;line-height:1}
 
   .eff{padding:14px 14px 10px}
   .card h3{margin:0;font-size:12px;font-weight:400;color:var(--dim);display:flex;align-items:center;justify-content:space-between}
   .card h3 .go{color:var(--faint)}
   .eff .big{font-size:30px;font-weight:300;letter-spacing:-.03em;line-height:1;margin-top:10px}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
@@ -261,6 +267,8 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -2153,6 +2161,96 @@
   .icons button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
   .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
   @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
+  /* admin panel: server link, departments, map calibration */
+  :root{--adminw:min(400px,calc(100vw - 2*var(--gap)))}
+  .stage{transition:transform .6s cubic-bezier(.32,.72,0,1),opacity .4s,right .36s cubic-bezier(.32,.72,0,1)}
+  body.admin-open .stage{right:calc(var(--adminw) + var(--gap))}
+  body.admin-open .zoomctl,body.admin-open .layers{transition:transform .36s cubic-bezier(.32,.72,0,1)}
+  .admin{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--adminw);z-index:9;
+    background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.28);
+    transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.32,.72,0,1),opacity .2s;overflow-y:auto;scrollbar-width:none;
+    padding:16px 20px 24px;color:var(--ink);font-size:13px;line-height:1.45}
+  .admin::-webkit-scrollbar{display:none}
+  body.admin-open .admin{transform:none;opacity:1;pointer-events:auto}
+  body.mode-3d .admin{background:#141518}
+  .admin header{display:flex;align-items:center;justify-content:space-between;padding:4px 0 12px;border-bottom:1px solid var(--hair)}
+  .admin h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+  .admin header button{font-size:12px;color:var(--dim);padding:6px 10px;border-radius:8px}
+  .admin header button:hover{color:var(--ink);background:rgba(240,242,245,.06)}
+  .admin section{padding:14px 0 6px;border-bottom:1px solid var(--hair)}
+  .admin section:last-child{border-bottom:0}
+  .admin h3{margin:0 0 6px;font-size:13px;font-weight:600}
+  .admin .ad-note{margin:0 0 10px;color:var(--dim);font-size:12px}
+  .admin label{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;color:var(--dim)}
+  .admin label>span{flex:none;min-width:110px}
+  .admin input:not([type=checkbox]),.admin select{flex:1;min-width:0;background:#141518;border:1px solid var(--hair2);border-radius:8px;color:var(--ink);padding:7px 9px;font:inherit;font-size:13px}
+  body:not(.mode-3d) .admin input:not([type=checkbox]),body:not(.mode-3d) .admin select{background:rgba(11,11,12,.6)}
+  .admin input:focus,.admin select:focus{outline:none;border-color:rgba(240,242,245,.4)}
+  .admin input[type=number]{max-width:72px;flex:none}
+  .admin input[type=checkbox]{width:15px;height:15px;accent-color:var(--ink)}
+  .admin .ad-row{display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap}
+  .admin .ad-row label{padding:0;flex:none}
+  .admin .ad-btn{font-size:12.5px;font-weight:500;padding:7px 12px;border-radius:8px;background:rgba(240,242,245,.08);color:var(--ink);border:1px solid var(--hair2)}
+  .admin .ad-btn:hover{background:rgba(240,242,245,.14)} .admin .ad-btn:active{transform:translateY(1px)}
+  .admin .ad-btn.pri{background:var(--ink);color:#0B0B0C;border-color:var(--ink)}
+  .admin .ad-btn[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+  .admin .ad-status{margin:6px 0 2px;padding:9px 11px;border-radius:8px;background:rgba(240,242,245,.05);color:var(--dim);font-size:12px;white-space:pre-line}
+  .admin .ad-status.ok{color:var(--green)} .admin .ad-status.err{color:#F0A0A0}
+  .admin .ad-kv{display:flex;justify-content:space-between;padding:6px 0;color:var(--dim)} .admin .ad-kv b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+  .admin .ad-pts{margin:4px 0}
+  .admin .ad-pt{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--hair);font-size:12px}
+  .admin .ad-pt small{color:var(--dim);font-variant-numeric:tabular-nums} .admin .ad-pt button{color:var(--dim);font-size:12px} .admin .ad-pt button:hover{color:#F0A0A0}
+  .admin .ad-teams{display:grid;grid-template-columns:1fr 110px;gap:6px 10px;align-items:center}
+  .admin .ad-teams span{color:var(--dim)}
+  .admin code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(240,242,245,.08);padding:1px 5px;border-radius:4px}
+  .icons button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
+  .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
+  @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
+  /* admin panel: server link, departments, map calibration */
+  :root{--adminw:min(400px,calc(100vw - 2*var(--gap)))}
+  .stage{transition:transform .6s cubic-bezier(.32,.72,0,1),opacity .4s,right .36s cubic-bezier(.32,.72,0,1)}
+  body.admin-open .stage{right:calc(var(--adminw) + var(--gap))}
+  body.admin-open .zoomctl,body.admin-open .layers{transition:transform .36s cubic-bezier(.32,.72,0,1)}
+  .admin{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--adminw);z-index:9;
+    background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.28);
+    transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.32,.72,0,1),opacity .2s;overflow-y:auto;scrollbar-width:none;
+    padding:16px 20px 24px;color:var(--ink);font-size:13px;line-height:1.45}
+  .admin::-webkit-scrollbar{display:none}
+  body.admin-open .admin{transform:none;opacity:1;pointer-events:auto}
+  body.mode-3d .admin{background:#141518}
+  .admin header{display:flex;align-items:center;justify-content:space-between;padding:4px 0 12px;border-bottom:1px solid var(--hair)}
+  .admin h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+  .admin header button{font-size:12px;color:var(--dim);padding:6px 10px;border-radius:8px}
+  .admin header button:hover{color:var(--ink);background:rgba(240,242,245,.06)}
+  .admin section{padding:14px 0 6px;border-bottom:1px solid var(--hair)}
+  .admin section:last-child{border-bottom:0}
+  .admin h3{margin:0 0 6px;font-size:13px;font-weight:600}
+  .admin .ad-note{margin:0 0 10px;color:var(--dim);font-size:12px}
+  .admin label{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;color:var(--dim)}
+  .admin label>span{flex:none;min-width:110px}
+  .admin input:not([type=checkbox]),.admin select{flex:1;min-width:0;background:#141518;border:1px solid var(--hair2);border-radius:8px;color:var(--ink);padding:7px 9px;font:inherit;font-size:13px}
+  body:not(.mode-3d) .admin input:not([type=checkbox]),body:not(.mode-3d) .admin select{background:rgba(11,11,12,.6)}
+  .admin input:focus,.admin select:focus{outline:none;border-color:rgba(240,242,245,.4)}
+  .admin input[type=number]{max-width:72px;flex:none}
+  .admin input[type=checkbox]{width:15px;height:15px;accent-color:var(--ink)}
+  .admin .ad-row{display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap}
+  .admin .ad-row label{padding:0;flex:none}
+  .admin .ad-btn{font-size:12.5px;font-weight:500;padding:7px 12px;border-radius:8px;background:rgba(240,242,245,.08);color:var(--ink);border:1px solid var(--hair2)}
+  .admin .ad-btn:hover{background:rgba(240,242,245,.14)} .admin .ad-btn:active{transform:translateY(1px)}
+  .admin .ad-btn.pri{background:var(--ink);color:#0B0B0C;border-color:var(--ink)}
+  .admin .ad-btn[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+  .admin .ad-status{margin:6px 0 2px;padding:9px 11px;border-radius:8px;background:rgba(240,242,245,.05);color:var(--dim);font-size:12px;white-space:pre-line}
+  .admin .ad-status.ok{color:var(--green)} .admin .ad-status.err{color:#F0A0A0}
+  .admin .ad-kv{display:flex;justify-content:space-between;padding:6px 0;color:var(--dim)} .admin .ad-kv b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+  .admin .ad-pts{margin:4px 0}
+  .admin .ad-pt{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--hair);font-size:12px}
+  .admin .ad-pt small{color:var(--dim);font-variant-numeric:tabular-nums} .admin .ad-pt button{color:var(--dim);font-size:12px} .admin .ad-pt button:hover{color:#F0A0A0}
+  .admin .ad-teams{display:grid;grid-template-columns:1fr 110px;gap:6px 10px;align-items:center}
+  .admin .ad-teams span{color:var(--dim)}
+  .admin code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(240,242,245,.08);padding:1px 5px;border-radius:4px}
+  .icons button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
+  .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
+  @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
 </style>
 </head>
 <body>
@@ -2206,7 +2304,7 @@
   </div>
 
   <div class="stats">
-    <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#46D07C"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5" fill="none" stroke="#0B0B0C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Online</div><div class="n" id="statOnline">65</div></div>
+    <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#46D07C"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5" fill="none" stroke="#0B0B0C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Online<small class="feed" id="statFeed" hidden></small></div><div class="n">65</div></div>
     <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#E24B4B"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round"/></svg>Active Calls</div><div class="n" id="callCount">7</div></div>
   </div>
 
@@ -3244,7 +3342,7 @@
         if (Math.hypot(dx, dz) > 0.5) {                                   // a new fix: aim at it and carry the speed forward until the next one
           u.th = Math.atan2(dz, dx); u.mph = Math.round(Math.min(160, mph(dx, dz, dt))); u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ;
           if (dt > 0.2 && dt < 60) { u.vx = (wx - u.lx) / dt; u.vy = (wy - u.ly) / dt; const sp = Math.hypot(u.vx, u.vy); if (sp > 60) { u.vx *= 60 / sp; u.vy *= 60 / sp; } } else { u.vx = u.vy = 0; }
-          u.tx = wx; u.ty = wy; u.lx = wx; u.ly = wy; u.gap = dt; u.seen = now; }
+          u.tx = wx; u.ty = wy; u.lx = wx; u.ly = wy; u.gap = dt; u.seen = now; fixAt = now; }
         else if (now - u.seen > Math.max(2500, 2.5 * (u.gap || 1) * 1000)) { u.vx = u.vy = 0; u.mph = 0; u.tx = wx; u.ty = wy; } }   // same fix for a while: they have stopped
       u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
       u.uid = g.pid; u.model = veh ? veh.Name : 'On foot'; u.postal = g.loc?.PostalCode || ''; u.street = g.loc?.StreetName || ''; }
@@ -3281,9 +3379,9 @@
     window.addCall?.({ pri: 2, code: '911', type: c.Description || 'Emergency call', where: c.PositionDescriptor || 'Unknown location', unit: '', dept, stage: 0, startedAt: (c.StartedAt || Date.now() / 1000) * 1000, x, y, live: true }); } };
 
   // ── live updates: a server-sent stream when the page is served by server.mjs (or a relay), paced polling otherwise ──
-  let lastUpdate = 0, updates = 0, source = '';
+  let lastUpdate = 0, updates = 0, source = '', fixAt = 0; const eventTimes = [];                 // fixAt = last time any unit's reported position changed
   const ERR = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
-  const handle = (body, rl, src) => { lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src;
+  const handle = (body, rl, src) => { lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
     updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
     const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
     status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
@@ -3291,6 +3389,14 @@
     if (Number.isFinite(left) && Number.isFinite(reset) && reset > 0) { const win = Math.max(0, (reset > 1e12 ? reset : reset * 1000) - Date.now()); g = Math.max(g, left <= 2 ? win + 250 : win / (left - 2)); }
     return Math.min(120000, Math.max(1000, g)); };
   const streaming = () => es && es.readyState === 1 && source === 'stream' && Date.now() - lastUpdate < 20000;
+  const feedEl = $('statFeed');                                           // under "Online": how fast data arrives and when the game last reported a move
+  const feedTick = () => { if (!feedEl) return; if (!S.live || !lastUpdate) { feedEl.hidden = true; return; } feedEl.hidden = false;
+    const now = Date.now(), age = (now - lastUpdate) / 1000, rate = eventTimes.length / Math.min(10, Math.max(1, (now - eventTimes[0]) / 1000));
+    if (age > 20) { feedEl.textContent = `No data for ${Math.round(age)}s`; feedEl.className = 'feed off'; return; }
+    const move = fixAt ? (now - fixAt) / 1000 : null;
+    feedEl.textContent = (streaming() ? `Live ${rate.toFixed(1)}/s` : `Polling ${rate.toFixed(1)}/s`) + (move == null ? '' : move < 3 ? ' · moving' : ` · last move ${Math.round(move)}s ago`);
+    feedEl.className = 'feed ' + (move != null && move > 10 ? 'stale' : 'on'); };
+  setInterval(feedTick, 500);
   const poll = async () => { if (inflight) return; inflight = true;
     try { if (streaming()) { schedule(20000); return; }
       const { body, rl } = await fetchServer(); handle(body, rl, 'poll'); schedule(paceMs(rl)); }
@@ -3316,7 +3422,7 @@
 
   renderCal();
   if (S.live) start();
-  window.live = { settings: S, units, toWorld, poll, roadScore, stats: () => ({ lastUpdate, updates, source, streaming: streaming() }), samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
+  window.live = { settings: S, units, toWorld, poll, roadScore, stats: () => ({ lastUpdate, updates, source, streaming: streaming(), fixAt, rate: eventTimes.length / 10 }), samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
 })();
 </script>
 </body>

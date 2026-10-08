@@ -52,7 +52,7 @@ chips='''  <div class="chips" role="group" aria-label="Filter units by departmen
     <button aria-pressed="false" data-filter="dot"><b data-count="dot">0</b> DOT</button>
   </div>'''
 stats='''  <div class="stats">
-    <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#46D07C"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5" fill="none" stroke="#0B0B0C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Online</div><div class="n">65</div></div>
+    <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#46D07C"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5" fill="none" stroke="#0B0B0C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Online<small class="feed" id="statFeed" hidden></small></div><div class="n">65</div></div>
     <div class="card stat"><div class="l"><svg width="14" height="14" viewBox="0 0 24 24" fill="#E24B4B"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke="#0B0B0C" stroke-width="2" stroke-linecap="round"/></svg>Active Calls</div><div class="n" id="callCount">7</div></div>
   </div>'''
 eff='''  <div class="card eff" id="avail">

@@ -251,7 +251,7 @@ LIVE_JS = r"""<script id="live">
         if (Math.hypot(dx, dz) > 0.5) {                                   // a new fix: aim at it and carry the speed forward until the next one
           u.th = Math.atan2(dz, dx); u.mph = Math.round(Math.min(160, mph(dx, dz, dt))); u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ;
           if (dt > 0.2 && dt < 60) { u.vx = (wx - u.lx) / dt; u.vy = (wy - u.ly) / dt; const sp = Math.hypot(u.vx, u.vy); if (sp > 60) { u.vx *= 60 / sp; u.vy *= 60 / sp; } } else { u.vx = u.vy = 0; }
-          u.tx = wx; u.ty = wy; u.lx = wx; u.ly = wy; u.gap = dt; u.seen = now; }
+          u.tx = wx; u.ty = wy; u.lx = wx; u.ly = wy; u.gap = dt; u.seen = now; fixAt = now; }
         else if (now - u.seen > Math.max(2500, 2.5 * (u.gap || 1) * 1000)) { u.vx = u.vy = 0; u.mph = 0; u.tx = wx; u.ty = wy; } }   // same fix for a while: they have stopped
       u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
       u.uid = g.pid; u.model = veh ? veh.Name : 'On foot'; u.postal = g.loc?.PostalCode || ''; u.street = g.loc?.StreetName || ''; }
@@ -288,9 +288,9 @@ LIVE_JS = r"""<script id="live">
     window.addCall?.({ pri: 2, code: '911', type: c.Description || 'Emergency call', where: c.PositionDescriptor || 'Unknown location', unit: '', dept, stage: 0, startedAt: (c.StartedAt || Date.now() / 1000) * 1000, x, y, live: true }); } };
 
   // ── live updates: a server-sent stream when the page is served by server.mjs (or a relay), paced polling otherwise ──
-  let lastUpdate = 0, updates = 0, source = '';
+  let lastUpdate = 0, updates = 0, source = '', fixAt = 0; const eventTimes = [];                 // fixAt = last time any unit's reported position changed
   const ERR = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
-  const handle = (body, rl, src) => { lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src;
+  const handle = (body, rl, src) => { lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
     updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
     const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
     status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
@@ -298,6 +298,14 @@ LIVE_JS = r"""<script id="live">
     if (Number.isFinite(left) && Number.isFinite(reset) && reset > 0) { const win = Math.max(0, (reset > 1e12 ? reset : reset * 1000) - Date.now()); g = Math.max(g, left <= 2 ? win + 250 : win / (left - 2)); }
     return Math.min(120000, Math.max(1000, g)); };
   const streaming = () => es && es.readyState === 1 && source === 'stream' && Date.now() - lastUpdate < 20000;
+  const feedEl = $('statFeed');                                           // under "Online": how fast data arrives and when the game last reported a move
+  const feedTick = () => { if (!feedEl) return; if (!S.live || !lastUpdate) { feedEl.hidden = true; return; } feedEl.hidden = false;
+    const now = Date.now(), age = (now - lastUpdate) / 1000, rate = eventTimes.length / Math.min(10, Math.max(1, (now - eventTimes[0]) / 1000));
+    if (age > 20) { feedEl.textContent = `No data for ${Math.round(age)}s`; feedEl.className = 'feed off'; return; }
+    const move = fixAt ? (now - fixAt) / 1000 : null;
+    feedEl.textContent = (streaming() ? `Live ${rate.toFixed(1)}/s` : `Polling ${rate.toFixed(1)}/s`) + (move == null ? '' : move < 3 ? ' · moving' : ` · last move ${Math.round(move)}s ago`);
+    feedEl.className = 'feed ' + (move != null && move > 10 ? 'stale' : 'on'); };
+  setInterval(feedTick, 500);
   const poll = async () => { if (inflight) return; inflight = true;
     try { if (streaming()) { schedule(20000); return; }
       const { body, rl } = await fetchServer(); handle(body, rl, 'poll'); schedule(paceMs(rl)); }
@@ -323,7 +331,7 @@ LIVE_JS = r"""<script id="live">
 
   renderCal();
   if (S.live) start();
-  window.live = { settings: S, units, toWorld, poll, roadScore, stats: () => ({ lastUpdate, updates, source, streaming: streaming() }), samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
+  window.live = { settings: S, units, toWorld, poll, roadScore, stats: () => ({ lastUpdate, updates, source, streaming: streaming(), fixAt, rate: eventTimes.length / 10 }), samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
 })();
 </script>
 """
