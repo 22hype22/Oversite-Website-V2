@@ -7,6 +7,6 @@
   "engines": { "node": ">=18" },
   "scripts": {
     "start": "node server.mjs",
-    "build": "python3 preview/build-rail.py && python3 preview/build-3d.py"
+    "pages": "python3 preview/build-rail.py && python3 preview/build-3d.py"
   }
 }

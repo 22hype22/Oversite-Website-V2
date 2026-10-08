@@ -26,7 +26,7 @@ browser never sees the key. Without it, the key typed into the admin panel (gear
 Edits go in `preview/live-map.html` and the generator scripts; then:
 
 ```
-python3 preview/build-rail.py && python3 preview/build-3d.py
+npm run pages   # or: python3 preview/build-rail.py && python3 preview/build-3d.py
 ```
 
 `preview/newmap/` holds the map pipeline (terrain, buildings, roads, routes) and the photo reference ledger.
