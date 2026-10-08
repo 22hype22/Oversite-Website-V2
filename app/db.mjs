@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS members (
 CREATE TABLE IF NOT EXISTS invites (
   code TEXT PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, created_by INTEGER, created INTEGER NOT NULL,
   expires INTEGER, max_uses INTEGER, uses INTEGER NOT NULL DEFAULT 0, revoked INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS codes (
+  hash TEXT PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, role TEXT NOT NULL, sealed TEXT NOT NULL, created INTEGER NOT NULL,
+  UNIQUE (community_id, role));
 CREATE TABLE IF NOT EXISTS roblox_pending (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, roblox_id TEXT NOT NULL, roblox_name TEXT NOT NULL, phrase TEXT NOT NULL, expires INTEGER NOT NULL);
 `);
@@ -35,6 +38,7 @@ if (!secret) { if (!existsSync(SECRET_FILE)) writeFileSync(SECRET_FILE, randomBy
 export const seal = text => { const iv = randomBytes(12), c = createCipheriv('aes-256-gcm', secret, iv); const enc = Buffer.concat([c.update(text, 'utf8'), c.final()]); return [iv, c.getAuthTag(), enc].map(b => b.toString('base64')).join('.'); };
 export const unseal = blob => { if (!blob) return ''; try { const [iv, tag, enc] = blob.split('.').map(s => Buffer.from(s, 'base64')); const d = createDecipheriv('aes-256-gcm', secret, iv); d.setAuthTag(tag); return Buffer.concat([d.update(enc), d.final()]).toString('utf8'); } catch (e) { return ''; } };
 export const sha = s => createHash('sha256').update(s).digest('hex');
+const pepper = createHash('sha256').update('codes:' + secret.toString('hex')).digest('hex');
 export const token = (n = 32) => randomBytes(n).toString('hex');
 export const now = () => Date.now();
 
@@ -46,6 +50,11 @@ export const users = {
   localOwner: () => q('SELECT * FROM users WHERE is_local_owner = 1').get(),
   create: ({ discord_id = null, name, avatar = null, is_local_owner = 0 }) => q('INSERT INTO users (discord_id, name, avatar, is_local_owner, created) VALUES (?, ?, ?, ?, ?)').run(discord_id, name, avatar, is_local_owner, now()).lastInsertRowid,
   update: (id, f) => { for (const [k, v] of Object.entries(f)) if (['discord_id', 'name', 'avatar', 'roblox_id', 'roblox_name'].includes(k)) q(`UPDATE users SET ${k} = ? WHERE id = ?`).run(v, id); },
+  byRoblox: rid => q('SELECT * FROM users WHERE roblox_id = ? ORDER BY id LIMIT 1').get(rid),
+  // fold a duplicate account (same person signed in with a code on another device) into the one that already has their Roblox link
+  merge: (from, into) => { for (const m of q('SELECT community_id, role FROM members WHERE user_id = ?').all(from)) { const cur = q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(m.community_id, into);
+      const rank = r => ({ member: 1, admin: 2, owner: 3 }[r] || 0); if (!cur) q('INSERT INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(m.community_id, into, m.role, now()); else if (rank(m.role) > rank(cur.role)) q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ?').run(m.role, m.community_id, into); }
+    q('UPDATE communities SET owner_id = ? WHERE owner_id = ?').run(into, from); q('DELETE FROM users WHERE id = ?').run(from); },
 };
 export const sessions = {
   create: userId => { const t = token(), exp = now() + 30 * 864e5; q('INSERT INTO sessions (hash, user_id, created, expires) VALUES (?, ?, ?, ?)').run(sha(t), userId, now(), exp); return t; },
@@ -74,6 +83,8 @@ export const members = {
   role: (cid, uid) => q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(cid, uid)?.role || null,
   list: cid => q('SELECT u.id, u.name, u.avatar, u.discord_id, u.roblox_name, m.role, m.joined FROM members m JOIN users u ON u.id = m.user_id WHERE m.community_id = ? ORDER BY CASE m.role WHEN \'owner\' THEN 0 WHEN \'admin\' THEN 1 ELSE 2 END, u.name').all(cid),
   add: (cid, uid, role = 'member') => q('INSERT OR IGNORE INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(cid, uid, role, now()),
+  raise: (cid, uid, role) => { const rank = r => ({ member: 1, admin: 2, owner: 3 }[r] || 0), cur = q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(cid, uid)?.role;   // join, or move up a role; never down
+    if (!cur) q('INSERT INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(cid, uid, role, now()); else if (rank(role) > rank(cur)) q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ?').run(role, cid, uid); },
   setRole: (cid, uid, role) => q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ? AND role != \'owner\'').run(role, cid, uid),
   remove: (cid, uid) => q('DELETE FROM members WHERE community_id = ? AND user_id = ? AND role != \'owner\'').run(cid, uid),
 };
@@ -88,4 +99,17 @@ export const roblox = {
   pending: uid => q('SELECT * FROM roblox_pending WHERE user_id = ?').get(uid),
   start: (uid, rid, rname, phrase) => q('INSERT OR REPLACE INTO roblox_pending (user_id, roblox_id, roblox_name, phrase, expires) VALUES (?, ?, ?, ?, ?)').run(uid, rid, rname, phrase, now() + 30 * 6e4),
   clear: uid => q('DELETE FROM roblox_pending WHERE user_id = ?').run(uid),
+};
+
+// ── server codes: the owner code (full control) and the member code (normal access). Unique across the whole site, so a code alone finds its server.
+export const normCode = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+export const codeOk = c => /^[A-Z0-9]{6,24}$/.test(normCode(c));
+const codeHash = c => sha(pepper + normCode(c));
+const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export const newCode = () => { const b = randomBytes(8); let s = ''; for (let i = 0; i < 8; i++) s += ALPHA[b[i] % ALPHA.length]; return s.slice(0, 4) + '-' + s.slice(4); };
+export const codes = {
+  find: code => { if (!codeOk(code)) return null; return q('SELECT community_id, role FROM codes WHERE hash = ?').get(codeHash(code)) || null; },
+  taken: (code, cid, role) => { const r = q('SELECT community_id, role FROM codes WHERE hash = ?').get(codeHash(code)); return !!r && !(r.community_id === cid && r.role === role); },
+  set: (cid, role, code) => { q('DELETE FROM codes WHERE community_id = ? AND role = ?').run(cid, role); q('INSERT INTO codes (hash, community_id, role, sealed, created) VALUES (?, ?, ?, ?, ?)').run(codeHash(code), cid, role, seal(String(code).trim().toUpperCase()), now()); },
+  show: (cid, role) => unseal(q('SELECT sealed FROM codes WHERE community_id = ? AND role = ?').get(cid, role)?.sealed),
 };

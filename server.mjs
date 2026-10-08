@@ -6,7 +6,7 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, members, invites, roblox, RESERVED } from './app/db.mjs';
+import { users, communities, members, invites, roblox, codes, RESERVED } from './app/db.mjs';
 import { Feed, testKey, NOKEY } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
 import * as pages from './app/pages.mjs';
@@ -22,7 +22,7 @@ const LEGACY_KEY = join(DATA, existsSync('/data') ? 'erlc.key' : '.erlc.key');  
 
 // ── small helpers ──
 const html = (res, body, status = 200, extra = {}) => { res.writeHead(status, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-frame-options': 'SAMEORIGIN', ...extra }); res.end(body); };
-const json = (res, obj, status = 200) => { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(obj)); };
+const json = (res, obj, status = 200, extra = {}) => { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...extra }); res.end(JSON.stringify(obj)); };
 const redirect = (res, to, extra = {}) => { res.writeHead(303, { location: to, 'cache-control': 'no-store', ...extra }); res.end(); };
 const body = (req, limit = 1e5) => new Promise(resolve => { let b = ''; req.on('data', c => { b += c; if (b.length > limit) req.destroy(); }); req.on('end', () => resolve(b)); req.on('error', () => resolve('')); });
 const jsonBody = async req => { try { return JSON.parse(await body(req) || '{}'); } catch (e) { return {}; } };
@@ -75,6 +75,9 @@ const communityApi = async (req, res, slug, rest) => {
     for (const d of ['pd', 'fd', 'dot']) { const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); s.depts[d] = { name: n, short: sh }; }
     for (const [t, d] of Object.entries(j.teams || {})) if (t in s.teams && ['pd', 'fd', 'dot', ''].includes(d)) s.teams[t] = d;
     communities.rename(c.id, name); communities.saveSettings(c.id, s); return json(res, { ok: true }); }
+  if (rest === 'codes' && M === 'POST') { const j = await jsonBody(req); if (j.role === 'owner' && !can(role, 'owner')) return json(res, { error: 'Only owners can change the owner code.' }, 403);
+    if (!['owner', 'member'].includes(j.role)) return json(res, { error: 'Unknown code.' }, 400);
+    const r = j.generate && j.role === 'member' ? auth.newMemberCode(c.id) : auth.setCode(c.id, j.role, j.code); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
   if (rest === 'invites' && M === 'POST') { const code = invites.create(c.id, user.id); return json(res, { code, url: `${origin(req)}/join/${code}` }); }
   if (rest === 'invites/revoke' && M === 'POST') { invites.revoke(c.id, String((await jsonBody(req)).code || '')); return json(res, { ok: true }); }
   if (rest === 'members/role' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can change roles.' }, 403); const j = await jsonBody(req);
@@ -85,6 +88,7 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'delete' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can delete the community.' }, 403);
     if ((await jsonBody(req)).confirm !== c.slug) return json(res, { error: 'Type the address to confirm.' }, 400); communities.remove(c.id); feeds.delete(c.id); return json(res, { ok: true }); }
   return json(res, { error: 'Not found.' }, 404); };
+const legacyKey = id => { if (existsSync(LEGACY_KEY) && !communities.all().some(c => c.erlc_key)) { try { const k = readFileSync(LEGACY_KEY, 'utf8').trim(); if (k) { communities.setKey(id, k); renameSync(LEGACY_KEY, LEGACY_KEY + '.migrated'); } } catch (e) {} } };   // the first server keeps the key the site already had
 const origin = req => (process.env.PUBLIC_URL || `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers.host}`).replace(/\/$/, '');
 
 const globalApi = async (req, res, rest) => {
@@ -95,11 +99,9 @@ const globalApi = async (req, res, rest) => {
     if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(slug) || slug.includes('--')) return json(res, { error: 'The address must be 3 to 32 lowercase letters, numbers or single dashes.' }, 400);
     if (RESERVED.has(slug) || communities.bySlug(slug)) return json(res, { error: 'That address is taken. Try another.' }, 409);
     if (communities.forUser(user.id).filter(c => c.role === 'owner').length >= 10) return json(res, { error: 'You can own up to 10 communities.' }, 400);
-    const id = communities.create(user.id, slug, name);
-    if (existsSync(LEGACY_KEY) && !communities.all().some(c => c.erlc_key)) { try { const k = readFileSync(LEGACY_KEY, 'utf8').trim(); if (k) { communities.setKey(id, k); renameSync(LEGACY_KEY, LEGACY_KEY + '.migrated'); } } catch (e) {} }   // the first community keeps the server key the site already had
-    return json(res, { slug }); }
+    const r = auth.createServer(req, user, { name, slug, ownerCode: j.ownerCode }, RESERVED); if (r.error) return json(res, { error: r.error }, 400); legacyKey(r.id); return json(res, { slug }); }
   if (rest === 'roblox/start' && req.method === 'POST') { const r = await auth.robloxStart(user, (await jsonBody(req)).username); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
-  if (rest === 'roblox/verify' && req.method === 'POST') { const r = await auth.robloxVerify(user); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
+  if (rest === 'roblox/verify' && req.method === 'POST') { const r = await auth.robloxVerify(user); if (r.error) return json(res, { error: r.error }, 400); return json(res, r, 200, r.mergedInto ? { 'set-cookie': auth.signIn(req, r.mergedInto) } : {}); }
   if (rest === 'roblox/cancel' && req.method === 'POST') { roblox.clear(user.id); return json(res, { ok: true }); }
   if (rest === 'roblox/unlink' && req.method === 'POST') { auth.robloxUnlink(user); return json(res, { ok: true }); }
   return json(res, { error: 'Not found.' }, 404); };
@@ -110,7 +112,8 @@ const route = async (req, res) => {
   if (path === '/health') { let w = 0, perMin = 0; for (const f of feeds.values()) { w += f.clients.size; perMin += f.sent.length; } res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${communities.all().length} communities, ${w} watching, ${perMin}/min`); }
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
-    const p = roblox.pending(user.id); return page(res, pages.dashboard({ logo: LOGO, user, comms: communities.forUser(user.id), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null })); }
+    const p = roblox.pending(user.id), w = url.searchParams.get('welcome'), wc = w && communities.bySlug(w);
+    return page(res, pages.dashboard({ logo: LOGO, user, comms: communities.forUser(user.id), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null })); }
   if (path === '/auth/discord') { if (!auth.discordReady()) return msg(res, auth.currentUser(req), 'Discord sign-in is not set up yet', 'The site owner needs to connect a Discord application first.', { href: '/', label: 'Back' });
     const { url: to, cookie } = auth.discordStart(req, url.searchParams.get('next')); return redirect(res, to, { 'set-cookie': cookie }); }
   if (path === '/auth/discord/callback') { try { const { user, next } = await auth.discordFinish(req, url.searchParams); return redirect(res, next, { 'set-cookie': [auth.signIn(req, user.id), auth.setCookie(req, 'ov_oauth', '', 0)] }); }
@@ -119,6 +122,15 @@ const route = async (req, res) => {
     const f = await formBody(req), r = auth.ownerLogin(req, String(f.get('code') || '').trim());
     if (r.error) return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(f.get('next')), error: r.error }), 401);
     return redirect(res, auth.safeNext(f.get('next')), { 'set-cookie': auth.signIn(req, r.user.id) }); }
+  if ((path === '/auth/create' || path === '/auth/code') && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
+    const user = auth.currentUser(req), j = await jsonBody(req);
+    const r = path === '/auth/create' ? auth.createServer(req, user, { name: j.name, slug: j.slug, ownerCode: j.ownerCode }, RESERVED) : auth.codeSignIn(req, user, j.code);
+    if (r.error) return json(res, { error: r.error }, 400);
+    if (path === '/auth/create') legacyKey(r.id);
+    const slug = r.slug || r.community.slug, u = users.byId(r.user.id);
+    let next = path === '/auth/create' ? `/c/${slug}/settings?new=1` : (u.roblox_name ? `/c/${slug}` : `/dashboard?welcome=${slug}`);
+    if (j.roblox && !u.roblox_name) { const s2 = await auth.robloxStart(u, j.roblox); if (!s2.error && path === '/auth/code') next = `/dashboard?welcome=${slug}`; }
+    return json(res, { next }, 200, user ? {} : { 'set-cookie': auth.signIn(req, r.user.id) }); }
   if (path === '/auth/logout' && req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, '/'); return redirect(res, '/', { 'set-cookie': auth.signOut(req) }); }
   let m;
   if ((m = path.match(/^\/join\/([0-9a-f]{10})$/))) { const user = auth.currentUser(req), inv = invites.get(m[1]), c = inv && communities.byId(inv.community_id);
@@ -136,7 +148,7 @@ const route = async (req, res) => {
     if (sub === '/') return html(res, mapPage(c, user, role));
     if (sub === '/settings') { if (!can(role, 'admin')) return msg(res, user, 'Admins only', 'Only owners and admins can change community settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new') })); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), codes: can(role, 'owner') ? { owner: codes.show(c.id, 'owner'), member: codes.show(c.id, 'member') } : (can(role, 'admin') ? { owner: null, member: codes.show(c.id, 'member') } : null) })); }
     return msg(res, user, 'Not found', 'That page does not exist.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
   return serve(req, res, path); };

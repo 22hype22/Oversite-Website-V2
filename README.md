@@ -1,8 +1,12 @@
 # Oversite
 
-A live CAD for ER:LC private servers. Each community (one ER:LC server) signs up, connects its server key, invites
-its members, and gets its own live 2D/3D map of Liberty County, dispatch board and department MDTs at
-`/c/<address>`.
+A live CAD for ER:LC private servers. Anyone can create a server on the front page with their own owner code; members
+sign in with the member code the owner gives them. Each server connects its ER:LC key and gets its own live 2D/3D map
+of Liberty County, dispatch board and department MDTs at `/c/<address>`.
+
+Codes: the owner code gives full control, the member code normal access. Both are unique across the site (so a code
+alone finds its server), ignore case and spacing, and can be changed in Settings. People link their Roblox account once
+(dashboard); signing in on a second device and linking the same Roblox account folds the two accounts together.
 
 ## How it fits together
 
@@ -24,7 +28,7 @@ Opens on http://localhost:8080.
 | Variable | What it does |
 |---|---|
 | `ACCESS_CODE` | Puts the whole site behind a numeric preview code. Also the owner sign-in code unless `OWNER_CODE` is set. |
-| `OWNER_CODE` | Code for the owner sign-in, which is offered until Discord sign-in is configured (or always with `OWNER_LOGIN=1`). |
+| `OWNER_CODE`, `OWNER_LOGIN=1` | Optional site-wide owner sign-in (off by default; server codes replace it). |
 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | Turn on "Continue with Discord". |
 | `PUBLIC_URL` | Optional, e.g. `https://www.oversitescad.com`; used for the Discord redirect and invite links. |
 | `APP_SECRET` | Optional; encrypts server keys. Without it a random secret is created next to the database. |

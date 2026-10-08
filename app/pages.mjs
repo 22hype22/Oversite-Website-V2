@@ -39,7 +39,7 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .btn.discord{background:#5865F2;border-color:#5865F2;color:#fff}.btn.discord:hover{background:#6873f5}
 .btn.danger{color:#F3A3A3;border-color:rgba(226,75,75,.4)}.btn.danger:hover{background:rgba(226,75,75,.12)}
 .btn.sm{padding:6px 12px;font-size:12.5px}
-.msg{font-size:13px;margin-top:10px;min-height:1em}.msg.ok{color:var(--ok)}.msg.err{color:#F3A3A3}
+.msg{font-size:13px;margin-top:10px;min-height:1em}.msg:empty{display:none}.msg.ok{color:var(--ok)}.msg.err{color:#F3A3A3}
 .phrase{font:500 15px/1.4 ui-monospace,"Geist Mono",monospace;background:rgba(255,255,255,.05);border:1px dashed var(--hair2);border-radius:10px;padding:12px;margin:8px 0;user-select:all}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:9px 6px;border-top:1px solid var(--hair)}th{color:var(--faint);font-weight:500;font-size:12px;border-top:0}
 td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
@@ -51,6 +51,9 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .hero .mark{width:52px;height:52px;border-radius:15px;background:rgba(28,28,31,.8);border:1px solid var(--hair);display:grid;place-items:center;margin:0 auto 20px}.hero .mark img{width:28px;height:28px}
 .hero h1{font-size:34px;margin:0 0 8px}.hero .lead{margin:0 auto 26px}
 .hero .actions{display:grid;gap:10px}
+.hero.wide .box{width:min(820px,100%)}
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:16px;text-align:left;align-items:start}.paths .card+.card{margin-top:0}.path{display:grid;gap:10px;align-content:start}.path h2{margin:0}.path .note{margin:0 0 4px}.path .hint{margin:-4px 0 0}.path .hint.addr{margin-top:-4px}
+@media (max-width:720px){.paths{grid-template-columns:1fr}}
 .or{display:flex;align-items:center;gap:10px;color:var(--faint);font-size:12px;margin:8px 0}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--hair)}
 .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:30px;text-align:left}.feats div{font-size:12.5px;color:var(--dim)}.feats b{display:block;color:var(--ink);font-weight:500;margin-bottom:2px}
 @media (max-width:520px){.feats{grid-template-columns:1fr}}
@@ -71,37 +74,55 @@ ${user ? `<span class="who">${user.avatar ? `<img src="${esc(user.avatar)}" alt=
 ${body}<script>${JS}${script}</script></body></html>`;
 
 export const landing = ({ logo, discord, owner, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, body: `
-<section class="hero"><div class="box">
+<section class="hero wide"><div class="box">
 <div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div>
 <h1><b>Oversite</b> CAD</h1>
 <p class="lead">A live dispatch system for ER:LC private servers. Every unit on a 3D map of Liberty County, live from your server.</p>
-<div class="actions">
-${discord ? `<a class="btn discord" href="/auth/discord?next=${encodeURIComponent(next)}">Continue with Discord</a>` : ''}
-${discord && owner ? '<div class="or">or</div>' : ''}
-${owner ? `<form method="post" action="/auth/owner" class="actions" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Owner code" aria-label="Owner code" required><button class="btn ${discord ? '' : 'pri'}">Sign in as owner</button>${discord ? '' : '<p class="hint">Discord sign-in turns on once a Discord app is connected. Until then, the site owner signs in with the owner code.</p>'}</form>` : ''}
-${error ? `<p class="msg err">${esc(error)}</p>` : ''}
+<div class="paths">
+<form class="card path" id="codeform" autocomplete="off"><h2>Join your server</h2><p class="note">Enter the code your server owner gave you.</p>
+<input id="code" placeholder="Server code" aria-label="Server code" autocapitalize="characters" spellcheck="false" required>
+<button class="btn pri">Sign in</button><p class="msg" id="codemsg"></p></form>
+<form class="card path" id="makeform" autocomplete="off"><h2>Create a server</h2><p class="note">Set up a CAD for your ER:LC server.</p>
+<input id="mname" maxlength="48" placeholder="Server name" aria-label="Server name" required>
+<input id="mslug" maxlength="32" placeholder="address" aria-label="Address" required><p class="hint addr">oversitescad.com/c/<span id="slugp">your-server</span></p>
+<input id="mcode" maxlength="24" placeholder="Your owner code" aria-label="Owner code" spellcheck="false" required><p class="hint">6 to 24 letters or numbers. You sign in with it, so keep it private.</p>
+<button class="btn pri">Create server</button><p class="msg" id="makemsg"></p></form>
 </div>
+${discord ? `<div class="or">or</div><a class="btn discord" href="/auth/discord?next=${encodeURIComponent(next)}">Continue with Discord</a>` : ''}
+${owner ? `<form method="post" action="/auth/owner" class="row" style="justify-content:center;margin-top:14px" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" style="max-width:200px" required><button class="btn sm">Sign in</button></form>` : ''}
+${error ? `<p class="msg err">${esc(error)}</p>` : ''}
 <div class="feats"><div><b>Live map</b>Units move on the map as they drive in game.</div><div><b>Real 911 calls</b>Calls from the game land on the dispatch board.</div><div><b>Department MDTs</b>Each team gets its own MDT, locked to its members.</div></div>
-</div></section>` });
+</div></section>`, script: `
+const go=async(url,body,m)=>{try{const j=await api(url,body);location.href=j.next}catch(x){say(m,x.message)}};
+document.getElementById('codeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/code',{code:document.getElementById('code').value},document.getElementById('codemsg'))});
+const mn=document.getElementById('mname'),ms=document.getElementById('mslug'),sp=document.getElementById('slugp');let touched=false;
+const slugify=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
+mn.addEventListener('input',()=>{if(!touched){ms.value=slugify(mn.value);sp.textContent=ms.value||'your-server'}});
+ms.addEventListener('input',()=>{touched=true;ms.value=slugify(ms.value);sp.textContent=ms.value||'your-server'});
+document.getElementById('makeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/create',{name:mn.value.trim(),slug:ms.value,ownerCode:document.getElementById('mcode').value},document.getElementById('makemsg'))});
+` });
 
-export const dashboard = ({ logo, user, comms, discordLinkable, pending }) => layout({ title: 'Dashboard · Oversite', logo, user, body: `
-<main><h1>Welcome, <b>${esc(user.name)}</b></h1><p class="lead">Open a community's CAD, or create one for your ER:LC server.</p>
+export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome }) => layout({ title: 'Dashboard · Oversite', logo, user, body: `
+<main><h1>Welcome, <b>${esc(user.name)}</b></h1><p class="lead">Open a server's CAD, join another with its code, or create your own.</p>
+${welcome && !user.roblox_name ? `<section class="card" style="margin-bottom:18px;border-color:rgba(76,141,255,.35)"><h2>You're in ${esc(welcome.name)}</h2><p class="note" style="margin-bottom:10px">Link your Roblox account below so the CAD knows which player you are and opens your department's MDT. Or skip it for now.</p><a class="btn sm" href="/c/${esc(welcome.slug)}">Skip and open the CAD</a></section>` : ''}
 <div class="grid"><div>
-<section class="card"><h2>Your communities</h2><p class="note">Communities you own or have joined.</p>
+<section class="card"><h2>Your servers</h2><p class="note">Servers you own or have joined.</p>
 ${comms.length ? comms.map(c => `<div class="comm"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}</span><span class="tx"><b>${esc(c.name)}</b><small>oversitescad.com/c/${esc(c.slug)}</small></span>
 ${c.connected ? '<span class="tag ok">Server connected</span>' : '<span class="tag warn">No server yet</span>'}<span class="tag">${esc(c.role)}</span>
-${c.role !== 'member' ? `<a class="btn sm" href="/c/${esc(c.slug)}/settings">Settings</a>` : ''}<a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a></div>`).join('') : '<p class="empty">You are not in any community yet. Create one, or open an invite link from your server.</p>'}
+${c.role !== 'member' ? `<a class="btn sm" href="/c/${esc(c.slug)}/settings">Settings</a>` : ''}<a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a></div>`).join('') : '<p class="empty">You are not in any server yet. Join one with its code, or create your own.</p>'}
 </section>
-<section class="card"><h2>Create a community</h2><p class="note">One community per ER:LC server. You can invite your members afterwards.</p>
-<form id="create" autocomplete="off"><label for="cname">Community name</label><input id="cname" maxlength="48" placeholder="Liberty County Roleplay" required>
+<section class="card"><h2>Join another server</h2><form id="join" class="row" autocomplete="off" style="flex-wrap:nowrap"><input id="jcode" placeholder="Server code" aria-label="Server code" spellcheck="false" required><button class="btn pri">Join</button></form><p class="msg" id="jmsg"></p></section>
+<section class="card"><h2>Create a server</h2><p class="note">One per ER:LC server. Members join with the member code you get afterwards.</p>
+<form id="create" autocomplete="off"><label for="cname">Server name</label><input id="cname" maxlength="48" placeholder="Liberty County Roleplay" required>
 <label for="cslug">Address</label><input id="cslug" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="liberty-county" required><p class="hint">oversitescad.com/c/<span id="slugp">liberty-county</span></p>
-<div class="row" style="margin-top:14px"><button class="btn pri">Create community</button></div><p class="msg" id="cmsg"></p></form></section>
+<label for="ccode">Owner code</label><input id="ccode" maxlength="24" placeholder="6 to 24 letters or numbers" spellcheck="false" required>
+<div class="row" style="margin-top:14px"><button class="btn pri">Create server</button></div><p class="msg" id="cmsg"></p></form></section>
 </div><div>
 <section class="card" id="rbx"><h2>Roblox account</h2>
-${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>. Communities use this to find you in game and open your department's MDT.</p><button class="btn sm" id="unlink">Unlink</button>`
+${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>. Your servers use this to find you in game and open your department's MDT.</p><button class="btn sm" id="unlink">Unlink</button>`
 : pending ? `<p class="note">Add this phrase anywhere in the <b>About</b> section of <a href="https://www.roblox.com/users/${esc(pending.roblox_id)}/profile" target="_blank" rel="noopener">${esc(pending.roblox_name)}'s profile</a>, save, then press Verify. You can remove it afterwards.</p>
 <div class="phrase">${esc(pending.phrase)}</div><div class="row"><button class="btn pri" id="verify">Verify</button><button class="btn sm" id="restart">Use a different account</button></div><p class="msg" id="rmsg"></p>`
-: `<p class="note">Link your Roblox account so communities know which player you are. No password needed.</p><form id="rstart" autocomplete="off"><label for="ruser">Roblox username</label><input id="ruser" placeholder="Your Roblox username" required><div class="row" style="margin-top:12px"><button class="btn pri">Continue</button></div><p class="msg" id="rmsg"></p></form>`}
+: `<p class="note">Link your Roblox account so your servers know which player you are. No password needed.</p><form id="rstart" autocomplete="off"><label for="ruser">Roblox username</label><input id="ruser" placeholder="Your Roblox username" required><div class="row" style="margin-top:12px"><button class="btn pri">Continue</button></div><p class="msg" id="rmsg"></p></form>`}
 </section>
 ${discordLinkable ? `<section class="card"><h2>Discord</h2><p class="note">You signed in with the owner code. Link Discord so you can sign in with it from now on.</p><a class="btn discord" href="/auth/discord?next=/dashboard">Link Discord</a></section>` : ''}
 </div></div></main>`, script: `
@@ -109,7 +130,8 @@ const cn=document.getElementById('cname'),cs=document.getElementById('cslug'),sp
 const slugify=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
 cn.addEventListener('input',()=>{if(!touched){cs.value=slugify(cn.value);sp.textContent=cs.value||'liberty-county'}});
 cs.addEventListener('input',()=>{touched=true;cs.value=slugify(cs.value);sp.textContent=cs.value||'liberty-county'});
-document.getElementById('create').addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('cmsg');try{const j=await api('/api/communities',{name:cn.value.trim(),slug:cs.value});location.href='/c/'+j.slug+'/settings?new=1'}catch(x){say(m,x.message)}});
+document.getElementById('create').addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('cmsg');try{const j=await api('/api/communities',{name:cn.value.trim(),slug:cs.value,ownerCode:document.getElementById('ccode').value});location.href='/c/'+j.slug+'/settings?new=1'}catch(x){say(m,x.message)}});
+document.getElementById('join').addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/auth/code',{code:document.getElementById('jcode').value});location.href=j.next}catch(x){say(document.getElementById('jmsg'),x.message)}});
 const rs=document.getElementById('rstart');if(rs)rs.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('rmsg');try{await api('/api/roblox/start',{username:document.getElementById('ruser').value});location.reload()}catch(x){say(m,x.message)}});
 const v=document.getElementById('verify');if(v)v.addEventListener('click',async()=>{const m=document.getElementById('rmsg');v.disabled=true;try{await api('/api/roblox/verify');location.reload()}catch(x){say(m,x.message);v.disabled=false}});
 const re=document.getElementById('restart');if(re)re.addEventListener('click',async()=>{await api('/api/roblox/cancel');location.reload()});
@@ -117,9 +139,9 @@ const ul=document.getElementById('unlink');if(ul)ul.addEventListener('click',asy
 ` });
 
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
-export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
-<main><h1><b>${esc(c.name)}</b> settings</h1><p class="lead">${isNew ? 'Your community is ready. Connect your ER:LC server, then invite your members.' : 'Manage your server connection, departments and members.'}</p>
-<div class="row" style="margin:-8px 0 20px"><a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn sm" href="/dashboard">All communities</a></div>
+export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
+<main><h1><b>${esc(c.name)}</b> settings</h1><p class="lead">${isNew ? 'Your server is ready. Connect it to ER:LC, then give your members the member code.' : 'Manage your server connection, codes, departments and members.'}</p>
+<div class="row" style="margin:-8px 0 20px"><a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn sm" href="/dashboard">All servers</a></div>
 <div class="grid"><div>
 <section class="card"><h2>ER:LC server</h2>
 <p class="note" id="kstat">${keyStatus.connected ? `Connected${keyStatus.name ? ` to <b>${esc(keyStatus.name)}</b>` : ''}. The key is stored encrypted and is never sent to anyone's browser.` : 'Not connected. In ER:LC open your private server settings, find the API section, and copy the server key.'}</p>
@@ -129,10 +151,15 @@ export const settings = ({ logo, user, c, role, keyStatus, invites, members, ori
 <form id="depts"><div class="cols">${['pd', 'fd', 'dot'].map(d => `<div class="dept"><h3><i style="background:${COL[d]}"></i>${{ pd: 'Law enforcement', fd: 'Fire and EMS', dot: 'Transportation' }[d]}</h3>
 <label>Name</label><input name="${d}-name" maxlength="40" value="${esc(c.settings.depts[d]?.name || '')}" required><label>Short name</label><input name="${d}-short" maxlength="6" value="${esc(c.settings.depts[d]?.short || '')}" required></div>`).join('')}</div>
 <label style="margin-top:16px">In-game teams</label><div class="teams">${Object.entries(c.settings.teams).map(([t, d]) => `<span>${esc(t)}</span><select name="team-${esc(t)}">${[['pd', c.settings.depts.pd?.name], ['fd', c.settings.depts.fd?.name], ['dot', c.settings.depts.dot?.name], ['', 'Not shown on the CAD']].map(([v, n]) => `<option value="${v}"${v === d ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>`).join('')}</div>
-<label for="cname">Community name</label><input id="cname" name="name" maxlength="48" value="${esc(c.name)}" required>
+<label for="cname">Server name</label><input id="cname" name="name" maxlength="48" value="${esc(c.name)}" required>
 <div class="row" style="margin-top:14px"><button class="btn pri">Save</button></div><p class="msg" id="dmsg"></p></form></section>
 </div><div>
-<section class="card"><h2>Invite members</h2><p class="note">Anyone with the link can join after signing in. Links last 7 days.</p>
+${codes ? `<section class="card"${isNew ? ' style="border-color:rgba(76,141,255,.35)"' : ''}><h2>Server codes</h2><p class="note">Members sign in on the front page with the member code. The owner code gives full control, so keep it private.</p>
+<label>Member code</label><div class="row" style="flex-wrap:nowrap"><input id="mcode" value="${esc(codes.member)}" spellcheck="false" maxlength="24"><button class="btn sm" data-copy="${esc(codes.member)}">Copy</button></div>
+<div class="row" style="margin-top:8px"><button class="btn sm" id="savem">Save member code</button><button class="btn sm" id="genm">New random code</button></div>
+${codes.owner !== null ? `<label style="margin-top:16px">Owner code</label><div class="row" style="flex-wrap:nowrap"><input id="ocode" type="password" value="${esc(codes.owner)}" spellcheck="false" maxlength="24"><button class="btn sm" id="showo">Show</button></div>
+<div class="row" style="margin-top:8px"><button class="btn sm" id="saveo">Save owner code</button></div>` : ''}<p class="msg" id="codemsg"></p></section>` : ''}
+<section class="card"><h2>Invite links</h2><p class="note">An alternative to the member code. Anyone with the link can join. Links last 7 days.</p>
 <div class="row"><button class="btn pri" id="newinv">Create invite link</button></div><p class="msg" id="imsg"></p>
 ${invites.length ? `<table><tr><th>Link</th><th>Uses</th><th></th></tr>${invites.map(i => `<tr><td><code>${esc(origin)}/join/${esc(i.code)}</code></td><td>${i.uses}</td><td style="text-align:right"><button class="btn sm" data-copy="${esc(origin)}/join/${esc(i.code)}">Copy</button> <button class="btn sm danger" data-revoke="${esc(i.code)}">Revoke</button></td></tr>`).join('')}</table>` : '<p class="empty">No active invite links.</p>'}
 </section>
@@ -141,7 +168,7 @@ ${invites.length ? `<table><tr><th>Link</th><th>Uses</th><th></th></tr>${invites
 <td>${m.role === 'owner' || role !== 'owner' && m.role === 'admin' || m.id === user.id ? esc(m.role) : `<select data-role="${m.id}"><option value="member"${m.role === 'member' ? ' selected' : ''}>member</option><option value="admin"${m.role === 'admin' ? ' selected' : ''}>admin</option></select>`}</td>
 <td style="text-align:right">${m.role !== 'owner' && m.id !== user.id && (role === 'owner' || m.role === 'member') ? `<button class="btn sm danger" data-remove="${m.id}">Remove</button>` : ''}</td></tr>`).join('')}</table><p class="msg" id="mmsg"></p>
 </section>
-${role === 'owner' ? `<section class="card danger-zone"><h2>Delete community</h2><p class="note">Removes the community, its settings and its member list. This cannot be undone.</p><button class="btn danger" id="del">Delete ${esc(c.name)}</button></section>` : ''}
+${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p class="note">Removes the server from Oversite with its settings, codes and member list. This cannot be undone.</p><button class="btn danger" id="del">Delete ${esc(c.name)}</button></section>` : ''}
 </div></div></main>`, script: `
 const A='/c/${esc(c.slug)}/api';
 document.getElementById('key').addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('kmsg'),b=e.target.querySelector('button');b.disabled=true;say(m,'Checking the key with ER:LC…',true);try{const j=await api(A+'/key',{key:document.getElementById('kin').value.trim()});say(m,'Connected to '+(j.name||'your server')+'. '+(j.players??0)+' players online.',true);setTimeout(()=>location.reload(),1200)}catch(x){say(m,x.message);b.disabled=false}});
@@ -153,12 +180,17 @@ document.addEventListener('click',async e=>{const c=e.target.closest('[data-copy
 const r=e.target.closest('[data-revoke]');if(r){await api(A+'/invites/revoke',{code:r.dataset.revoke});location.reload()}
 const x=e.target.closest('[data-remove]');if(x){if(!confirm('Remove this member?'))return;try{await api(A+'/members/remove',{userId:+x.dataset.remove});location.reload()}catch(err){say(document.getElementById('mmsg'),err.message)}}});
 document.addEventListener('change',async e=>{const s=e.target.closest('[data-role]');if(!s)return;try{await api(A+'/members/role',{userId:+s.dataset.role,role:s.value});say(document.getElementById('mmsg'),'Role updated.',true)}catch(x){say(document.getElementById('mmsg'),x.message)}});
-const del=document.getElementById('del');if(del)del.addEventListener('click',async()=>{const t=prompt('Type ${esc(c.slug)} to delete this community.');if(t!=='${esc(c.slug)}')return;await api(A+'/delete',{confirm:t});location.href='/dashboard'});
+const cm=document.getElementById('codemsg'),setc=async(body)=>{try{const j=await api(A+'/codes',body);say(cm,'Saved: '+j.code,true);return j.code}catch(x){say(cm,x.message)}};
+const sm=document.getElementById('savem');if(sm){sm.addEventListener('click',()=>setc({role:'member',code:document.getElementById('mcode').value}));
+document.getElementById('genm').addEventListener('click',async()=>{const c=await setc({role:'member',generate:true});if(c){document.getElementById('mcode').value=c;document.querySelector('[data-copy]').dataset.copy=c}});
+const so=document.getElementById('saveo');if(so){so.addEventListener('click',()=>setc({role:'owner',code:document.getElementById('ocode').value}));
+document.getElementById('showo').addEventListener('click',e=>{const o=document.getElementById('ocode');o.type=o.type==='password'?'text':'password';e.target.textContent=o.type==='password'?'Show':'Hide'})}}
+const del=document.getElementById('del');if(del)del.addEventListener('click',async()=>{const t=prompt('Type ${esc(c.slug)} to delete this server.');if(t!=='${esc(c.slug)}')return;await api(A+'/delete',{confirm:t});location.href='/dashboard'});
 ` });
 
 export const join = ({ logo, user, c, code }) => layout({ title: `Join ${c.name} · Oversite`, logo, user, body: `
 <section class="hero"><div class="box"><div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div>
-<h1>Join <b>${esc(c.name)}</b></h1><p class="lead">You have been invited to this community's CAD on Oversite.</p>
+<h1>Join <b>${esc(c.name)}</b></h1><p class="lead">You have been invited to this server's CAD on Oversite.</p>
 <form method="post" action="/join/${esc(code)}" class="actions"><button class="btn pri">Join community</button></form></div></section>` });
 
 export const message = ({ logo, user, title, text, action }) => layout({ title: `${title} · Oversite`, logo, user, body: `

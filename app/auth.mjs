@@ -1,5 +1,5 @@
 // Sign-in (Discord, or an owner code until Discord is set up), sessions, and Roblox account linking.
-import { users, sessions, roblox, token } from './db.mjs';
+import { users, sessions, roblox, token, communities, members, codes, codeOk, normCode, newCode } from './db.mjs';
 
 export const cookies = req => Object.fromEntries((req.headers.cookie || '').split(/;\s*/).filter(Boolean).map(c => { const i = c.indexOf('='); return [c.slice(0, i), decodeURIComponent(c.slice(i + 1))]; }));
 const secure = req => ((req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : '');
@@ -34,7 +34,7 @@ export const discordFinish = async (req, params) => {
 
 // ── owner sign-in: available until Discord is configured (or when OWNER_LOGIN=1), protected by the owner code ──
 const OWNER_CODE = (process.env.OWNER_CODE || process.env.ACCESS_CODE || '').trim();
-export const ownerLoginOn = () => !!OWNER_CODE && (!discordReady() || process.env.OWNER_LOGIN === '1');
+export const ownerLoginOn = () => !!OWNER_CODE && process.env.OWNER_LOGIN === '1';   // site-wide owner sign-in: off unless asked for; server codes replace it
 const tries = new Map();
 export const ownerLogin = (req, code) => { const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(), a = tries.get(ip) || { n: 0, until: 0 };
   if (Date.now() < a.until) return { error: 'Too many tries. Wait a minute.' };
@@ -54,5 +54,37 @@ export const robloxVerify = async user => { const p = roblox.pending(user.id); i
   let r; try { r = await fetch(`https://users.roblox.com/v1/users/${p.roblox_id}`).then(x => x.json()); } catch (e) { return { error: 'Roblox did not answer. Try again in a moment.' }; }
   const norm = s => String(s || '').toLowerCase().replace(/[^a-z]+/g, ' ').trim();
   if (!norm(r.description).includes(norm(p.phrase))) return { error: 'The phrase is not on your profile yet. Roblox can take a minute to save it, then try again.' };
-  users.update(user.id, { roblox_id: p.roblox_id, roblox_name: r.name || p.roblox_name }); roblox.clear(user.id); return { ok: true, name: r.name || p.roblox_name }; };
+  const name = r.name || p.roblox_name; roblox.clear(user.id);
+  const existing = users.byRoblox(p.roblox_id);                         // the same person already has an account (another device): fold this one into it
+  if (existing && existing.id !== user.id) { users.merge(user.id, existing.id); return { ok: true, name, mergedInto: existing.id }; }
+  users.update(user.id, { roblox_id: p.roblox_id, roblox_name: name, ...(['Owner', 'Member'].includes(user.name) ? { name } : {}) }); return { ok: true, name }; };
 export const robloxUnlink = user => users.update(user.id, { roblox_id: null, roblox_name: null });
+
+// ── server codes: create a server with your own owner code, or sign in to one with the code its owner gave you ──
+const ipOf = req => (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+const limits = new Map();
+const limited = (req, kind, max, windowMs) => { const k = kind + ipOf(req), now = Date.now(), a = (limits.get(k) || []).filter(t => now - t < windowMs); if (a.length >= max) return true; a.push(now); limits.set(k, a); return false; };
+export const codeSignIn = (req, user, code) => {
+  if (limited(req, 'code', 8, 60000)) return { error: 'Too many tries. Wait a minute and try again.' };
+  const hit = codes.find(code); if (!hit) return { error: 'No server uses that code. Check it with your server owner.' };
+  const c = communities.byId(hit.community_id); if (!c) return { error: 'That server no longer exists.' };
+  let u = user; if (!u) u = users.byId(users.create({ name: hit.role === 'owner' ? 'Owner' : 'Member' }));
+  members.raise(c.id, u.id, hit.role); return { user: u, community: c, role: hit.role, fresh: !user }; };
+export const createServer = (req, user, { name, slug, ownerCode }, RESERVED) => {
+  name = String(name || '').trim(); slug = String(slug || '').trim().toLowerCase();
+  if (name.length < 2 || name.length > 48) return { error: 'The server name must be 2 to 48 characters.' };
+  if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(slug) || slug.includes('--')) return { error: 'The address must be 3 to 32 lowercase letters, numbers or single dashes.' };
+  if (RESERVED.has(slug) || communities.bySlug(slug)) return { error: 'That address is taken. Try another.' };
+  if (!codeOk(ownerCode)) return { error: 'The owner code must be 6 to 24 letters or numbers.' };
+  if (codes.find(ownerCode)) return { error: 'That owner code is already used by another server. Pick a different one.' };
+  if (user && communities.forUser(user.id).filter(c => c.role === 'owner').length >= 10) return { error: 'You can own up to 10 servers.' };
+  if (limited(req, 'create', 5, 3600000)) return { error: 'Too many servers created from here. Try again later.' };
+  let u = user; if (!u) u = users.byId(users.create({ name: 'Owner' }));
+  const id = communities.create(u.id, slug, name); codes.set(id, 'owner', String(ownerCode).trim().toUpperCase());
+  let mc = newCode(); while (codes.find(mc)) mc = newCode(); codes.set(id, 'member', mc);
+  return { user: u, id, slug, memberCode: mc }; };
+export const setCode = (cid, role, code) => { if (!codeOk(code)) return { error: 'Codes must be 6 to 24 letters or numbers.' };
+  if (normCode(code) === normCode(codes.show(cid, role === 'owner' ? 'member' : 'owner'))) return { error: 'The owner code and the member code must be different.' };
+  if (codes.taken(code, cid, role)) return { error: 'Another server already uses that code. Pick a different one.' };
+  codes.set(cid, role, String(code).trim().toUpperCase()); return { code: codes.show(cid, role) }; };
+export const newMemberCode = cid => { let mc = newCode(); while (codes.find(mc)) mc = newCode(); codes.set(cid, 'member', mc); return { code: mc }; };
