@@ -78,7 +78,7 @@ def admin_html():
     <h3>Departments</h3>
     <p class="ad-note">Which in-game team feeds which department. Players without a callsign are skipped unless you untick the box.</p>
     <div class="ad-teams" id="adTeams">{teams}</div>
-    <div class="ad-row"><label><input type="checkbox" id="adCallsignOnly" checked> Only players with a callsign</label></div>
+    <div class="ad-row"><label><input type="checkbox" id="adCallsignOnly"> Only players with a callsign</label></div>
   </section>
   <section>
     <h3>Map calibration</h3>
@@ -100,7 +100,8 @@ LIVE_JS = r"""<script id="live">
   const ICON = __ICON__;
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const DEPT = { pd: 'PD', fd: 'FD', dot: 'DOT' }, KIND = { pd: 'cruiser', fd: 'engine', dot: 'dot' };
-  const DEFAULTS = { key: '', relay: '', poll: 10, live: false, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: true, me: '', cal: [] };
+  const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay at /api
+  const DEFAULTS = { key: '', relay: '', poll: 10, live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
   const KEY = 'oversite.admin';
   let S = { ...DEFAULTS };
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
@@ -117,7 +118,7 @@ LIVE_JS = r"""<script id="live">
   const F = { key: $('adKey'), relay: $('adRelay'), poll: $('adPoll'), live: $('adLive'), me: $('adMe'), callsignOnly: $('adCallsignOnly') };
   F.key.value = S.key; F.relay.value = S.relay; F.poll.value = S.poll; F.live.checked = S.live; F.me.value = S.me; F.callsignOnly.checked = S.callsignOnly;
   for (const sel of document.querySelectorAll('#adTeams select')) { sel.value = S.teams[sel.dataset.team] ?? ''; sel.addEventListener('change', () => { S.teams[sel.dataset.team] = sel.value; save(); }); }
-  F.key.addEventListener('change', () => { S.key = F.key.value.trim(); save(); });
+  F.key.addEventListener('change', () => { S.key = F.key.value.trim(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
   F.relay.addEventListener('change', () => { S.relay = F.relay.value.trim().replace(/\/+$/, ''); F.relay.value = S.relay; save(); });
   F.poll.addEventListener('change', () => { S.poll = Math.max(5, Math.min(120, +F.poll.value || 10)); F.poll.value = S.poll; save(); });
   F.me.addEventListener('change', () => { S.me = F.me.value.trim(); save(); });
@@ -125,7 +126,7 @@ LIVE_JS = r"""<script id="live">
   F.live.addEventListener('change', () => { S.live = F.live.checked; save(); S.live ? start() : stop(); });
 
   // ── calibration: studs -> world units (0..2000) ──
-  const DEF_A = 1 / 6, DEF_B = 1000;
+  const DEF_A = 1 / 3.5, DEF_B = 1000;
   let cal = { a: DEF_A, bx: DEF_B, bz: DEF_B };
   const fitCal = () => { const P = S.cal; if (!P.length) { cal = { a: DEF_A, bx: DEF_B, bz: DEF_B }; return; }
     if (P.length === 1) { const p = P[0]; cal = { a: DEF_A, bx: p.wx - p.sx * DEF_A, bz: p.wy - p.sz * DEF_A }; return; }
@@ -149,7 +150,6 @@ LIVE_JS = r"""<script id="live">
   const status = (msg, cls = '') => { st.textContent = msg; st.className = 'ad-status ' + cls; };
 
   // ── fetching ──
-  const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay at /api
   const base = () => S.relay || (HOSTED ? location.origin + '/api' : 'https://api.erlc.gg');
   let timer = null, lastPlayers = null, lastUnits = null, lastServer = null, lastVehicles = [], seenCalls = new Set(), inflight = false;
   const fetchServer = async () => {
@@ -161,7 +161,7 @@ LIVE_JS = r"""<script id="live">
     const rl = { limit: r.headers.get('x-ratelimit-limit'), left: r.headers.get('x-ratelimit-remaining'), reset: r.headers.get('x-ratelimit-reset') };
     if (r.status === 429) { const wait = +(r.headers.get('retry-after') || 30); throw Object.assign(new Error(`Rate limited. Waiting ${wait}s before the next request.`), { wait }); }
     let body = null; try { body = await r.json(); } catch (e) {}
-    if (!r.ok) { const m = { 2000: 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' }[body?.code] || body?.message || `HTTP ${r.status}`; throw Object.assign(new Error(m), { code: body?.code }); }
+    if (!r.ok) { const m = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' }[body?.code] || body?.message || `HTTP ${r.status}`; throw Object.assign(new Error(m), { code: body?.code }); }
     return { body, rl };
   };
 
@@ -187,7 +187,8 @@ LIVE_JS = r"""<script id="live">
       u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
       u.uid = g.pid; u.model = veh ? veh.Name : 'On foot'; u.postal = g.loc?.PostalCode || ''; u.street = g.loc?.StreetName || ''; }
     for (const id of [...units.keys()]) if (!ids.has(id)) units.delete(id);
-    return [...units.values()].sort((a, b) => a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name));
+    const me = (S.me || '').toLowerCase(); const mine = u => me && u.crew.some(n => n.toLowerCase() === me) ? 0 : 1;
+    return [...units.values()].sort((a, b) => mine(a) - mine(b) || a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name));
   };
   const applyPositions = () => { for (const u of units.values()) if (u.sx != null) { const [wx, wy] = toWorld(u.sx, u.sz); u.tx = wx; u.ty = wy; u.x = wx; u.y = wy; } };
 
@@ -202,13 +203,14 @@ LIVE_JS = r"""<script id="live">
   <div class="mini live" data-unit="${u.id}" aria-label="Live position of ${esc(u.name)}"><span class="ring"></span><span class="pin"></span></div>
   <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="${u.id}">0:00:00</span></div>
 </button>`; };
-  let shownIds = '';
+  let shownIds = '', demoCleared = false;
   const publish = list => { const ids = list.map(u => u.id).join('|');
     if (ids !== shownIds) { shownIds = ids; const sel = fleet?.querySelector('[aria-pressed="true"]')?.dataset.unit;
       if (fleet) fleet.innerHTML = list.length ? list.map((u, i) => cardHTML(u, sel ? u.id === sel : i === 0)).join('') : '<div class="empty" style="padding:18px 6px;color:var(--dim)">No units on duty. Players need a callsign on a mapped team.</div>';
-      window.UNITS = list; dispatchEvent(new CustomEvent('units', { detail: { live: true } })); }
+      window.UNITS = list; if (!demoCleared) { demoCleared = true; clearDemo(); } dispatchEvent(new CustomEvent('units', { detail: { live: true } })); }
     else for (const u of list) { const sp = fleet?.querySelector(`.spd[data-unit="${u.id}"]`); if (sp) sp.textContent = u.mph; const code = fleet?.querySelector(`[data-unit="${u.id}"] .code`); if (code) code.textContent = u.postal ? 'Postal ' + u.postal : '10-8'; } };
-  const restoreDemo = () => { if (!fleet || shownIds === '') return; fleet.innerHTML = demoHTML; shownIds = ''; units.clear(); lastUnits = null; window.UNITS = demoUnits; dispatchEvent(new CustomEvent('units', { detail: { live: false } })); };
+  const clearDemo = () => { const C = window.CALLS || []; for (let i = C.length - 1; i >= 0; i--) if (!C[i].live) C.splice(i, 1); window.demoCalls?.stop(); dispatchEvent(new CustomEvent('calls')); };
+  const restoreDemo = () => { if (!fleet || shownIds === '') return; fleet.innerHTML = demoHTML; shownIds = ''; units.clear(); lastUnits = null; window.UNITS = demoUnits; demoCleared = false; window.demoCalls?.start(); dispatchEvent(new CustomEvent('units', { detail: { live: false } })); };
 
   // ── emergency calls -> dispatch board ──
   const pushCalls = calls => { for (const c of calls || []) { const k = c.CallNumber ?? `${c.StartedAt}-${c.Description}`; if (seenCalls.has(k)) continue; seenCalls.add(k);

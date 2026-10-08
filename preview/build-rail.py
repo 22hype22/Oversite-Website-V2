@@ -310,6 +310,10 @@ js_add = r"""<script>
   plot.addEventListener('pointermove', e => { const r = plot.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 300;
     if (x > PLOT_W) return hide(); show(Math.round(x / PLOT_W * (data.length - 1))); });
   plot.addEventListener('pointerleave', hide);
+  // live data: the current half-hour reflects the real roster (units on duty, minus those on a call)
+  const liveSample = () => { const U = window.UNITS || []; if (!U.length || !U[0].live) return; const C = window.CALLS || [];
+    const last = data[data.length - 1]; last.onduty = U.length; last.avail = U.filter(u => !C.some(c => c.unit === u.name)).length; render(); };
+  addEventListener('units', liveSample); addEventListener('calls', liveSample);
   let ki = data.length - 1;
   plot.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') ki = Math.max(0, ki - 1); else if (e.key === 'ArrowRight') ki = Math.min(data.length - 1, ki + 1); else return; e.preventDefault(); show(ki); });
 
