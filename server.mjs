@@ -110,6 +110,9 @@ const globalApi = async (req, res, rest) => {
 const route = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = decodeURIComponent(url.pathname);
   if (path === '/health') { let w = 0, perMin = 0; for (const f of feeds.values()) { w += f.clients.size; perMin += f.sent.length; } res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${communities.all().length} communities, ${w} watching, ${perMin}/min`); }
+  // an account that only ever came from a server code (no Discord, no Roblox) is nothing once its last server is gone: sign it out and start over
+  const stranded = user => user && !user.discord_id && !user.roblox_id && !communities.forUser(user.id).length;
+  if (path === '/' || path === '/dashboard') { const user = auth.currentUser(req); if (stranded(user)) return redirect(res, '/', { 'set-cookie': auth.signOut(req) }); }
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
     const p = roblox.pending(user.id), w = url.searchParams.get('welcome'), wc = w && communities.bySlug(w);
