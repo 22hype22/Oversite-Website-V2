@@ -51,22 +51,41 @@ const hasAccess = req => { if (!CODE) return true; const m = /(?:^|;\s*)ov_acces
   const want = Buffer.from(sign(CODE)), got = Buffer.from(m[1]); return want.length === got.length && timingSafeEqual(want, got); };
 const attempts = new Map();                                                  // ip -> { n, until }
 const ipOf = req => (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-const lockPage = (msg = '') => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oversite</title>
+const lockPage = (msg = '') => { const n = Math.min(8, Math.max(4, CODE.length || 4)); return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oversite</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,${LOGO}">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#0B0B0C;color:#F0F2F5;font:15px/1.45 "Geist",system-ui,-apple-system,"Segoe UI",sans-serif;padding:16px}
-.card{width:min(360px,100%);padding:28px 24px 24px;border:1px solid rgba(240,242,245,.1);border-radius:16px;background:#131316}
-.mark{width:40px;height:40px;border-radius:10px;background:#1C1C1F;border:1px solid rgba(240,242,245,.1);display:grid;place-items:center;margin-bottom:18px}.mark img{width:22px;height:22px}
-h1{margin:0 0 4px;font-size:18px;font-weight:600;letter-spacing:-.01em}p{margin:0 0 18px;color:#8C9098;font-size:13px}
-input{width:100%;padding:14px 16px;font:inherit;font-size:24px;letter-spacing:.32em;text-align:center;color:#F0F2F5;background:#0B0B0C;border:1px solid rgba(240,242,245,.16);border-radius:10px;outline:none;font-variant-numeric:tabular-nums}
-input:focus{border-color:rgba(240,242,245,.5)}button{margin-top:12px;width:100%;padding:12px;font:inherit;font-size:14px;font-weight:600;color:#0B0B0C;background:#F0F2F5;border:0;border-radius:10px;cursor:pointer}
-button:active{transform:translateY(1px)}.err{margin:12px 0 0;color:#F0A0A0;font-size:13px}.foot{margin-top:18px;color:#5B5F66;font-size:12px}
-</style></head><body><form class="card" method="post" action="/unlock" autocomplete="off">
+:root{color-scheme:dark;--ink:#F0F2F5;--dim:#8C9098;--faint:#5B5F66;--hair2:rgba(240,242,245,.14)}*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:15px/1.45 "Geist",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#386069;overflow:hidden}
+.map{position:fixed;inset:0;background:#386069 url(/liberty-county.jpg) center/cover no-repeat;filter:brightness(.55) saturate(.9)}
+.map::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(11,11,12,.35),rgba(11,11,12,.78))}
+.wrap{position:fixed;inset:0;display:grid;place-items:center;padding:16px}
+form{text-align:center;width:min(440px,100%)}
+.mark{width:40px;height:40px;border-radius:10px;background:rgba(28,28,31,.66);border:1px solid rgba(240,242,245,.08);display:grid;place-items:center;margin:0 auto 18px;backdrop-filter:blur(40px) saturate(1.25)}.mark img{width:22px;height:22px}
+h1{margin:0;font-size:22px;font-weight:300;letter-spacing:-.02em}h1 b{font-weight:600}
+p{margin:6px 0 0;color:var(--dim);font-size:13px}
+.boxes{display:flex;gap:10px;justify-content:center;margin:26px 0 18px;cursor:text}
+.boxes i{width:52px;height:64px;border-radius:12px;background:rgba(13,13,15,.62);border:1px solid var(--hair2);backdrop-filter:blur(40px) saturate(1.25);display:grid;place-items:center;font-style:normal;font-size:28px;font-weight:500;transition:border-color .15s}
+.boxes i.on{border-color:rgba(240,242,245,.5)}.boxes i.cur{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+form.err .boxes i{border-color:#E24B4B}form.shake .boxes{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+input{position:absolute;opacity:0;width:1px;height:1px;left:-9999px}
+.hint{color:var(--faint);font-size:12px}.msg{color:#F0A0A0;font-size:13px;margin:0 0 8px}
+@media (max-width:420px){.boxes{gap:6px}.boxes i{width:44px;height:56px;font-size:24px}}
+@media (prefers-reduced-motion:reduce){form.shake .boxes{animation:none}}
+</style></head><body><div class="map"></div><div class="wrap">
+<form method="post" action="/unlock" autocomplete="off" id="f" class="${msg ? 'err shake' : ''}">
 <div class="mark"><img src="data:image/png;base64,${LOGO}" alt=""></div>
-<h1>Oversite</h1><p>This dashboard is in private preview. Enter the access code to continue.</p>
-<input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="••••••" autofocus aria-label="Access code">
-<button type="submit">Unlock</button>${msg ? `<p class="err">${msg}</p>` : ''}
-<div class="foot">Codes are issued by the Oversite team.</div></form></body></html>`;
+<h1><b>Oversite</b> is in private preview</h1><p>Enter your ${['four','five','six','seven','eight'][n - 4]}-digit access code.</p>
+<label class="boxes" id="boxes" for="code">${'<i></i>'.repeat(n)}</label>
+<input id="code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="${n}" autofocus aria-label="Access code">
+${msg ? `<p class="msg">${msg}</p>` : ''}<span class="hint">Remembered on this browser for 30 days.</span></form></div>
+<script>
+const f=document.getElementById('f'),inp=document.getElementById('code'),cells=[...document.querySelectorAll('#boxes i')],N=${n};
+const paint=()=>{const v=inp.value.replace(/\\D/g,'').slice(0,N);inp.value=v;cells.forEach((c,i)=>{c.textContent=v[i]||'';c.className=v[i]?'on':(i===v.length?'cur':'');});if(v.length===N)f.submit();};
+inp.addEventListener('input',paint);document.getElementById('boxes').addEventListener('click',()=>inp.focus());document.addEventListener('click',()=>inp.focus());
+f.addEventListener('animationend',()=>f.classList.remove('shake'));paint();inp.focus();
+</script></body></html>`; };
 const unlock = (req, res, code) => { const ip = ipOf(req), a = attempts.get(ip) || { n: 0, until: 0 };
   if (Date.now() < a.until) { res.writeHead(429, { 'content-type': 'text/html; charset=utf-8' }); return res.end(lockPage('Too many tries. Wait a minute and try again.')); }
   if (code && code === CODE) { attempts.delete(ip); const secure = (req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : '';
@@ -75,7 +94,7 @@ const unlock = (req, res, code) => { const ip = ipOf(req), a = attempts.get(ip) 
   res.writeHead(401, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end(lockPage('That code is not right.')); };
 const gate = (req, res, next) => {
   const [path, qs] = req.url.split('?');
-  if (path === '/health') return next();
+  if (path === '/health' || path === '/liberty-county.jpg') return next();           // the lock page shows the map behind it
   if (path === '/unlock' && req.method === 'POST') { let body = ''; req.on('data', c => { body += c; if (body.length > 1e4) req.destroy(); }); req.on('end', () => unlock(req, res, decodeURIComponent((body.match(/(?:^|&)code=([^&]*)/) || [])[1] || '').trim())); return; }
   if (path === '/lock') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` }); return res.end(lockPage()); }
   const q = new URLSearchParams(qs || '').get('code'); if (q && CODE) return unlock(req, res, q.trim());
