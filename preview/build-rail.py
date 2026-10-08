@@ -198,7 +198,7 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
     timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     spds = [...document.querySelectorAll('.spd[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: find(el) })).filter(m => m.u); };
-  bind();
+  bind(); addEventListener('rebind', () => { bind(); measure(); });
   setTimeout(() => addEventListener('units', () => { units = window.UNITS || []; countUnits(); bind(); if (MAP) setMini(MAP); measure(); const f = document.querySelector('.chips [aria-pressed="true"]')?.dataset.filter || 'all';
     for (const card of document.querySelectorAll('.veh[data-unit]')) card.hidden = f !== 'all' && !card.classList.contains('dept-' + f); }), 0);
   const VIEW = 300;                                   // world units visible across a mini map

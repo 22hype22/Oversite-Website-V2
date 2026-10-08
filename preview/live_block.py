@@ -203,6 +203,12 @@ LIVE_JS = r"""<script id="live">
     S.cal = [{ name: 'Placed by hand', sx: p.Location.LocationX, sz: p.Location.LocationZ, wx: w[0], wy: w[1] }]; delete S.nudge; save(); placing = false; placeBtn.setAttribute('aria-pressed', false); placeHint.textContent = 'Placed. Everyone is now lined up to that point.';
     fitCal(); renderCal(); applyPositions(); for (const u of units.values()) { u.x = u.tx; u.y = u.ty; } status('Position pinned to where you clicked.', 'ok'); }, true);
 
+  // ── who am I: the player whose username is in the admin panel, with the department their team maps to ──
+  const updateMe = players => { const me = (S.me || '').toLowerCase(); const p = me && (players || []).find(x => x.Player.split(':')[0].toLowerCase() === me);
+    const next = p ? { name: p.Player.split(':')[0], team: p.Team, dept: S.teams[p.Team] || null, callsign: p.Callsign || '' } : null;
+    const same = JSON.stringify(next) === JSON.stringify(window.ME || null); window.ME = next; if (!same) dispatchEvent(new CustomEvent('me', { detail: next })); };
+  F.me.addEventListener('change', () => updateMe(lastPlayers));
+
   // ── status line ──
   const st = $('adStatus');
   const status = (msg, cls = '') => { st.textContent = msg; st.className = 'ad-status ' + cls; };
@@ -281,7 +287,7 @@ LIVE_JS = r"""<script id="live">
   // ── polling ──
   const poll = async () => { if (inflight) return; inflight = true;
     try { const { body, rl } = await fetchServer(); lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || [];
-      learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
+      updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
       const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
       status(`Connected to ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok');
       schedule(S.poll * 1000); }

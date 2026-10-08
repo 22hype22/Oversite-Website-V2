@@ -108,6 +108,7 @@
   .menu button{font-size:12.5px;color:var(--dim);white-space:nowrap;padding:7px 12px;border-radius:999px;border:1px solid transparent;
     transition:color .18s cubic-bezier(.32,.72,0,1),background .18s cubic-bezier(.32,.72,0,1)}
   .menu button:hover{color:var(--ink);background:rgba(240,242,245,.05)}
+  .menu button.locked{opacity:.45}
   .menu button[aria-selected="true"]{background:rgba(28,28,31,.72);color:var(--ink);font-weight:500;border:1px solid var(--hair2);
     backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:0 6px 20px rgba(0,0,0,.35)}
   .search{flex:none;display:flex;align-items:center;gap:8px;color:var(--dim);font-size:12px;
@@ -225,6 +226,7 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -256,6 +258,7 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -686,6 +689,9 @@
   .tmap .ring{display:none}
   .tmap-cap{position:absolute;left:10px;right:10px;bottom:8px;display:flex;justify-content:space-between;font-size:12px;color:#E9EAEC;padding:5px 8px;background:rgba(12,13,15,.8);border-radius:6px}
   .tmap-cap b{font-weight:600}
+  .mdt-dock[data-dept="pd"] .screen{--fd:#4C8DFF;--fd-soft:rgba(76,141,255,.14)}
+  .mdt-dock[data-dept="dot"] .screen{--fd:#E9C24C;--fd-soft:rgba(233,194,76,.16)}
+  .mdt-dock[data-dept="dot"] .statgrid button[aria-pressed="true"],.mdt-dock[data-dept="dot"] .screen .pill.p1{color:#0B0B0C}
   .tscreen .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:18px;border-top:1px solid var(--line);flex:none}
   .tscreen .stat{padding:12px 14px 10px 0}
   .tscreen .stat+.stat{padding-left:14px;border-left:1px solid var(--line)}
@@ -1915,6 +1921,51 @@
   .icons button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
   .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
   @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
+  /* admin panel: server link, departments, map calibration */
+  :root{--adminw:min(400px,calc(100vw - 2*var(--gap)))}
+  .stage{transition:transform .6s cubic-bezier(.32,.72,0,1),opacity .4s,right .36s cubic-bezier(.32,.72,0,1)}
+  body.admin-open .stage{right:calc(var(--adminw) + var(--gap))}
+  body.admin-open .zoomctl,body.admin-open .layers{transition:transform .36s cubic-bezier(.32,.72,0,1)}
+  .admin{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--adminw);z-index:9;
+    background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.28);
+    transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.32,.72,0,1),opacity .2s;overflow-y:auto;scrollbar-width:none;
+    padding:16px 20px 24px;color:var(--ink);font-size:13px;line-height:1.45}
+  .admin::-webkit-scrollbar{display:none}
+  body.admin-open .admin{transform:none;opacity:1;pointer-events:auto}
+  body.mode-3d .admin{background:#141518}
+  .admin header{display:flex;align-items:center;justify-content:space-between;padding:4px 0 12px;border-bottom:1px solid var(--hair)}
+  .admin h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+  .admin header button{font-size:12px;color:var(--dim);padding:6px 10px;border-radius:8px}
+  .admin header button:hover{color:var(--ink);background:rgba(240,242,245,.06)}
+  .admin section{padding:14px 0 6px;border-bottom:1px solid var(--hair)}
+  .admin section:last-child{border-bottom:0}
+  .admin h3{margin:0 0 6px;font-size:13px;font-weight:600}
+  .admin .ad-note{margin:0 0 10px;color:var(--dim);font-size:12px}
+  .admin label{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;color:var(--dim)}
+  .admin label>span{flex:none;min-width:110px}
+  .admin input:not([type=checkbox]),.admin select{flex:1;min-width:0;background:#141518;border:1px solid var(--hair2);border-radius:8px;color:var(--ink);padding:7px 9px;font:inherit;font-size:13px}
+  body:not(.mode-3d) .admin input:not([type=checkbox]),body:not(.mode-3d) .admin select{background:rgba(11,11,12,.6)}
+  .admin input:focus,.admin select:focus{outline:none;border-color:rgba(240,242,245,.4)}
+  .admin input[type=number]{max-width:72px;flex:none}
+  .admin input[type=checkbox]{width:15px;height:15px;accent-color:var(--ink)}
+  .admin .ad-row{display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap}
+  .admin .ad-row label{padding:0;flex:none}
+  .admin .ad-btn{font-size:12.5px;font-weight:500;padding:7px 12px;border-radius:8px;background:rgba(240,242,245,.08);color:var(--ink);border:1px solid var(--hair2)}
+  .admin .ad-btn:hover{background:rgba(240,242,245,.14)} .admin .ad-btn:active{transform:translateY(1px)}
+  .admin .ad-btn.pri{background:var(--ink);color:#0B0B0C;border-color:var(--ink)}
+  .admin .ad-btn[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+  .admin .ad-status{margin:6px 0 2px;padding:9px 11px;border-radius:8px;background:rgba(240,242,245,.05);color:var(--dim);font-size:12px;white-space:pre-line}
+  .admin .ad-status.ok{color:var(--green)} .admin .ad-status.err{color:#F0A0A0}
+  .admin .ad-kv{display:flex;justify-content:space-between;padding:6px 0;color:var(--dim)} .admin .ad-kv b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+  .admin .ad-pts{margin:4px 0}
+  .admin .ad-pt{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--hair);font-size:12px}
+  .admin .ad-pt small{color:var(--dim);font-variant-numeric:tabular-nums} .admin .ad-pt button{color:var(--dim);font-size:12px} .admin .ad-pt button:hover{color:#F0A0A0}
+  .admin .ad-teams{display:grid;grid-template-columns:1fr 110px;gap:6px 10px;align-items:center}
+  .admin .ad-teams span{color:var(--dim)}
+  .admin code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(240,242,245,.08);padding:1px 5px;border-radius:4px}
+  .icons button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
+  .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
+  @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
   /* ───────── 3D view ───────── */
     /* no backdrop blur while WebGL is live: the blur forces a full repaint of every panel each frame */
   body.mode-3d{--blur:none;--glass:rgba(13,13,15,.82);--glass2:rgba(20,20,23,.84)}
@@ -1998,9 +2049,9 @@
   </div>
   <nav class="menu" role="tablist" aria-label="Sections">
     <button role="tab" aria-selected="true" data-view="dispatch">Dispatch</button>
-    <button role="tab" aria-selected="false">Police Department</button>
-    <button role="tab" aria-selected="false" data-view="fire">Fire Department</button>
-    <button role="tab" aria-selected="false">Department of Transportation</button>
+    <button role="tab" aria-selected="false" data-view="mdt" data-dept="pd">Police Department</button>
+    <button role="tab" aria-selected="false" data-view="mdt" data-dept="fd">Fire Department</button>
+    <button role="tab" aria-selected="false" data-view="mdt" data-dept="dot">Department of Transportation</button>
     <button role="tab" aria-selected="false">Server Staff</button>
     <button role="tab" aria-selected="false" data-view="status">Status &amp; Updates</button>
   </nav>
@@ -2330,7 +2381,7 @@
     timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     spds = [...document.querySelectorAll('.spd[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: find(el) })).filter(m => m.u); };
-  bind();
+  bind(); addEventListener('rebind', () => { bind(); measure(); });
   setTimeout(() => addEventListener('units', () => { units = window.UNITS || []; countUnits(); bind(); if (MAP) setMini(MAP); measure(); const f = document.querySelector('.chips [aria-pressed="true"]')?.dataset.filter || 'all';
     for (const card of document.querySelectorAll('.veh[data-unit]')) card.hidden = f !== 'all' && !card.classList.contains('dept-' + f); }), 0);
   const VIEW = 300;                                   // world units visible across a mini map
@@ -2591,18 +2642,28 @@
   const tabs = [...document.querySelectorAll('.menu button')];
   const PAGES = { status: 'pageStatus' };
   const mdt = document.getElementById('mdt'), mdtBtn = document.getElementById('mdtToggle');
-  const openMdt = on => { document.body.classList.toggle('mdt-open', on); mdt.setAttribute('aria-hidden', !on); mdtBtn.setAttribute('aria-pressed', on);
-    tabs.forEach(t => { if (t.dataset.view === 'fire') t.setAttribute('aria-selected', on); if (t.dataset.view === 'dispatch') t.setAttribute('aria-selected', !on && document.body.dataset.view === 'dispatch'); });
+  const DEPT_NAME = { pd: 'Police Department', fd: 'Fire Department', dot: 'Department of Transportation' };
+  const myDept = () => (window.ME && window.ME.dept) || null;                 // from the live roster (admin panel username); null = not identified
+  const gated = () => !!window.HOSTED;                                        // the hosted site gates each MDT to its own team; the demo page lets you look at all of them
+  const toastMsg = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); };
+  const openMdt = (on, dept) => { if (on) { window.mdtDept = dept || window.mdtDept || myDept() || 'fd'; mdt.dataset.dept = window.mdtDept; }
+    document.body.classList.toggle('mdt-open', on); mdt.setAttribute('aria-hidden', !on); mdtBtn.setAttribute('aria-pressed', on);
+    tabs.forEach(t => { if (t.dataset.view === 'mdt') t.setAttribute('aria-selected', on && t.dataset.dept === window.mdtDept); if (t.dataset.view === 'dispatch') t.setAttribute('aria-selected', !on && document.body.dataset.view === 'dispatch'); });
     dispatchEvent(new CustomEvent('mdt', { detail: on })); };
   window.openMdt = openMdt;
-  const setView = v => { const real = v === 'fire' ? 'dispatch' : v; document.body.dataset.view = real;
+  const canOpen = dept => { if (!gated()) return true; const mine = myDept();
+    if (!mine) { toastMsg('Set your Roblox username in the admin panel (gear icon) so the site knows your team.'); return false; }
+    if (mine !== dept) { toastMsg(`You are on the ${DEPT_NAME[mine] || mine} team. The ${DEPT_NAME[dept]} MDT is for its own members.`); return false; } return true; };
+  const setView = (v, dept) => { const real = v === 'mdt' ? 'dispatch' : v; document.body.dataset.view = real;
     for (const [k, id] of Object.entries(PAGES)) { const el = document.getElementById(id); if (el) el.hidden = real !== k; }
-    tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.view === v));
-    if (real !== 'dispatch') openMdt(false); else openMdt(v === 'fire');
+    tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.view === v && (v !== 'mdt' || t.dataset.dept === dept)));
+    if (real !== 'dispatch') openMdt(false); else openMdt(v === 'mdt', dept);
     dispatchEvent(new CustomEvent('viewchange', { detail: real })); };
-  mdtBtn.addEventListener('click', () => { if (document.body.dataset.view !== 'dispatch') setView('dispatch'); openMdt(!document.body.classList.contains('mdt-open')); });
+  const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const ok = !gated() || myDept() === t.dataset.dept; t.classList.toggle('locked', !ok); t.title = ok ? '' : (myDept() ? 'Only for the ' + DEPT_NAME[t.dataset.dept] : 'Set your username in the admin panel'); }); };
+  updateLocks(); addEventListener('me', updateLocks);
+  mdtBtn.addEventListener('click', () => { const d = myDept() || (gated() ? null : 'fd'); if (!d) return canOpen('fd'); if (document.body.dataset.view !== 'dispatch') setView('dispatch'); if (document.body.classList.contains('mdt-open')) openMdt(false); else setView('mdt', d); });
   document.getElementById('mdtClose').addEventListener('click', () => setView('dispatch'));
-  tabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.view) setView(t.dataset.view); else tabs.forEach(x => x.setAttribute('aria-selected', x === t)); }));
+  tabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.view === 'mdt') { if (canOpen(t.dataset.dept)) setView('mdt', t.dataset.dept); } else if (t.dataset.view) setView(t.dataset.view); else tabs.forEach(x => x.setAttribute('aria-selected', x === t)); }));
   document.body.dataset.view = 'dispatch';
 
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -2663,15 +2724,20 @@
 })();
 </script>
 <script>
-/* ── Fire Department MDT ── */
+/* ── Department MDT (one per department: Police, Fire, DOT) ── */
 (() => {
   const UN = () => window.UNITS || [], CALLS = () => window.CALLS || [];
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const $ = id => document.getElementById(id);
-  const me = () => UN().find(u => u.dept === 'fd') || UN()[0];
+  const DEPT = () => window.mdtDept || 'fd';
+  const DEPT_NAME = { pd: 'Police Department', fd: 'Fire Department', dot: 'Department of Transportation' };
+  const myName = () => (window.ME && window.ME.name || '').toLowerCase();
+  const me = () => { const d = DEPT(), n = myName(); return UN().find(u => u.dept === d && n && u.crew.some(c => c.toLowerCase() === n)) || UN().find(u => u.dept === d) || UN()[0]; };
   const STAGES = ['Dispatched', 'En route', 'On scene'];
-  const FD_CODES = new Set(['10-70', '10-50', '10-52', '10-45', '10-53']);
-  const fdCall = c => c.dept === 'fd' || (!c.unit && FD_CODES.has(c.code));
+  const CODES = { fd: new Set(['10-70', '10-50', '10-52', '10-45']), pd: new Set(['10-31', '10-32', '10-80', '10-38', '10-66', '10-91', '10-50']), dot: new Set(['10-53', '10-46']) };
+  const fdCall = c => c.dept === DEPT() || (!c.unit && CODES[DEPT()].has(c.code));
+  const applyDept = () => { const d = DEPT(); const sb = document.querySelector('#mdt .sb-mid'); if (sb) sb.textContent = 'Liberty County ' + DEPT_NAME[d];
+    const u = me(); const id = u ? u.id : ''; for (const el of document.querySelectorAll('#mdt [data-unit]')) el.dataset.unit = id; dispatchEvent(new CustomEvent('rebind')); };
   const fmtAge = s => s < 60 ? 'now' : s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h ${Math.floor(s / 60) % 60}m`;
   const hhmm = t => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
   const toast = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1800); };
@@ -2708,7 +2774,7 @@
     logIt(`Status ${myStatus}`); renderUnit(); renderApp(); toast(`${u?.name} is ${myStatus}`); });
 
   // ── apparatus ──
-  const renderApp = () => { const rows = UN().filter(u => u.dept === 'fd').map(u => { const st = unitStatus[u.name] || (CALLS().some(c => c.unit === u.name) ? '10-6' : '10-8');
+  const renderApp = () => { const rows = UN().filter(u => u.dept === DEPT()).map(u => { const st = unitStatus[u.name] || (CALLS().some(c => c.unit === u.name) ? '10-6' : '10-8');
       return `<div class="app"><div><b>${esc(u.name)}, ${esc(u.model || 'Engine')}</b><small>${esc(u.crew.join(', '))}</small></div><div class="st">${st}</div></div>`; });
     $('fdAppRows').innerHTML = rows.join('') || '<div class="empty">No FD units online.</div>'; $('fdAppCount').textContent = rows.length; };
 
@@ -2771,7 +2837,8 @@
     else if (mine) msg = `On scene at ${mine.where}. Clear the call when finished.`;
     else if (pend.length) { const c = pend.sort((a, b) => a.pri - b.pri)[0]; const d = Math.hypot(u.x - c.x, u.y - c.y) / 1609 * 1.2; msg = `Unassigned P${c.pri} ${c.code} at ${c.where}, ${d.toFixed(1)} mi away.`; }
     $('fdAssistText').textContent = msg; const b = $('tnavCalls'); b.hidden = !pend.length; b.textContent = pend.length; };
-  addEventListener('calls', assist); addEventListener('mdt', e => { if (e.detail) { if (!LOG.length) logIt('Logged on, 10-8'); renderUnit(); renderApp(); renderCalls(); renderReports(); assist(); } });
+  addEventListener('calls', assist); addEventListener('mdt', e => { if (e.detail) { applyDept(); if (!LOG.length) logIt('Logged on, 10-8'); renderUnit(); renderApp(); renderCalls(); renderReports(); assist(); } });
+  addEventListener('units', () => { if (document.body.classList.contains('mdt-open')) { applyDept(); renderUnit(); renderApp(); renderCalls(); } });
   setInterval(() => { if (!document.body.classList.contains('mdt-open')) return; const mu = me(); if (mu && mu.heading != null) { const deg = ((mu.heading * 180 / Math.PI) + 90 + 360) % 360; $('fdHeading').textContent = `${Math.round(deg)}° ${['N','NE','E','SE','S','SW','W','NW'][Math.round(deg / 45) % 8]}`; $('fdPostal').textContent = mu.postal ? 'Postal ' + mu.postal : 'Liberty County'; } const u = me(); if (u) { const s = Math.floor((Date.now() - u.startedAt) / 1000); $('fdDuty').textContent = `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}`; } renderCalls(); }, 5000);
   newReport(); renderReports(); assist();
 })();
@@ -3009,6 +3076,12 @@
     S.cal = [{ name: 'Placed by hand', sx: p.Location.LocationX, sz: p.Location.LocationZ, wx: w[0], wy: w[1] }]; delete S.nudge; save(); placing = false; placeBtn.setAttribute('aria-pressed', false); placeHint.textContent = 'Placed. Everyone is now lined up to that point.';
     fitCal(); renderCal(); applyPositions(); for (const u of units.values()) { u.x = u.tx; u.y = u.ty; } status('Position pinned to where you clicked.', 'ok'); }, true);
 
+  // ── who am I: the player whose username is in the admin panel, with the department their team maps to ──
+  const updateMe = players => { const me = (S.me || '').toLowerCase(); const p = me && (players || []).find(x => x.Player.split(':')[0].toLowerCase() === me);
+    const next = p ? { name: p.Player.split(':')[0], team: p.Team, dept: S.teams[p.Team] || null, callsign: p.Callsign || '' } : null;
+    const same = JSON.stringify(next) === JSON.stringify(window.ME || null); window.ME = next; if (!same) dispatchEvent(new CustomEvent('me', { detail: next })); };
+  F.me.addEventListener('change', () => updateMe(lastPlayers));
+
   // ── status line ──
   const st = $('adStatus');
   const status = (msg, cls = '') => { st.textContent = msg; st.className = 'ad-status ' + cls; };
@@ -3087,7 +3160,7 @@
   // ── polling ──
   const poll = async () => { if (inflight) return; inflight = true;
     try { const { body, rl } = await fetchServer(); lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || [];
-      learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
+      updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
       const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
       status(`Connected to ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok');
       schedule(S.poll * 1000); }
