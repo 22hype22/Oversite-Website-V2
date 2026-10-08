@@ -226,6 +226,8 @@
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
   .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
+  .eff .big .d{color:var(--dim)}
   .eff .big small{font-size:12px;color:var(--dim);margin-left:3px;letter-spacing:0}
   .eff .tgt{font-size:11px;color:var(--faint);margin-top:2px}
   .plot{position:relative;margin-top:8px}
@@ -257,6 +259,8 @@
   .veh .tl{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--faint)}
   .veh .tl .bar2{flex:1;height:2px;margin:0 8px;background:rgba(240,242,245,.1);border-radius:2px;position:relative}
   .veh .tl .bar2::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p,40%);background:#C9CDD3;border-radius:2px}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
+  .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
   .veh .tl .bar2::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22%;background:repeating-linear-gradient(90deg,rgba(240,242,245,.35) 0 3px,transparent 3px 6px)}
@@ -1965,6 +1969,96 @@
   .icons button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
   .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
   @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
+  /* admin panel: server link, departments, map calibration */
+  :root{--adminw:min(400px,calc(100vw - 2*var(--gap)))}
+  .stage{transition:transform .6s cubic-bezier(.32,.72,0,1),opacity .4s,right .36s cubic-bezier(.32,.72,0,1)}
+  body.admin-open .stage{right:calc(var(--adminw) + var(--gap))}
+  body.admin-open .zoomctl,body.admin-open .layers{transition:transform .36s cubic-bezier(.32,.72,0,1)}
+  .admin{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--adminw);z-index:9;
+    background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.28);
+    transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.32,.72,0,1),opacity .2s;overflow-y:auto;scrollbar-width:none;
+    padding:16px 20px 24px;color:var(--ink);font-size:13px;line-height:1.45}
+  .admin::-webkit-scrollbar{display:none}
+  body.admin-open .admin{transform:none;opacity:1;pointer-events:auto}
+  body.mode-3d .admin{background:#141518}
+  .admin header{display:flex;align-items:center;justify-content:space-between;padding:4px 0 12px;border-bottom:1px solid var(--hair)}
+  .admin h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+  .admin header button{font-size:12px;color:var(--dim);padding:6px 10px;border-radius:8px}
+  .admin header button:hover{color:var(--ink);background:rgba(240,242,245,.06)}
+  .admin section{padding:14px 0 6px;border-bottom:1px solid var(--hair)}
+  .admin section:last-child{border-bottom:0}
+  .admin h3{margin:0 0 6px;font-size:13px;font-weight:600}
+  .admin .ad-note{margin:0 0 10px;color:var(--dim);font-size:12px}
+  .admin label{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;color:var(--dim)}
+  .admin label>span{flex:none;min-width:110px}
+  .admin input:not([type=checkbox]),.admin select{flex:1;min-width:0;background:#141518;border:1px solid var(--hair2);border-radius:8px;color:var(--ink);padding:7px 9px;font:inherit;font-size:13px}
+  body:not(.mode-3d) .admin input:not([type=checkbox]),body:not(.mode-3d) .admin select{background:rgba(11,11,12,.6)}
+  .admin input:focus,.admin select:focus{outline:none;border-color:rgba(240,242,245,.4)}
+  .admin input[type=number]{max-width:72px;flex:none}
+  .admin input[type=checkbox]{width:15px;height:15px;accent-color:var(--ink)}
+  .admin .ad-row{display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap}
+  .admin .ad-row label{padding:0;flex:none}
+  .admin .ad-btn{font-size:12.5px;font-weight:500;padding:7px 12px;border-radius:8px;background:rgba(240,242,245,.08);color:var(--ink);border:1px solid var(--hair2)}
+  .admin .ad-btn:hover{background:rgba(240,242,245,.14)} .admin .ad-btn:active{transform:translateY(1px)}
+  .admin .ad-btn.pri{background:var(--ink);color:#0B0B0C;border-color:var(--ink)}
+  .admin .ad-btn[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+  .admin .ad-status{margin:6px 0 2px;padding:9px 11px;border-radius:8px;background:rgba(240,242,245,.05);color:var(--dim);font-size:12px;white-space:pre-line}
+  .admin .ad-status.ok{color:var(--green)} .admin .ad-status.err{color:#F0A0A0}
+  .admin .ad-kv{display:flex;justify-content:space-between;padding:6px 0;color:var(--dim)} .admin .ad-kv b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+  .admin .ad-pts{margin:4px 0}
+  .admin .ad-pt{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--hair);font-size:12px}
+  .admin .ad-pt small{color:var(--dim);font-variant-numeric:tabular-nums} .admin .ad-pt button{color:var(--dim);font-size:12px} .admin .ad-pt button:hover{color:#F0A0A0}
+  .admin .ad-teams{display:grid;grid-template-columns:1fr 110px;gap:6px 10px;align-items:center}
+  .admin .ad-teams span{color:var(--dim)}
+  .admin code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(240,242,245,.08);padding:1px 5px;border-radius:4px}
+  .icons button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
+  .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
+  @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
+  /* admin panel: server link, departments, map calibration */
+  :root{--adminw:min(400px,calc(100vw - 2*var(--gap)))}
+  .stage{transition:transform .6s cubic-bezier(.32,.72,0,1),opacity .4s,right .36s cubic-bezier(.32,.72,0,1)}
+  body.admin-open .stage{right:calc(var(--adminw) + var(--gap))}
+  body.admin-open .zoomctl,body.admin-open .layers{transition:transform .36s cubic-bezier(.32,.72,0,1)}
+  .admin{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--adminw);z-index:9;
+    background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.28);
+    transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.32,.72,0,1),opacity .2s;overflow-y:auto;scrollbar-width:none;
+    padding:16px 20px 24px;color:var(--ink);font-size:13px;line-height:1.45}
+  .admin::-webkit-scrollbar{display:none}
+  body.admin-open .admin{transform:none;opacity:1;pointer-events:auto}
+  body.mode-3d .admin{background:#141518}
+  .admin header{display:flex;align-items:center;justify-content:space-between;padding:4px 0 12px;border-bottom:1px solid var(--hair)}
+  .admin h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+  .admin header button{font-size:12px;color:var(--dim);padding:6px 10px;border-radius:8px}
+  .admin header button:hover{color:var(--ink);background:rgba(240,242,245,.06)}
+  .admin section{padding:14px 0 6px;border-bottom:1px solid var(--hair)}
+  .admin section:last-child{border-bottom:0}
+  .admin h3{margin:0 0 6px;font-size:13px;font-weight:600}
+  .admin .ad-note{margin:0 0 10px;color:var(--dim);font-size:12px}
+  .admin label{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;color:var(--dim)}
+  .admin label>span{flex:none;min-width:110px}
+  .admin input:not([type=checkbox]),.admin select{flex:1;min-width:0;background:#141518;border:1px solid var(--hair2);border-radius:8px;color:var(--ink);padding:7px 9px;font:inherit;font-size:13px}
+  body:not(.mode-3d) .admin input:not([type=checkbox]),body:not(.mode-3d) .admin select{background:rgba(11,11,12,.6)}
+  .admin input:focus,.admin select:focus{outline:none;border-color:rgba(240,242,245,.4)}
+  .admin input[type=number]{max-width:72px;flex:none}
+  .admin input[type=checkbox]{width:15px;height:15px;accent-color:var(--ink)}
+  .admin .ad-row{display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap}
+  .admin .ad-row label{padding:0;flex:none}
+  .admin .ad-btn{font-size:12.5px;font-weight:500;padding:7px 12px;border-radius:8px;background:rgba(240,242,245,.08);color:var(--ink);border:1px solid var(--hair2)}
+  .admin .ad-btn:hover{background:rgba(240,242,245,.14)} .admin .ad-btn:active{transform:translateY(1px)}
+  .admin .ad-btn.pri{background:var(--ink);color:#0B0B0C;border-color:var(--ink)}
+  .admin .ad-btn[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+  .admin .ad-status{margin:6px 0 2px;padding:9px 11px;border-radius:8px;background:rgba(240,242,245,.05);color:var(--dim);font-size:12px;white-space:pre-line}
+  .admin .ad-status.ok{color:var(--green)} .admin .ad-status.err{color:#F0A0A0}
+  .admin .ad-kv{display:flex;justify-content:space-between;padding:6px 0;color:var(--dim)} .admin .ad-kv b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+  .admin .ad-pts{margin:4px 0}
+  .admin .ad-pt{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--hair);font-size:12px}
+  .admin .ad-pt small{color:var(--dim);font-variant-numeric:tabular-nums} .admin .ad-pt button{color:var(--dim);font-size:12px} .admin .ad-pt button:hover{color:#F0A0A0}
+  .admin .ad-teams{display:grid;grid-template-columns:1fr 110px;gap:6px 10px;align-items:center}
+  .admin .ad-teams span{color:var(--dim)}
+  .admin code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(240,242,245,.08);padding:1px 5px;border-radius:4px}
+  .icons button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
+  .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:1px}
+  @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
 </style>
 </head>
 <body>
@@ -2879,7 +2973,8 @@
     <label><span>Server key</span><input type="password" id="adKey" autocomplete="off" spellcheck="false" placeholder="paste the private server key"></label>
     <div class="ad-row" id="adKeyRow" hidden><button type="button" class="ad-btn" id="adKeySave">Save key on the server for everyone</button><span class="ad-note" id="adKeyState" style="margin:0"></span></div>
     <label><span>Relay URL</span><input id="adRelay" autocomplete="off" spellcheck="false" placeholder="optional, blank uses this site's own relay"></label>
-    <label><span>Poll every</span><input type="number" id="adPoll" min="3" max="120" step="1" value="5"><span style="min-width:0">seconds</span></label>
+    <label><span>Fallback poll</span><input type="number" id="adPoll" min="1" max="120" step="1" value="2"><span style="min-width:0">seconds</span></label>
+    <p class="ad-note" id="adPollHint" style="margin:2px 0 8px">Positions stream live from the server as fast as the ER:LC API allows. Polling is only used if the stream drops.</p>
     <div class="ad-row"><button type="button" class="ad-btn" id="adTest">Test connection</button><label><input type="checkbox" id="adLive"> Use live data</label></div>
     <div class="ad-status" id="adStatus">Not connected. Demo units are showing.</div>
   </section>
@@ -2911,7 +3006,7 @@
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const DEPT = { pd: 'PD', fd: 'FD', dot: 'DOT' }, KIND = { pd: 'cruiser', fd: 'engine', dot: 'dot' };
   const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay at /api
-  const DEFAULTS = { key: '', relay: '', poll: HOSTED ? 5 : 10, live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
+  const DEFAULTS = { key: '', relay: '', poll: 2, live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
   const KEY = 'oversite.admin';
   let S = { ...DEFAULTS };
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
@@ -2932,13 +3027,16 @@
   F.key.addEventListener('change', () => { S.key = F.key.value.trim(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
   const keyRow = $('adKeyRow'), keyState = $('adKeyState');
   const keyStatus = async () => { if (!HOSTED) return; try { const j = await (await fetch('/admin/key', { cache: 'no-store' })).json(); keyRow.hidden = false;
-      keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy. Add ERLC_SERVER_KEY in Railway to keep it.') : 'Not saved on the server yet.'; if (j.hasKey && !S.key) start(); } catch (e) {} };
+      keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.') : 'Not saved on the server yet.'; if (j.hasKey && !S.key) start(); if (!j.hasKey && S.key) seedKey(); } catch (e) {} };
+  let seededAt = 0;                                                     // the browser remembers the key, so after a redeploy it quietly hands it back to the server
+  const seedKey = async () => { if (!HOSTED || !S.key || Date.now() - seededAt < 10000) return; seededAt = Date.now();
+    try { const j = await (await fetch('/admin/key', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: S.key }) })).json(); if (j.ok) { keyState.textContent = j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.'; startStream(); } } catch (e) {} };
   $('adKeySave').addEventListener('click', async () => { const k = F.key.value.trim(); if (!k) return status('Paste the key first.', 'err'); keyState.textContent = 'Saving…';
     try { const j = await (await fetch('/admin/key', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: k }) })).json();
-      keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy. Add ERLC_SERVER_KEY in Railway to keep it.') : (j.message || 'Could not save.'); if (j.ok) start(); } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
+      keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy.') : (j.message || 'Could not save.'); if (j.ok) start(); } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
   keyStatus();
   F.relay.addEventListener('change', () => { S.relay = F.relay.value.trim().replace(/\/+$/, ''); F.relay.value = S.relay; save(); });
-  F.poll.addEventListener('change', () => { S.poll = Math.max(3, Math.min(120, +F.poll.value || 5)); F.poll.value = S.poll; save(); });
+  F.poll.addEventListener('change', () => { S.poll = Math.max(1, Math.min(120, +F.poll.value || 2)); F.poll.value = S.poll; save(); });
   F.me.addEventListener('change', () => { S.me = F.me.value.trim(); save(); });
   F.callsignOnly.addEventListener('change', () => { S.callsignOnly = F.callsignOnly.checked; save(); });
   F.live.addEventListener('change', () => { S.live = F.live.checked; save(); S.live ? start() : stop(); });
@@ -3089,25 +3187,43 @@
     const dept = S.teams[c.Team] || 'pd';
     window.addCall?.({ pri: 2, code: '911', type: c.Description || 'Emergency call', where: c.PositionDescriptor || 'Unknown location', unit: '', dept, stage: 0, startedAt: (c.StartedAt || Date.now() / 1000) * 1000, x, y, live: true }); } };
 
-  // ── polling ──
+  // ── live updates: a server-sent stream when the page is served by server.mjs (or a relay), paced polling otherwise ──
+  let lastUpdate = 0, updates = 0, source = '';
+  const ERR = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
+  const handle = (body, rl, src) => { lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src;
+    updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
+    const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
+    status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
+  const paceMs = rl => { let g = S.poll * 1000; const left = +rl?.left, reset = +rl?.reset;         // spend the API window evenly, never the last two requests
+    if (Number.isFinite(left) && Number.isFinite(reset) && reset > 0) { const win = Math.max(0, (reset > 1e12 ? reset : reset * 1000) - Date.now()); g = Math.max(g, left <= 2 ? win + 250 : win / (left - 2)); }
+    return Math.min(120000, Math.max(1000, g)); };
+  const streaming = () => es && es.readyState === 1 && source === 'stream' && Date.now() - lastUpdate < 20000;
   const poll = async () => { if (inflight) return; inflight = true;
-    try { const { body, rl } = await fetchServer(); lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || [];
-      updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
-      const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
-      status(`Connected to ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok');
-      schedule(S.poll * 1000); }
-    catch (e) { status(e.message, 'err'); schedule((e.wait || Math.max(S.poll, 30)) * 1000); }
+    try { if (streaming()) { schedule(20000); return; }
+      const { body, rl } = await fetchServer(); handle(body, rl, 'poll'); schedule(paceMs(rl)); }
+    catch (e) { status(e.message, 'err'); schedule((e.wait || Math.max(S.poll, 15)) * 1000); }
     finally { inflight = false; } };
   const schedule = ms => { clearTimeout(timer); if (S.live) timer = setTimeout(poll, ms); };
-  const start = () => { if (!S.key && !S.relay && !HOSTED) { status('Enter the server key (or a relay URL) first.', 'err'); F.live.checked = S.live = false; save(); return; } clearTimeout(timer); poll(); };
-  const stop = () => { clearTimeout(timer); restoreDemo(); status('Live data off. Demo units are showing.'); };
+  let es = null, esRetry = null, esFails = 0;
+  const canStream = () => (HOSTED || !!S.relay) && 'EventSource' in window;
+  const stopStream = () => { clearTimeout(esRetry); esRetry = null; if (es) { es.close(); es = null; } };
+  const startStream = () => { if (!S.live || !canStream()) return; stopStream(); let got = false;
+    es = new EventSource(`${base()}/stream`);
+    es.addEventListener('server', e => { got = true; esFails = 0; let body; try { body = JSON.parse(e.data); } catch (x) { return; } handle(body, null, 'stream'); schedule(20000); });
+    es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
+      if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }
+      if (j.status === 429) return status(`Rate limited by the API. Resuming in ${j.retry_after || 30}s.`, 'err');
+      status(ERR[j.code] || j.message || `HTTP ${j.status}`, 'err'); });
+    es.onerror = () => { if (es && es.readyState === 2 || !got) { esFails++; stopStream(); schedule(500); esRetry = setTimeout(startStream, Math.min(60000, 3000 * esFails)); } }; };
+  const start = () => { if (!S.key && !S.relay && !HOSTED) { status('Enter the server key (or a relay URL) first.', 'err'); F.live.checked = S.live = false; save(); return; } clearTimeout(timer); startStream(); poll(); };
+  const stop = () => { clearTimeout(timer); stopStream(); restoreDemo(); status('Live data off. Demo units are showing.'); };
   $('adTest').addEventListener('click', async () => { S.key = F.key.value.trim(); S.relay = F.relay.value.trim().replace(/\/+$/, ''); save(); status('Testing…');
     try { const { body, rl } = await fetchServer(); lastPlayers = body.Players || []; status(`OK: ${body.Name}, ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastPlayers.filter(p => p.Callsign).length} with callsigns, ${(body.Vehicles || []).length} vehicles.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : ''), 'ok'); }
     catch (e) { status(e.message, 'err'); } });
 
   renderCal();
   if (S.live) start();
-  window.live = { settings: S, units, toWorld, poll, roadScore, samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
+  window.live = { settings: S, units, toWorld, poll, roadScore, stats: () => ({ lastUpdate, updates, source, streaming: streaming() }), samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
 })();
 </script>
 </body>

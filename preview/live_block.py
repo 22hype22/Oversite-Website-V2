@@ -72,7 +72,8 @@ def admin_html():
     <label><span>Server key</span><input type="password" id="adKey" autocomplete="off" spellcheck="false" placeholder="paste the private server key"></label>
     <div class="ad-row" id="adKeyRow" hidden><button type="button" class="ad-btn" id="adKeySave">Save key on the server for everyone</button><span class="ad-note" id="adKeyState" style="margin:0"></span></div>
     <label><span>Relay URL</span><input id="adRelay" autocomplete="off" spellcheck="false" placeholder="optional, blank uses this site's own relay"></label>
-    <label><span>Poll every</span><input type="number" id="adPoll" min="3" max="120" step="1" value="5"><span style="min-width:0">seconds</span></label>
+    <label><span>Fallback poll</span><input type="number" id="adPoll" min="1" max="120" step="1" value="2"><span style="min-width:0">seconds</span></label>
+    <p class="ad-note" id="adPollHint" style="margin:2px 0 8px">Positions stream live from the server as fast as the ER:LC API allows. Polling is only used if the stream drops.</p>
     <div class="ad-row"><button type="button" class="ad-btn" id="adTest">Test connection</button><label><input type="checkbox" id="adLive"> Use live data</label></div>
     <div class="ad-status" id="adStatus">Not connected. Demo units are showing.</div>
   </section>
@@ -106,7 +107,7 @@ LIVE_JS = r"""<script id="live">
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const DEPT = { pd: 'PD', fd: 'FD', dot: 'DOT' }, KIND = { pd: 'cruiser', fd: 'engine', dot: 'dot' };
   const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay at /api
-  const DEFAULTS = { key: '', relay: '', poll: HOSTED ? 5 : 10, live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
+  const DEFAULTS = { key: '', relay: '', poll: 2, live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
   const KEY = 'oversite.admin';
   let S = { ...DEFAULTS };
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
@@ -127,13 +128,16 @@ LIVE_JS = r"""<script id="live">
   F.key.addEventListener('change', () => { S.key = F.key.value.trim(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
   const keyRow = $('adKeyRow'), keyState = $('adKeyState');
   const keyStatus = async () => { if (!HOSTED) return; try { const j = await (await fetch('/admin/key', { cache: 'no-store' })).json(); keyRow.hidden = false;
-      keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy. Add ERLC_SERVER_KEY in Railway to keep it.') : 'Not saved on the server yet.'; if (j.hasKey && !S.key) start(); } catch (e) {} };
+      keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.') : 'Not saved on the server yet.'; if (j.hasKey && !S.key) start(); if (!j.hasKey && S.key) seedKey(); } catch (e) {} };
+  let seededAt = 0;                                                     // the browser remembers the key, so after a redeploy it quietly hands it back to the server
+  const seedKey = async () => { if (!HOSTED || !S.key || Date.now() - seededAt < 10000) return; seededAt = Date.now();
+    try { const j = await (await fetch('/admin/key', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: S.key }) })).json(); if (j.ok) { keyState.textContent = j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.'; startStream(); } } catch (e) {} };
   $('adKeySave').addEventListener('click', async () => { const k = F.key.value.trim(); if (!k) return status('Paste the key first.', 'err'); keyState.textContent = 'Saving…';
     try { const j = await (await fetch('/admin/key', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: k }) })).json();
-      keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy. Add ERLC_SERVER_KEY in Railway to keep it.') : (j.message || 'Could not save.'); if (j.ok) start(); } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
+      keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy.') : (j.message || 'Could not save.'); if (j.ok) start(); } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
   keyStatus();
   F.relay.addEventListener('change', () => { S.relay = F.relay.value.trim().replace(/\/+$/, ''); F.relay.value = S.relay; save(); });
-  F.poll.addEventListener('change', () => { S.poll = Math.max(3, Math.min(120, +F.poll.value || 5)); F.poll.value = S.poll; save(); });
+  F.poll.addEventListener('change', () => { S.poll = Math.max(1, Math.min(120, +F.poll.value || 2)); F.poll.value = S.poll; save(); });
   F.me.addEventListener('change', () => { S.me = F.me.value.trim(); save(); });
   F.callsignOnly.addEventListener('change', () => { S.callsignOnly = F.callsignOnly.checked; save(); });
   F.live.addEventListener('change', () => { S.live = F.live.checked; save(); S.live ? start() : stop(); });
@@ -284,25 +288,43 @@ LIVE_JS = r"""<script id="live">
     const dept = S.teams[c.Team] || 'pd';
     window.addCall?.({ pri: 2, code: '911', type: c.Description || 'Emergency call', where: c.PositionDescriptor || 'Unknown location', unit: '', dept, stage: 0, startedAt: (c.StartedAt || Date.now() / 1000) * 1000, x, y, live: true }); } };
 
-  // ── polling ──
+  // ── live updates: a server-sent stream when the page is served by server.mjs (or a relay), paced polling otherwise ──
+  let lastUpdate = 0, updates = 0, source = '';
+  const ERR = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
+  const handle = (body, rl, src) => { lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src;
+    updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
+    const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
+    status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
+  const paceMs = rl => { let g = S.poll * 1000; const left = +rl?.left, reset = +rl?.reset;         // spend the API window evenly, never the last two requests
+    if (Number.isFinite(left) && Number.isFinite(reset) && reset > 0) { const win = Math.max(0, (reset > 1e12 ? reset : reset * 1000) - Date.now()); g = Math.max(g, left <= 2 ? win + 250 : win / (left - 2)); }
+    return Math.min(120000, Math.max(1000, g)); };
+  const streaming = () => es && es.readyState === 1 && source === 'stream' && Date.now() - lastUpdate < 20000;
   const poll = async () => { if (inflight) return; inflight = true;
-    try { const { body, rl } = await fetchServer(); lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || [];
-      updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
-      const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
-      status(`Connected to ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok');
-      schedule(S.poll * 1000); }
-    catch (e) { status(e.message, 'err'); schedule((e.wait || Math.max(S.poll, 30)) * 1000); }
+    try { if (streaming()) { schedule(20000); return; }
+      const { body, rl } = await fetchServer(); handle(body, rl, 'poll'); schedule(paceMs(rl)); }
+    catch (e) { status(e.message, 'err'); schedule((e.wait || Math.max(S.poll, 15)) * 1000); }
     finally { inflight = false; } };
   const schedule = ms => { clearTimeout(timer); if (S.live) timer = setTimeout(poll, ms); };
-  const start = () => { if (!S.key && !S.relay && !HOSTED) { status('Enter the server key (or a relay URL) first.', 'err'); F.live.checked = S.live = false; save(); return; } clearTimeout(timer); poll(); };
-  const stop = () => { clearTimeout(timer); restoreDemo(); status('Live data off. Demo units are showing.'); };
+  let es = null, esRetry = null, esFails = 0;
+  const canStream = () => (HOSTED || !!S.relay) && 'EventSource' in window;
+  const stopStream = () => { clearTimeout(esRetry); esRetry = null; if (es) { es.close(); es = null; } };
+  const startStream = () => { if (!S.live || !canStream()) return; stopStream(); let got = false;
+    es = new EventSource(`${base()}/stream`);
+    es.addEventListener('server', e => { got = true; esFails = 0; let body; try { body = JSON.parse(e.data); } catch (x) { return; } handle(body, null, 'stream'); schedule(20000); });
+    es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
+      if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }
+      if (j.status === 429) return status(`Rate limited by the API. Resuming in ${j.retry_after || 30}s.`, 'err');
+      status(ERR[j.code] || j.message || `HTTP ${j.status}`, 'err'); });
+    es.onerror = () => { if (es && es.readyState === 2 || !got) { esFails++; stopStream(); schedule(500); esRetry = setTimeout(startStream, Math.min(60000, 3000 * esFails)); } }; };
+  const start = () => { if (!S.key && !S.relay && !HOSTED) { status('Enter the server key (or a relay URL) first.', 'err'); F.live.checked = S.live = false; save(); return; } clearTimeout(timer); startStream(); poll(); };
+  const stop = () => { clearTimeout(timer); stopStream(); restoreDemo(); status('Live data off. Demo units are showing.'); };
   $('adTest').addEventListener('click', async () => { S.key = F.key.value.trim(); S.relay = F.relay.value.trim().replace(/\/+$/, ''); save(); status('Testing…');
     try { const { body, rl } = await fetchServer(); lastPlayers = body.Players || []; status(`OK: ${body.Name}, ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastPlayers.filter(p => p.Callsign).length} with callsigns, ${(body.Vehicles || []).length} vehicles.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : ''), 'ok'); }
     catch (e) { status(e.message, 'err'); } });
 
   renderCal();
   if (S.live) start();
-  window.live = { settings: S, units, toWorld, poll, roadScore, samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
+  window.live = { settings: S, units, toWorld, poll, roadScore, stats: () => ({ lastUpdate, updates, source, streaming: streaming() }), samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
 })();
 </script>
 """

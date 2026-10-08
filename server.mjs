@@ -2,7 +2,7 @@
 // Oversite web server: serves the dashboard from preview/ and relays /api/v2/server to the ER:LC API.
 // Railway runs `npm start`; set ERLC_SERVER_KEY in the service variables so the key never touches the browser.
 import http from 'node:http';
-import { createReadStream, statSync, existsSync } from 'node:fs';
+import { createReadStream, statSync, existsSync, writeFileSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
@@ -10,25 +10,69 @@ import { readFileSync } from 'node:fs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'preview');
 const PORT = +(process.env.PORT || 8080);
+const KEY_FILE = process.env.KEY_FILE || (existsSync('/data') ? '/data/erlc.key' : join(ROOT, '..', '.erlc.key'));   // Railway volume at /data keeps it across deploys
 let KEY = process.env.ERLC_SERVER_KEY || '';                      // can also be saved from the admin panel (POST /admin/key)
+if (!KEY) { try { KEY = readFileSync(KEY_FILE, 'utf8').trim(); } catch (e) {} }
+const saveKey = k => { try { writeFileSync(KEY_FILE, k + '\n', { mode: 0o600 }); return true; } catch (e) { return false; } };
 const RW = process.env.RAILWAY_TOKEN || '', RW_IDS = { project: process.env.RAILWAY_PROJECT_ID, env: process.env.RAILWAY_ENVIRONMENT_ID, service: process.env.RAILWAY_SERVICE_ID };
 const CODE = (process.env.ACCESS_CODE || '').trim();          // preview lock: digits visitors must enter; empty = site is open
+const CANON = (process.env.CANONICAL_HOST || 'www.oversitescad.com').toLowerCase();   // apex requests are sent here so every visit shares one origin (and one saved key)
 const LOGO = readFileSync(join(ROOT, 'logo.png')).toString('base64');
-const UPSTREAM = 'https://api.erlc.gg', MIN_GAP = 4000;
+const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg', MIN_GAP = 1000;
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.md': 'text/plain; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.woff2': 'font/woff2' };
 const cache = new Map();
+const RL = ['x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset', 'retry-after'];
+const pickRL = h => { const out = {}; for (const k of RL) if (h.get(k)) out[k] = h.get(k); return out; };
+
+// ── live feed: one upstream loop paced by the API's rate-limit headers, fanned out to every open dashboard over server-sent events ──
+const QUERY = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true&JoinLogs=true';
+const IDLE_STOP = 30000;                                            // keep polling this long after the last dashboard closes
+const feed = { snap: null, clients: new Set(), timer: null, busy: false, lastClient: 0, nextAt: 0 };
+const NOKEY = '{"code":2000,"message":"No server key: set ERLC_SERVER_KEY on the server or enter it in the admin panel"}';
+const bcast = (ev, data) => { const msg = `event: ${ev}\ndata: ${data}\n\n`; for (const c of feed.clients) c.write(msg); };
+const pace = (h, status) => {                                       // ms until the next upstream request: spend the window evenly, never the last two requests
+  if (status === 429) return Math.max(MIN_GAP, (+h['retry-after'] || 30) * 1000);
+  const left = +h['x-ratelimit-remaining'], reset = +h['x-ratelimit-reset'];
+  if (!Number.isFinite(left) || !Number.isFinite(reset) || reset <= 0) return 2000;
+  const win = Math.max(0, (reset > 1e12 ? reset : reset * 1000) - Date.now());
+  if (left <= 2) return Math.max(MIN_GAP, win + 250);
+  return Math.min(15000, Math.max(MIN_GAP, win / (left - 2)));
+};
+const tick = async () => {
+  feed.timer = null;
+  if (!feed.clients.size && Date.now() - feed.lastClient > IDLE_STOP) return;
+  if (!KEY) { bcast('err', NOKEY); feed.timer = setTimeout(tick, 3000); return; }
+  feed.busy = true; let gap = 2000;
+  try {
+    const up = await fetch(UPSTREAM + QUERY, { headers: { 'server-key': KEY } }); const body = await up.text(); const headers = pickRL(up.headers);
+    gap = pace(headers, up.status);
+    if (up.ok) { feed.snap = { t: Date.now(), status: up.status, body, headers }; cache.set(QUERY, feed.snap); bcast('server', body); }
+    else { let j = {}; try { j = JSON.parse(body); } catch (e) {} bcast('err', JSON.stringify({ status: up.status, retry_after: +headers['retry-after'] || undefined, ...j })); }
+  } catch (e) { bcast('err', JSON.stringify({ status: 502, message: 'relay could not reach api.erlc.gg: ' + e.message })); gap = 5000; }
+  feed.busy = false; feed.nextAt = Date.now() + gap; feed.timer = setTimeout(tick, gap);
+};
+const wake = () => { if (!feed.timer && !feed.busy) feed.timer = setTimeout(tick, Math.max(0, feed.nextAt - Date.now())); };
+const stream = (req, res) => {
+  res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
+  res.write('retry: 2000\n\n');
+  if (feed.snap && Date.now() - feed.snap.t < 10000) res.write(`event: server\ndata: ${feed.snap.body}\n\n`); else if (!KEY) res.write(`event: err\ndata: ${NOKEY}\n\n`);
+  feed.clients.add(res); feed.lastClient = Date.now();
+  const ka = setInterval(() => res.write(': ping\n\n'), 15000);
+  req.on('close', () => { clearInterval(ka); feed.clients.delete(res); feed.lastClient = Date.now(); });
+  wake();
+};
 
 const relay = async (req, res) => {
-  res.setHeader('access-control-expose-headers', 'x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset, retry-after');
+  res.setHeader('access-control-expose-headers', RL.join(', '));
   const path = req.url.replace(/^\/api/, '');
+  if (req.method === 'GET' && path === '/stream') return stream(req, res);
   if (req.method !== 'GET' || !path.startsWith('/v2/server')) { res.writeHead(404, { 'content-type': 'application/json' }); return res.end('{"message":"only GET /api/v2/server... is relayed"}'); }
   const key = KEY || req.headers['server-key'];
-  if (!key) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"code":2000,"message":"No server key: set ERLC_SERVER_KEY on the server or enter it in the admin panel"}'); }
-  const hit = cache.get(path); if (hit && Date.now() - hit.t < MIN_GAP) return send(res, hit);
+  if (!key) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end(NOKEY); }
+  const hit = cache.get(path); if (hit && Date.now() - hit.t < (feed.clients.size ? 5000 : MIN_GAP)) return send(res, hit);   // the feed loop keeps the snapshot fresh
   try {
-    const up = await fetch(UPSTREAM + path, { headers: { 'server-key': key } }); const body = await up.text();
-    const headers = {}; for (const h of ['x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset', 'retry-after']) if (up.headers.get(h)) headers[h] = up.headers.get(h);
-    const out = { t: Date.now(), status: up.status, body, headers }; if (up.ok) cache.set(path, out); send(res, out);
+    const up = await fetch(UPSTREAM + path, { headers: { 'server-key': key } }); const body = await up.text(); const headers = pickRL(up.headers);
+    const out = { t: Date.now(), status: up.status, body, headers }; if (up.ok) cache.set(path, out); if (key === KEY) feed.nextAt = Math.max(feed.nextAt, Date.now() + pace(headers, up.status)); send(res, out);
   } catch (e) { res.writeHead(502, { 'content-type': 'application/json' }); res.end(JSON.stringify({ message: 'relay could not reach api.erlc.gg: ' + e.message })); }
 };
 const send = (res, r) => { res.writeHead(r.status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...r.headers }); res.end(r.body); };
@@ -97,10 +141,10 @@ const gate = (req, res, next) => {
   const [path, qs] = req.url.split('?');
   if (path === '/health' || path === '/liberty-county.jpg') return next();           // the lock page shows the map behind it
   if (path === '/admin/key' && hasAccess(req)) {                                      // save the ER:LC key on the server so every browser gets live data
-    if (req.method === 'GET') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify({ hasKey: !!KEY, persistent: !!(RW && RW_IDS.project) })); }
+    if (req.method === 'GET') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify({ hasKey: !!KEY, persistent: !!process.env.ERLC_SERVER_KEY || existsSync(KEY_FILE) })); }
     if (req.method === 'POST') { let body = ''; req.on('data', c => { body += c; if (body.length > 1e4) req.destroy(); }); req.on('end', async () => {
       let k = ''; try { k = String(JSON.parse(body || '{}').key || '').trim(); } catch (e) {} if (!/^[A-Za-z0-9_\-]{8,200}$/.test(k)) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"message":"that does not look like a server key"}'); }
-      KEY = k; cache.clear(); let saved = false, err = '';
+      const changed = k !== KEY; KEY = k; cache.clear(); feed.snap = null; let saved = saveKey(k), err = ''; if (changed) { feed.nextAt = 0; wake(); }
       if (RW && RW_IDS.project) { try { const r = await fetch('https://backboard.railway.app/graphql/v2', { method: 'POST', headers: { 'Project-Access-Token': RW, 'content-type': 'application/json' },
           body: JSON.stringify({ query: 'mutation($i: VariableUpsertInput!) { variableUpsert(input: $i) }', variables: { i: { projectId: RW_IDS.project, environmentId: RW_IDS.env, serviceId: RW_IDS.service, name: 'ERLC_SERVER_KEY', value: k } } }) });
           const j = await r.json(); saved = !!(j.data && j.data.variableUpsert); if (!saved) err = JSON.stringify(j.errors || j).slice(0, 200); } catch (e) { err = e.message; } }
@@ -113,5 +157,8 @@ const gate = (req, res, next) => {
   res.writeHead(401, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end(lockPage());
 };
 
-http.createServer((req, res) => gate(req, res, () => (req.url.startsWith('/api/') ? relay(req, res) : serve(req, res))))
-  .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${KEY ? 'server key from env' : 'no server key set, the dashboard must supply one'}; ${CODE ? 'preview lock on' : 'no access code, site is open'})`));
+http.createServer((req, res) => {
+  const host = (req.headers.host || '').toLowerCase().replace(/:\d+$/, '');
+  if (CANON.startsWith('www.') && host === CANON.slice(4)) { res.writeHead(301, { location: `https://${CANON}${req.url}`, 'cache-control': 'no-store' }); return res.end(); }
+  gate(req, res, () => (req.url.startsWith('/api/') ? relay(req, res) : serve(req, res))); })
+  .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${process.env.ERLC_SERVER_KEY ? 'server key from env' : KEY ? 'server key from ' + KEY_FILE : 'no server key set, the dashboard must supply one'}; ${CODE ? 'preview lock on' : 'no access code, site is open'})`));
