@@ -45,9 +45,9 @@ const NOKEY = '{"code":2000,"message":"No server key: set ERLC_SERVER_KEY on the
 const bcast = (ev, data, id) => { const msg = `event: ${ev}\n${id ? `id: ${id}\n` : ''}data: ${data}\n\n`; for (const c of feed.clients) c.write(msg); };
 // time between requests: spread what the rate limit has left evenly until it resets, keep 3 in reserve, and count requests still in flight
 const pace = () => { let g = 700; const h = feed.rl;
-  if (h && Number.isFinite(h.left) && Number.isFinite(h.reset) && h.reset > 0) { const left = h.left - feed.inflight, win = Math.max(0, (h.reset > 1e12 ? h.reset : h.reset * 1000) - Date.now()) + 300; g = left <= 3 ? win : win / (left - 3); }
-  const floor = Date.now() < feed.penaltyUntil ? FLOOR * 3 : FLOOR;   // after a 429, stay well clear for five minutes
-  return Math.min(15000, Math.max(floor, g)); };
+  const keep = Date.now() < feed.penaltyUntil ? 10 : 4;               // requests kept in reserve; more for a few minutes after a 429
+  if (h && Number.isFinite(h.left) && Number.isFinite(h.reset) && h.reset > 0) { const left = h.left - feed.inflight, win = Math.max(0, (h.reset > 1e12 ? h.reset : h.reset * 1000) - Date.now()) + 300; g = left <= keep ? win : win / (left - keep); }
+  return Math.min(15000, Math.max(FLOOR, g)); };
 const takeRL = (headers, seq) => { if (seq < feed.rlSeq) return; feed.rlSeq = seq; feed.rl = { left: +headers['x-ratelimit-remaining'], reset: +headers['x-ratelimit-reset'] }; };
 // requests go out on a steady beat (up to two in flight) instead of waiting for each answer: the API takes 0.4 to 0.8 s to reply
 const tick = async () => {
@@ -63,7 +63,7 @@ const tick = async () => {
     const up = await fetch(UPSTREAM + (full ? QUERY : QUERY_FAST), { headers: { 'server-key': KEY } }); const body = await up.text(); const headers = pickRL(up.headers);
     const taken = Math.round((now + Date.now()) / 2);                  // best guess at when the API read the positions: halfway through the request
     takeRL(headers, seq);
-    if (up.status === 429) { feed.holdUntil = Date.now() + (+headers['retry-after'] || 30) * 1000; feed.penaltyUntil = Date.now() + 300000;
+    if (up.status === 429) { feed.holdUntil = Date.now() + Math.max(1, +headers['retry-after'] || 30) * 1000; feed.penaltyUntil = Date.now() + 180000; feed.n429 = (feed.n429 || 0) + 1;
       bcast('err', JSON.stringify({ status: 429, retry_after: +headers['retry-after'] || 30 })); }
     else if (up.ok) { if (seq > feed.shown) { feed.shown = seq; let out = body;                       // an older answer arriving late is dropped
         if (full) { try { feed.joins = JSON.parse(body).JoinLogs || []; } catch (e) {} }
@@ -108,7 +108,7 @@ const send = (res, r) => { res.writeHead(r.status, { 'content-type': 'applicatio
 const serve = (req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/' || url === '/index.html') url = '/live-map-3d.html';
-  if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${feed.sent.length}/min ${feed.rl ? feed.rl.left + ' left' : ''}`); }
+  if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${feed.sent.length}/min ${feed.rl ? feed.rl.left + ' left' : ''} ${feed.n429 || 0} limited`); }
   const file = normalize(join(ROOT, url));
   if (!file.startsWith(ROOT) || !existsSync(file) || !statSync(file).isFile()) { res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('Not found'); }
   const ext = extname(file).toLowerCase();
