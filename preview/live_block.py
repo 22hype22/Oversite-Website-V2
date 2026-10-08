@@ -72,8 +72,6 @@ def admin_html():
     <label><span>Server key</span><input type="password" id="adKey" autocomplete="off" spellcheck="false" placeholder="paste the private server key"></label>
     <div class="ad-row" id="adKeyRow" hidden><button type="button" class="ad-btn" id="adKeySave">Save key on the server for everyone</button><span class="ad-note" id="adKeyState" style="margin:0"></span></div>
     <label><span>Relay URL</span><input id="adRelay" autocomplete="off" spellcheck="false" placeholder="optional, blank uses this site's own relay"></label>
-    <label><span>Fallback poll</span><input type="number" id="adPoll" min="1" max="120" step="1" value="2"><span style="min-width:0">seconds</span></label>
-    <p class="ad-note" id="adPollHint" style="margin:2px 0 8px">Positions stream live from the server as fast as the ER:LC API allows. Polling is only used if the stream drops.</p>
     <div class="ad-row"><button type="button" class="ad-btn" id="adTest">Test connection</button><label><input type="checkbox" id="adLive"> Use live data</label></div>
     <div class="ad-status" id="adStatus">Not connected. Demo units are showing.</div>
   </section>
@@ -107,7 +105,7 @@ LIVE_JS = r"""<script id="live">
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const DEPT = { pd: 'PD', fd: 'FD', dot: 'DOT' }, KIND = { pd: 'cruiser', fd: 'engine', dot: 'dot' };
   const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay at /api
-  const DEFAULTS = { key: '', relay: '', poll: 2, live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
+  const DEFAULTS = { key: '', relay: '', live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
   const KEY = 'oversite.admin';
   let S = { ...DEFAULTS };
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
@@ -121,8 +119,8 @@ LIVE_JS = r"""<script id="live">
   addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('admin-open')) setOpen(false); });
 
   // ── fields ──
-  const F = { key: $('adKey'), relay: $('adRelay'), poll: $('adPoll'), live: $('adLive'), me: $('adMe'), callsignOnly: $('adCallsignOnly') };
-  F.key.value = S.key; F.relay.value = S.relay; F.poll.value = S.poll; F.live.checked = S.live; F.me.value = S.me; F.callsignOnly.checked = S.callsignOnly;
+  const F = { key: $('adKey'), relay: $('adRelay'), live: $('adLive'), me: $('adMe'), callsignOnly: $('adCallsignOnly') };
+  F.key.value = S.key; F.relay.value = S.relay; F.live.checked = S.live; F.me.value = S.me; F.callsignOnly.checked = S.callsignOnly;
   for (const sel of document.querySelectorAll('#adTeams select')) { sel.value = S.teams[sel.dataset.team] ?? ''; sel.addEventListener('change', () => { S.teams[sel.dataset.team] = sel.value; save(); }); }
   F.key.addEventListener('input', () => { S.key = F.key.value.trim(); save(); });
   F.key.addEventListener('change', () => { S.key = F.key.value.trim(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
@@ -137,7 +135,6 @@ LIVE_JS = r"""<script id="live">
       keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy.') : (j.message || 'Could not save.'); if (j.ok) start(); } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
   keyStatus();
   F.relay.addEventListener('change', () => { S.relay = F.relay.value.trim().replace(/\/+$/, ''); F.relay.value = S.relay; save(); });
-  F.poll.addEventListener('change', () => { S.poll = Math.max(1, Math.min(120, +F.poll.value || 2)); F.poll.value = S.poll; save(); });
   F.me.addEventListener('change', () => { S.me = F.me.value.trim(); save(); });
   F.callsignOnly.addEventListener('change', () => { S.callsignOnly = F.callsignOnly.checked; save(); });
   F.live.addEventListener('change', () => { S.live = F.live.checked; save(); S.live ? start() : stop(); });
@@ -248,12 +245,14 @@ LIVE_JS = r"""<script id="live">
     for (const g of groups.values()) { ids.add(g.id); let u = units.get(g.id);
       const veh = vehicles.find(v => g.members.some(m => m.name === v.Owner));
       const [wx, wy] = g.loc ? toWorld(g.loc.LocationX, g.loc.LocationZ) : [1000, 1000];
-      if (!u) { u = { id: g.id, live: true, dept: g.dept, kind: KIND[g.dept], route: 'B', t: 0, dir: 1, speed: 0, x: wx, y: wy, tx: wx, ty: wy, heading: 0, th: 0, mph: 0, sx: g.loc?.LocationX, sz: g.loc?.LocationZ, seen: now,
+      if (!u) { u = { id: g.id, live: true, dept: g.dept, kind: KIND[g.dept], route: 'B', t: 0, dir: 1, speed: 0, x: wx, y: wy, tx: wx, ty: wy, lx: wx, ly: wy, heading: 0, th: 0, mph: 0, sx: g.loc?.LocationX, sz: g.loc?.LocationZ, seen: now,
           startedAt: Math.min(...g.members.map(m => m.join || now)) }; units.set(g.id, u); }
       else if (g.loc) { const dt = (now - u.seen) / 1000, dx = g.loc.LocationX - (u.sx ?? g.loc.LocationX), dz = g.loc.LocationZ - (u.sz ?? g.loc.LocationZ);
-        if (Math.hypot(dx, dz) > 0.5) u.th = Math.atan2(dz, dx); u.mph = Math.round(Math.min(160, mph(dx, dz, dt))); u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ;
-        if (dt > 0.5 && dt < 60) { u.vx = (wx - u.tx) / dt; u.vy = (wy - u.ty) / dt; const sp = Math.hypot(u.vx, u.vy); if (sp > 60) { u.vx *= 60 / sp; u.vy *= 60 / sp; } } else { u.vx = u.vy = 0; }
-        u.tx = wx; u.ty = wy; u.seen = now; }
+        if (Math.hypot(dx, dz) > 0.5) {                                   // a new fix: aim at it and carry the speed forward until the next one
+          u.th = Math.atan2(dz, dx); u.mph = Math.round(Math.min(160, mph(dx, dz, dt))); u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ;
+          if (dt > 0.2 && dt < 60) { u.vx = (wx - u.lx) / dt; u.vy = (wy - u.ly) / dt; const sp = Math.hypot(u.vx, u.vy); if (sp > 60) { u.vx *= 60 / sp; u.vy *= 60 / sp; } } else { u.vx = u.vy = 0; }
+          u.tx = wx; u.ty = wy; u.lx = wx; u.ly = wy; u.gap = dt; u.seen = now; }
+        else if (now - u.seen > Math.max(2500, 2.5 * (u.gap || 1) * 1000)) { u.vx = u.vy = 0; u.mph = 0; u.tx = wx; u.ty = wy; } }   // same fix for a while: they have stopped
       u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
       u.uid = g.pid; u.model = veh ? veh.Name : 'On foot'; u.postal = g.loc?.PostalCode || ''; u.street = g.loc?.StreetName || ''; }
     for (const id of [...units.keys()]) if (!ids.has(id)) units.delete(id);
@@ -295,14 +294,14 @@ LIVE_JS = r"""<script id="live">
     updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
     const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
     status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
-  const paceMs = rl => { let g = S.poll * 1000; const left = +rl?.left, reset = +rl?.reset;         // spend the API window evenly, never the last two requests
+  const paceMs = rl => { let g = 1500; const left = +rl?.left, reset = +rl?.reset;              // spend the API window evenly, never the last two requests
     if (Number.isFinite(left) && Number.isFinite(reset) && reset > 0) { const win = Math.max(0, (reset > 1e12 ? reset : reset * 1000) - Date.now()); g = Math.max(g, left <= 2 ? win + 250 : win / (left - 2)); }
     return Math.min(120000, Math.max(1000, g)); };
   const streaming = () => es && es.readyState === 1 && source === 'stream' && Date.now() - lastUpdate < 20000;
   const poll = async () => { if (inflight) return; inflight = true;
     try { if (streaming()) { schedule(20000); return; }
       const { body, rl } = await fetchServer(); handle(body, rl, 'poll'); schedule(paceMs(rl)); }
-    catch (e) { status(e.message, 'err'); schedule((e.wait || Math.max(S.poll, 15)) * 1000); }
+    catch (e) { status(e.message, 'err'); schedule((e.wait || 15) * 1000); }
     finally { inflight = false; } };
   const schedule = ms => { clearTimeout(timer); if (S.live) timer = setTimeout(poll, ms); };
   let es = null, esRetry = null, esFails = 0;

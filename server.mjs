@@ -18,7 +18,7 @@ const RW = process.env.RAILWAY_TOKEN || '', RW_IDS = { project: process.env.RAIL
 const CODE = (process.env.ACCESS_CODE || '').trim();          // preview lock: digits visitors must enter; empty = site is open
 const CANON = (process.env.CANONICAL_HOST || 'www.oversitescad.com').toLowerCase();   // apex requests are sent here so every visit shares one origin (and one saved key)
 const LOGO = readFileSync(join(ROOT, 'logo.png')).toString('base64');
-const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg', MIN_GAP = 1000;
+const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg', MIN_GAP = 600;   // fastest the feed will ever ask the API, whatever the headers say
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.md': 'text/plain; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.woff2': 'font/woff2' };
 const cache = new Map();
 const RL = ['x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset', 'retry-after'];

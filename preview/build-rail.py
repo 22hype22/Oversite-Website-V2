@@ -212,7 +212,7 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   const loop = (ts) => {
     const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
     for (const u of units) { if (u.live) { if (u.vx || u.vy) { u.tx += u.vx * dt; u.ty += u.vy * dt; const f = Math.exp(-dt / 6); u.vx *= f; u.vy *= f; }   // dead-reckon between polls, fading out
-        const k = 1 - Math.exp(-dt * 1.5); u.x += (u.tx - u.x) * k; u.y += (u.ty - u.y) * k; let d = u.th - u.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); u.heading += d * k; continue; }
+        const k = 1 - Math.exp(-dt * 4); u.x += (u.tx - u.x) * k; u.y += (u.ty - u.y) * k; let d = u.th - u.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); u.heading += d * k; continue; }
       if (u.task) { const T = u.task; let left = T.mps * dt;
         while (left > 0 && T.i < T.path.length - 1) { const [bx, by] = T.path[T.i + 1], d = Math.hypot(bx - u.x, by - u.y); if (d <= left) { u.x = bx; u.y = by; T.i++; left -= d; } else { u.x += (bx - u.x) / d * left; u.y += (by - u.y) / d * left; left = 0; } }
         const nx = T.path[Math.min(T.i + 1, T.path.length - 1)]; if (Math.hypot(nx[0] - u.x, nx[1] - u.y) > 0.5) u.heading = Math.atan2(nx[1] - u.y, nx[0] - u.x);
