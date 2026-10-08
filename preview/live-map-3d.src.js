@@ -316,6 +316,7 @@ const frame = () => {
   if (incRing.visible) { const q = (now % 1.6) / 1.6; incRing.scale.setScalar(0.5 + q * 1.4); incRing.material.opacity = 0.8 * (1 - q); }
   if (flight) { const k = Math.min(1, (performance.now() - flight.t0) / flight.ms), e = 1 - Math.pow(1 - k, 3); controls.target.lerpVectors(flight.T0, flight.T, e); camera.position.lerpVectors(flight.P0, flight.P, e); if (k >= 1) flight = null; }
   else if (follow) controls.target.lerp(new THREE.Vector3(hp.x, 0, hp.z), 0.06);
+  controls.target.x = Math.max(-100, Math.min(W + 100, controls.target.x)); controls.target.z = Math.max(-100, Math.min(W + 100, controls.target.z));   // never orbit away from the map
   controls.update(); projectTip(hp);
   renderer.render(scene, camera);
 };

@@ -69,6 +69,7 @@ def admin_html():
     <h3>Server link</h3>
     <p class="ad-note">The key stays in this browser. It is only sent to this site's relay (or to <code>api.erlc.gg</code> when opened as a file). If the server already has a key set, leave this empty. Get it in game under Settings, ER:LC API.</p>
     <label><span>Server key</span><input type="password" id="adKey" autocomplete="off" spellcheck="false" placeholder="paste the private server key"></label>
+    <div class="ad-row" id="adKeyRow" hidden><button type="button" class="ad-btn" id="adKeySave">Save key on the server for everyone</button><span class="ad-note" id="adKeyState" style="margin:0"></span></div>
     <label><span>Relay URL</span><input id="adRelay" autocomplete="off" spellcheck="false" placeholder="optional, blank uses this site's own relay"></label>
     <label><span>Poll every</span><input type="number" id="adPoll" min="3" max="120" step="1" value="5"><span style="min-width:0">seconds</span></label>
     <div class="ad-row"><button type="button" class="ad-btn" id="adTest">Test connection</button><label><input type="checkbox" id="adLive"> Use live data</label></div>
@@ -82,11 +83,13 @@ def admin_html():
   </section>
   <section>
     <h3>Map calibration</h3>
-    <p class="ad-note">The API reports positions in studs. Stand on a landmark, pick it below, press "I'm here". One point lines the map up, two or more fix the scale.</p>
+    <p class="ad-note">Positions are lined up automatically from the postal codes players report. Standing on a landmark and pressing "I'm here" makes it exact.</p>
+    <div class="ad-kv"><span>Auto-calibration</span><b id="adAuto">waiting for players</b></div>
+    <div class="ad-kv"><span>You</span><b id="adYou">not seen yet</b></div>
     <label><span>Your username</span><input id="adMe" autocomplete="off" spellcheck="false" placeholder="Roblox username"></label>
     <div class="ad-row"><select id="adLandmark">{opts}</select><button type="button" class="ad-btn pri" id="adHere">I'm here</button></div>
     <div class="ad-pts" id="adPoints"></div>
-    <div class="ad-kv"><span>Studs per map unit</span><b id="adScale">6.00 (default)</b></div>
+    <div class="ad-kv"><span>Studs per map unit</span><b id="adScale">3.50 (default)</b></div>
     <div class="ad-kv"><span>Map centre offset</span><b id="adOffset">0, 0</b></div>
     <div class="ad-row"><button type="button" class="ad-btn" id="adClearCal">Clear calibration</button></div>
   </section>
@@ -118,7 +121,15 @@ LIVE_JS = r"""<script id="live">
   const F = { key: $('adKey'), relay: $('adRelay'), poll: $('adPoll'), live: $('adLive'), me: $('adMe'), callsignOnly: $('adCallsignOnly') };
   F.key.value = S.key; F.relay.value = S.relay; F.poll.value = S.poll; F.live.checked = S.live; F.me.value = S.me; F.callsignOnly.checked = S.callsignOnly;
   for (const sel of document.querySelectorAll('#adTeams select')) { sel.value = S.teams[sel.dataset.team] ?? ''; sel.addEventListener('change', () => { S.teams[sel.dataset.team] = sel.value; save(); }); }
+  F.key.addEventListener('input', () => { S.key = F.key.value.trim(); save(); });
   F.key.addEventListener('change', () => { S.key = F.key.value.trim(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
+  const keyRow = $('adKeyRow'), keyState = $('adKeyState');
+  const keyStatus = async () => { if (!HOSTED) return; try { const j = await (await fetch('/admin/key', { cache: 'no-store' })).json(); keyRow.hidden = false;
+      keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy. Add ERLC_SERVER_KEY in Railway to keep it.') : 'Not saved on the server yet.'; if (j.hasKey && !S.key) start(); } catch (e) {} };
+  $('adKeySave').addEventListener('click', async () => { const k = F.key.value.trim(); if (!k) return status('Paste the key first.', 'err'); keyState.textContent = 'Saving…';
+    try { const j = await (await fetch('/admin/key', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: k }) })).json();
+      keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy. Add ERLC_SERVER_KEY in Railway to keep it.') : (j.message || 'Could not save.'); if (j.ok) start(); } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
+  keyStatus();
   F.relay.addEventListener('change', () => { S.relay = F.relay.value.trim().replace(/\/+$/, ''); F.relay.value = S.relay; save(); });
   F.poll.addEventListener('change', () => { S.poll = Math.max(3, Math.min(120, +F.poll.value || 5)); F.poll.value = S.poll; save(); });
   F.me.addEventListener('change', () => { S.me = F.me.value.trim(); save(); });
@@ -128,19 +139,30 @@ LIVE_JS = r"""<script id="live">
   // ── calibration: studs -> world units (0..2000) ──
   const DEF_A = 1 / 3.5, DEF_B = 1000;
   let cal = { a: DEF_A, bx: DEF_B, bz: DEF_B };
-  const fitCal = () => { const P = S.cal; if (!P.length) { cal = { a: DEF_A, bx: DEF_B, bz: DEF_B }; return; }
-    if (P.length === 1) { const p = P[0]; cal = { a: DEF_A, bx: p.wx - p.sx * DEF_A, bz: p.wy - p.sz * DEF_A }; return; }
-    const mx = P.reduce((s, p) => s + p.sx, 0) / P.length, mz = P.reduce((s, p) => s + p.sz, 0) / P.length, mwx = P.reduce((s, p) => s + p.wx, 0) / P.length, mwy = P.reduce((s, p) => s + p.wy, 0) / P.length;
-    let num = 0, den = 0; for (const p of P) { num += (p.sx - mx) * (p.wx - mwx) + (p.sz - mz) * (p.wy - mwy); den += (p.sx - mx) ** 2 + (p.sz - mz) ** 2; }
-    const a = den > 1e-6 ? num / den : DEF_A; cal = { a, bx: mwx - a * mx, bz: mwy - a * mz }; };
-  const toWorld = (sx, sz) => [cal.a * sx + cal.bx, cal.a * sz + cal.bz];
+  const POSTALS = __POSTALS__;                                           // postal code -> map centre, read off the official postal map
+  S.auto = S.auto || {};                                                 // postal -> running mean of reported stud coords
+  const pairs = () => { const out = S.cal.map(p => ({ ...p, w: 4 }));
+    for (const [code, a] of Object.entries(S.auto)) { const c = POSTALS[code]; if (c && a.n) out.push({ sx: a.sx, sz: a.sz, wx: c[0], wy: c[1], w: Math.min(1, a.n / 3) }); } return out; };
+  const fitCal = () => { const P = pairs(); const W = P.reduce((t, p) => t + p.w, 0); if (!P.length) { cal = { a: DEF_A, bx: DEF_B, bz: DEF_B }; return; }
+    const mx = P.reduce((t, p) => t + p.w * p.sx, 0) / W, mz = P.reduce((t, p) => t + p.w * p.sz, 0) / W, mwx = P.reduce((t, p) => t + p.w * p.wx, 0) / W, mwy = P.reduce((t, p) => t + p.w * p.wy, 0) / W;
+    let num = 0, den = 0; for (const p of P) { num += p.w * ((p.sx - mx) * (p.wx - mwx) + (p.sz - mz) * (p.wy - mwy)); den += p.w * ((p.sx - mx) ** 2 + (p.sz - mz) ** 2); }
+    const spread = Math.sqrt(den / W);                                   // studs: need points far enough apart to trust the scale
+    let a = spread > 400 && den > 1e-6 ? num / den : DEF_A; if (!(a > 1 / 20 && a < 1)) a = DEF_A;
+    cal = { a, bx: mwx - a * mx, bz: mwy - a * mz }; };
+  const learnPostals = players => { let changed = false; for (const p of players) { const code = String(p.Location?.PostalCode || '').trim(); if (!code || !POSTALS[code] || !p.Location) continue;
+      const a = S.auto[code] || { sx: 0, sz: 0, n: 0 }; const n = Math.min(a.n + 1, 20); a.sx += (p.Location.LocationX - a.sx) / n; a.sz += (p.Location.LocationZ - a.sz) / n; a.n = n; S.auto[code] = a; changed = true; }
+    if (changed) { save(); fitCal(); renderCal(); } };
+  const toWorld = (sx, sz) => [Math.max(-40, Math.min(2040, cal.a * sx + cal.bx)), Math.max(-40, Math.min(2040, cal.a * sz + cal.bz))];
   const renderCal = () => { fitCal();
-    $('adScale').textContent = S.cal.length >= 2 ? (1 / cal.a).toFixed(2) : `${(1 / DEF_A).toFixed(2)} (default)`;
+    const n = Object.keys(S.auto).length; $('adAuto').textContent = n ? `${n} postal area${n === 1 ? '' : 's'} seen` : 'waiting for players';
+    $('adScale').textContent = Math.abs(cal.a - DEF_A) > 1e-9 ? (1 / cal.a).toFixed(2) : `${(1 / DEF_A).toFixed(2)} (default)`;
+    const me = (S.me || '').toLowerCase(), mp = me && (lastPlayers || []).find(x => x.Player.split(':')[0].toLowerCase() === me);
+    $('adYou').textContent = mp && mp.Location ? (() => { const [x, y] = toWorld(mp.Location.LocationX, mp.Location.LocationZ); const onMap = x >= 0 && x <= 2000 && y >= 0 && y <= 2000; return `${mp.Location.LocationX.toFixed(0)}, ${mp.Location.LocationZ.toFixed(0)} studs, postal ${mp.Location.PostalCode || '?'} → map ${x.toFixed(0)}, ${y.toFixed(0)}${onMap ? '' : ' (off the map, calibrate)'}`; })() : (me ? 'not in the player list' : 'enter your username');
     $('adOffset').textContent = `${Math.round(cal.bx - DEF_B)}, ${Math.round(cal.bz - DEF_B)}`;
     $('adPoints').innerHTML = S.cal.map((p, i) => `<div class="ad-pt"><span>${esc(p.name)}</span><small>${p.sx.toFixed(0)}, ${p.sz.toFixed(0)} studs</small><button type="button" data-rm="${i}">Remove</button></div>`).join('') || '<div class="ad-note">No points yet.</div>';
     if (lastUnits) applyPositions(); };
   $('adPoints').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (!b) return; S.cal.splice(+b.dataset.rm, 1); save(); renderCal(); });
-  $('adClearCal').addEventListener('click', () => { S.cal = []; save(); renderCal(); });
+  $('adClearCal').addEventListener('click', () => { S.cal = []; S.auto = {}; save(); renderCal(); });
   $('adHere').addEventListener('click', () => { const me = (S.me || '').toLowerCase(); if (!me) return status('Enter your username first.', 'err');
     const p = (lastPlayers || []).find(x => x.Player.split(':')[0].toLowerCase() === me); if (!p || !p.Location) return status('You are not in the last player list. Turn on live data, wait for a poll, then try again.', 'err');
     const [wx, wy] = $('adLandmark').value.split(',').map(Number); S.cal.push({ name: $('adLandmark').selectedOptions[0].textContent, sx: p.Location.LocationX, sz: p.Location.LocationZ, wx, wy }); save(); renderCal(); status(`Point added: ${$('adLandmark').selectedOptions[0].textContent}.`, 'ok'); });
@@ -223,7 +245,7 @@ LIVE_JS = r"""<script id="live">
   // ── polling ──
   const poll = async () => { if (inflight) return; inflight = true;
     try { const { body, rl } = await fetchServer(); lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || [];
-      lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
+      learnPostals(lastPlayers); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs); publish(lastUnits); pushCalls(body.EmergencyCalls);
       const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
       status(`Connected to ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok');
       schedule(S.poll * 1000); }
@@ -250,5 +272,5 @@ def apply(s, ICON):
     s = s.replace('</style>', ADMIN_CSS + '</style>', 1)
     s = s.replace('<button aria-label="Settings">', '<button aria-label="Settings" id="adminToggle" aria-pressed="false" title="Admin">', 1)
     s = s.replace('Online</div><div class="n">65</div>', 'Online</div><div class="n" id="statOnline">65</div>', 1)
-    s = s.replace('</body>', admin_html() + LIVE_JS.replace('__ICON__', json.dumps(ICON)) + '</body>', 1)
+    s = s.replace('</body>', admin_html() + LIVE_JS.replace('__ICON__', json.dumps(ICON)).replace('__POSTALS__', open('preview/newmap/postals.json').read()) + '</body>', 1)
     return s

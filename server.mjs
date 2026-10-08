@@ -10,7 +10,8 @@ import { readFileSync } from 'node:fs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'preview');
 const PORT = +(process.env.PORT || 8080);
-const KEY = process.env.ERLC_SERVER_KEY || '';
+let KEY = process.env.ERLC_SERVER_KEY || '';                      // can also be saved from the admin panel (POST /admin/key)
+const RW = process.env.RAILWAY_TOKEN || '', RW_IDS = { project: process.env.RAILWAY_PROJECT_ID, env: process.env.RAILWAY_ENVIRONMENT_ID, service: process.env.RAILWAY_SERVICE_ID };
 const CODE = (process.env.ACCESS_CODE || '').trim();          // preview lock: digits visitors must enter; empty = site is open
 const LOGO = readFileSync(join(ROOT, 'logo.png')).toString('base64');
 const UPSTREAM = 'https://api.erlc.gg', MIN_GAP = 4000;
@@ -95,6 +96,15 @@ const unlock = (req, res, code) => { const ip = ipOf(req), a = attempts.get(ip) 
 const gate = (req, res, next) => {
   const [path, qs] = req.url.split('?');
   if (path === '/health' || path === '/liberty-county.jpg') return next();           // the lock page shows the map behind it
+  if (path === '/admin/key' && hasAccess(req)) {                                      // save the ER:LC key on the server so every browser gets live data
+    if (req.method === 'GET') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify({ hasKey: !!KEY, persistent: !!(RW && RW_IDS.project) })); }
+    if (req.method === 'POST') { let body = ''; req.on('data', c => { body += c; if (body.length > 1e4) req.destroy(); }); req.on('end', async () => {
+      let k = ''; try { k = String(JSON.parse(body || '{}').key || '').trim(); } catch (e) {} if (!/^[A-Za-z0-9_\-]{8,200}$/.test(k)) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"message":"that does not look like a server key"}'); }
+      KEY = k; cache.clear(); let saved = false, err = '';
+      if (RW && RW_IDS.project) { try { const r = await fetch('https://backboard.railway.app/graphql/v2', { method: 'POST', headers: { 'Project-Access-Token': RW, 'content-type': 'application/json' },
+          body: JSON.stringify({ query: 'mutation($i: VariableUpsertInput!) { variableUpsert(input: $i) }', variables: { i: { projectId: RW_IDS.project, environmentId: RW_IDS.env, serviceId: RW_IDS.service, name: 'ERLC_SERVER_KEY', value: k } } }) });
+          const j = await r.json(); saved = !!(j.data && j.data.variableUpsert); if (!saved) err = JSON.stringify(j.errors || j).slice(0, 200); } catch (e) { err = e.message; } }
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify({ ok: true, persistent: saved, error: err })); }); return; } }
   if (path === '/unlock' && req.method === 'POST') { let body = ''; req.on('data', c => { body += c; if (body.length > 1e4) req.destroy(); }); req.on('end', () => unlock(req, res, decodeURIComponent((body.match(/(?:^|&)code=([^&]*)/) || [])[1] || '').trim())); return; }
   if (path === '/lock') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` }); return res.end(lockPage()); }
   const q = new URLSearchParams(qs || '').get('code'); if (q && CODE) return unlock(req, res, q.trim());
