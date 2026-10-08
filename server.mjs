@@ -131,7 +131,7 @@ const route = async (req, res) => {
     let next = path === '/auth/create' ? `/c/${slug}/settings?new=1` : (u.roblox_name ? `/c/${slug}` : `/dashboard?welcome=${slug}`);
     if (j.roblox && !u.roblox_name) { const s2 = await auth.robloxStart(u, j.roblox); if (!s2.error && path === '/auth/code') next = `/dashboard?welcome=${slug}`; }
     return json(res, { next }, 200, user ? {} : { 'set-cookie': auth.signIn(req, r.user.id) }); }
-  if (path === '/auth/logout' && req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, '/'); return redirect(res, '/', { 'set-cookie': auth.signOut(req) }); }
+  if (path === '/auth/logout' && req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, '/'); return redirect(res, '/', { 'set-cookie': [auth.signOut(req), auth.setCookie(req, COOKIE, '', 0)] }); }   // signing out also forgets the preview code, so the browser is back at the very first screen
   let m;
   if ((m = path.match(/^\/join\/([0-9a-f]{10})$/))) { const user = auth.currentUser(req), inv = invites.get(m[1]), c = inv && communities.byId(inv.community_id);
     if (!inv || !c) return msg(res, user, 'This invite has expired', 'Ask your community for a new link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
