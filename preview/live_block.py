@@ -70,7 +70,7 @@ def admin_html():
     <p class="ad-note">The key stays in this browser. It is only sent to this site's relay (or to <code>api.erlc.gg</code> when opened as a file). If the server already has a key set, leave this empty. Get it in game under Settings, ER:LC API.</p>
     <label><span>Server key</span><input type="password" id="adKey" autocomplete="off" spellcheck="false" placeholder="paste the private server key"></label>
     <label><span>Relay URL</span><input id="adRelay" autocomplete="off" spellcheck="false" placeholder="optional, blank uses this site's own relay"></label>
-    <label><span>Poll every</span><input type="number" id="adPoll" min="5" max="120" step="1" value="10"><span style="min-width:0">seconds</span></label>
+    <label><span>Poll every</span><input type="number" id="adPoll" min="3" max="120" step="1" value="5"><span style="min-width:0">seconds</span></label>
     <div class="ad-row"><button type="button" class="ad-btn" id="adTest">Test connection</button><label><input type="checkbox" id="adLive"> Use live data</label></div>
     <div class="ad-status" id="adStatus">Not connected. Demo units are showing.</div>
   </section>
@@ -101,7 +101,7 @@ LIVE_JS = r"""<script id="live">
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const DEPT = { pd: 'PD', fd: 'FD', dot: 'DOT' }, KIND = { pd: 'cruiser', fd: 'engine', dot: 'dot' };
   const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay at /api
-  const DEFAULTS = { key: '', relay: '', poll: 10, live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
+  const DEFAULTS = { key: '', relay: '', poll: HOSTED ? 5 : 10, live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
   const KEY = 'oversite.admin';
   let S = { ...DEFAULTS };
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
@@ -120,7 +120,7 @@ LIVE_JS = r"""<script id="live">
   for (const sel of document.querySelectorAll('#adTeams select')) { sel.value = S.teams[sel.dataset.team] ?? ''; sel.addEventListener('change', () => { S.teams[sel.dataset.team] = sel.value; save(); }); }
   F.key.addEventListener('change', () => { S.key = F.key.value.trim(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
   F.relay.addEventListener('change', () => { S.relay = F.relay.value.trim().replace(/\/+$/, ''); F.relay.value = S.relay; save(); });
-  F.poll.addEventListener('change', () => { S.poll = Math.max(5, Math.min(120, +F.poll.value || 10)); F.poll.value = S.poll; save(); });
+  F.poll.addEventListener('change', () => { S.poll = Math.max(3, Math.min(120, +F.poll.value || 5)); F.poll.value = S.poll; save(); });
   F.me.addEventListener('change', () => { S.me = F.me.value.trim(); save(); });
   F.callsignOnly.addEventListener('change', () => { S.callsignOnly = F.callsignOnly.checked; save(); });
   F.live.addEventListener('change', () => { S.live = F.live.checked; save(); S.live ? start() : stop(); });
@@ -183,7 +183,9 @@ LIVE_JS = r"""<script id="live">
       if (!u) { u = { id: g.id, live: true, dept: g.dept, kind: KIND[g.dept], route: 'B', t: 0, dir: 1, speed: 0, x: wx, y: wy, tx: wx, ty: wy, heading: 0, th: 0, mph: 0, sx: g.loc?.LocationX, sz: g.loc?.LocationZ, seen: now,
           startedAt: Math.min(...g.members.map(m => m.join || now)) }; units.set(g.id, u); }
       else if (g.loc) { const dt = (now - u.seen) / 1000, dx = g.loc.LocationX - (u.sx ?? g.loc.LocationX), dz = g.loc.LocationZ - (u.sz ?? g.loc.LocationZ);
-        if (Math.hypot(dx, dz) > 0.5) u.th = Math.atan2(dz, dx); u.mph = Math.round(Math.min(160, mph(dx, dz, dt))); u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ; u.tx = wx; u.ty = wy; u.seen = now; }
+        if (Math.hypot(dx, dz) > 0.5) u.th = Math.atan2(dz, dx); u.mph = Math.round(Math.min(160, mph(dx, dz, dt))); u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ;
+        if (dt > 0.5 && dt < 60) { u.vx = (wx - u.tx) / dt; u.vy = (wy - u.ty) / dt; const sp = Math.hypot(u.vx, u.vy); if (sp > 60) { u.vx *= 60 / sp; u.vy *= 60 / sp; } } else { u.vx = u.vy = 0; }
+        u.tx = wx; u.ty = wy; u.seen = now; }
       u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
       u.uid = g.pid; u.model = veh ? veh.Name : 'On foot'; u.postal = g.loc?.PostalCode || ''; u.street = g.loc?.StreetName || ''; }
     for (const id of [...units.keys()]) if (!ids.has(id)) units.delete(id);
@@ -210,7 +212,7 @@ LIVE_JS = r"""<script id="live">
       window.UNITS = list; if (!demoCleared) { demoCleared = true; clearDemo(); } dispatchEvent(new CustomEvent('units', { detail: { live: true } })); }
     else for (const u of list) { const sp = fleet?.querySelector(`.spd[data-unit="${u.id}"]`); if (sp) sp.textContent = u.mph; const code = fleet?.querySelector(`[data-unit="${u.id}"] .code`); if (code) code.textContent = u.postal ? 'Postal ' + u.postal : '10-8'; } };
   const clearDemo = () => { const C = window.CALLS || []; for (let i = C.length - 1; i >= 0; i--) if (!C[i].live) C.splice(i, 1); window.demoCalls?.stop(); dispatchEvent(new CustomEvent('calls')); };
-  const restoreDemo = () => { if (!fleet || shownIds === '') return; fleet.innerHTML = demoHTML; shownIds = ''; units.clear(); lastUnits = null; window.UNITS = demoUnits; demoCleared = false; window.demoCalls?.start(); dispatchEvent(new CustomEvent('units', { detail: { live: false } })); };
+  const restoreDemo = () => { if (!fleet || shownIds === '') return; fleet.innerHTML = demoHTML; shownIds = ''; units.clear(); lastUnits = null; window.UNITS = demoUnits; demoCleared = false; if (!HOSTED) window.demoCalls?.start(); dispatchEvent(new CustomEvent('units', { detail: { live: false } })); };
 
   // ── emergency calls -> dispatch board ──
   const pushCalls = calls => { for (const c of calls || []) { const k = c.CallNumber ?? `${c.StartedAt}-${c.Description}`; if (seenCalls.has(k)) continue; seenCalls.add(k);

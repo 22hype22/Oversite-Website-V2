@@ -322,6 +322,7 @@ const frame = () => {
   if (!controls._dragging && dt < 0.02 && pr <= 0.6) { skip = !skip; if (skip) return; }
   UN.forEach((u, i) => { cars[i].position.set(u.x, heightAt(u.x, u.y) + 0.2, u.y); cars[i].rotation.y = -u.heading; });
   const hp = UN[0] ? { x: UN[0].x, z: UN[0].y } : { x: FOCUS.x, z: FOCUS.z }; const hy = heightAt(hp.x, hp.z);
+  glow.visible = pulse.visible = !!UN[0]; tip.style.display = UN[0] ? '' : 'none';
   glow.position.y = hy + 1.8; pulse.position.y = hy + 1.8;
   glow.position.x = pulse.position.x = hp.x; glow.position.z = pulse.position.z = hp.z;
   const k = (now % 2.4) / 2.4; pulse.scale.setScalar(1 + k * 1.6); pulse.material.opacity = 0.5 * (1 - k);

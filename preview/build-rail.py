@@ -167,7 +167,10 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
     const sm = [pts[0]]; for (let i = 1; i < pts.length - 1; i++) { const [a, b, c] = [pts[i - 1], pts[i], pts[i + 1]]; sm.push([b[0] * 0.5 + (a[0] + c[0]) * 0.25, b[1] * 0.5 + (a[1] + c[1]) * 0.25]); } sm.push(pts[pts.length - 1]);
     return sm; };
   window.roadRoute = roadRoute;
-  let units = JSON.parse(document.getElementById('units').textContent);
+  const HOSTED = window.HOSTED = /^https?:$/.test(location.protocol);   // the hosted site has no demo: units come from the server only
+  let units = HOSTED ? [] : JSON.parse(document.getElementById('units').textContent);
+  if (HOSTED) { const fl = document.querySelector('.fleet'); if (fl) fl.innerHTML = '<div class="empty" style="padding:18px 6px;color:var(--dim);font-size:12.5px;line-height:1.5">No units on duty. Players on a mapped team appear here as soon as the server link is set up.</div>';
+    const on = document.getElementById('statOnline'); if (on) on.textContent = '0'; }
   const seg = {}; for (const k in ROUTES) { const r = ROUTES[k], L = [0]; for (let i = 1; i < r.length; i++) L.push(L[i-1] + Math.hypot(r[i][0]-r[i-1][0], r[i][1]-r[i-1][1])); seg[k] = L; }
   const at = (k, t) => { const r = ROUTES[k], L = seg[k], d = t * L[L.length-1]; let i = 1; while (i < L.length-1 && L[i] < d) i++;
     const f = (d - L[i-1]) / (L[i] - L[i-1] || 1), a = r[i-1], b = r[i];
@@ -209,7 +212,8 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   let last = performance.now(), tick = 0, miniT = 0;   // tick = last timer refresh (ms)
   const loop = (ts) => {
     const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
-    for (const u of units) { if (u.live) { const k = 1 - Math.exp(-dt * 1.5); u.x += (u.tx - u.x) * k; u.y += (u.ty - u.y) * k; let d = u.th - u.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); u.heading += d * k; continue; }
+    for (const u of units) { if (u.live) { if (u.vx || u.vy) { u.tx += u.vx * dt; u.ty += u.vy * dt; const f = Math.exp(-dt / 6); u.vx *= f; u.vy *= f; }   // dead-reckon between polls, fading out
+        const k = 1 - Math.exp(-dt * 1.5); u.x += (u.tx - u.x) * k; u.y += (u.ty - u.y) * k; let d = u.th - u.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); u.heading += d * k; continue; }
       if (u.task) { const T = u.task; let left = T.mps * dt;
         while (left > 0 && T.i < T.path.length - 1) { const [bx, by] = T.path[T.i + 1], d = Math.hypot(bx - u.x, by - u.y); if (d <= left) { u.x = bx; u.y = by; T.i++; left -= d; } else { u.x += (bx - u.x) / d * left; u.y += (by - u.y) / d * left; left = 0; } }
         const nx = T.path[Math.min(T.i + 1, T.path.length - 1)]; if (Math.hypot(nx[0] - u.x, nx[1] - u.y) > 0.5) u.heading = Math.atan2(nx[1] - u.y, nx[0] - u.x);
@@ -264,7 +268,7 @@ js_add = r"""<script>
   let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   // one sample per half hour: units on duty and how many of them are free (not on a call)
   const data = [];
-  for (let h = START; h <= END; h += STEP) {
+  for (let h = START; h <= END; h += STEP) { if (window.HOSTED) { data.push({ h, onduty: 0, avail: 0 }); continue; }
     const onduty = Math.round(17 + 9 * Math.sin((h - 8) / 14 * Math.PI) + rnd() * 3);
     const busy = Math.round(2 + rnd() * 5 + (h >= 17 && h <= 19 ? 3 : 0));
     data.push({ h, onduty, avail: Math.max(0, onduty - busy) });
@@ -311,9 +315,10 @@ js_add = r"""<script>
     if (x > PLOT_W) return hide(); show(Math.round(x / PLOT_W * (data.length - 1))); });
   plot.addEventListener('pointerleave', hide);
   // live data: the current half-hour reflects the real roster (units on duty, minus those on a call)
-  const liveSample = () => { const U = window.UNITS || []; if (!U.length || !U[0].live) return; const C = window.CALLS || [];
-    const last = data[data.length - 1]; last.onduty = U.length; last.avail = U.filter(u => !C.some(c => c.unit === u.name)).length; render(); };
-  addEventListener('units', liveSample); addEventListener('calls', liveSample);
+  const liveSample = () => { const U = window.UNITS || []; if (!window.HOSTED && !(U.length && U[0].live)) return; if (U.length && !U[0].live) return; const C = window.CALLS || [];
+    const now = new Date(), hh = now.getHours() + (now.getMinutes() >= 30 ? 0.5 : 0), idx = Math.max(0, Math.min(data.length - 1, Math.round((hh - START) / STEP)));
+    const slot = data[idx]; slot.onduty = U.length; slot.avail = U.filter(u => !C.some(c => c.unit === u.name)).length; const last = data[data.length - 1]; if (slot !== last) { last.onduty = slot.onduty; last.avail = slot.avail; } render(); };
+  addEventListener('units', liveSample); addEventListener('calls', liveSample); if (window.HOSTED) { render(); sub.textContent = 'No units on duty'; }
   let ki = data.length - 1;
   plot.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') ki = Math.max(0, ki - 1); else if (e.key === 'ArrowRight') ki = Math.min(data.length - 1, ki + 1); else return; e.preventDefault(); show(ki); });
 
