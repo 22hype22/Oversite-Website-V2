@@ -50,8 +50,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xr-map::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,12,.1),rgba(8,10,12,.35) 50%,rgba(16,16,18,.96))}
 .xr-mt{position:absolute;left:14px;right:14px;top:12px;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .xs{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#D5D8DD;padding:5px 11px;border-radius:999px;background:rgba(8,9,11,.72);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08)}
-.xs b{color:#fff;font-weight:600}.xs i{width:7px;height:7px;border-radius:50%;background:#62666D}.xs.open i{background:#46D07C;animation:xping 2s infinite}.xs.full i{background:#E9B04C}
-@keyframes xping{0%{box-shadow:0 0 0 0 rgba(70,208,124,.6)}70%{box-shadow:0 0 0 6px rgba(70,208,124,0)}100%{box-shadow:0 0 0 0 rgba(70,208,124,0)}}
+.xs b{color:#fff;font-weight:600}.xs.full b{color:#F2C46E}
 .xr-badge{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#0B0B0C;background:#F0F2F5;padding:4px 10px;border-radius:999px}
 .xr-rank{font-size:11.5px;font-weight:600;color:#E9EAEC;padding:4px 9px;border-radius:999px;background:rgba(8,9,11,.72);border:1px solid rgba(255,255,255,.08)}
 .xr-code{position:absolute;right:14px;bottom:12px;z-index:1;font:600 11.5px/1 ui-monospace,"Geist Mono",Menlo,monospace;letter-spacing:.06em;color:#E9EAEC;padding:5px 8px;border-radius:7px;background:rgba(8,9,11,.6);border:1px solid rgba(255,255,255,.12)}
@@ -86,7 +85,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xd-facts small{display:block;color:var(--faint);font-size:11px}.xd-facts b{display:block;font-size:13px;font-weight:500;margin-top:2px;overflow-wrap:anywhere}.xd-facts code{font-family:ui-monospace,"Geist Mono",monospace}
 @media (max-width:900px){.xp-list{grid-template-columns:1fr}.xp-tabs button{flex:none}}
 @media (max-width:640px){.xp-search{min-width:0;flex:1 1 100%}.xd-facts{grid-template-columns:1fr}.xp-tabs button{padding:8px 13px}.xr-h{flex-wrap:wrap}.xr-mine{margin:0 0 0 78px;align-self:auto}.xr h3{white-space:normal}}
-@media (prefers-reduced-motion:reduce){.xp-dlgin,.xp-dlg::backdrop,.xr,.xb,.xp-toast,.xr-map{transition:none}.xs.open i{animation:none}}
+@media (prefers-reduced-motion:reduce){.xp-dlgin,.xp-dlg::backdrop,.xr,.xb,.xp-toast,.xr-map{transition:none}}
 .acct{max-width:980px}.prof{display:flex;align-items:center;gap:18px;margin:0 0 26px}.prof .pic{width:84px;height:84px;border-radius:50%;flex:none;background:#2a2d33 center/cover;border:1px solid var(--hair2);display:grid;place-items:center;font-size:30px;font-weight:600;overflow:hidden}.prof .pic{position:relative}.prof .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .prof h1{margin:0}.prof p{margin:4px 0 0;color:var(--dim);font-size:13.5px}
 .lrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--hair)}.lrow:first-of-type{border-top:0}.lrow .tx{flex:1;min-width:0}.lrow b{display:block;font-size:14px;font-weight:600}.lrow small{color:var(--dim);font-size:12.5px}
@@ -383,8 +382,7 @@ const ic=x=>'<span class="xr-ic">'+e(x.name.slice(0,1).toUpperCase())+'<img src=
 // every server gets its own slice of the Liberty County map, picked from its address so it never changes
 const spot=x=>{ let h=0; for(const c of x.slug) h=(h*31+c.charCodeAt(0))>>>0; return (12+h%76)+'% '+(14+(h>>>8)%72)+'%'; };
 const state=x=>!x.live||x.players==null?'off':full(x)?'full':'open';
-const status=x=>state(x)==='off'?'<span class="xs off"><i></i>Offline</span>':'<span class="xs '+state(x)+'"><i></i><b>'+x.players+'</b>'+(x.max?' / '+x.max:'')+' in game'+(full(x)?' · Full':'')+'</span>';
-const depts=x=>x.depts.map(d=>'<span class="xd" title="'+e(d.name)+'">'+e(d.short)+'</span>').join('');
+const status=x=>state(x)==='off'?'<span class="xs off">Offline</span>':'<span class="xs '+state(x)+'"><b>'+x.players+'</b>'+(x.max?' / '+x.max:'')+' in game'+(full(x)?' · Full':'')+'</span>';
 const meta=x=>'<span title="Votes">'+STO+n(x.votes)+'</span>'+(x.dc_members!=null?'<span title="Discord members">'+PPL+n(x.dc_members)+'</span>':'')
   +(x.region?'<span>'+x.region.flag+' '+e(x.region.name)+'</span>':'')+(x.lang?'<span>'+e(x.lang.name)+'</span>':'');
 const by=x=>x.owner_name?'<span class="by">'+(x.owner_id?'<img src="/rbx/avatar/'+e(x.owner_id)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'by '+e(x.owner_name)+'</span>':'';
@@ -398,7 +396,7 @@ const card=(x,i)=>'<article class="xr st-'+state(x)+(i===0?' is-top':'')+'" tabi
   +(x.join_key?'<span class="xr-code" title="Join code">'+e(x.join_key)+'</span>':'')+'<div class="xr-bar"><i style="width:'+pct(x)+'%"></i></div></div>'
   +'<div class="xr-b"><div class="xr-h">'+ic(x)+'<div class="xr-n"><h3>'+e(x.name)+'</h3>'+by(x)+'</div>'+(x.role?'<a class="xr-mine" href="/c/'+e(x.slug)+'">'+e(RN[x.role]||'Member')+' · Open CAD</a>':'')+'</div>'
   +'<div class="xr-m">'+meta(x)+'</div><p class="'+(x.bio?'':'none')+'">'+e(x.bio||'No description yet.')+'</p>'
-  +'<div class="xr-f"><div class="xr-d">'+depts(x)+'</div><div class="xr-a">'+acts(x)+'</div></div></div></article>';
+  +'<div class="xr-f"><div class="xr-a">'+acts(x)+'</div></div></div></article>';
 const row=card;
 const render=()=>{ const t=q.value.trim().toLowerCase(), k=SORT[TAB];
   const L=S.filter(x=>!t||[x.name,x.bio,x.owner_name,x.ingame,x.discord,x.region&&x.region.name,x.lang&&x.lang.name,...x.depts.map(d=>d.name+' '+d.short)].join(' ').toLowerCase().includes(t)).filter(x=>!op.checked||(x.live&&x.max&&x.players<x.max))
@@ -410,7 +408,7 @@ const toast=m=>{ const t=document.getElementById('xtoast'); t.textContent=m; t.c
 tabs.addEventListener('click',ev=>{ const b=ev.target.closest('[data-t]'); if(!b) return; TAB=b.dataset.t; tabs.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x===b)); render(); });
 const open=slug=>{ const x=S.find(s=>s.slug===slug); if(!x) return; const fact=(k,v)=>v?'<div><small>'+k+'</small><b>'+v+'</b></div>':'';
   document.getElementById('xdB').innerHTML='<button class="xp-x" type="button" aria-label="Close" data-close>&times;</button><div class="xd-top">'+ic(x)+'<div><h2 id="xdT">'+e(x.name)+'</h2>'+by(x)+'<div class="xr-m">'+meta(x)+'</div></div></div>'
-    +'<div class="xr-t">'+status(x)+'<div class="xr-d">'+depts(x)+'</div></div>'+(x.bio?'<p class="xd-bio">'+e(x.bio)+'</p>':'')
+    +'<div class="xr-t">'+status(x)+'</div>'+(x.bio?'<p class="xd-bio">'+e(x.bio)+'</p>':'')
     +'<div class="xd-facts">'+fact('In-game name',e(x.ingame))+fact('Join code',x.join_key?'<code>'+e(x.join_key)+'</code>':'')+fact('Co-owners',e(x.co_owners.join(', ')))+fact('Account verification',e(x.verified||''))
     +fact('Team balance',x.team_balance?'On':'Off')+fact('Departments',e(x.depts.map(d=>d.name).join(', ')))+fact('Discord server',e([x.discord,x.dc_members!=null?n(x.dc_members)+' members':'',x.dc_online!=null?n(x.dc_online)+' online':''].filter(Boolean).join(' · ')))+'</div><div class="xr-a">'+acts(x)+'</div>';
   dlg.showModal(); requestAnimationFrame(()=>dlg.classList.add('in')); };
