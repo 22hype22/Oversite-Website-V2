@@ -9,6 +9,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { users, communities, members, invites, roblox, codes, RESERVED } from './app/db.mjs';
 import { Feed, testKey, NOKEY } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
+import * as staff from './app/staff.mjs';
 import * as pages from './app/pages.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'preview');
@@ -44,7 +45,7 @@ const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
 // ── community access ──
-const ROLE_RANK = { member: 1, admin: 2, owner: 3 };
+const ROLE_RANK = { member: 1, staff: 2, admin: 3, owner: 4 };
 const access = (req, slug) => { const user = auth.currentUser(req), c = communities.bySlug(slug); if (!c) return { c: null, user }; const role = user ? members.role(c.id, user.id) : null; return { c, user, role }; };
 const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
 
@@ -69,6 +70,14 @@ const communityApi = async (req, res, slug, rest) => {
     const t = await testKey(k); if (!t.ok) return json(res, { error: t.message }, 400);
     communities.setKey(c.id, k); f.setKey(k); return json(res, { ok: true, persistent: true, name: t.name, players: t.players }); }
   if (rest === 'track' && M === 'GET') { if (!can(role, 'admin')) return json(res, { error: 'Admins only.' }, 403); return json(res, { stats: f.stats(), players: Object.fromEntries([...f.track].map(([k, v]) => [k.split(':')[0], v])) }); }
+  // staff tools: Staff and up
+  if (rest.startsWith('staff/')) { if (!can(role, 'staff')) return json(res, { error: 'Staff only.' }, 403);
+    const sub = rest.slice(6), by = { id: user.id, name: user.roblox_name || user.name };
+    if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); return json(res, v, v.error ? 502 : 200); }
+    if (sub === 'action' && M === 'POST') { const r = await staff.act(c, communities.key(c.id), by, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
+    if (sub === 'records' && M === 'GET') return json(res, { records: staff.records(c, Object.fromEntries(new URL(req.url, 'http://x').searchParams)) });
+    if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only admins can delete records.' }, 403); staff.removeRecord(c, (await jsonBody(req)).id); return json(res, { ok: true }); }
+    return json(res, { error: 'Not found.' }, 404); }
   if (!can(role, 'admin')) return json(res, { error: 'Only admins can do that.' }, 403);
   if (rest === 'settings' && M === 'POST') { const j = await jsonBody(req), s = c.settings;
     const name = String(j.name || '').trim(); if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400);
@@ -81,7 +90,7 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'invites' && M === 'POST') { const code = invites.create(c.id, user.id); return json(res, { code, url: `${origin(req)}/join/${code}` }); }
   if (rest === 'invites/revoke' && M === 'POST') { invites.revoke(c.id, String((await jsonBody(req)).code || '')); return json(res, { ok: true }); }
   if (rest === 'members/role' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can change roles.' }, 403); const j = await jsonBody(req);
-    if (!['member', 'admin'].includes(j.role)) return json(res, { error: 'Unknown role.' }, 400); members.setRole(c.id, +j.userId, j.role); return json(res, { ok: true }); }
+    if (!['member', 'staff', 'admin'].includes(j.role)) return json(res, { error: 'Unknown role.' }, 400); members.setRole(c.id, +j.userId, j.role); return json(res, { ok: true }); }
   if (rest === 'members/remove' && M === 'POST') { const j = await jsonBody(req), target = members.role(c.id, +j.userId);
     if (!target || target === 'owner' || +j.userId === user.id) return json(res, { error: 'That member cannot be removed.' }, 400);
     if (target === 'admin' && !can(role, 'owner')) return json(res, { error: 'Only the owner can remove an admin.' }, 403); members.remove(c.id, +j.userId); return json(res, { ok: true }); }

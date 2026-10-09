@@ -335,6 +335,7 @@ s=re.sub(r'<script>\n/\* ── Unit Availability: real chart.*?</script>\n', ''
 anchor='<script>\n/* ── bottom panels' if '<script>\n/* ── bottom panels' in s else '<script>\n(() => {'
 s=s.replace(anchor, units_js.replace('__ROUTES__', open('preview/newmap/routes.json').read())+js_add+anchor,1)
 import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import live_block; s = live_block.apply(s, ICON)
+import staff_block; s = staff_block.apply(s)
 open(p,'w').write(s)
 b64=base64.b64encode(open('preview/liberty-county-dark.jpg','rb').read()).decode()
 b64l=base64.b64encode(open('preview/liberty-county.jpg','rb').read()).decode()
