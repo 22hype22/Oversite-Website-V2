@@ -196,19 +196,26 @@ header.page p{color:var(--dim);margin:6px 0 0;max-width:60ch}
 .v-grid .brand{gap:2.4cqh}
 
 
-/* ───────── 8 · Route to logo: a route sweeps in from the side, traces the logo outline, the logo turns solid, the site fades in ───────── */
-.v-logo{--exit:3.55s;--draw:cubic-bezier(0.37,0,0.63,1)}
+/* ───────── 8 · Route to logo: a route sweeps in, then a comet laps the logo outline faster and faster until it lights the whole shape, the logo fills, the site fades in.
+   The trace is driven from JS (startLogo) so speed, tail length and glow can all follow one continuous acceleration. ───────── */
+.v-logo{--exit:3.85s}
 .v-logo .map{filter:brightness(.32) saturate(.7);opacity:0}
 .run.v-logo .map{animation:fadeTo .8s ease-out both}
 .v-logo svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.v-logo .trail{fill:none;stroke:var(--glow);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100;filter:drop-shadow(0 0 6px rgba(127,227,211,.7))}
-.v-logo .head{fill:none;stroke:#fff;stroke-width:15;stroke-linecap:round;stroke-dasharray:.001 200;stroke-dashoffset:0;filter:drop-shadow(0 0 10px var(--glow));opacity:0}
-.v-logo .solid{fill:var(--ink);opacity:0;transform-box:fill-box;transform-origin:center}
-.run.v-logo .trail{animation:draw 2.4s var(--draw) .2s both,lineOut .45s ease-out 2.65s forwards}
-.run.v-logo .head{animation:ride 2.4s var(--draw) .2s both,headOut .25s ease-out 2.6s forwards}
-.run.v-logo .solid{animation:solid .55s var(--ease-out) 2.55s forwards}
-@keyframes lineOut{from{stroke-dashoffset:0}to{stroke-dashoffset:0;opacity:0}}
-@keyframes solid{0%{opacity:0;transform:scale(.985);filter:drop-shadow(0 0 22px rgba(127,227,211,.9))}100%{opacity:1;transform:none;filter:drop-shadow(0 0 0 rgba(127,227,211,0))}}
+.v-logo .rt{fill:none;stroke:var(--glow);stroke-width:4;stroke-linecap:round;stroke-dasharray:4000;stroke-dashoffset:4000;filter:drop-shadow(0 0 6px rgba(127,227,211,.7));transition:opacity .8s ease-out}
+.v-logo.onlogo .rt{opacity:0}
+.v-logo .ol-base{fill:none;stroke:rgba(127,227,211,.32);stroke-width:2.5;stroke-linejoin:round;stroke-dasharray:6000;stroke-dashoffset:6000;transition:opacity .45s ease-out}
+.v-logo .comets{filter:drop-shadow(0 0 var(--glow-r,6px) rgba(127,227,211,.85))}
+.v-logo .ol-c{fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .45s ease-out}
+.v-logo .c1{stroke:rgba(127,227,211,.35);stroke-width:6}
+.v-logo .c2{stroke:rgba(127,227,211,.8);stroke-width:4.5}
+.v-logo .c3{stroke:#EFFFFC;stroke-width:3.5}
+.v-logo .dot{fill:#fff;filter:drop-shadow(0 0 9px var(--glow));opacity:0;transition:opacity .3s ease-out}
+.run.v-logo .dot{opacity:1}
+.v-logo .solid{fill:var(--ink);opacity:0;transform:scale(.985);transform-box:fill-box;transform-origin:center;transition:opacity .55s ease-out,transform .55s var(--ease-out)}
+.v-logo.lit .solid{opacity:1;transform:none;animation:bloom .9s ease-out both}
+.v-logo.lit .ol-c,.v-logo.lit .ol-base,.v-logo.lit .dot{opacity:0!important}
+@keyframes bloom{from{filter:drop-shadow(0 0 26px rgba(127,227,211,.95))}to{filter:drop-shadow(0 0 0 rgba(127,227,211,0))}}
 
 /* ───────── reduced motion: every variant becomes a short fade of the brand ───────── */
 @media (prefers-reduced-motion:reduce){
@@ -216,7 +223,6 @@ header.page p{color:var(--dim);margin:6px 0 0;max-width:60ch}
   .run .splash .map{opacity:1!important;transform:none!important;clip-path:none!important;filter:brightness(.4)!important}
   .run .splash .brand{animation:fade .5s ease-out both}
   .run .splash .wm span{opacity:1;transform:none}
-  .run.v-logo .solid{opacity:1;animation:fadeTo .5s ease-out both!important}
 }
 
 /* ───────── full screen player ───────── */
@@ -306,8 +312,10 @@ header.page p{color:var(--dim);margin:6px 0 0;max-width:60ch}
   <div class="map"></div>
   <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
     <path class="solid" d="M648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 Z"/>
-    <path class="trail" pathLength="100" d="M-80 640 C 200 640 330 380 470 330 C 560 300 648.9 330 648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 L648.9 445.9"/>
-    <path class="head" pathLength="100" d="M-80 640 C 200 640 330 380 470 330 C 560 300 648.9 330 648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 L648.9 445.9"/>
+    <path class="rt" d="M-80 640 C 200 640 330 380 470 330 C 560 300 648.9 330 648.9 445.9"/>
+    <path class="ol-base" d="M648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 Z"/>
+    <g class="comets"><path class="ol-c c1" d="M648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 Z"/><path class="ol-c c2" d="M648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 Z"/><path class="ol-c c3" d="M648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 Z"/></g>
+    <circle class="dot" r="6.5" cx="-80" cy="640"/>
   </svg>
 </div></template>
 
@@ -320,7 +328,7 @@ const V = [
   { id: 'route', name: 'Route trace', text: 'A unit drives a glowing route across the map and arrives at the logo.', ms: 4000 },
   { id: 'iris', name: 'Iris', text: 'The logo opens a window onto the map and the name rises in letter by letter.', ms: 3600 },
   { id: 'grid', name: 'Grid lock', text: 'The postal grid draws in and brackets lock onto the centre.', ms: 3900 },
-  { id: 'logo', name: 'Route to logo', text: 'A route sweeps in from the side and traces the Oversite logo, the logo turns solid, then the site fades in.', ms: 4200 },
+  { id: 'logo', name: 'Route to logo', text: 'A route sweeps in and laps the Oversite logo, faster every time round, until the logo lights up solid and the site fades in.', ms: 4500 },
 ];
 const build = v => { const st = document.createElement('div'); st.className = 'stage v-' + v.id;
   st.innerHTML = '<div class="under"><div class="mock"><b>Oversite <span>CAD</span></b><i></i></div></div>';
@@ -328,7 +336,38 @@ const build = v => { const st = document.createElement('div'); st.className = 's
   st.querySelectorAll('[data-split]').forEach(el => { let i = 0; const walk = n => { [...n.childNodes].forEach(c => { if (c.nodeType === 3) { const f = document.createDocumentFragment();
     for (const ch of c.textContent) { const s = document.createElement('span'); s.textContent = ch === ' ' ? ' ' : ch; s.style.setProperty('--i', i++); f.appendChild(s); } c.replaceWith(f); } else walk(c); }); }; walk(el); });
   return st; };
-const play = st => { st.classList.remove('run'); void st.offsetWidth; st.classList.add('run'); };
+const play = st => { st.classList.remove('run'); void st.offsetWidth; st.classList.add('run'); if (st.classList.contains('v-logo')) startLogo(st); };
+const stop = st => { cancelAnimationFrame(st._raf); };
+
+// Route to logo: the head travels route + LAPS outline laps with speed v(t) = v0 + (v1 - v0)(t/T)^2, so it never jerks, only builds.
+// Tail length and glow follow the speed; in the last fifth the tail stretches to the whole outline, then the logo fills.
+const LOGO = { delay: .25, T: 2.6, laps: 4, accel: 6 };
+const startLogo = st => {
+  stop(st); st.classList.remove('lit', 'onlogo');
+  const svg = st.querySelector('svg'), route = st.querySelector('.rt'), base = st.querySelector('.ol-base'), cs = [...st.querySelectorAll('.ol-c')], dot = st.querySelector('.dot');
+  const Lr = route.getTotalLength(), Lo = base.getTotalLength(), end = Lr + LOGO.laps * Lo, T = LOGO.T, a = LOGO.accel, v0 = 3 * end / ((a + 2) * T);
+  route.style.strokeDasharray = Lr + ' ' + Lr; route.style.strokeDashoffset = Lr; base.style.strokeDasharray = Lo + ' ' + Lo; base.style.strokeDashoffset = Lo;
+  cs.forEach(c => { c.style.opacity = 0; });
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { st.classList.add('onlogo', 'lit'); return; }
+  const t0 = performance.now() + LOGO.delay * 1000;
+  const frame = now => {
+    const t = Math.min(T, Math.max(0, (now - t0) / 1000)), s = v0 * t + (a - 1) * v0 * t * t * t / (3 * T * T), v = v0 + (a - 1) * v0 * (t / T) ** 2;
+    let pt;
+    if (s <= Lr) { route.style.strokeDashoffset = Lr - s; pt = route.getPointAtLength(s); }
+    else {
+      if (!st.classList.contains('onlogo')) { st.classList.add('onlogo'); route.style.strokeDashoffset = 0; }
+      const u = Math.min(s, end) - Lr, pos = u >= LOGO.laps * Lo ? Lo : u % Lo, k = Math.max(0, (t / T - .8) / .2), ramp = k * k * (3 - 2 * k);
+      base.style.strokeDashoffset = Lo - Math.min(u, Lo);
+      const Lc = Math.min(Lo, u, (36 + v * .12) * (1 - ramp) + Lo * ramp);
+      [1, .55, .22].forEach((f, i) => { const L = Math.max(.5, Lc * f), c = cs[i]; c.style.opacity = 1; c.style.strokeDasharray = L + ' ' + (Lo - L + .01); c.style.strokeDashoffset = L - pos; });
+      pt = base.getPointAtLength(pos % Lo);
+    }
+    dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y);
+    svg.style.setProperty('--glow-r', (4 + 14 * (v / (a * v0))).toFixed(1) + 'px');
+    if (t < T) st._raf = requestAnimationFrame(frame); else st.classList.add('lit');
+  };
+  st._raf = requestAnimationFrame(frame);
+};
 
 // tiles loop while they are on screen
 const grid = document.getElementById('grid'), timers = new Map();
@@ -342,17 +381,17 @@ V.forEach((v, i) => {
 });
 const io = new IntersectionObserver(es => es.forEach(e => { const st = e.target.querySelector('.stage');
   if (e.isIntersecting && !timers.has(st)) { setTimeout(st._loop, 120 * [...grid.children].indexOf(e.target)); timers.set(st, 1); }
-  else if (!e.isIntersecting) { clearTimeout(timers.get(st)); timers.delete(st); st.classList.remove('run'); } }), { threshold: .3 });
+  else if (!e.isIntersecting) { clearTimeout(timers.get(st)); timers.delete(st); stop(st); st.classList.remove('run'); } }), { threshold: .3 });
 [...grid.children].forEach(t => io.observe(t));
 
 // full screen: the intro plays once over the real site, then hands off to it
 const full = document.getElementById('full'), site = document.getElementById('site'); let cur = null, fst = null, ft = 0, last = null;
 const openFull = (v, i) => { cur = v; last = document.activeElement; if (!site.src) site.src = '/';
   document.getElementById('flabel').textContent = (i + 1) + ' · ' + v.name;
-  fst?.remove(); fst = build(v); full.insertBefore(fst, full.querySelector('.label'));
+  if (fst) stop(fst); fst?.remove(); fst = build(v); full.insertBefore(fst, full.querySelector('.label'));
   full.classList.add('on'); full.classList.remove('done'); document.body.style.overflow = 'hidden';
   play(fst); clearTimeout(ft); ft = setTimeout(() => { full.classList.add('done'); document.getElementById('replay').focus(); }, v.ms); };
-const closeFull = () => { full.classList.remove('on', 'done'); fst?.remove(); fst = null; clearTimeout(ft); document.body.style.overflow = ''; last?.focus(); };
+const closeFull = () => { full.classList.remove('on', 'done'); if (fst) stop(fst); fst?.remove(); fst = null; clearTimeout(ft); document.body.style.overflow = ''; last?.focus(); };
 document.getElementById('replay').onclick = () => openFull(cur, V.indexOf(cur));
 document.getElementById('close').onclick = closeFull;
 addEventListener('keydown', e => { if (e.key === 'Escape' && full.classList.contains('on')) closeFull(); });
