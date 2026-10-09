@@ -236,11 +236,20 @@ export const account = ({ logo, user, comms, discord, back }) => layout({ title:
 <div class="prof"><span class="pic">${esc((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase())}${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.remove()">` : ''}</span>
 <div><h1><b>${esc(user.roblox_name || user.name)}</b></h1><p>${comms.length ? `Member of ${comms.length} server${comms.length === 1 ? '' : 's'}` : 'Not in any server yet'}${user.discord_id ? ' · Signs in with Discord' : ''}</p></div></div>
 <div class="grid"><div>
-<section class="card"><h2>Your servers</h2>
-${comms.length ? comms.map(c => { const owner = c.role === 'owner';
+${(() => { const row = c => { const owner = c.role === 'owner';
   return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}</span><div class="tx"><b>${esc(c.name)}</b><small>${esc(c.role[0].toUpperCase() + c.role.slice(1))}</small></div>
-<div class="go">${owner ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Server settings</a>` : `<button class="btn ghost" data-leave="${esc(c.slug)}" data-name="${esc(c.name)}">Leave</button>`}<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD</a></div></div>`; }).join('') : '<p class="note">Join a server with the code from its owner on the <a href="/dashboard">dashboard</a>.</p>'}
-<p class="msg" id="lmsg"></p></section>
+<div class="go">${owner ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Server settings</a>` : `<button class="btn ghost" data-leave="${esc(c.slug)}" data-name="${esc(c.name)}">Leave</button>`}<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD</a></div></div>`; };
+  const mine = comms.filter(c => c.role === 'owner'), joined = comms.filter(c => c.role !== 'owner');
+  return `<section class="card"><h2>Your servers</h2>${mine.length ? mine.map(row).join('') : '<p class="note">You don\'t own a server yet.</p>'}
+<details class="mk"${mine.length ? '' : ' open'}><summary>Make a new server</summary><p class="note">One per ER:LC server. Members join with the member code you get afterwards.</p>
+<form id="create" autocomplete="off"><label for="cname">Server name</label><input id="cname" maxlength="48" placeholder="Liberty County Roleplay" required>
+<label for="cslug">Address</label><input id="cslug" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="liberty-county" required><p class="hint">oversitescad.com/c/<span id="slugp">liberty-county</span></p>
+<label for="ccode">Owner code</label><input id="ccode" maxlength="24" placeholder="2 to 24 letters or numbers" spellcheck="false" required><p class="hint">You sign in with it, so keep it private.</p>
+<div class="row" style="margin-top:14px"><button class="btn pri">Create server</button></div><p class="msg" id="cmsg"></p></form></details></section>
+<section class="card" style="margin-top:18px"><h2>Joined servers</h2>${joined.length ? joined.map(row).join('') : '<p class="note">You haven\'t joined anyone else\'s server yet.</p>'}
+<details class="mk"${joined.length ? '' : ' open'}><summary>Join another server</summary><p class="note">Enter the server code its owner gave you.</p>
+<form id="join" class="row" autocomplete="off" style="flex-wrap:nowrap"><input id="jcode" placeholder="Server code" aria-label="Server code" spellcheck="false" required><button class="btn pri">Join</button></form><p class="msg" id="jmsg"></p></details>
+<p class="msg" id="lmsg"></p></section>`; })()}
 </div><div>
 <section class="card"><h2>Linked accounts</h2>
 <div class="lrow"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" transform="rotate(15 12 12)"/><rect x="10" y="10" width="4" height="4" transform="rotate(15 12 12)"/></svg></span><div class="tx"><b>Roblox</b><small>${user.roblox_name ? `${esc(user.roblox_name)}${user.roblox_via === 'oauth' ? ', confirmed by Roblox' : user.roblox_via === 'discord' ? ', from your Discord' : user.roblox_via === 'profile' ? ', verified on your profile' : ''}` : 'Not linked'}</small></div>
@@ -250,6 +259,12 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 </section>
 <section class="card"><h2>Sign out</h2><p class="note">Signs you out on this device. You'll need your sign-in again to get back in.</p><form method="post" action="/auth/logout" style="margin:0"><button class="btn danger">Sign out</button></form></section>
 </div></div></main>`, script: `
+const cn=document.getElementById('cname'),cs=document.getElementById('cslug'),sp=document.getElementById('slugp');let touched=false;
+const slugify=x=>x.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
+cn.addEventListener('input',()=>{if(!touched){cs.value=slugify(cn.value);sp.textContent=cs.value||'liberty-county'}});
+cs.addEventListener('input',()=>{touched=true;cs.value=slugify(cs.value);sp.textContent=cs.value||'liberty-county'});
+document.getElementById('create').addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/api/communities',{name:cn.value.trim(),slug:cs.value,ownerCode:document.getElementById('ccode').value});location.href='/c/'+j.slug+'/settings?new=1'}catch(x){say(document.getElementById('cmsg'),x.message)}});
+document.getElementById('join').addEventListener('submit',async e=>{e.preventDefault();try{await api('/auth/code',{code:document.getElementById('jcode').value});location.reload()}catch(x){say(document.getElementById('jmsg'),x.message)}});
 const sw=document.getElementById('switch');if(sw)sw.addEventListener('click',async()=>{if(!await ask({title:'Switch Roblox account?',text:'This unlinks your current Roblox account. You will need to link one again before you can open a CAD.',ok:'Unlink and switch'}))return;await api('/api/roblox/unlink');location.href='/dashboard#rbx'});
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-leave]');if(!b)return;if(!await ask({title:'Leave '+b.dataset.name+'?',text:'You lose access to its CAD until someone gives you a code or invite again.',ok:'Leave',danger:true}))return;try{await api('/api/leave',{slug:b.dataset.leave});location.reload()}catch(x){say(document.getElementById('lmsg'),x.message)}});
 ` });
