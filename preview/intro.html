@@ -195,12 +195,28 @@ header.page p{color:var(--dim);margin:6px 0 0;max-width:60ch}
 .run.v-grid .mk{animation-delay:1.2s}.run.v-grid .wm{animation-delay:1.7s}.run.v-grid .tag{animation-delay:1.82s}
 .v-grid .brand{gap:2.4cqh}
 
+
+/* ───────── 8 · Route to logo: a route sweeps in from the side, traces the logo outline, the logo turns solid, the site fades in ───────── */
+.v-logo{--exit:3.55s;--draw:cubic-bezier(0.37,0,0.63,1)}
+.v-logo .map{filter:brightness(.32) saturate(.7);opacity:0}
+.run.v-logo .map{animation:fadeTo .8s ease-out both}
+.v-logo svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.v-logo .trail{fill:none;stroke:var(--glow);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100;filter:drop-shadow(0 0 6px rgba(127,227,211,.7))}
+.v-logo .head{fill:none;stroke:#fff;stroke-width:15;stroke-linecap:round;stroke-dasharray:.001 200;stroke-dashoffset:0;filter:drop-shadow(0 0 10px var(--glow));opacity:0}
+.v-logo .solid{fill:var(--ink);opacity:0;transform-box:fill-box;transform-origin:center}
+.run.v-logo .trail{animation:draw 2.4s var(--draw) .2s both,lineOut .45s ease-out 2.65s forwards}
+.run.v-logo .head{animation:ride 2.4s var(--draw) .2s both,headOut .25s ease-out 2.6s forwards}
+.run.v-logo .solid{animation:solid .55s var(--ease-out) 2.55s forwards}
+@keyframes lineOut{from{stroke-dashoffset:0}to{stroke-dashoffset:0;opacity:0}}
+@keyframes solid{0%{opacity:0;transform:scale(.985);filter:drop-shadow(0 0 22px rgba(127,227,211,.9))}100%{opacity:1;transform:none;filter:drop-shadow(0 0 0 rgba(127,227,211,0))}}
+
 /* ───────── reduced motion: every variant becomes a short fade of the brand ───────── */
 @media (prefers-reduced-motion:reduce){
   .run .splash *,.run .splash *::before,.run .splash *::after{animation:none!important}
   .run .splash .map{opacity:1!important;transform:none!important;clip-path:none!important;filter:brightness(.4)!important}
   .run .splash .brand{animation:fade .5s ease-out both}
   .run .splash .wm span{opacity:1;transform:none}
+  .run.v-logo .solid{opacity:1;animation:fadeTo .5s ease-out both!important}
 }
 
 /* ───────── full screen player ───────── */
@@ -219,7 +235,7 @@ header.page p{color:var(--dim);margin:6px 0 0;max-width:60ch}
 <body>
 <main>
   <header class="page">
-    <div><h1><b>Intro</b> previews</h1><p>Seven openers for the first time someone lands on Oversite. They loop here. Click one to watch it full screen over the real site, then tell me the number you want.</p></div>
+    <div><h1><b>Intro</b> previews</h1><p>Eight openers for the first time someone lands on Oversite. They loop here. Click one to watch it full screen over the real site, then tell me the number you want.</p></div>
     <a class="back" href="/">Back to Oversite</a>
   </header>
   <section class="grid" id="grid"></section>
@@ -286,6 +302,15 @@ header.page p{color:var(--dim);margin:6px 0 0;max-width:60ch}
   <div class="brand"><div class="mk"><img src="/logo.png" alt=""></div><div class="wm"><b>Oversite</b> CAD</div><div class="tag">Live dispatch</div></div>
 </div></template>
 
+<template id="t-logo"><div class="splash">
+  <div class="map"></div>
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <path class="solid" d="M648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 Z"/>
+    <path class="trail" pathLength="100" d="M-80 640 C 200 640 330 380 470 330 C 560 300 648.9 330 648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 L648.9 445.9"/>
+    <path class="head" pathLength="100" d="M-80 640 C 200 640 330 380 470 330 C 560 300 648.9 330 648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 L648.9 445.9"/>
+  </svg>
+</div></template>
+
 <script>
 const V = [
   { id: 'radar', name: 'Radar sweep', text: 'A dispatch radar sweeps the county and units ping in before the logo lands.', ms: 3900 },
@@ -295,6 +320,7 @@ const V = [
   { id: 'route', name: 'Route trace', text: 'A unit drives a glowing route across the map and arrives at the logo.', ms: 4000 },
   { id: 'iris', name: 'Iris', text: 'The logo opens a window onto the map and the name rises in letter by letter.', ms: 3600 },
   { id: 'grid', name: 'Grid lock', text: 'The postal grid draws in and brackets lock onto the centre.', ms: 3900 },
+  { id: 'logo', name: 'Route to logo', text: 'A route sweeps in from the side and traces the Oversite logo, the logo turns solid, then the site fades in.', ms: 4200 },
 ];
 const build = v => { const st = document.createElement('div'); st.className = 'stage v-' + v.id;
   st.innerHTML = '<div class="under"><div class="mock"><b>Oversite <span>CAD</span></b><i></i></div></div>';
