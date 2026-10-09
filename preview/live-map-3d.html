@@ -654,8 +654,23 @@
   .fleet > .empty{text-align:center;max-width:250px;margin:0 auto}
   @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
   /* staff:start  Staff MDT (Server Staff tab) */
-  body[data-view="staff"] .rail,body[data-view="staff"] .stage,body[data-view="staff"] .pins{display:none}
-  body[data-view="staff"] .view::after{opacity:.5}
+  .sdock{position:fixed;top:calc(var(--barh) + var(--gap));bottom:var(--gap);left:50%;z-index:7;
+    width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * 1.6));
+    transform:translateX(calc(-50% + 100vw));transition:transform .6s cubic-bezier(.32,.72,0,1);pointer-events:none;display:flex;align-items:center;justify-content:center}
+  body[data-view="staff"] .sdock{transform:translateX(-50%);pointer-events:auto}
+  body[data-view="staff"] .rail,body[data-view="staff"] .stage{transform:translateX(calc(-100% - 60px));opacity:0;pointer-events:none}
+  body[data-view="staff"] .pins{display:none}
+  body[data-view="staff"] .view::after{opacity:.3}
+  .sdock .screen{--fd:#8E8CF5;--fd-soft:rgba(142,140,245,.14)}
+  .sdock .tscreen.split.on{display:grid;grid-template-columns:minmax(230px,300px) 1fr;gap:20px;overflow:hidden;padding-bottom:0}
+  .sdock .split .col{min-height:0;overflow-y:auto;scrollbar-width:none;padding-bottom:20px}
+  .sdock .split .col::-webkit-scrollbar{display:none}
+  .sdock .split .col:first-child{border-right:1px solid var(--line);padding-right:16px}
+  .sdock .thead h2{margin:0;font-size:17px;font-weight:600}
+  .sdock .thead small{display:block;color:var(--mute);font-size:11.5px;margin-top:2px}
+  .sdock .st-search{margin:0 0 10px}
+  .sdock .tside .ann{margin-top:8px;color:#E9EAEC;border:1px solid var(--line)}
+  @media (max-width:1180px){.sdock .tscreen.split.on{grid-template-columns:200px 1fr}}
   .staffp .ph .sv{display:flex;align-items:center;gap:10px;min-width:0}
   .staffp .ph .sv b{display:block;font-size:15px;font-weight:500}
   .staffp .ph .sv small{display:block;font-size:11px;color:var(--dim);margin-top:1px}
@@ -954,30 +969,39 @@
 
 
 <!-- staff:start -->
-<section class="page staffp" id="pageStaff" hidden aria-label="Server staff">
-  <div class="card panel">
-    <div class="ph"><div class="sv"><i class="live off" id="stLive"></i><div><b>In game</b><small id="stServer">Connecting…</small></div></div><span class="cnt" id="stCount">0</span></div>
-    <label class="st-search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stFind" placeholder="Find a player" autocomplete="off" spellcheck="false"></label>
-    <div class="scroll"><div class="st-list" id="stPlayers"></div></div>
-  </div>
-  <div class="card panel">
-    <div class="st-tabs" role="tablist" id="stTabs">
-      <button role="tab" data-p="player" aria-selected="true">Player</button>
-      <button role="tab" data-p="calls" aria-selected="false">Mod calls <span class="cnt" id="stCallsN">0</span></button>
-      <button role="tab" data-p="records" aria-selected="false">Records</button>
-      <button role="tab" data-p="bans" aria-selected="false">Bans <span class="cnt" id="stBansN">0</span></button>
-      <button role="tab" data-p="logs" aria-selected="false">Logs</button>
-      <span style="flex:1"></span><button class="st-btn" id="stAnnounce" style="align-self:center;margin-bottom:6px">Announce</button>
+<aside class="sdock" id="staffMdt" aria-label="Staff MDT" aria-hidden="true">
+  <div class="tablet">
+    <span class="cam"></span>
+    <div class="screen">
+      <div class="sbar"><span id="stClock">00:00</span><span class="sb-mid" id="stServer">Server Staff</span><span class="sb-r"><i id="stLive" style="width:7px;height:7px;border-radius:50%;background:var(--faint);display:inline-block"></i></span></div>
+      <div class="tbody">
+        <nav class="tside" role="tablist" aria-label="Staff apps" id="stTabs">
+          <div class="crest" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Staff MDT</div>
+          <button role="tab" data-p="player" aria-selected="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>Players<i class="badge" id="stCount">0</i></button>
+          <button role="tab" data-p="calls" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/><path d="M12 8v3M12 13.5h.01"/></svg>Calls<i class="badge" id="stCallsN" hidden>0</i></button>
+          <button role="tab" data-p="records" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg>Records</button>
+          <button role="tab" data-p="bans" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></svg>Bans<i class="badge" id="stBansN" hidden>0</i></button>
+          <button role="tab" data-p="logs" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Logs</button>
+          <button class="ann" id="stAnnounce" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7"/></svg>Announce</button>
+          <div class="tuser" aria-hidden="true"><i id="stMeAv">ST</i><small id="stMe">Staff</small></div>
+        </nav>
+        <div class="tscreens">
+          <section class="tscreen split on st-pane" data-p="player">
+            <div class="col"><div class="thead"><div><h2>In game</h2><small id="stSub">Connecting…</small></div></div>
+              <label class="st-search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stFind" placeholder="Find a player" autocomplete="off" spellcheck="false"></label>
+              <div class="st-list" id="stPlayers"></div></div>
+            <div class="col" id="stPlayer"></div>
+          </section>
+          <section class="tscreen st-pane" data-p="calls"><div class="thead"><div><h2>Mod calls</h2><small>Players calling for staff in game</small></div></div><div id="stCalls"></div></section>
+          <section class="tscreen st-pane" data-p="records"><div class="thead"><div><h2>Records</h2><small>Every warning, kick, ban and note</small></div></div><label class="st-search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stRecFind" placeholder="Search records by player" autocomplete="off" spellcheck="false"></label><div id="stRecords"></div></section>
+          <section class="tscreen st-pane" data-p="bans"><div class="thead"><div><h2>Bans</h2><small>Banned from the server</small></div></div><div id="stBans"></div></section>
+          <section class="tscreen st-pane" data-p="logs"><div class="thead"><div><h2>Logs</h2><small>In-game commands and kills</small></div></div><div id="stLogs"></div></section>
+        </div>
+      </div>
     </div>
-    <div class="scroll">
-      <div class="st-pane" data-p="player" id="stPlayer"></div>
-      <div class="st-pane" data-p="calls" id="stCalls" hidden></div>
-      <div class="st-pane" data-p="records" hidden><label class="st-search" style="margin:0 0 8px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stRecFind" placeholder="Search records by player" autocomplete="off" spellcheck="false"></label><div id="stRecords"></div></div>
-      <div class="st-pane" data-p="bans" id="stBans" hidden></div>
-      <div class="st-pane" data-p="logs" id="stLogs" hidden></div>
-    </div>
+    <button class="mdt-close" id="stClose" type="button" aria-label="Close staff MDT"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </div>
-</section>
+</aside>
 <dialog class="st-dlg" id="stDlg"><form method="dialog"><h2 id="stDlgT">Warn</h2><p id="stDlgP"></p><textarea id="stDlgR" maxlength="180"></textarea><div class="st-chips" id="stDlgC"></div>
   <div class="acts"><span class="msg" id="stDlgM"></span><button type="button" class="st-btn" id="stDlgX">Cancel</button><button class="st-go" id="stDlgGo">Send</button></div></form></dialog>
 <!-- staff:end -->
@@ -1452,7 +1476,7 @@
     if (menuPill.classList.contains('instant')) { menuPill.getBoundingClientRect(); menuPill.classList.remove('instant'); } };
   new MutationObserver(() => placePill()).observe(menuEl, { attributes: true, subtree: true, attributeFilter: ['aria-selected'] });
   addEventListener('resize', () => placePill(true)); document.fonts?.ready.then(() => placePill(true)); placePill(true);
-  const PAGES = { status: 'pageStatus', staff: 'pageStaff' };
+  const PAGES = { status: 'pageStatus' };
   const mdt = document.getElementById('mdt'), mdtBtn = document.getElementById('mdtToggle');
   const DEPT_NAME = { pd: window.OVERSITE?.depts?.pd?.name || 'Law Enforcement', fd: window.OVERSITE?.depts?.fd?.name || 'Fire Department', dot: window.OVERSITE?.depts?.dot?.name || 'Department of Transportation' };
   const myDept = () => (window.ME && window.ME.dept) || null;                 // from the live roster (admin panel username); null = not identified
@@ -2141,10 +2165,11 @@
 /* Staff MDT: polls the community's staff view while the tab is open; every action goes through the server, which runs it in game and keeps the record */
 (() => {
   const OV = window.OVERSITE, tab = document.querySelector('.menu [data-view="staff"]'); if (!tab) return;
-  const page = document.getElementById('pageStaff'), $ = id => document.getElementById(id);
+  const page = document.getElementById('staffMdt'), $ = id => document.getElementById(id);
   const isStaff = !!OV && ['staff', 'admin', 'owner'].includes(OV.role), isAdmin = !!OV && ['admin', 'owner'].includes(OV.role);
   if (OV && !isStaff) { tab.remove(); dispatchEvent(new Event('resize')); return; }             // members never see the staff tab
-  if (!OV) { page.innerHTML = '<div class="st-gate"><div><b>Server Staff</b>Open your server\'s CAD from the dashboard to use the staff tools.</div></div>'; return; }
+  const toDispatch = () => document.querySelector('.menu [data-view="dispatch"]').click(); $('stClose').addEventListener('click', toDispatch);
+  if (!OV) { page.querySelector('.tscreens').innerHTML = '<div class="st-gate" style="height:100%"><div><b>Server Staff</b>Open your server\'s CAD from the dashboard to use the staff tools.</div></div>'; return; }
   const API = OV.api + '/staff', post = (p, b) => fetch(API + p, { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(b) }).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong.'); return j; });
   const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' }, deptOf = team => (OV.teams || {})[team] || '';
@@ -2156,17 +2181,19 @@
 
   // ── data ──
   const load = async () => { try { const r = await fetch(API + '/state'); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Could not load.'); D = j; render(); }
-    catch (e) { $('stServer').textContent = e.message; $('stLive').classList.add('off'); } };
+    catch (e) { $('stSub').textContent = e.message; $('stLive').style.background = 'var(--faint)'; } };
   const start = () => { if (timer) return; load(); timer = setInterval(() => { if (!document.hidden) load(); }, 5000); };
   const stop = () => { clearInterval(timer); timer = 0; };
-  addEventListener('viewchange', e => (e.detail === 'staff' ? start() : stop()));
+  addEventListener('viewchange', e => { const on = e.detail === 'staff'; page.setAttribute('aria-hidden', !on); on ? start() : stop(); });
+  const clock = () => { $('stClock').textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }; clock(); setInterval(clock, 15000);
+  $('stMe').textContent = OV.me || OV.user || 'Staff'; $('stMeAv').textContent = ini($('stMe').textContent);
 
   // ── rendering ──
   const counts = id => (D && D.counts[id]) || {};
   const badges = p => { const c = counts(p.id); return [p.permission && p.permission !== 'Normal' ? `<span class="st-b perm">${esc(p.permission.replace('Server ', ''))}</span>` : '',
     c.warn ? `<span class="st-b w">${c.warn} warn${c.warn > 1 ? 's' : ''}</span>` : '', c.kick ? `<span class="st-b k">${c.kick} kick${c.kick > 1 ? 's' : ''}</span>` : ''].join(''); };
   const renderPlayers = () => { const q = $('stFind').value.trim().toLowerCase(), list = (D.players || []).filter(p => !q || p.name.toLowerCase().includes(q) || p.callsign.toLowerCase().includes(q) || p.team.toLowerCase().includes(q));
-    $('stCount').textContent = D.players.length;
+    $('stCount').textContent = D.players.length; $('stSub').textContent = D.players.length + (D.players.length === 1 ? ' player' : ' players') + ' in the server';
     $('stPlayers').innerHTML = list.length ? list.map(p => `<button class="st-p" data-id="${esc(p.id)}" aria-pressed="${sel && sel.id === p.id}"><span class="st-av">${esc(ini(p.name))}</span><span style="min-width:0"><b>${esc(p.name)}</b><small><span class="st-team" style="--c:${COL[deptOf(p.team)] || '#8A8F98'}"><i></i>${esc(p.team || 'No team')}</span>${p.callsign ? ' · ' + esc(p.callsign) : ''}</small></span><span class="st-badges">${badges(p)}</span></button>`).join('')
       : `<div class="st-empty">${D.players.length ? 'No player matches that.' : 'Nobody is in the server right now.'}</div>`; };
   const recHTML = (r, withName) => `<div class="st-rec"><span class="st-k k-${esc(r.kind)}">${esc(KIND[r.kind] || r.kind)}</span><div>${withName ? `<b>${r.roblox_id ? `<button class="lnk" data-open="${esc(r.roblox_id)}" data-name="${esc(r.name)}" style="background:none;border:0;color:inherit;font:inherit;padding:0;cursor:pointer">${esc(r.name)}</button>` : esc(r.name)}</b>` : ''}<p>${esc(r.reason) || '<i>No reason given</i>'}</p><p style="font-size:10.5px;color:var(--faint);margin-top:3px">by ${esc(r.by_name || 'staff')}${r.result && r.result !== 'sent' ? ' · ' + esc(r.result) : ''}</p></div><span class="side"><time title="${esc(when(r.created))}">${esc(ago(r.created))}</time>${isAdmin ? `<button class="x" data-del="${r.id}">Delete</button>` : ''}</span></div>`;
@@ -2186,20 +2213,20 @@
     if (!sel || sel.id !== p.id) return; const h = $('stHist'); if (!h) return;
     $('stRecN').textContent = r.records.length ? r.records.length + ' on file' : '';
     h.innerHTML = r.records.length ? r.records.map(x => recHTML(x, false)).join('') : '<div class="st-empty">Clean record. Nothing on file for this player.</div>'; };
-  const renderCalls = () => { const c = D.modCalls || [], open = c.filter(m => !m.moderator).length; $('stCallsN').textContent = open;
+  const renderCalls = () => { const c = D.modCalls || [], open = c.filter(m => !m.moderator).length; $('stCallsN').textContent = open; $('stCallsN').hidden = !open;
     $('stCalls').innerHTML = c.length ? c.map(m => `<div class="st-row"><span class="grow"><button class="lnk" data-open="${esc(m.caller.id)}" data-name="${esc(m.caller.name)}">${esc(m.caller.name)}</button> called for staff<br><small>${esc(ago(m.at * 1000))}</small></span>${m.moderator ? `<span class="st-pill done">Answered by ${esc(m.moderator.name)}</span>` : '<span class="st-pill wait">Waiting</span>'}</div>`).join('') : '<div class="st-empty">No mod calls right now.</div>'; };
-  const renderBans = () => { const b = D.bans || []; $('stBansN').textContent = b.length;
+  const renderBans = () => { const b = D.bans || []; $('stBansN').textContent = b.length; $('stBansN').hidden = !b.length;
     $('stBans').innerHTML = b.length ? b.map(x => `<div class="st-row"><span class="st-av" style="width:28px;height:28px">${esc(ini(x.name))}</span><span class="grow"><button class="lnk" data-open="${esc(x.id)}" data-name="${esc(x.name)}">${esc(x.name)}</button><br><small>ID ${esc(x.id)}</small></span><button class="st-btn" data-unban="${esc(x.id)}" data-name="${esc(x.name)}">Unban</button></div>`).join('') : '<div class="st-empty">Nobody is banned from this server.</div>'; };
   const renderLogs = () => { const cmds = D.commands || [], kills = D.kills || [];
     $('stLogs').innerHTML = `<div class="st-h"><span>Commands</span></div>${cmds.length ? cmds.map(m => `<div class="st-row"><span class="grow"><code>${esc(m.command)}</code><br><small>${esc(m.by.name)} · ${esc(ago(m.at * 1000))}</small></span></div>`).join('') : '<div class="st-empty">No commands yet.</div>'}
       <div class="st-h" style="margin-top:16px"><span>Kills</span></div>${kills.length ? kills.map(k => `<div class="st-row"><span class="grow"><button class="lnk" data-open="${esc(k.killer.id)}" data-name="${esc(k.killer.name)}">${esc(k.killer.name)}</button> killed <button class="lnk" data-open="${esc(k.killed.id)}" data-name="${esc(k.killed.name)}">${esc(k.killed.name)}</button><br><small>${esc(ago(k.at * 1000))}</small></span></div>`).join('') : '<div class="st-empty">No kills logged.</div>'}`; };
   const renderRecords = async () => { const r = await fetch(API + '/records?' + new URLSearchParams(recQ ? { q: recQ } : {})).then(x => x.json()).catch(() => ({ records: [] }));
     $('stRecords').innerHTML = r.records.length ? r.records.map(x => recHTML(x, true)).join('') : `<div class="st-empty">${recQ ? 'No records match that.' : 'No records yet. Warnings, kicks, bans and notes you give show up here.'}</div>`; };
-  const render = () => { if (!D) return; $('stLive').classList.remove('off'); $('stServer').textContent = `${D.server.name || 'Server'} · ${D.server.players ?? D.players.length}/${D.server.max ?? '?'} players`;
+  const render = () => { if (!D) return; $('stLive').style.background = 'var(--green)'; $('stServer').textContent = `${D.server.name || 'Server'} · ${D.server.players ?? D.players.length}/${D.server.max ?? '?'}`;
     renderPlayers(); renderCalls(); renderBans(); renderLogs(); if (pane === 'player') renderPlayer(); };
 
   // ── navigation ──
-  const show = p => { pane = p; document.querySelectorAll('#stTabs [data-p]').forEach(b => b.setAttribute('aria-selected', b.dataset.p === p)); document.querySelectorAll('.st-pane').forEach(x => (x.hidden = x.dataset.p !== p));
+  const show = p => { pane = p; document.querySelectorAll('#stTabs [data-p]').forEach(b => b.setAttribute('aria-selected', b.dataset.p === p)); document.querySelectorAll('#staffMdt .st-pane').forEach(x => x.classList.toggle('on', x.dataset.p === p));
     if (p === 'records') renderRecords(); if (p === 'player') renderPlayer(); };
   const open = (id, name) => { const live = D && D.players.find(p => p.id === id); sel = live || { id, name, team: '', callsign: '', permission: '' }; show('player'); if (D) renderPlayers(); };
   $('stTabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) show(b.dataset.p); });
