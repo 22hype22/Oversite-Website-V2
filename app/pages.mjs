@@ -60,6 +60,9 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:30px;text-align:left}.feats div{font-size:12.5px;color:var(--dim)}.feats b{display:block;color:var(--ink);font-weight:500;margin-bottom:2px}
 @media (max-width:520px){.feats{grid-template-columns:1fr}}
 .danger-zone{border-color:rgba(226,75,75,.25)}
+.legal{max-width:780px}.legal .card h2{margin:18px 0 6px}.legal .card h2:first-child{margin-top:0}.legal .card p,.legal .card li{color:#C9CDD3;font-size:14px;line-height:1.65}
+.legal ul{padding-left:18px;margin:6px 0}.legal li+li{margin-top:8px}.legal a{color:var(--ink)}
+.foot{display:flex;gap:16px;justify-content:center;margin-top:26px;font-size:12px}.foot a{color:var(--faint);text-decoration:none}.foot a:hover{color:var(--dim)}
 .srv{display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--hair);background:rgba(255,255,255,.025)}
 .srv+.srv{margin-top:10px}
 .srv .ic{width:44px;height:44px;border-radius:12px;background:linear-gradient(160deg,#2d3440,#1b1f26);display:grid;place-items:center;font-weight:600;font-size:17px;flex:none}
@@ -137,7 +140,7 @@ ${discord ? `<div class="or">or</div><a class="btn discord" href="/auth/discord?
 ${owner ? `<form method="post" action="/auth/owner" class="row" style="justify-content:center;margin-top:14px" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" style="max-width:200px" required><button class="btn sm">Sign in</button></form>` : ''}
 ${error ? `<p class="msg err">${esc(error)}</p>` : ''}
 <div class="feats"><div><b>Live map</b>Units move on the map as they drive in game.</div><div><b>Real 911 calls</b>Calls from the game land on the dispatch board.</div><div><b>Department MDTs</b>Each team gets its own MDT, locked to its members.</div></div>
-</div></section>`, script: `
+<nav class="foot"><a href="/privacy">Privacy</a><a href="https://www.oversite.shop/terms">Terms</a><a href="https://www.oversite.shop">Oversite</a></nav></div></section>`, script: `
 const go=async(url,body,m)=>{try{const j=await api(url,body);location.href=j.next}catch(x){say(m,x.message)}};
 document.getElementById('codeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/code',{code:document.getElementById('code').value},document.getElementById('codemsg'))});
 const mn=document.getElementById('mname'),ms=document.getElementById('mslug'),sp=document.getElementById('slugp');let touched=false;
@@ -146,6 +149,26 @@ mn.addEventListener('input',()=>{if(!touched){ms.value=slugify(mn.value);sp.text
 ms.addEventListener('input',()=>{touched=true;ms.value=slugify(ms.value);sp.textContent=ms.value||'your-server'});
 document.getElementById('makeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/create',{name:mn.value.trim(),slug:ms.value,ownerCode:document.getElementById('mcode').value},document.getElementById('makemsg'))});
 ` });
+
+// Privacy policy for the CAD (oversitescad.com). Public, outside the preview lock, so Roblox and Discord can link to it. Terms live on the marketing site.
+export const privacy = ({ logo, user }) => layout({ title: 'Privacy · Oversite CAD', logo, user, body: `
+<main class="legal"><h1><b>Privacy</b> policy</h1><p class="lead">Oversite CAD · oversitescad.com · Effective October 9, 2026</p>
+<section class="card">
+<h2>Who we are</h2><p>Oversite CAD is a live dispatch system for Emergency Response: Liberty County (ER:LC) private servers, run by Oversite (Oversite Marketplace, Minnesota, United States). Questions go to <a href="mailto:support@oversite.shop">support@oversite.shop</a>. Use of the site is also covered by our <a href="https://www.oversite.shop/terms">Terms of Service</a>.</p>
+<h2>What we collect</h2>
+<ul>
+<li><b>Your account.</b> A display name, and the servers you belong to with your role in each (owner, admin or member).</li>
+<li><b>Roblox, when you link it.</b> When you choose "Link with Roblox" you sign in on roblox.com and Roblox sends us your Roblox user ID, username, display name and avatar picture. We never see your Roblox password. We use this to show you on your server's map and open your department's MDT.</li>
+<li><b>Discord, if you use it.</b> Your Discord user ID, name and avatar, and the Roblox account you have verified in Discord's Connections.</li>
+<li><b>Server settings.</b> For server owners: the server name, address, departments, server codes (stored only as one-way hashes), invite links and the ER:LC server key, which is stored encrypted and never shown to members.</li>
+<li><b>Live game data.</b> While a server's CAD is open, we read player names, teams, callsigns, vehicles, positions and 911 calls from the ER:LC API to draw the map. This is kept in memory only; a player's recent route (the last 15 minutes) is used for smooth movement and is not saved.</li>
+<li><b>Cookies.</b> A sign-in cookie (lasts 30 days), a short-lived cookie that protects the Roblox and Discord sign-in steps, and the preview access cookie. No advertising or tracking cookies.</li>
+</ul>
+<h2>How we use it</h2><p>Only to run the CAD: signing you in, showing your servers, placing you and your unit on the map, and letting owners manage their server. We do not sell your information, show ads, or share it with anyone except the services that make the CAD work (Roblox, Discord and the ER:LC API) and our hosting provider.</p>
+<h2>Keeping and deleting</h2><p>Your account stays until you ask us to delete it. You can unlink Roblox from your dashboard at any time. When an owner deletes a server, its settings, codes, invites and member list are deleted with it. To delete your account or get a copy of your information, email <a href="mailto:support@oversite.shop">support@oversite.shop</a>.</p>
+<h2>Children</h2><p>Oversite CAD is for ER:LC communities and follows Roblox's own age rules. We collect only what is listed above and never ask for real names, addresses or payment details.</p>
+<h2>Changes</h2><p>If this policy changes, the new version is posted here with a new effective date.</p>
+</section></main>` });
 
 export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord, robloxOAuth }) => layout({ title: 'Dashboard · Oversite', logo, user, body: `
 <main class="dash"><h1>Welcome back, <b>${esc(user.roblox_name || user.name)}</b></h1><p class="lead">${comms.length ? (comms.length === 1 ? 'Open your CAD below.' : 'Pick a server to open its CAD.') : 'Join your server with the code from its owner, or create a new one.'}</p>

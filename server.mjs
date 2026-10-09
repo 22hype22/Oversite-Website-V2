@@ -117,6 +117,8 @@ const route = async (req, res) => {
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
     const p = roblox.pending(user.id), w = url.searchParams.get('welcome'), wc = w && communities.bySlug(w);
     return page(res, pages.dashboard({ logo: LOGO, user, comms: communities.forUser(user.id), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() })); }
+  if (path === '/privacy') return page(res, pages.privacy({ logo: LOGO, user: auth.currentUser(req) }));
+  if (path === '/terms') return redirect(res, 'https://www.oversite.shop/terms');
   if (path === '/auth/roblox') { if (!auth.robloxOAuthReady()) return msg(res, auth.currentUser(req), 'Roblox linking is not set up yet', 'The site owner needs to add the Roblox app keys first.', { href: '/dashboard', label: 'Back' });
     const { url: to, cookie } = auth.robloxOAuthStart(req, url.searchParams.get('next') || '/dashboard'); return redirect(res, to, { 'set-cookie': cookie }); }
   if (path === '/auth/roblox/callback') { try { const { user, next } = await auth.robloxOAuthFinish(req, url.searchParams); return redirect(res, next, { 'set-cookie': [auth.signIn(req, user.id), auth.setCookie(req, 'ov_rbx', '', 0)] }); }
@@ -215,7 +217,7 @@ const unlock = (req, res, code, next = '/') => { const ip = ipOf(req), a = attem
   a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } attempts.set(ip, a); return html(res, lockPage('That code is not right.'), 401); };
 const gate = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = url.pathname;
-  if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js') return route(req, res);
+  if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js' || path === '/privacy' || path === '/terms') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
   if (path === '/unlock' && req.method === 'POST') { const f = await formBody(req); return unlock(req, res, String(f.get('code') || '').trim()); }
   if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });
   const q = url.searchParams.get('code'); if (q && CODE && !hasAccess(req)) { url.searchParams.delete('code'); return unlock(req, res, q.trim(), url.pathname + (url.search || '')); }
