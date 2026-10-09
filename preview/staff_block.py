@@ -29,11 +29,13 @@ CSS = r"""  /* staff:start  Staff MDT (Server Staff tab) */
   .st-mfilt button[aria-pressed="true"]{color:#fff;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)}
   .st-mapwrap{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:12px;background:#3E6973;cursor:grab;touch-action:none;border:1px solid var(--line)}
   .st-mapwrap.drag{cursor:grabbing}
-  .st-mapin{position:absolute;left:0;top:0;width:1000px;height:1000px;transform-origin:0 0;will-change:transform}
+  /* the map is laid out at its real on-screen size for the zoom level (not a scaled-up bitmap), so it stays sharp when zoomed in */
+  .st-mapin{position:absolute;left:0;top:0;width:1000px;height:1000px;--k:1}
   .st-mapin img{position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none}
-  .st-dot{position:absolute;left:0;top:0;transition:transform .45s linear}
-  .st-dot i{position:absolute;left:0;top:0;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--c);border:2px solid #0C0D0F;box-shadow:0 0 0 1px rgba(255,255,255,.25);transform:scale(var(--inv,1));cursor:pointer}
-  .st-dot b{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;font-weight:600;color:#fff;text-shadow:0 1px 3px #000,0 0 2px #000;transform:translate(9px,-50%) scale(var(--inv,1));transform-origin:-9px 50%;opacity:0;pointer-events:none;transition:opacity .15s}
+  .st-dot{position:absolute;left:0;top:0;transform:translate(calc(var(--ux,0) * var(--k) * 1px),calc(var(--uy,0) * var(--k) * 1px));transition:transform .45s linear}
+  .st-mapin.nz .st-dot{transition:none}
+  .st-dot i{position:absolute;left:0;top:0;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--c);border:2px solid #0C0D0F;box-shadow:0 0 0 1px rgba(255,255,255,.25);cursor:pointer}
+  .st-dot b{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;font-weight:600;color:#fff;text-shadow:0 1px 3px #000,0 0 2px #000;transform:translate(9px,-50%);opacity:0;pointer-events:none;transition:opacity .15s}
   .st-dot:hover b,.st-mapwrap.near .st-dot b{opacity:1}
   .st-dot.dim{opacity:.18}
   .st-mapctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
@@ -374,7 +376,9 @@ JS = r"""<script id="staff">
   const TEAMCOL = t => { const d = deptOf(t); if (d) return COL[d]; return /civil/i.test(t) ? '#A3A9B1' : /jail|prison/i.test(t) ? '#F2994A' : '#C9CDD3'; };
   const isCiv = t => !deptOf(t);
   let V = { k: 1, x: 0, y: 0 }, fitted = false, mf = 'all';
-  const place = () => { inner.style.transform = `translate(${V.x}px,${V.y}px) scale(${V.k})`; inner.style.setProperty('--inv', (1 / V.k).toFixed(4)); wrap.classList.toggle('near', V.k / fitK() > 2.2);
+  let nzT = 0;
+  const place = () => { inner.classList.add('nz'); clearTimeout(nzT); nzT = setTimeout(() => inner.classList.remove('nz'), 150);   // dots follow the zoom instantly, then glide again
+    inner.style.transform = `translate(${V.x.toFixed(1)}px,${V.y.toFixed(1)}px)`; inner.style.width = inner.style.height = (MS * V.k).toFixed(1) + 'px'; inner.style.setProperty('--k', V.k.toFixed(5)); wrap.classList.toggle('near', V.k / fitK() > 2.2);
     if (V.k / fitK() > 1.6 && img.src.indexOf('-hd') < 0) img.src = 'liberty-county-hd.jpg'; };
   const fitK = () => Math.min(wrap.clientWidth, wrap.clientHeight) / MS;
   const fit = () => { const k = fitK(); if (!k) return; V = { k, x: (wrap.clientWidth - MS * k) / 2, y: (wrap.clientHeight - MS * k) / 2 }; fitted = true; place(); };
@@ -398,7 +402,7 @@ JS = r"""<script id="staff">
     for (const p of ps) { const key = p.id || p.name; seen.add(key); let d = dots.querySelector(`[data-key="${CSS.escape(key)}"]`);
       if (!d) { d = document.createElement('div'); d.className = 'st-dot'; d.dataset.key = key; d.innerHTML = '<i></i><b></b>'; dots.appendChild(d); }
       d.dataset.id = p.id || ''; d.dataset.name = p.name; d.style.setProperty('--c', TEAMCOL(p.team)); d.querySelector('b').textContent = p.name + (p.callsign ? ' · ' + p.callsign : '');
-      d.title = `${p.name} · ${p.team || 'No team'}`; d.style.transform = `translate(${(p.x / PX * MS).toFixed(1)}px,${(p.z / PX * MS).toFixed(1)}px)`;
+      d.title = `${p.name} · ${p.team || 'No team'}`; d.style.setProperty('--ux', (p.x / PX * MS).toFixed(2)); d.style.setProperty('--uy', (p.z / PX * MS).toFixed(2));
       d.classList.toggle('dim', mf === 'civ' ? !isCiv(p.team) : mf === 'resp' ? isCiv(p.team) : false); }
     dots.querySelectorAll('.st-dot').forEach(d => { if (!seen.has(d.dataset.key)) d.remove(); });
     const teams = [...new Set(ps.map(p => p.team || 'No team'))].sort(); $('stLegend').innerHTML = teams.map(t => `<span style="--c:${TEAMCOL(t)}"><i></i>${esc(t)}</span>`).join(''); };
