@@ -1,4 +1,5 @@
 // Server-rendered pages around the live map: landing, dashboard, community settings, invites. Same visual language as the map.
+import { DOCS, UPDATED } from './legal.mjs';
 export const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CSS = `
 :root{color-scheme:dark;--ink:#F0F2F5;--dim:#9A9EA6;--faint:#62666D;--hair:rgba(240,242,245,.08);--hair2:rgba(240,242,245,.14);--panel:rgba(16,16,18,.78);--field:rgba(255,255,255,.04);--acc:#4C8DFF;--ok:#46D07C;--warn:#E9B04C;--bad:#E24B4B}
@@ -149,8 +150,27 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .dg-role[aria-pressed="true"]{color:var(--ink);border-color:rgba(240,242,245,.45);background:rgba(255,255,255,.09)}
 @media (hover:hover) and (pointer:fine){.dg-role:hover{color:var(--ink)}}
 
-.legal{max-width:780px}.legal .card h2{margin:18px 0 6px}.legal .card h2:first-child{margin-top:0}.legal .card p,.legal .card li{color:#C9CDD3;font-size:14px;line-height:1.65}
-.legal ul{padding-left:18px;margin:6px 0}.legal li+li{margin-top:8px}.legal a{color:var(--ink)}
+.lg{max-width:1080px}
+.lg-sw{display:inline-flex;gap:4px;padding:5px;border-radius:999px;background:rgba(16,16,18,.55);border:1px solid var(--hair);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);margin:6px 0 22px}
+.lg-sw a{padding:7px 16px;border-radius:999px;font-size:13px;font-weight:500;color:var(--dim);text-decoration:none;transition:background .15s,color .15s}.lg-sw a:hover{color:var(--ink)}.lg-sw a[aria-current]{background:rgba(255,255,255,.1);color:var(--ink)}
+.lg-hd h1{font-size:clamp(30px,5vw,44px);letter-spacing:-.03em;line-height:1.05;margin:0 0 10px;font-weight:600}
+.lg-hd .lead{max-width:62ch;color:#C9CDD3;margin:0 0 6px;font-size:15px}.lg-hd .upd{font-size:12.5px;color:var(--faint);margin:0}
+.lg-body{display:grid;grid-template-columns:220px minmax(0,1fr);gap:28px;margin-top:28px;align-items:start}
+.lg-toc{position:sticky;top:18px;padding:14px 8px;border-radius:16px;background:rgba(16,16,18,.42);border:1px solid var(--hair);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.lg-toc b{display:block;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:0 10px 8px}
+.lg-toc a{display:flex;gap:8px;padding:6px 10px;border-radius:9px;font-size:13px;color:var(--dim);text-decoration:none;line-height:1.35;transition:background .15s,color .15s}.lg-toc a span{color:var(--faint);font-variant-numeric:tabular-nums;min-width:16px}
+.lg-toc a:hover,.lg-toc a.on{background:rgba(255,255,255,.06);color:var(--ink)}
+.lg-s{scroll-margin-top:18px;padding:22px 24px;border-radius:18px;background:rgba(16,16,18,.48);border:1px solid var(--hair);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}.lg-s+.lg-s{margin-top:14px}
+.lg-s h2{display:flex;align-items:baseline;gap:10px;margin:0 0 12px;font-size:18px;font-weight:600;letter-spacing:-.01em}.lg-s h2 span{font-size:12px;font-weight:500;color:var(--faint);font-variant-numeric:tabular-nums}
+.lg-short{display:flex;gap:10px;align-items:baseline;margin:0 0 14px;padding:11px 14px;border-radius:12px;background:rgba(76,141,255,.09);border:1px solid rgba(76,141,255,.2);color:var(--ink);font-size:14px;line-height:1.55}
+.lg-short b{flex:none;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8DB6FF}
+.lg-s p,.lg-s li{color:#C2C6CC;font-size:14px;line-height:1.7;margin:0 0 10px}.lg-s p:last-child{margin-bottom:0}.lg-s ul{padding-left:18px;margin:4px 0 10px}.lg-s li{margin:0 0 6px}.lg-s a{color:var(--ink)}.lg-s b,.lg-s strong{color:var(--ink);font-weight:600}
+.lg-t{width:100%;border-collapse:collapse;margin:6px 0 12px;font-size:13px}.lg-t th{text-align:left;font-weight:500;color:var(--faint);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding:0 12px 8px 0;border-bottom:1px solid var(--hair2)}
+.lg-t td{padding:9px 12px 9px 0;border-bottom:1px solid var(--hair);color:#C2C6CC;vertical-align:top;line-height:1.55}.lg-t tr:last-child td{border-bottom:0}.lg-t td:first-child{color:var(--ink);white-space:nowrap}
+.lg-tw{overflow-x:auto}
+@media (max-width:820px){.lg-body{grid-template-columns:1fr;gap:16px}.lg-toc{position:static}.lg-toc nav{display:grid;grid-template-columns:1fr 1fr}.lg-s{padding:18px 16px}}
+@media (max-width:520px){.lg-toc nav{grid-template-columns:1fr}.lg-short{flex-direction:column;gap:4px}}
+.site-foot{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:center;padding:28px 16px 34px;font-size:12px;color:var(--faint)}.site-foot a{color:var(--faint);text-decoration:none}.site-foot a:hover{color:var(--dim)}
 .foot{display:flex;gap:16px;justify-content:center;margin-top:26px;font-size:12px}.foot a{color:var(--faint);text-decoration:none}.foot a:hover{color:var(--dim)}
 .srv{display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--hair);background:rgba(255,255,255,.025)}
 .srv+.srv{margin-top:10px}
@@ -206,13 +226,14 @@ export const INTRO_HEAD = `<script>try{if(sessionStorage.getItem('ov_intro_seen'
 // the five ranks, as people read them
 export const RANK_LABEL = { owner: 'Owner', co_owner: 'Co-Owner', admin: 'Admin', mod: 'Mod', member: 'Member', staff: 'Admin' };
 const runs = r => r === 'owner' || r === 'co_owner';
+const FOOT = '<footer class="site-foot"><span>© 2026 Oversite</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="mailto:support@oversite.shop">Support</a></footer>';
 export const layout = ({ title, logo, user, body, bg = true, top = true, script = '' }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title><link rel="icon" href="/favicon.ico?v=3" sizes="any"><link rel="icon" type="image/png" href="/icon-192.png?v=3"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3"><link rel="manifest" href="/manifest.webmanifest?v=3"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>${INTRO_HEAD}<script src="/dropdown.js?v=1" defer></script></head><body>${bg ? '<div class="bg"></div>' : ''}
 ${top ? `<header class="top"><a class="brand" href="${user ? '/account' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i><span class="ov">Oversite</span> <span class="cad">CAD</span></a><span class="sp"></span>
 ${user ? `<a class="nav" href="/explore">Explore</a><a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}${esc(user.roblox_name || user.name)}</a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
-${body}<script>${JS}${script}</script></body></html>`;
+${body}${top ? FOOT : ''}<script>${JS}${script}</script></body></html>`;
 
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
 <section class="hero wide notop"><div class="box">
@@ -233,7 +254,7 @@ ${discord ? `<div class="or">or</div><a class="btn discord" href="/auth/discord?
 ${owner ? `<form method="post" action="/auth/owner" class="row" style="justify-content:center;margin-top:14px" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" style="max-width:200px" required><button class="btn sm">Sign in</button></form>` : ''}
 ${error ? `<p class="msg err">${esc(error)}</p>` : ''}
 <div class="feats"><div><b>Live map</b>Units move on the map as they drive in game.</div><div><b>Real 911 calls</b>Calls from the game land on the dispatch board.</div><div><b>Department MDTs</b>Each team gets its own MDT, locked to its members.</div></div>
-<nav class="foot"><a href="/privacy">Privacy</a><a href="https://www.oversite.shop/terms">Terms</a><a href="https://www.oversite.shop">Oversite</a></nav></div></section>`, script: `
+<nav class="foot"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="https://www.oversite.shop">Oversite</a></nav></div></section>`, script: `
 const go=async(url,body,m)=>{try{const j=await api(url,body);location.href=j.next}catch(x){say(m,x.message)}};
 document.getElementById('codeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/code',{code:document.getElementById('code').value},document.getElementById('codemsg'))});
 const mn=document.getElementById('mname'),ms=document.getElementById('mslug'),sp=document.getElementById('slugp');let touched=false;
@@ -243,25 +264,14 @@ ms.addEventListener('input',()=>{touched=true;ms.value=slugify(ms.value);sp.text
 document.getElementById('makeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/create',{name:mn.value.trim(),slug:ms.value,ownerCode:document.getElementById('mcode').value},document.getElementById('makemsg'))});
 ` });
 
-// Privacy policy for the CAD (oversitescad.com). Public, outside the preview lock, so Roblox and Discord can link to it. Terms live on the marketing site.
-export const privacy = ({ logo, user }) => layout({ title: 'Privacy · Oversite CAD', logo, user, body: `
-<main class="legal"><h1><b>Privacy</b> policy</h1><p class="lead">Oversite CAD · oversitescad.com · Effective October 9, 2026</p>
-<section class="card">
-<h2>Who we are</h2><p>Oversite CAD is a live dispatch system for Emergency Response: Liberty County (ER:LC) private servers, run by Oversite (Oversite Marketplace, Minnesota, United States). Questions go to <a href="mailto:support@oversite.shop">support@oversite.shop</a>. Use of the site is also covered by our <a href="https://www.oversite.shop/terms">Terms of Service</a>.</p>
-<h2>What we collect</h2>
-<ul>
-<li><b>Your account.</b> A display name, and the servers you belong to with your role in each (owner, staff or member).</li>
-<li><b>Roblox, when you link it.</b> When you choose "Link with Roblox" you sign in on roblox.com and Roblox sends us your Roblox user ID, username, display name and avatar picture. We never see your Roblox password. We use this to show you on your server's map and open your department's MDT.</li>
-<li><b>Discord, if you use it.</b> Your Discord user ID, name and avatar, and the Roblox account you have verified in Discord's Connections.</li>
-<li><b>Server settings.</b> For server owners: the server name, address, departments, server codes (stored only as one-way hashes), invite links and the ER:LC server key, which is stored encrypted and never shown to members.</li>
-<li><b>Live game data.</b> While a server's CAD is open, we read player names, teams, callsigns, vehicles, positions and 911 calls from the ER:LC API to draw the map. This is kept in memory only; a player's recent route (the last 15 minutes) is used for smooth movement and is not saved.</li>
-<li><b>Cookies.</b> A sign-in cookie (lasts 30 days), a short-lived cookie that protects the Roblox and Discord sign-in steps, and the preview access cookie. No advertising or tracking cookies.</li>
-</ul>
-<h2>How we use it</h2><p>Only to run the CAD: signing you in, showing your servers, placing you and your unit on the map, and letting owners manage their server. We do not sell your information, show ads, or share it with anyone except the services that make the CAD work (Roblox, Discord and the ER:LC API) and our hosting provider.</p>
-<h2>Keeping and deleting</h2><p>Your account stays until you ask us to delete it. You can unlink Roblox from your dashboard at any time. When an owner deletes a server, its settings, codes, invites and member list are deleted with it. To delete your account or get a copy of your information, email <a href="mailto:support@oversite.shop">support@oversite.shop</a>.</p>
-<h2>Children</h2><p>Oversite CAD is for ER:LC communities and follows Roblox's own age rules. We collect only what is listed above and never ask for real names, addresses or payment details.</p>
-<h2>Changes</h2><p>If this policy changes, the new version is posted here with a new effective date.</p>
-</section></main>` });
+// Terms of Service and Privacy Policy (text in legal.mjs). Public, outside the preview lock, so Roblox and Discord can link to them.
+export const legal = ({ logo, user, doc }) => { const d = DOCS[doc]; return layout({ title: `${d.title} · Oversite CAD`, logo, user, body: `
+<main class="lg"><nav class="lg-sw" aria-label="Legal pages">${Object.values(DOCS).map(o => `<a href="${o.path}"${o === d ? ' aria-current="page"' : ''}>${esc(o.title)}</a>`).join('')}</nav>
+<header class="lg-hd"><h1>${esc(d.title)}</h1><p class="lead">${d.intro}</p><p class="upd">Last updated ${esc(UPDATED)}</p></header>
+<div class="lg-body"><aside class="lg-toc"><b>On this page</b><nav>${d.sections.map((x, i) => `<a href="#${x.id}"><span>${i + 1}</span>${esc(x.h)}</a>`).join('')}</nav></aside>
+<div>${d.sections.map((x, i) => `<section class="lg-s" id="${x.id}"><h2><span>${String(i + 1).padStart(2, '0')}</span>${esc(x.h)}</h2><p class="lg-short"><b>In short</b><span>${x.short}</span></p>${x.body.replace(/<table class="lg-t">/g, '<div class="lg-tw"><table class="lg-t">').replace(/<\/table>/g, '</table></div>')}</section>`).join('')}</div></div></main>`, script: `
+const tl=[...document.querySelectorAll('.lg-toc a')];const io=new IntersectionObserver(es=>{for(const e of es)if(e.isIntersecting)tl.forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id))},{rootMargin:'-20% 0px -70% 0px'});document.querySelectorAll('.lg-s').forEach(s=>io.observe(s));
+` }); };
 
 export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord, robloxOAuth }) => { const rbx = `<section class="card" id="rbx"><h2 class="hrow">Your Roblox account${user.roblox_name ? '<span class="tag ok">Linked</span>' : '<span class="tag warn">Not linked</span>'}</h2>
 ${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>${user.roblox_via === 'discord' ? ', the Roblox account verified on your Discord' : user.roblox_via === 'oauth' ? ', confirmed by Roblox' : ''}. Your servers use this to find you in game and open your department's MDT.</p>${user.roblox_via === 'discord' ? '<p class="hint" style="margin:-6px 0 0">To change it, change the Roblox connection in Discord and sign in with Discord again.</p>' : '<button class="btn sm" id="unlink">Unlink</button>'}`
@@ -384,7 +394,7 @@ const spot=x=>{ let h=0; for(const c of x.slug) h=(h*31+c.charCodeAt(0))>>>0; re
 const state=x=>!x.live||x.players==null?'off':full(x)?'full':'open';
 const status=x=>state(x)==='off'?'<span class="xs off">Offline</span>':'<span class="xs '+state(x)+'"><b>'+x.players+'</b>'+(x.max?' / '+x.max:'')+' in game'+(full(x)?' · Full':'')+'</span>';
 const meta=x=>'<span title="Votes">'+STO+n(x.votes)+'</span>'+(x.dc_members!=null?'<span title="Discord members">'+PPL+n(x.dc_members)+'</span>':'')
-  +(x.region?'<span>'+x.region.flag+' '+e(x.region.name)+'</span>':'')+(x.lang?'<span>'+e(x.lang.name)+'</span>':'');
+  +(x.region?'<span>'+x.region.flag+' '+e(x.region.name)+'</span>':'')+(x.lang?'<span>'+e(x.region&&x.lang.name.endsWith('('+x.region.name+')')?x.lang.name.split(' (')[0]:x.lang.name)+'</span>':'');
 const by=x=>x.owner_name?'<span class="by">'+(x.owner_id?'<img src="/rbx/avatar/'+e(x.owner_id)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'by '+e(x.owner_name)+'</span>':'';
 const voteBtn=x=>x.next_vote>0?'<button class="xb ghost voted" data-vote="'+e(x.slug)+'" title="You can vote again in '+hrs(x.next_vote)+'">'+STAR+'Voted · '+hrs(x.next_vote)+'</button>'
   :'<button class="xb ghost" data-vote="'+e(x.slug)+'">'+STO+'Vote'+(x.votes?' <small>'+n(x.votes)+'</small>':'')+'</button>';

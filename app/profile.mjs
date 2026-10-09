@@ -5,7 +5,12 @@ import * as discordlink from './discordlink.mjs';
 
 // where a server is and what it speaks, shown as chips in the server browser (code: [label, flag])
 export const REGIONS = { us: ['United States', '🇺🇸'], ca: ['Canada', '🇨🇦'], uk: ['United Kingdom', '🇬🇧'], eu: ['Europe', '🇪🇺'], de: ['Germany', '🇩🇪'], nl: ['Netherlands', '🇳🇱'], fr: ['France', '🇫🇷'], cz: ['Czechia', '🇨🇿'], pl: ['Poland', '🇵🇱'], au: ['Australia', '🇦🇺'], nz: ['New Zealand', '🇳🇿'], br: ['Brazil', '🇧🇷'], mx: ['Mexico', '🇲🇽'], ph: ['Philippines', '🇵🇭'], in: ['India', '🇮🇳'], global: ['Worldwide', '🌍'] };
-export const LANGS = { en: ['English', '🇬🇧'], es: ['Spanish', '🇪🇸'], pt: ['Portuguese', '🇵🇹'], fr: ['French', '🇫🇷'], de: ['German', '🇩🇪'], nl: ['Dutch', '🇳🇱'], cs: ['Czech', '🇨🇿'], pl: ['Polish', '🇵🇱'], it: ['Italian', '🇮🇹'], tl: ['Filipino', '🇵🇭'] };
+// languages as they are spoken somewhere, so a server reads "English (United States)" rather than just "English"
+export const LANGS = { 'en-us': ['English (United States)', '🇺🇸'], 'en-gb': ['English (United Kingdom)', '🇬🇧'], 'en-ca': ['English (Canada)', '🇨🇦'], 'en-au': ['English (Australia)', '🇦🇺'], 'en-nz': ['English (New Zealand)', '🇳🇿'], 'en-in': ['English (India)', '🇮🇳'], 'en-ph': ['English (Philippines)', '🇵🇭'],
+  'es-mx': ['Spanish (Mexico)', '🇲🇽'], 'es-es': ['Spanish (Spain)', '🇪🇸'], 'pt-br': ['Portuguese (Brazil)', '🇧🇷'], 'pt-pt': ['Portuguese (Portugal)', '🇵🇹'], 'fr-fr': ['French (France)', '🇫🇷'], 'fr-ca': ['French (Canada)', '🇨🇦'],
+  'de-de': ['German (Germany)', '🇩🇪'], 'nl-nl': ['Dutch (Netherlands)', '🇳🇱'], 'cs-cz': ['Czech (Czechia)', '🇨🇿'], 'pl-pl': ['Polish (Poland)', '🇵🇱'], 'it-it': ['Italian (Italy)', '🇮🇹'], 'tl-ph': ['Filipino (Philippines)', '🇵🇭'] };
+// servers saved before languages had a place
+const OLD_LANG = { en: 'en-us', es: 'es-mx', pt: 'pt-br', fr: 'fr-fr', de: 'de-de', nl: 'nl-nl', cs: 'cs-cz', pl: 'pl-pl', it: 'it-it', tl: 'tl-ph' };
 const VOTE_GAP = 12 * 3600000;
 
 const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg';
@@ -53,6 +58,7 @@ export const iconSource = c => { const own = communityIcons.get(c.id); if (own) 
 // ── the server browser ──
 // listed servers' player counts are re-read every two minutes (one small request per listed server), so the browser stays live
 export const startDirectory = () => { let busy = false;
+  for (const c of communities.all()) { const P = c.settings.profile; if (P && OLD_LANG[P.lang]) { const s = c.settings; s.profile = { ...P, lang: OLD_LANG[P.lang] }; communities.saveSettings(c.id, s); } }
   const pass = async () => { if (busy) return; busy = true;
     try { for (const c of communities.all()) { if (!c.settings.profile?.listed) continue;
       if (communities.key(c.id)) await refresh(c).catch(() => {});

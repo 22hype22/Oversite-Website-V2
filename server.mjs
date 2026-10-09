@@ -188,8 +188,7 @@ const route = async (req, res) => {
     return redirect(res, src.url); }
   if ((m0r = path.match(/^\/rbx\/avatar\/(\d{1,20})$/))) { const url = await headshot(m0r[1]); if (!url) { res.writeHead(404, { 'cache-control': 'public, max-age=600' }); return res.end(); }
     res.writeHead(302, { location: url, 'cache-control': 'public, max-age=3600' }); return res.end(); }
-  if (path === '/privacy') return page(res, pages.privacy({ logo: LOGO, user: auth.currentUser(req) }));
-  if (path === '/terms') return redirect(res, 'https://www.oversite.shop/terms');
+  if (path === '/privacy' || path === '/terms') return page(res, pages.legal({ logo: LOGO, user: auth.currentUser(req), doc: path.slice(1) }));
   if ((m0 = path.match(/^\/c\/([a-z0-9-]+)\/discord\/connect$/))) { const { c, user, role } = await access(req, m0[1]);
     if (!c || !user || !can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner or a co-owner can connect a Discord server.', { href: '/dashboard', label: 'Back' }, 403);
     if (!discordlink.ready()) return msg(res, user, 'Discord is not set up yet', 'Oversite needs its Discord bot keys before servers can be linked.', { href: `/c/${c.slug}/settings`, label: 'Back' });
