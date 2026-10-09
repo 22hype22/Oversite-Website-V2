@@ -149,7 +149,7 @@ export const INTRO_HEAD = `<script>try{if(sessionStorage.getItem('ov_intro_seen'
 export const layout = ({ title, logo, user, body, bg = true, top = true, script = '' }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title><link rel="icon" type="image/png" href="data:image/png;base64,${logo}">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>${CSS}</style>${INTRO_HEAD}</head><body>${bg ? '<div class="bg"></div>' : ''}
+<style>${CSS}</style>${INTRO_HEAD}<script src="/dropdown.js?v=1" defer></script></head><body>${bg ? '<div class="bg"></div>' : ''}
 ${top ? `<header class="top"><a class="brand" href="${user ? '/dashboard' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i>Oversite</a><span class="sp"></span>
 ${user ? `<a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}${esc(user.roblox_name || user.name)}</a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
 ${body}<script>${JS}${script}</script></body></html>`;

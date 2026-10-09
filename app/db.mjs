@@ -112,7 +112,7 @@ export const invites = {
   list: cid => q('SELECT * FROM invites WHERE community_id = ? AND revoked = 0 AND (expires IS NULL OR expires > ?) ORDER BY created DESC').all(cid, now()),
   revoke: (cid, code) => q('UPDATE invites SET revoked = 1 WHERE community_id = ? AND code = ?').run(cid, code),
 };
-// warnings, kicks, bans and notes written by a community's staff, one row per action; there is deliberately no way to delete them
+// warnings, kicks, bans and notes written by a community's staff, one row per action; only the owner can delete one (the command log keeps what ran in game)
 export const staffRecords = {
   add: r => Number(q('INSERT INTO staff_records (community_id, roblox_id, name, kind, reason, by_user, by_name, result, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .run(r.community_id, r.roblox_id || null, r.name, r.kind, r.reason || '', r.by_user || null, r.by_name || '', r.result || '', now()).lastInsertRowid),
@@ -124,6 +124,7 @@ export const staffRecords = {
   idFor: (cid, name) => q('SELECT roblox_id FROM staff_records WHERE community_id = ? AND lower(name) = lower(?) AND roblox_id IS NOT NULL ORDER BY id DESC LIMIT 1').get(cid, name)?.roblox_id || null,
   actors: cid => q("SELECT by_user, by_name, COUNT(*) AS n FROM staff_records WHERE community_id = ? AND result = 'sent' GROUP BY by_user, lower(by_name)").all(cid),
   sentByActors: (cid, ids, name) => q(`SELECT * FROM staff_records WHERE community_id = ? AND result = 'sent' AND (by_user IN (${ids.map(() => '?').join(', ') || 'NULL'}) OR (by_user IS NULL AND lower(by_name) = lower(?))) ORDER BY id DESC LIMIT 1000`).all(cid, ...ids, name),
+  remove: (cid, id) => q('DELETE FROM staff_records WHERE community_id = ? AND id = ?').run(cid, id),
   lastBans: cid => q("SELECT roblox_id, lower(name) AS lname, by_user, by_name, created FROM staff_records WHERE community_id = ? AND kind = 'ban' ORDER BY id DESC").all(cid),
 };
 // every in-game command Oversite ran, and who pressed the button, so ER:LC's "Remote Server" log lines can be traced to a person

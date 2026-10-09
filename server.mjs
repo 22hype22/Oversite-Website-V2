@@ -90,6 +90,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); return json(res, v, v.error ? 502 : 200); }
     if (sub === 'action' && M === 'POST') { const r = await staff.act(c, communities.key(c.id), by, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'logs' && M === 'GET') return json(res, staff.lookup(c, new URL(req.url, 'http://x').searchParams.get('user')));
+    if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can delete records.' }, 403); staff.removeRecord(c, (await jsonBody(req)).id); return json(res, { ok: true }); }   // records can go; the command log never can
     if (sub === 'records' && M === 'GET') return json(res, { records: staff.records(c, Object.fromEntries(new URL(req.url, 'http://x').searchParams)) });
     return json(res, { error: 'Not found.' }, 404); }
   if (!can(role, 'owner')) return json(res, { error: 'Only the owner can do that.' }, 403);

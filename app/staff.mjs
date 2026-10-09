@@ -135,3 +135,4 @@ export const lookup = (c, q) => { const name = String(q || '').trim().slice(0, 6
   return { name: real, id, used, on, kinds }; };
 
 export const records = (c, q) => named(q.id || q.name ? staffRecords.forPlayer(c.id, q.id, q.name) : q.q ? staffRecords.search(c.id, q.q) : staffRecords.recent(c.id, 100));
+export const removeRecord = (c, id) => staffRecords.remove(c.id, +id);
