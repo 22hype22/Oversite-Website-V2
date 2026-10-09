@@ -75,6 +75,7 @@ export const communities = {
   bySlug: slug => withSettings(q('SELECT * FROM communities WHERE slug = ?').get(slug)),
   byId: id => withSettings(q('SELECT * FROM communities WHERE id = ?').get(id)),
   all: () => q('SELECT * FROM communities').all().map(withSettings),
+  withDiscord: () => q("SELECT * FROM communities WHERE json_extract(settings, '$.discord.guild_id') IS NOT NULL").all().map(withSettings),
   forUser: uid => q('SELECT c.id, c.slug, c.name, c.erlc_key IS NOT NULL AS connected, m.role FROM members m JOIN communities c ON c.id = m.community_id WHERE m.user_id = ? ORDER BY c.name').all(uid),
   create: (ownerId, slug, name) => { const id = q('INSERT INTO communities (slug, name, owner_id, settings, created) VALUES (?, ?, ?, ?, ?)').run(slug, name, ownerId, JSON.stringify(DEFAULT_SETTINGS), now()).lastInsertRowid;
     q('INSERT INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(id, ownerId, 'owner', now()); return id; },

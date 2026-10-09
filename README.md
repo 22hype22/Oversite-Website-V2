@@ -30,10 +30,18 @@ Opens on http://localhost:8080.
 | `ACCESS_CODE` | Puts the whole site behind a numeric preview code. Also the owner sign-in code unless `OWNER_CODE` is set. |
 | `OWNER_CODE`, `OWNER_LOGIN=1` | Optional site-wide owner sign-in (off by default; server codes replace it). |
 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | Turn on "Continue with Discord". |
+| `DISCORD_BOT_TOKEN` | With the two above: owners can link their Discord server and give access by role. |
 | `ROBLOX_CLIENT_ID`, `ROBLOX_CLIENT_SECRET` | Turn on "Link with Roblox" and "Sign in with Roblox" (replaces typing a username). |
 | `PUBLIC_URL` | Optional, e.g. `https://www.oversitescad.com`; used for the Discord redirect and invite links. |
 | `APP_SECRET` | Optional; encrypts server keys. Without it a random secret is created next to the database. |
 | `DATA_DIR` | Where the database lives (default `/data` if present, else `./.data`). |
+
+## Discord server linking (access by role)
+
+1. In the same Discord application: **Bot**, reset/copy the token into `DISCORD_BOT_TOKEN`. No privileged intents are needed.
+2. **OAuth2, Redirects**: add both `https://www.oversitescad.com/auth/discord/callback` and `https://www.oversitescad.com/auth/discord/guild`.
+3. An owner opens Settings, Discord server, Connect Discord server, picks their server, then ticks which roles mean Member, Staff and Admin.
+   Anyone who signs in with Discord gets the highest access their roles give (checked live, cached for a minute).
 
 ## Roblox account linking
 

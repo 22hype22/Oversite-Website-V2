@@ -60,6 +60,16 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:30px;text-align:left}.feats div{font-size:12.5px;color:var(--dim)}.feats b{display:block;color:var(--ink);font-weight:500;margin-bottom:2px}
 @media (max-width:520px){.feats{grid-template-columns:1fr}}
 .danger-zone{border-color:rgba(226,75,75,.25)}
+.dg-head{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--hair);border-radius:12px;background:rgba(255,255,255,.02);margin-bottom:14px}
+.dg-head img,.dg-head .gi{width:36px;height:36px;border-radius:10px;background:#5865F2;display:grid;place-items:center;font-weight:600;flex:none}
+.dg-head b{display:block}.dg-head small{color:var(--dim);font-size:12px}.dg-head .sp{flex:1}
+.dg-lvl{margin-top:14px}.dg-lvl h3{margin:0 0 2px;font-size:13px}.dg-lvl p{margin:0 0 8px;font-size:12px;color:var(--dim)}
+.dg-roles{display:flex;flex-wrap:wrap;gap:6px}
+.dg-role{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:12.5px;padding:6px 11px;border-radius:999px;border:1px solid var(--hair2);background:rgba(255,255,255,.03);color:var(--dim);cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}
+.dg-role i{width:9px;height:9px;border-radius:50%;background:var(--c,#99AAB5);flex:none}
+.dg-role[aria-pressed="true"]{color:var(--ink);border-color:rgba(240,242,245,.45);background:rgba(255,255,255,.09)}
+@media (hover:hover) and (pointer:fine){.dg-role:hover{color:var(--ink)}}
+
 .legal{max-width:780px}.legal .card h2{margin:18px 0 6px}.legal .card h2:first-child{margin-top:0}.legal .card p,.legal .card li{color:#C9CDD3;font-size:14px;line-height:1.65}
 .legal ul{padding-left:18px;margin:6px 0}.legal li+li{margin-top:8px}.legal a{color:var(--ink)}
 .foot{display:flex;gap:16px;justify-content:center;margin-top:26px;font-size:12px}.foot a{color:var(--faint);text-decoration:none}.foot a:hover{color:var(--dim)}
@@ -242,9 +252,23 @@ ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><d
 <td>${m.role === 'owner' || role !== 'owner' && m.role === 'admin' || m.id === user.id ? esc(m.role) : `<select data-role="${m.id}"><option value="member"${m.role === 'member' ? ' selected' : ''}>member</option><option value="staff"${m.role === 'staff' ? ' selected' : ''}>staff</option><option value="admin"${m.role === 'admin' ? ' selected' : ''}>admin</option></select>`}</td>
 <td style="text-align:right">${m.role !== 'owner' && m.id !== user.id && (role === 'owner' || m.role === 'member') ? `<button class="btn sm danger" data-remove="${m.id}">Remove</button>` : ''}</td></tr>`).join('')}</table><p class="msg" id="mmsg"></p>
 </section>
+${role === 'owner' ? `<section class="card" id="discord"><h2 class="hrow">Discord server<span class="tag" id="dgTag">…</span></h2><p class="note">Link your Discord server and choose which roles get access. People who sign in with Discord get the access their roles give, and lose it when the role is taken away. No server code needed.</p><div id="dgBody"><p class="empty">Loading…</p></div><p class="msg" id="dgMsg"></p></section>` : ''}
 ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p class="note">Removes the server from Oversite with its settings, codes and member list. This cannot be undone.</p><button class="btn danger" id="del">Delete ${esc(c.name)}</button></section>` : ''}
 </div></div></main>`, script: `
 const A='/c/${esc(c.slug)}/api';
+const dgB=document.getElementById('dgBody');if(dgB){const tag=document.getElementById('dgTag'),dm=document.getElementById('dgMsg'),connect='/c/${esc(c.slug)}/discord/connect';
+const LV=[['member','Member','Can open the CAD.'],['staff','Staff','Can also use the Server Staff tab.'],['admin','Admin','Can also change these settings.']];
+const e2=t=>String(t??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const draw=async()=>{let j;try{j=await (await fetch(A+'/discord')).json()}catch(x){dgB.innerHTML='<p class="empty">Could not load.</p>';return}
+if(!j.linked){tag.textContent='Not linked';tag.className='tag';dgB.innerHTML=j.ready?'<a class="btn discord" href="'+connect+'">Connect Discord server</a><p class="hint" style="margin-top:10px">Discord asks you to pick your server and add the Oversite bot. It only reads roles.</p>':'<p class="empty">Discord linking is being set up on Oversite. This will turn on soon.</p>';return}
+const L=j.linked,sel={};for(const [k] of LV)sel[k]=new Set((L.roles&&L.roles[k])||[]);tag.textContent='Linked';tag.className='tag ok';
+const head='<div class="dg-head">'+(L.icon?'<img src="'+e2(L.icon)+'" alt="">':'<span class="gi">'+e2((L.guild_name||'D')[0])+'</span>')+'<div><b>'+e2(L.guild_name)+'</b><small>Discord server</small></div><span class="sp"></span><a class="btn sm" href="'+connect+'">Change</a><button class="btn sm danger" id="dgUn">Unlink</button></div>';
+if(!j.roles){dgB.innerHTML=head+'<p class="msg err">'+(j.missing?'The Oversite bot is no longer in this server. Press Change to add it again.':e2(j.error||'Could not read the roles.'))+'</p>';bindUn();return}
+dgB.innerHTML=head+LV.map(([k,t,d])=>'<div class="dg-lvl"><h3>'+t+'</h3><p>'+d+'</p><div class="dg-roles">'+(j.roles.length?j.roles.map(r=>'<button type="button" class="dg-role" data-l="'+k+'" data-r="'+r.id+'" aria-pressed="'+sel[k].has(r.id)+'" style="--c:'+(r.color||'#99AAB5')+'"><i></i>'+e2(r.name)+'</button>').join(''):'<span class="empty">This server has no roles yet.</span>')+'</div></div>').join('')+'<div class="row" style="margin-top:16px"><button class="btn pri" id="dgSave">Save roles</button></div>';
+dgB.querySelectorAll('.dg-role').forEach(b=>b.addEventListener('click',()=>{const s2=sel[b.dataset.l];s2.has(b.dataset.r)?s2.delete(b.dataset.r):s2.add(b.dataset.r);b.setAttribute('aria-pressed',s2.has(b.dataset.r))}));
+document.getElementById('dgSave').addEventListener('click',async()=>{try{await api(A+'/discord/save',{roles:Object.fromEntries(LV.map(([k])=>[k,[...sel[k]]]))});say(dm,'Saved. Access follows these roles from now on.',true)}catch(x){say(dm,x.message)}});bindUn()};
+const bindUn=()=>{const u=document.getElementById('dgUn');if(u)u.addEventListener('click',async()=>{if(!await ask({title:'Unlink the Discord server?',text:'People who only had access through their Discord roles lose it. Members you added with codes or invites keep theirs.',ok:'Unlink',danger:true}))return;try{await api(A+'/discord/unlink',{});draw()}catch(x){say(dm,x.message)}})};
+draw();if(location.search.includes('discord=1'))say(dm,'Discord server connected. Now choose which roles get access.',true)}
 document.getElementById('key').addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('kmsg'),b=e.target.querySelector('button');b.disabled=true;say(m,'Checking the key with ER:LC…',true);try{const j=await api(A+'/key',{key:document.getElementById('kin').value.trim()});say(m,'Connected to '+(j.name||'your server')+'. '+(j.players??0)+' players online.',true);setTimeout(()=>location.reload(),1200)}catch(x){say(m,x.message);b.disabled=false}});
 const kd=document.getElementById('kdel');if(kd)kd.addEventListener('click',async()=>{if(!await ask({title:'Disconnect the ER:LC server?',text:'The CAD stops receiving live data until a key is connected again.',ok:'Disconnect',danger:true}))return;await api(A+'/key',null,'DELETE');location.reload()});
 document.getElementById('depts').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),m=document.getElementById('dmsg');const depts={},teams={};for(const d of['pd','fd','dot'])depts[d]={name:f.get(d+'-name'),short:f.get(d+'-short')};for(const[k,v]of f.entries())if(k.startsWith('team-'))teams[k.slice(5)]=v;

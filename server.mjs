@@ -6,9 +6,10 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, members, invites, roblox, codes, RESERVED } from './app/db.mjs';
+import { users, communities, members, invites, roblox, codes, RESERVED, token } from './app/db.mjs';
 import { Feed, testKey, NOKEY } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
+import * as discordlink from './app/discordlink.mjs';
 import * as staff from './app/staff.mjs';
 import * as pages from './app/pages.mjs';
 
@@ -46,11 +47,15 @@ const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m
 
 // ── community access ──
 const ROLE_RANK = { member: 1, staff: 2, admin: 3, owner: 4 };
-const access = (req, slug) => { const user = auth.currentUser(req), c = communities.bySlug(slug); if (!c) return { c: null, user }; const role = user ? members.role(c.id, user.id) : null; return { c, user, role }; };
+// access = the stored membership, raised by the person's roles in the community's linked Discord server (checked live)
+const access = async (req, slug) => { const user = auth.currentUser(req), c = communities.bySlug(slug); if (!c) return { c: null, user };
+  let role = user ? members.role(c.id, user.id) : null;
+  if (user && user.discord_id && role !== 'owner') { const lvl = await discordlink.levelFor(c, user.discord_id).catch(() => null); if (lvl) { if (!role) members.add(c.id, user.id, 'member'); role = discordlink.higher(role, lvl); } }
+  return { c, user, role }; };
 const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
 
 const communityApi = async (req, res, slug, rest) => {
-  const { c, user, role } = access(req, slug);
+  const { c, user, role } = await access(req, slug);
   if (!c) return json(res, { error: 'No such community.' }, 404);
   if (!user) return json(res, { error: 'Sign in first.' }, 401);
   if (!role) return json(res, { error: 'You are not a member of this community.' }, 403);
@@ -89,6 +94,16 @@ const communityApi = async (req, res, slug, rest) => {
     const r = j.generate && j.role === 'member' ? auth.newMemberCode(c.id) : auth.setCode(c.id, j.role, j.code); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
   if (rest === 'invites' && M === 'POST') { const code = invites.create(c.id, user.id); return json(res, { code, url: `${origin(req)}/join/${code}` }); }
   if (rest === 'invites/revoke' && M === 'POST') { invites.revoke(c.id, String((await jsonBody(req)).code || '')); return json(res, { ok: true }); }
+  if (rest.startsWith('discord')) { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can manage the Discord link.' }, 403);
+    const d = c.settings.discord || null;
+    if (rest === 'discord' && M === 'GET') { if (!d) return json(res, { ready: discordlink.ready(), linked: null });
+      const roles = await discordlink.roles(d.guild_id).catch(e => ({ error: e.message })); return json(res, { ready: discordlink.ready(), linked: d, roles: Array.isArray(roles) ? roles : null, missing: roles === null, error: roles && roles.error }); }
+    if (rest === 'discord/save' && M === 'POST') { if (!d) return json(res, { error: 'Connect a Discord server first.' }, 400);
+      const j = await jsonBody(req), known = new Set(((await discordlink.roles(d.guild_id).catch(() => [])) || []).map(r => r.id)), out = {};
+      for (const lvl of discordlink.LEVELS) out[lvl] = [...new Set((Array.isArray(j.roles?.[lvl]) ? j.roles[lvl] : []).map(String).filter(id => known.has(id)))].slice(0, 25);
+      c.settings.discord = { ...d, roles: out }; communities.saveSettings(c.id, c.settings); discordlink.forget(d.guild_id); return json(res, { ok: true, roles: out }); }
+    if (rest === 'discord/unlink' && M === 'POST') { delete c.settings.discord; communities.saveSettings(c.id, c.settings); if (d) discordlink.forget(d.guild_id); return json(res, { ok: true }); }
+    return json(res, { error: 'Not found.' }, 404); }
   if (rest === 'members/role' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can change roles.' }, 403); const j = await jsonBody(req);
     if (!['member', 'staff', 'admin'].includes(j.role)) return json(res, { error: 'Unknown role.' }, 400); members.setRole(c.id, +j.userId, j.role); return json(res, { ok: true }); }
   if (rest === 'members/remove' && M === 'POST') { const j = await jsonBody(req), target = members.role(c.id, +j.userId);
@@ -128,6 +143,19 @@ const route = async (req, res) => {
     return page(res, pages.dashboard({ logo: LOGO, user, comms: communities.forUser(user.id), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()) })); }
   if (path === '/privacy') return page(res, pages.privacy({ logo: LOGO, user: auth.currentUser(req) }));
   if (path === '/terms') return redirect(res, 'https://www.oversite.shop/terms');
+  let m0;
+  if ((m0 = path.match(/^\/c\/([a-z0-9-]+)\/discord\/connect$/))) { const { c, user, role } = await access(req, m0[1]);
+    if (!c || !user || !can(role, 'owner')) return msg(res, user, 'Owners only', 'Only the server owner can connect a Discord server.', { href: '/dashboard', label: 'Back' }, 403);
+    if (!discordlink.ready()) return msg(res, user, 'Discord is not set up yet', 'Oversite needs its Discord bot keys before servers can be linked.', { href: `/c/${c.slug}/settings`, label: 'Back' });
+    const state = token(16); return redirect(res, discordlink.installUrl(req, state), { 'set-cookie': auth.setCookie(req, 'ov_dg', `${state}|${c.slug}`, 600) }); }
+  if (path === '/auth/discord/guild') { const [state, slug] = (auth.cookies(req).ov_dg || '').split('|'), back = slug ? `/c/${slug}/settings` : '/dashboard', u0 = auth.currentUser(req);
+    try { if (!state || state !== url.searchParams.get('state')) throw new Error('That link expired. Please try connecting again.');
+      if (url.searchParams.get('error')) throw new Error('Adding the bot was cancelled.');
+      const { c, user, role } = await access(req, slug); if (!c || !user || !can(role, 'owner')) throw new Error('Only the server owner can connect a Discord server.');
+      const g = await discordlink.finishInstall(req, url.searchParams.get('code'));
+      c.settings.discord = { ...g, roles: c.settings.discord?.guild_id === g.guild_id ? c.settings.discord.roles || {} : {} }; communities.saveSettings(c.id, c.settings); discordlink.forget(g.guild_id);
+      return redirect(res, back + '?discord=1#discord', { 'set-cookie': auth.setCookie(req, 'ov_dg', '', 0) }); }
+    catch (e) { return msg(res, u0, 'Could not connect Discord', e.message, { href: back, label: 'Back' }, 400); } }
   if (path === '/auth/roblox') { if (!auth.robloxOAuthReady()) return msg(res, auth.currentUser(req), 'Roblox linking is not set up yet', 'The site owner needs to add the Roblox app keys first.', { href: '/dashboard', label: 'Back' });
     const { url: to, cookie } = auth.robloxOAuthStart(req, url.searchParams.get('next') || '/dashboard'); return redirect(res, to, { 'set-cookie': cookie }); }
   // end of the second-tab flow: tell the page that opened it, then close; opened directly it just goes to the dashboard
@@ -136,7 +164,7 @@ const route = async (req, res) => {
     catch (e) { const u = auth.currentUser(req); return msg(res, u, 'Could not link Roblox', e.message, { href: u ? '/dashboard' : '/', label: 'Back' }, 400); } }
   if (path === '/auth/discord') { if (!auth.discordReady()) return msg(res, auth.currentUser(req), 'Discord sign-in is not set up yet', 'The site owner needs to connect a Discord application first.', { href: '/', label: 'Back' });
     const { url: to, cookie } = auth.discordStart(req, url.searchParams.get('next')); return redirect(res, to, { 'set-cookie': cookie }); }
-  if (path === '/auth/discord/callback') { try { const { user, next } = await auth.discordFinish(req, url.searchParams); return redirect(res, next, { 'set-cookie': [auth.signIn(req, user.id), auth.setCookie(req, 'ov_oauth', '', 0)] }); }
+  if (path === '/auth/discord/callback') { try { const { user, next } = await auth.discordFinish(req, url.searchParams); await discordlink.autoJoin(user).catch(() => 0); return redirect(res, next, { 'set-cookie': [auth.signIn(req, user.id), auth.setCookie(req, 'ov_oauth', '', 0)] }); }
     catch (e) { return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), error: e.message }), 400); } }
   if (path === '/auth/owner' && req.method === 'POST') { if (!sameOrigin(req)) return msg(res, null, 'Request blocked', 'Please sign in from the Oversite page.', { href: '/', label: 'Back' }, 400);
     const f = await formBody(req), r = auth.ownerLogin(req, String(f.get('code') || '').trim());
@@ -161,7 +189,7 @@ const route = async (req, res) => {
     return page(res, pages.join({ logo: LOGO, user, c, code: m[1] })); }
   if ((m = path.match(/^\/c\/([a-z0-9-]{3,32})(\/.*)?$/))) { const slug = m[1], sub = (m[2] || '/').replace(/\/+$/, '') || '/';
     if (sub.startsWith('/api/')) return communityApi(req, res, slug, sub.slice(5));
-    const { c, user, role } = access(req, slug);
+    const { c, user, role } = await access(req, slug);
     if (!c) return msg(res, user, 'Community not found', 'Check the address, or ask your community for an invite link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
     if (!user) return redirect(res, `/?next=${encodeURIComponent(path)}`);
     if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', { href: '/dashboard', label: 'Go to dashboard' }, 403);
