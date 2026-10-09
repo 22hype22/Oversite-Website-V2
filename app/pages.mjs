@@ -59,6 +59,23 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:30px;text-align:left}.feats div{font-size:12.5px;color:var(--dim)}.feats b{display:block;color:var(--ink);font-weight:500;margin-bottom:2px}
 @media (max-width:520px){.feats{grid-template-columns:1fr}}
 .danger-zone{border-color:rgba(226,75,75,.25)}
+.srv{display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--hair);background:rgba(255,255,255,.025)}
+.srv+.srv{margin-top:10px}
+.srv .ic{width:44px;height:44px;border-radius:12px;background:linear-gradient(160deg,#2d3440,#1b1f26);display:grid;place-items:center;font-weight:600;font-size:17px;flex:none}
+.srv .tx{flex:1;min-width:0}.srv b{display:block;font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srv small{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:12.5px;margin-top:2px;white-space:nowrap}.srv .sep{color:var(--faint)}
+.st{width:7px;height:7px;border-radius:50%;flex:none}.st.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(70,208,124,.15)}.st.warn{background:var(--warn);box-shadow:0 0 0 3px rgba(233,176,76,.15)}
+.srv .go{display:flex;gap:8px;flex:none}.srv .go .btn{padding:10px 18px}
+.btn.ghost{background:transparent}
+@media (max-width:620px){.srv{flex-wrap:wrap}.srv .go{width:100%}.srv .go .btn{flex:1}}
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+details.mk{margin-top:14px;border-top:1px solid var(--hair);padding-top:12px}
+details.mk summary{cursor:pointer;color:var(--dim);font-size:13px;list-style:none;display:flex;align-items:center;gap:8px;width:max-content}
+details.mk summary::-webkit-details-marker{display:none}
+details.mk summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform .2s cubic-bezier(0.23,1,0.32,1)}
+details.mk[open] summary::before{transform:rotate(45deg)}
+@media (hover:hover) and (pointer:fine){details.mk summary:hover{color:var(--ink)}}
+details.mk[open] summary{margin-bottom:8px;color:var(--ink)}
 .invites{margin-top:14px;display:grid;gap:8px}.inv{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--hair);border-radius:12px;background:rgba(255,255,255,.02);min-width:0}
 .inv .tx{flex:1;min-width:0}.inv code{display:block;font:12.5px/1.4 ui-monospace,"Geist Mono",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.inv small{color:var(--dim);font-size:12px}.inv .acts{display:flex;gap:6px;flex:none}
 .card{min-width:0}
@@ -130,26 +147,28 @@ document.getElementById('makeform').addEventListener('submit',e=>{e.preventDefau
 ` });
 
 export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord }) => layout({ title: 'Dashboard · Oversite', logo, user, body: `
-<main><h1>Welcome, <b>${esc(user.name)}</b></h1><p class="lead">Open a server's CAD, join another with its code, or create your own.</p>
-${welcome && !user.roblox_name ? `<section class="card" style="margin-bottom:18px;border-color:rgba(76,141,255,.35)"><h2>You're in ${esc(welcome.name)}</h2><p class="note" style="margin-bottom:10px">Link your Roblox account below so the CAD knows which player you are and opens your department's MDT. Or skip it for now.</p><a class="btn sm" href="/c/${esc(welcome.slug)}">Skip and open the CAD</a></section>` : ''}
+<main class="dash"><h1>Welcome back, <b>${esc(user.roblox_name || user.name)}</b></h1><p class="lead">${comms.length ? (comms.length === 1 ? 'Open your CAD below.' : 'Pick a server to open its CAD.') : 'Join your server with the code from its owner, or create a new one.'}</p>
+${welcome && !user.roblox_name ? `<section class="card" style="margin-bottom:18px;border-color:rgba(76,141,255,.35)"><h2>You're in ${esc(welcome.name)}</h2><p class="note" style="margin-bottom:10px">Link your Roblox account on the right so the CAD knows which player you are and opens your department's MDT. Or skip it for now.</p><a class="btn sm" href="/c/${esc(welcome.slug)}">Skip and open the CAD</a></section>` : ''}
 <div class="grid"><div>
-<section class="card"><h2>Your servers</h2><p class="note">Servers you own or have joined.</p>
-${comms.length ? comms.map(c => `<div class="comm"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}</span><span class="tx"><b>${esc(c.name)}</b><small>oversitescad.com/c/${esc(c.slug)}</small></span>
-${c.connected ? '<span class="tag ok">Server connected</span>' : '<span class="tag warn">No server yet</span>'}<span class="tag">${esc(c.role)}</span>
-${c.role !== 'member' ? `<a class="btn sm" href="/c/${esc(c.slug)}/settings">Settings</a>` : ''}<a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a></div>`).join('') : '<p class="empty">You are not in any server yet. Join one with its code, or create your own.</p>'}
-</section>
-<section class="card"><h2>Join another server</h2><form id="join" class="row" autocomplete="off" style="flex-wrap:nowrap"><input id="jcode" placeholder="Server code" aria-label="Server code" spellcheck="false" required><button class="btn pri">Join</button></form><p class="msg" id="jmsg"></p></section>
-<section class="card"><h2>Create a server</h2><p class="note">One per ER:LC server. Members join with the member code you get afterwards.</p>
+${comms.length ? `<section class="card"><h2>Your servers</h2>
+${comms.map(c => { const admin = c.role !== 'member', setup = !c.connected && admin, role = c.role[0].toUpperCase() + c.role.slice(1);
+  return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}</span><div class="tx"><b title="oversitescad.com/c/${esc(c.slug)}">${esc(c.name)}</b>
+<small><i class="st ${c.connected ? 'ok' : 'warn'}"></i>${c.connected ? 'Live data connected' : 'ER:LC not connected yet'}<span class="sep">·</span>${role}</small></div>
+<div class="go">${admin ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Settings</a>` : ''}${setup ? `<a class="btn ghost" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn pri" href="/c/${esc(c.slug)}/settings">Connect ER:LC</a>` : `<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>`}</div></div>`; }).join('')}
+</section>` : ''}
+<section class="card"><h2>${comms.length ? 'Add another server' : 'Get started'}</h2><p class="note">${comms.length ? 'Got a code from another server owner? Enter it here.' : 'Enter the server code your server owner gave you.'}</p>
+<form id="join" class="row" autocomplete="off" style="flex-wrap:nowrap"><input id="jcode" placeholder="Server code" aria-label="Server code" spellcheck="false" required><button class="btn pri">Join</button></form><p class="msg" id="jmsg"></p>
+<details class="mk"${comms.length ? '' : ' open'}><summary>Create a new server instead</summary><p class="note">One per ER:LC server. Members join with the member code you get afterwards.</p>
 <form id="create" autocomplete="off"><label for="cname">Server name</label><input id="cname" maxlength="48" placeholder="Liberty County Roleplay" required>
 <label for="cslug">Address</label><input id="cslug" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="liberty-county" required><p class="hint">oversitescad.com/c/<span id="slugp">liberty-county</span></p>
-<label for="ccode">Owner code</label><input id="ccode" maxlength="24" placeholder="2 to 24 letters or numbers" spellcheck="false" required>
-<div class="row" style="margin-top:14px"><button class="btn pri">Create server</button></div><p class="msg" id="cmsg"></p></form></section>
+<label for="ccode">Owner code</label><input id="ccode" maxlength="24" placeholder="2 to 24 letters or numbers" spellcheck="false" required><p class="hint">You sign in with it, so keep it private.</p>
+<div class="row" style="margin-top:14px"><button class="btn pri">Create server</button></div><p class="msg" id="cmsg"></p></form></details></section>
 </div><div>
-<section class="card" id="rbx"><h2>Roblox account</h2>
+<section class="card" id="rbx"><h2 class="hrow">Your Roblox account${user.roblox_name ? '<span class="tag ok">Linked</span>' : '<span class="tag warn">Not linked</span>'}</h2>
 ${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>${user.roblox_via === 'discord' ? ', the Roblox account verified on your Discord' : ''}. Your servers use this to find you in game and open your department's MDT.</p>${user.roblox_via === 'discord' ? '<p class="hint" style="margin:-6px 0 0">To change it, change the Roblox connection in Discord and sign in with Discord again.</p>' : '<button class="btn sm" id="unlink">Unlink</button>'}`
 : pending ? `<p class="note">Add this phrase anywhere in the <b>About</b> section of <a href="https://www.roblox.com/users/${esc(pending.roblox_id)}/profile" target="_blank" rel="noopener">${esc(pending.roblox_name)}'s profile</a>, save, then press Verify. You can remove it afterwards.</p>
 <div class="phrase">${esc(pending.phrase)}</div><div class="row"><button class="btn pri" id="verify">Verify</button><button class="btn sm" id="restart">Use a different account</button></div><p class="msg" id="rmsg"></p>`
-: `<p class="note">Link your Roblox account so your servers know which player you are. No password needed.</p>${discord ? `<a class="btn discord" href="/auth/discord?next=/dashboard" style="width:100%">Use the Roblox account on my Discord</a><p class="hint" style="margin:8px 0 2px">Works if Roblox is connected in Discord (Settings, Connections). Or link it here:</p>` : ''}<form id="rstart" autocomplete="off"><label for="ruser">Roblox username</label><input id="ruser" placeholder="Your Roblox username" required><div class="row" style="margin-top:12px"><button class="btn pri">Continue</button></div><p class="msg" id="rmsg"></p></form>`}
+: `<p class="note">The CAD uses it to find you on the map and open your department\'s MDT. No password needed.</p>${discord ? `<a class="btn discord" href="/auth/discord?next=/dashboard" style="width:100%">Use the Roblox account on my Discord</a><p class="hint" style="margin:8px 0 2px">Works if Roblox is connected in Discord (Settings, Connections). Or link it here:</p>` : ''}<form id="rstart" autocomplete="off"><label for="ruser">Roblox username</label><input id="ruser" placeholder="Your Roblox username" required><div class="row" style="margin-top:12px"><button class="btn pri">Continue</button></div><p class="msg" id="rmsg"></p></form>`}
 </section>
 ${discordLinkable ? `<section class="card"><h2>Discord</h2><p class="note">You signed in with the owner code. Link Discord so you can sign in with it from now on.</p><a class="btn discord" href="/auth/discord?next=/dashboard">Link Discord</a></section>` : ''}
 </div></div></main>`, script: `
