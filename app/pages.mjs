@@ -9,7 +9,7 @@ body{font:14px/1.5 "Geist",system-ui,-apple-system,"Segoe UI",sans-serif;color:v
 a{color:inherit}
 .top{display:flex;align-items:center;gap:12px;padding:16px 24px;max-width:1180px;margin:0 auto}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;letter-spacing:-.01em}
-.brand i{display:grid;place-items:center}.brand .cad{font-weight:400;color:var(--dim);margin-left:-5px}.brand img{height:26px;width:auto;display:block}
+.brand i{display:grid;place-items:center}.brand .ov{font-weight:400}.brand .cad{font-weight:700;margin-left:-5px}.brand img{height:26px;width:auto;display:block}
 .top .sp{flex:1}
 .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);text-decoration:none;padding:3px 10px 3px 3px;border-radius:999px;transition:background .15s,color .15s}.who:hover{background:rgba(255,255,255,.06);color:var(--ink)}
 .sp-head{display:flex;align-items:center;gap:16px;margin:4px 0 14px}
@@ -147,7 +147,7 @@ document.body.appendChild(d);d.showModal();requestAnimationFrame(()=>d.classList
 `;
 // Opener (preview/intro-splash.js): once per browser session. The cover goes up before first paint so the page never flashes first;
 // if the script never arrives the cover lifts by itself.
-export const INTRO_HEAD = `<script>try{if(sessionStorage.getItem('ov_intro_seen')!=='1'){const r=document.documentElement;r.classList.add('ov-intro');setTimeout(()=>r.classList.remove('ov-intro'),2500)}}catch(e){}</script><style>html.ov-intro::after{content:"";position:fixed;inset:0;z-index:2147483646;background:#07080A}</style><script src="/intro-splash.js" defer></script>`;
+export const INTRO_HEAD = `<script>try{if(sessionStorage.getItem('ov_intro_seen')!=='1'){const r=document.documentElement;r.classList.add('ov-intro');setTimeout(()=>r.classList.remove('ov-intro'),2500)}}catch(e){}</script><style>html.ov-intro::after{content:"";position:fixed;inset:0;z-index:2147483646;background:#07080A}</style><script src="/intro-splash.js?v=2" defer></script>`;
 // the five ranks, as people read them
 export const RANK_LABEL = { owner: 'Owner', co_owner: 'Co-Owner', admin: 'Admin', mod: 'Mod', member: 'Member', staff: 'Admin' };
 const runs = r => r === 'owner' || r === 'co_owner';
@@ -155,14 +155,14 @@ export const layout = ({ title, logo, user, body, bg = true, top = true, script 
 <title>${esc(title)}</title><link rel="icon" href="/favicon.ico?v=3" sizes="any"><link rel="icon" type="image/png" href="/icon-192.png?v=3"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3"><link rel="manifest" href="/manifest.webmanifest?v=3"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>${INTRO_HEAD}<script src="/dropdown.js?v=1" defer></script></head><body>${bg ? '<div class="bg"></div>' : ''}
-${top ? `<header class="top"><a class="brand" href="${user ? '/account' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i>Oversite <span class="cad">CAD</span></a><span class="sp"></span>
+${top ? `<header class="top"><a class="brand" href="${user ? '/account' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i><span class="ov">Oversite</span> <span class="cad">CAD</span></a><span class="sp"></span>
 ${user ? `<a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}${esc(user.roblox_name || user.name)}</a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
 ${body}<script>${JS}${script}</script></body></html>`;
 
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
 <section class="hero wide notop"><div class="box">
 <div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div>
-<h1><b>Oversite</b> CAD</h1>
+<h1><span style="font-weight:400">Oversite</span> <b>CAD</b></h1>
 <p class="lead">A live dispatch system for ER:LC private servers. Every unit on a 3D map of Liberty County, live from your server.</p>
 <div class="paths">
 <form class="card path" id="codeform" autocomplete="off"><h2>Join your server</h2><p class="note">Enter the code your server owner gave you.</p>
