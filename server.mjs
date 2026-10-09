@@ -6,7 +6,7 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, members, invites, roblox, codes, RESERVED, token } from './app/db.mjs';
+import { users, communities, members, invites, roblox, codes, reports, RESERVED, token } from './app/db.mjs';
 import { Feed, testKey, NOKEY } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
@@ -73,6 +73,7 @@ const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
 const communityApi = async (req, res, slug, rest) => {
   const { c, user, role } = await access(req, slug);
   if (!c) return json(res, { error: 'No such community.' }, 404);
+  if (c.suspended && !isSiteAdmin(user)) return json(res, { error: 'This server is suspended.' }, 403);
   if (!user) return json(res, { error: 'Sign in first.' }, 401);
   if (!role) return json(res, { error: 'You are not a member of this community.' }, 403);
   if (!user.roblox_name) return json(res, { error: 'Link your Roblox account first. Open the dashboard to link it.' }, 403);
@@ -150,6 +151,28 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'admin/verify' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), id = Number(j.id);
     const n = j.kind === 'server' ? communities.setVerified(id, !!j.on) : j.kind === 'user' ? users.setVerified(id, !!j.on) : 0;
     if (!n) return json(res, { error: 'Not found.' }, 404); console.log(`verify: ${user.discord_id} set ${j.kind} ${id} ${j.on ? 'on' : 'off'}`); return json(res, { ok: true }); }
+  if (rest === 'explore/report' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to report a server.' }, 403);
+    const j = await jsonBody(req), c = communities.bySlug(String(j.slug || '')), reason = String(j.reason || ''), details = String(j.details || '').replace(/\s+/g, ' ').trim().slice(0, 500);
+    if (!c || !c.settings.profile?.listed) return json(res, { error: 'That server is not listed.' }, 404);
+    if (!REPORT_REASONS[reason]) return json(res, { error: 'Pick a reason.' }, 400);
+    if (reason === 'other' && details.length < 4) return json(res, { error: 'Tell us what is wrong.' }, 400);
+    const day = Date.now() - 864e5; if (reports.sameSince(user.id, c.id, day)) return json(res, { error: 'You already reported this server today. Thanks, we have it.' }, 429);
+    if (reports.byUserSince(user.id, day) >= 10) return json(res, { error: 'You have sent a lot of reports today. Please try again tomorrow.' }, 429);
+    reports.add(c.id, user.id, reason, details); return json(res, { ok: true }); }
+  if (rest === 'admin/server' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), c = communities.byId(Number(j.id)); if (!c) return json(res, { error: 'Not found.' }, 404);
+    const act = String(j.action || '');
+    if (act === 'hide' || act === 'show') { communities.setFlag(c.id, 'hidden', act === 'hide'); if (act === 'hide') reports.resolveFor(c.id, 'hidden'); }
+    else if (act === 'suspend' || act === 'unsuspend') { communities.setFlag(c.id, 'suspended', act === 'suspend'); if (act === 'suspend') reports.resolveFor(c.id, 'suspended'); }
+    else if (act === 'reset_icon') profile.clearIcon(c);
+    else if (act === 'clear_bio') profile.clearBio(c);
+    else return json(res, { error: 'Unknown action.' }, 400);
+    console.log(`moderation: ${user.discord_id} ${act} server ${c.id} (${c.slug})`); return json(res, { ok: true, servers: communities.overview(), reports: reports.open() }); }
+  if (rest === 'admin/person' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), act = String(j.action || ''), id = Number(j.id);
+    if (act !== 'suspend' && act !== 'unsuspend') return json(res, { error: 'Unknown action.' }, 400);
+    const target = users.byId(id); if (!target) return json(res, { error: 'Not found.' }, 404); if (isSiteAdmin(target)) return json(res, { error: 'You can\'t suspend a site admin.' }, 400);
+    users.setSuspended(id, act === 'suspend'); console.log(`moderation: ${user.discord_id} ${act} person ${id} (${target.roblox_name || target.name})`); return json(res, { ok: true }); }
+  if (rest === 'admin/report' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req);
+    if (!reports.resolve(Number(j.id), 'dismissed')) return json(res, { error: 'That report is already closed.' }, 404); return json(res, { ok: true, servers: communities.overview(), reports: reports.open() }); }
   if (rest === 'explore/vote' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to vote.' }, 403); const r = profile.vote(user, (await jsonBody(req)).slug); return json(res, r, r.error ? 429 : 200); }
   if (rest === 'communities' && req.method === 'POST') { const j = await jsonBody(req), name = String(j.name || '').trim(), slug = String(j.slug || '').trim().toLowerCase();
     if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400);
@@ -166,9 +189,14 @@ const globalApi = async (req, res, rest) => {
     members.remove(c.id, user.id); return json(res, { ok: true }); }
   return json(res, { error: 'Not found.' }, 404); };
 
+export const REPORT_REASONS = { name: 'Inappropriate name', icon: 'Inappropriate icon', bio: 'Inappropriate bio', fake: 'Fake or misleading', other: 'Something else' };
+const SUSPENDED_OK = /^\/(privacy|terms|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.png|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/avatar\/\d+)$/;
 // ── routes ──
 const route = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = decodeURIComponent(url.pathname);
+  const me0 = auth.currentUser(req);
+  if (me0?.suspended && !isSiteAdmin(me0) && !SUSPENDED_OK.test(path)) { if (path.startsWith('/api/') || /^\/c\/[^/]+\/api\//.test(path)) return json(res, { error: 'Your account is suspended.' }, 403);
+    return msg(res, me0, 'Your account is suspended', 'Oversite has suspended this account for breaking the Terms of Use, so you can\'t use the CAD or Explore right now. If you think this is a mistake, email support@oversite.shop.', { href: 'mailto:support@oversite.shop', label: 'Contact support' }, 403); }
   if (path === '/health') { let w = 0, perMin = 0; for (const f of feeds.values()) { w += f.clients.size; perMin += f.sent.length; } res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${communities.all().length} communities, ${w} watching, ${perMin}/min`); }
   // an account that only ever came from a server code (no Discord, no Roblox) is nothing once its last server is gone: sign it out and start over
   const stranded = user => user && !user.discord_id && !user.roblox_id && !communities.forUser(user.id).length;
@@ -178,7 +206,7 @@ const route = async (req, res) => {
   if (path === '/explore') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/explore'); if (!user.roblox_name) return redirect(res, '/dashboard?link=%2Fexplore');
     return page(res, pages.explore({ logo: LOGO, user, servers: profile.directory(user), owned: communities.forUser(user.id).filter(m => m.role === 'owner' || m.role === 'co_owner').map(m => m.slug) })); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
-    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview() })); }
+    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: REPORT_REASONS })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/c\/[a-z0-9-]{3,32}$/.test(from) ? from : null;
     return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }
@@ -246,6 +274,7 @@ const route = async (req, res) => {
     if (sub.startsWith('/api/')) return communityApi(req, res, slug, sub.slice(5));
     const { c, user, role } = await access(req, slug);
     if (!c) return msg(res, user, 'Community not found', 'Check the address, or ask your community for an invite link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
+    if (c.suspended && !isSiteAdmin(user)) return msg(res, user, `${c.name} is suspended`, 'Oversite has suspended this server for breaking the Terms of Use, so its CAD is closed. The owner can email support@oversite.shop about it.', { href: user ? '/account' : '/', label: user ? 'Your account' : 'Back' }, 403);
     if (!user) return redirect(res, `/?next=${encodeURIComponent(path)}`);
     if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', { href: '/dashboard', label: 'Go to dashboard' }, 403);
     if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(path + url.search)}`);   // no CAD without a linked Roblox account

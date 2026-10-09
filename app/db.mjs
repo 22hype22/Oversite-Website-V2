@@ -53,7 +53,16 @@ UPDATE members SET role = 'admin' WHERE role = 'staff';
 try { db.exec('ALTER TABLE users ADD COLUMN roblox_via TEXT'); } catch (e) {}
 // a blue check Oversite gives by hand (site admins only), on people and on servers
 try { db.exec('ALTER TABLE users ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
-try { db.exec('ALTER TABLE communities ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'); } catch (e) {}   // how the Roblox link was proven: 'discord' or 'profile'
+try { db.exec('ALTER TABLE communities ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+// moderation by Oversite itself: a suspended person can't use the site; a hidden server is off Explore; a suspended server's CAD is closed
+try { db.exec('ALTER TABLE users ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+try { db.exec('ALTER TABLE communities ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+try { db.exec('ALTER TABLE communities ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+db.exec(`CREATE TABLE IF NOT EXISTS reports (
+  id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  reason TEXT NOT NULL, details TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL, resolved INTEGER, outcome TEXT);
+CREATE INDEX IF NOT EXISTS reports_open ON reports (resolved, created);
+CREATE INDEX IF NOT EXISTS reports_user ON reports (user_id, created);`);   // how the Roblox link was proven: 'discord' or 'profile'
 // server keys are encrypted at rest with a secret that lives in the environment or, failing that, next to the database
 const SECRET_FILE = join(DATA, 'app.secret');
 let secret = process.env.APP_SECRET ? createHash('sha256').update(process.env.APP_SECRET).digest() : null;
@@ -76,11 +85,14 @@ export const users = {
   // the check belongs to the person, so every account on the same Roblox gets it
   setVerified: (id, on) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(id); if (!u) return 0;
     return u.roblox_id ? q('UPDATE users SET verified = ? WHERE roblox_id = ?').run(on ? 1 : 0, u.roblox_id).changes : q('UPDATE users SET verified = ? WHERE id = ?').run(on ? 1 : 0, id).changes; },
+  // like the check, a suspension follows the person to every account on their Roblox
+  setSuspended: (id, on) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(id); if (!u) return 0;
+    return u.roblox_id ? q('UPDATE users SET suspended = ? WHERE roblox_id = ?').run(on ? 1 : 0, u.roblox_id).changes : q('UPDATE users SET suspended = ? WHERE id = ?').run(on ? 1 : 0, id).changes; },
   verifiedRoblox: () => new Set(q('SELECT DISTINCT roblox_id FROM users WHERE verified = 1 AND roblox_id IS NOT NULL').all().map(r => String(r.roblox_id))),
   // for the verification page: only real people (a linked Roblox account; code-only "Owner"/"Member" placeholders are left out),
   // one row per Roblox account; searched by Roblox name, Discord name or either ID, newest first when there is nothing to search
   search: (term, limit = 40) => { const t = String(term || '').trim();
-    const sel = `SELECT MIN(u.id) AS id, u.roblox_id, MAX(u.roblox_name) AS roblox_name, MAX(CASE WHEN u.discord_id IS NOT NULL THEN u.name END) AS discord_name, MAX(u.discord_id IS NOT NULL) AS discord, MAX(u.verified) AS verified,
+    const sel = `SELECT MIN(u.id) AS id, u.roblox_id, MAX(u.roblox_name) AS roblox_name, MAX(CASE WHEN u.discord_id IS NOT NULL THEN u.name END) AS discord_name, MAX(u.discord_id IS NOT NULL) AS discord, MAX(u.verified) AS verified, MAX(u.suspended) AS suspended,
       (SELECT COUNT(DISTINCT m.community_id) FROM members m JOIN users x ON x.id = m.user_id WHERE x.roblox_id = u.roblox_id) AS servers, MAX(u.id) AS newest FROM users u WHERE u.roblox_id IS NOT NULL`;
     if (!t) return q(`${sel} GROUP BY u.roblox_id ORDER BY verified DESC, newest DESC LIMIT ?`).all(limit);
     const like = '%' + t.replace(/[%_\\]/g, c => '\\' + c) + '%';
@@ -116,7 +128,8 @@ export const communities = {
   remove: id => q('DELETE FROM communities WHERE id = ?').run(id),
   setVerified: (id, on) => q('UPDATE communities SET verified = ? WHERE id = ?').run(on ? 1 : 0, id).changes,
   // for the verification page: every server with its owner and size
-  overview: () => q('SELECT c.id, c.slug, c.name, c.verified, c.created, json_extract(c.settings, \'$.profile.listed\') AS listed, u.roblox_name AS owner_rbx, u.name AS owner_name, (SELECT COUNT(*) FROM members m WHERE m.community_id = c.id) AS members FROM communities c LEFT JOIN users u ON u.id = c.owner_id ORDER BY c.verified DESC, c.name').all(),
+  setFlag: (id, flag, on) => ['hidden', 'suspended'].includes(flag) ? q(`UPDATE communities SET ${flag} = ? WHERE id = ?`).run(on ? 1 : 0, id).changes : 0,
+  overview: () => q('SELECT c.id, c.slug, c.name, c.verified, c.hidden, c.suspended, c.created, json_extract(c.settings, \'$.profile.listed\') AS listed, length(coalesce(json_extract(c.settings, \'$.profile.bio\'), \'\')) > 0 AS has_bio, EXISTS (SELECT 1 FROM community_icons i WHERE i.community_id = c.id) AS custom_icon, (SELECT COUNT(*) FROM reports r WHERE r.community_id = c.id AND r.resolved IS NULL) AS open_reports, u.roblox_name AS owner_rbx, u.name AS owner_name, (SELECT COUNT(*) FROM members m WHERE m.community_id = c.id) AS members FROM communities c LEFT JOIN users u ON u.id = c.owner_id ORDER BY open_reports DESC, c.verified DESC, c.name').all(),
 };
 export const members = {
   role: (cid, uid) => q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(cid, uid)?.role || null,
@@ -196,4 +209,15 @@ export const codes = {
   taken: (code, cid, role) => { const r = q('SELECT community_id, role FROM codes WHERE hash = ?').get(codeHash(code)); return !!r && !(r.community_id === cid && r.role === role); },
   set: (cid, role, code) => { q('DELETE FROM codes WHERE community_id = ? AND role = ?').run(cid, role); q('INSERT INTO codes (hash, community_id, role, sealed, created) VALUES (?, ?, ?, ?, ?)').run(codeHash(code), cid, role, seal(String(code).trim().toUpperCase()), now()); },
   show: (cid, role) => unseal(q('SELECT sealed FROM codes WHERE community_id = ? AND role = ?').get(cid, role)?.sealed),
+};
+
+// ── reports from the Explore page, read by site admins on /admin ──
+export const reports = {
+  add: (cid, uid, reason, details) => q('INSERT INTO reports (community_id, user_id, reason, details, created) VALUES (?, ?, ?, ?, ?)').run(cid, uid, reason, details, now()).lastInsertRowid,
+  byUserSince: (uid, since) => q('SELECT COUNT(*) AS n FROM reports WHERE user_id = ? AND created > ?').get(uid, since).n,
+  sameSince: (uid, cid, since) => q('SELECT COUNT(*) AS n FROM reports WHERE user_id = ? AND community_id = ? AND created > ?').get(uid, cid, since).n,
+  open: () => q(`SELECT r.id, r.community_id, r.reason, r.details, r.created, c.slug, c.name, c.hidden, c.suspended, u.roblox_name AS by_name
+    FROM reports r JOIN communities c ON c.id = r.community_id LEFT JOIN users u ON u.id = r.user_id WHERE r.resolved IS NULL ORDER BY r.created DESC LIMIT 200`).all(),
+  resolve: (id, outcome) => q('UPDATE reports SET resolved = ?, outcome = ? WHERE id = ? AND resolved IS NULL').run(now(), outcome, id).changes,
+  resolveFor: (cid, outcome) => q('UPDATE reports SET resolved = ?, outcome = ? WHERE community_id = ? AND resolved IS NULL').run(now(), outcome, cid).changes,
 };

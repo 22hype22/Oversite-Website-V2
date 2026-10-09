@@ -50,6 +50,7 @@ export const setIcon = (c, dataUrl) => { const m = /^data:(image\/(?:png|jpeg|we
   if (!m) return { error: 'Use a PNG, JPG or WebP image.' }; const buf = Buffer.from(m[2], 'base64'); if (buf.length > ICON_MAX) return { error: 'That image is too big. Try a smaller one.' };
   const sig = buf.subarray(0, 12).toString('hex'); if (!(sig.startsWith('89504e47') || sig.startsWith('ffd8ff') || (sig.startsWith('52494646') && buf.subarray(8, 12).toString() === 'WEBP'))) return { error: 'That file is not a valid image.' };
   communityIcons.set(c.id, m[1], buf); return { ok: true }; };
+export const clearBio = c => { const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), bio: '' }; communities.saveSettings(c.id, s); return { ok: true }; };
 export const clearIcon = c => { communityIcons.remove(c.id); return { ok: true }; };
 
 // where a server's icon comes from: the owner's upload, else its Discord server's icon, else the ER:LC owner's Roblox avatar
@@ -74,7 +75,7 @@ export const startDirectory = () => { let busy = false;
 export const directory = me => { const mine = new Map((me ? communities.forUser(me.id) : []).map(m => [m.id, m.role]));
   const total = votes.totals(), week = votes.since(Date.now() - 7 * 86400000), voted = me ? votes.mine(me.id) : {};
   const vr = users.verifiedRoblox();
-  return communities.all().filter(c => c.settings.profile?.listed).map(c => { const P = c.settings.profile, E = P.erlc || {};
+  return communities.all().filter(c => c.settings.profile?.listed && !c.hidden && !c.suspended).map(c => { const P = c.settings.profile, E = P.erlc || {};
     return { slug: c.slug, name: c.name, bio: P.bio || '', invite: P.invite || '', players: E.players ?? null, max: E.max ?? null, join_key: E.join_key || '', ingame: E.name || '',
       owner_id: E.owner_id || '', owner_name: E.owner_name || '', co_owners: (E.co_owners || []).map(o => o.name).filter(Boolean), verified: E.verified || '', team_balance: !!E.team_balance,
       depts: ['pd', 'fd', 'dot'].map(d => c.settings.depts?.[d] && { k: d, name: c.settings.depts[d].name, short: c.settings.depts[d].short }).filter(Boolean), discord: c.settings.discord?.guild_name || '', at: E.at || 0, created: c.created || 0,
@@ -84,6 +85,6 @@ export const directory = me => { const mine = new Map((me ? communities.forUser(
       dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, badge: !!c.verified, owner_badge: !!E.owner_id && vr.has(String(E.owner_id)) }; }); };
 
 // one vote per person per server every 12 hours
-export const vote = (me, slug) => { const c = communities.bySlug(String(slug || '')); if (!c || !c.settings.profile?.listed) return { error: 'That server is not listed.' };
+export const vote = (me, slug) => { const c = communities.bySlug(String(slug || '')); if (!c || !c.settings.profile?.listed || c.hidden || c.suspended) return { error: 'That server is not listed.' };
   const wait = votes.last(c.id, me.id) + VOTE_GAP - Date.now(); if (wait > 0) return { error: `You can vote for ${c.name} again in ${Math.ceil(wait / 3600000)} h.`, next_vote: wait };
   votes.add(c.id, me.id); return { ok: true, votes: votes.totals()[c.id] || 0, next_vote: VOTE_GAP }; };

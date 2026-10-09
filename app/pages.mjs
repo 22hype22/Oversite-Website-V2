@@ -82,6 +82,10 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xp-dlg.in .xp-dlgin{opacity:1;transform:none}.xp-dlgin .xr-a{justify-content:flex-start}.xd-top .xr-ic{margin:0;border-width:1px}.xd-top .xr-m{margin-top:6px}
 .xp-x{position:absolute;right:14px;top:12px;width:32px;height:32px;border-radius:9px;border:1px solid var(--hair2);background:none;color:var(--dim);font-size:18px;cursor:pointer}.xp-x:hover{color:var(--ink)}
 .xd-top{display:flex;align-items:center;gap:16px;padding-right:36px}.xd-top h2{margin:0;font-size:22px}
+.xd-rep{align-self:center;background:none;border:0;padding:4px 8px;color:var(--faint);font:inherit;font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.xd-rep:hover{color:var(--dim)}
+.rp-o{display:grid;gap:6px;margin:16px 0 4px}.rp-o label{display:flex;align-items:center;gap:10px;margin:0;padding:10px 12px;border-radius:11px;border:1px solid var(--hair);cursor:pointer;font-size:13.5px}
+.rp-o label:has(input:checked){border-color:rgba(76,141,255,.5);background:rgba(76,141,255,.08)}.rp-o input{accent-color:#4C8DFF;margin:0;width:16px;height:16px;flex:none;padding:0}.rp-o span{flex:1;text-align:left}
+.rp textarea{width:100%;resize:vertical}.rp label small{color:var(--faint);font-weight:400}
 .xd-bio{margin:0;color:#C9CDD3;line-height:1.55;white-space:pre-line}
 .xd-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;padding:14px;border-radius:12px;border:1px solid var(--hair);background:rgba(255,255,255,.02)}
 .xd-facts small{display:block;color:var(--faint);font-size:11px}.xd-facts b{display:block;font-size:13px;font-weight:500;margin-top:2px;overflow-wrap:anywhere}.xd-facts code{font-family:ui-monospace,"Geist Mono",monospace}
@@ -183,6 +187,16 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .adm-r .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .adm-r .tx{flex:1;min-width:0}.adm-r .tx b{display:flex;align-items:center;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.adm-r .tx small{display:block;color:var(--faint);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .adm-r .btn{flex:none;min-width:92px}.adm-r .btn.is-on{background:rgba(76,141,255,.16);border-color:rgba(76,141,255,.45);color:#CFE0FF}
+.adm-rep{margin-bottom:18px}
+.adm-r.off{border-color:rgba(226,75,75,.3);background:rgba(226,75,75,.05)}
+.adm-r{flex-wrap:wrap}.adm-b{display:flex;gap:6px;flex:none}.adm-b .btn{min-width:0}.adm-r .adm-b .btn[data-k]{min-width:84px}
+.adm-x{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 2px 48px;border-top:1px solid var(--hair);margin-top:4px}
+.adm-ts{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.adm-t{font-style:normal;font-size:11px;font-weight:500;padding:2px 7px;border-radius:999px;border:1px solid var(--hair2);color:var(--dim)}.adm-t.warn{color:#F0C46E;border-color:rgba(233,176,76,.35)}.adm-t.bad{color:#F3A3A3;border-color:rgba(226,75,75,.4)}
+.adm-rr .tx small{white-space:normal}.adm-rr q{display:block;margin-top:6px;color:#C9CDD3;font-size:13px;quotes:none}
+.btn.ghost{background:transparent}
+.btn.warnb{background:transparent;color:#F3A3A3;border-color:rgba(226,75,75,.35)}.btn.warnb:hover{background:rgba(226,75,75,.12);color:#FFC2C2}
+@media (max-width:560px){.adm-b{flex-basis:100%;padding-left:48px}.adm-x{padding-left:0}}
 .adm-e{color:var(--faint);font-size:13px;padding:14px 4px}
 @media (max-width:860px){.adm-cols{grid-template-columns:1fr}.adm-l{max-height:none}}
 .foot-sp{height:58px}
@@ -204,6 +218,7 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .st{width:7px;height:7px;border-radius:50%;flex:none}.st.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(70,208,124,.15)}.st.warn{background:var(--warn);box-shadow:0 0 0 3px rgba(233,176,76,.15)}
 .srv .go{display:flex;gap:8px;flex:none}.srv .go .btn{padding:10px 18px}
 .btn.ghost{background:transparent}
+.btn.warnb{background:transparent;color:#F3A3A3;border-color:rgba(226,75,75,.35)}.btn.warnb:hover{background:rgba(226,75,75,.12);color:#FFC2C2}
 @media (max-width:620px){.srv{flex-wrap:wrap}.srv .go{width:100%}.srv .go .btn{flex:1}}
 .hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 details.mk{margin-top:14px;border-top:1px solid var(--hair);padding-top:12px}
@@ -262,7 +277,7 @@ export const layout = ({ title, logo, user, body, bg = true, top = true, script 
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>${INTRO_HEAD}<script src="/dropdown.js?v=1" defer></script></head><body>${bg ? '<div class="bg"></div>' : ''}
 ${top ? `<header class="top"><a class="brand" href="${user ? '/account' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i><span class="ov">Oversite</span> <span class="cad">CAD</span></a><span class="sp"></span>
-${user ? `${isSiteAdmin(user) ? '<a class="nav" href="/admin">Verify</a>' : ''}<a class="nav" href="/explore">Explore</a><a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}<span class="nm">${esc(user.roblox_name || user.name)}</span></a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
+${user ? `${isSiteAdmin(user) ? '<a class="nav" href="/admin">Moderation</a>' : ''}<a class="nav" href="/explore">Explore</a><a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}<span class="nm">${esc(user.roblox_name || user.name)}</span></a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
 ${body}${FOOT}<script>${JS}${script}</script></body></html>`;
 
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
@@ -302,28 +317,54 @@ export const legal = ({ logo, user, doc }) => { const d = DOCS[doc]; return layo
 const tl=[...document.querySelectorAll('.lg-toc a')];const io=new IntersectionObserver(es=>{for(const e of es)if(e.isIntersecting)tl.forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id))},{rootMargin:'-20% 0px -70% 0px'});document.querySelectorAll('.lg-s').forEach(s=>io.observe(s));
 ` }); };
 
-// Site admins only (see admins.mjs): give or take away the blue check on servers and people.
-export const admin = ({ logo, user, servers }) => layout({ title: 'Verify · Oversite', logo, user, body: `
-<main class="adm"><h1>Verification</h1><p class="lead">Give servers and people the blue check ${vbadge(18)} Only you can see this page. It shows on Explore, on account pages and in member lists.</p>
+// Site admins only (see admins.mjs): reports from Explore, the blue check, and moderation of servers and people.
+export const admin = ({ logo, user, servers, reports, reasons }) => layout({ title: 'Moderation · Oversite', logo, user, body: `
+<main class="adm"><h1>Moderation</h1><p class="lead">Reports from Explore, the blue check ${vbadge(18)} and suspensions. Only site admins can see this page.</p>
+<section class="card adm-rep"><div class="adm-h"><h2>Reports</h2><span id="rN"></span></div><div class="adm-l" id="rL"></div></section>
 <div class="adm-cols">
 <section class="card"><div class="adm-h"><h2>Servers</h2><span id="sN"></span></div><input class="adm-q" id="sQ" type="search" placeholder="Search servers" aria-label="Search servers" autocomplete="off"><div class="adm-l" id="sL"></div></section>
 <section class="card"><div class="adm-h"><h2>People</h2><span id="pN"></span></div><input class="adm-q" id="pQ" type="search" placeholder="Search by Roblox or Discord name, or ID" aria-label="Search people" autocomplete="off"><div class="adm-l" id="pL"></div></section>
 </div></main>`, script: `
-const VB=${JSON.stringify(vbadge(15))};let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};
+const VB=${JSON.stringify(vbadge(15))},RS=${JSON.stringify(reasons)};let S=${JSON.stringify(servers).replace(/</g, '\\u003c')},R=${JSON.stringify(reports).replace(/</g, '\\u003c')};
 const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ini=t=>e(String(t||'?').slice(0,1).toUpperCase());
-const btn=(k,id,on)=>'<button class="btn sm'+(on?' is-on':'')+'" data-k="'+k+'" data-id="'+id+'" data-on="'+(on?1:0)+'">'+(on?'Verified':'Verify')+'</button>';
-const sRow=x=>'<div class="adm-r'+(x.verified?' on':'')+'"><span class="pic sq">'+ini(x.name)+'<img src="/c/'+e(x.slug)+'/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>'+e(x.name)+(x.verified?VB:'')+'</b><small>/c/'+e(x.slug)+' · '+(x.owner_rbx||x.owner_name?'by '+e(x.owner_rbx||x.owner_name)+' · ':'')+x.members+' member'+(x.members===1?'':'s')+(x.listed?' · On Explore':'')+'</small></div>'+btn('server',x.id,x.verified)+'</div>';
-const pRow=x=>'<div class="adm-r'+(x.verified?' on':'')+'"><span class="pic">'+ini(x.roblox_name)+'<img src="/rbx/avatar/'+e(x.roblox_id)+'" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>'+e(x.roblox_name)+(x.verified?VB:'')+'</b><small>Roblox '+e(x.roblox_id)+(x.discord?' · Discord '+e(x.discord_name||''):'')+' · '+x.servers+' server'+(x.servers===1?'':'s')+'</small></div>'+btn('user',x.id,x.verified)+'</div>';
-const sL=document.getElementById('sL'),sQ=document.getElementById('sQ'),pL=document.getElementById('pL'),pQ=document.getElementById('pQ');
+const ago=t=>{const m=Math.round((Date.now()-t)/60000);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago'};
+const tag=(t,k)=>'<i class="adm-t '+k+'">'+t+'</i>';
+const sIc=x=>'<span class="pic sq">'+ini(x.name)+'<img src="/c/'+e(x.slug)+'/icon" alt="" loading="lazy" onerror="this.remove()"></span>';
+const vbtn=(k,id,on)=>'<button class="btn sm'+(on?' is-on':'')+'" data-k="'+k+'" data-id="'+id+'" data-on="'+(on?1:0)+'">'+(on?'Verified':'Verify')+'</button>';
+const act=(a,id,label,cls)=>'<button class="btn sm'+(cls?' '+cls:'')+'" data-a="'+a+'" data-id="'+id+'">'+label+'</button>';
+const open=new Set();
+const rRow=x=>'<div class="adm-r adm-rr">'+sIc(x)+'<div class="tx"><b>'+e(x.name)+'</b><small>'+tag(e(RS[x.reason]||x.reason),'warn')+' by '+e(x.by_name||'someone')+' · '+ago(x.created)+(x.hidden?' · '+tag('Hidden','dim'):'')+(x.suspended?' · '+tag('Suspended','bad'):'')+'</small>'+(x.details?'<q>'+e(x.details)+'</q>':'')+'</div>'
+  +'<div class="adm-b">'+(x.hidden?'':act('hide',x.community_id,'Hide server','warnb'))+'<button class="btn sm" data-dismiss="'+x.id+'">Dismiss</button></div></div>';
+const sRow=x=>'<div class="adm-r'+(x.verified?' on':'')+(x.suspended?' off':'')+'" data-srv="'+x.id+'">'+sIc(x)+'<div class="tx"><b>'+e(x.name)+(x.verified?VB:'')+'</b><small>/c/'+e(x.slug)+' · '+(x.owner_rbx||x.owner_name?'by '+e(x.owner_rbx||x.owner_name)+' · ':'')+x.members+' member'+(x.members===1?'':'s')+(x.listed&&!x.hidden?' · On Explore':'')+'</small>'
+  +((x.open_reports||x.hidden||x.suspended)?'<span class="adm-ts">'+(x.open_reports?tag(x.open_reports+' report'+(x.open_reports===1?'':'s'),'warn'):'')+(x.hidden?tag('Hidden from Explore','dim'):'')+(x.suspended?tag('Suspended','bad'):'')+'</span>':'')+'</div>'
+  +'<div class="adm-b">'+vbtn('server',x.id,x.verified)+'<button class="btn sm ghost" data-more="'+x.id+'" aria-expanded="'+open.has(x.id)+'">Manage</button></div>'
+  +(open.has(x.id)?'<div class="adm-x">'+act(x.hidden?'show':'hide',x.id,x.hidden?'Show on Explore':'Hide from Explore')+(x.custom_icon?act('reset_icon',x.id,'Reset icon'):'')+(x.has_bio?act('clear_bio',x.id,'Clear bio'):'')+'<a class="btn sm" href="/c/'+e(x.slug)+'">Open CAD</a>'+act(x.suspended?'unsuspend':'suspend',x.id,x.suspended?'Lift suspension':'Suspend server',x.suspended?'':'warnb')+'</div>':'')+'</div>';
+const pRow=x=>'<div class="adm-r'+(x.verified?' on':'')+(x.suspended?' off':'')+'"><span class="pic">'+ini(x.roblox_name)+'<img src="/rbx/avatar/'+e(x.roblox_id)+'" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>'+e(x.roblox_name)+(x.verified?VB:'')+'</b><small>Roblox '+e(x.roblox_id)+(x.discord?' · Discord '+e(x.discord_name||''):'')+' · '+x.servers+' server'+(x.servers===1?'':'s')+'</small>'+(x.suspended?'<span class="adm-ts">'+tag('Suspended','bad')+'</span>':'')+'</div>'
+  +'<div class="adm-b">'+vbtn('user',x.id,x.verified)+'<button class="btn sm'+(x.suspended?'':' warnb')+'" data-p="'+(x.suspended?'unsuspend':'suspend')+'" data-id="'+x.id+'">'+(x.suspended?'Unsuspend':'Suspend')+'</button></div></div>';
+const sL=document.getElementById('sL'),sQ=document.getElementById('sQ'),pL=document.getElementById('pL'),pQ=document.getElementById('pQ'),rL=document.getElementById('rL');
+const drawR=()=>{rL.innerHTML=R.map(rRow).join('')||'<p class="adm-e">No open reports. Reports people send from Explore show up here.</p>';document.getElementById('rN').textContent=R.length?R.length+' open':''};
 const drawS=()=>{const t=sQ.value.trim().toLowerCase(),L=S.filter(x=>!t||(x.name+' '+x.slug+' '+(x.owner_rbx||'')+' '+(x.owner_name||'')).toLowerCase().includes(t));
   sL.innerHTML=L.map(sRow).join('')||'<p class="adm-e">No servers match.</p>';document.getElementById('sN').textContent=S.filter(x=>x.verified).length+' verified of '+S.length};
 let P=[],pt=0;const loadP=async()=>{try{const j=await api('/api/admin/people?q='+encodeURIComponent(pQ.value.trim()),null,'GET');P=j.people;drawP()}catch(x){pL.innerHTML='<p class="adm-e">'+e(x.message)+'</p>'}};
 const drawP=()=>{pL.innerHTML=P.map(pRow).join('')||'<p class="adm-e">Nobody matches.</p>';document.getElementById('pN').textContent=pQ.value.trim()?P.length+' found':'Newest and verified'};
+const fresh=j=>{if(j&&j.servers){S=j.servers;R=j.reports}drawS();drawR()};
+const sName=id=>(S.find(x=>x.id===id)||{}).name||'this server';
+const CONFIRM={suspend:id=>({title:'Suspend '+sName(id)+'?',text:'Its CAD closes for everyone and it disappears from Explore until you lift the suspension.',ok:'Suspend server',danger:true}),
+  hide:id=>({title:'Hide '+sName(id)+' from Explore?',text:'The owner can still use the CAD. Their Settings will say Oversite hid it. Open reports about it are closed.',ok:'Hide server'}),
+  clear_bio:id=>({title:'Clear the bio of '+sName(id)+'?',text:'The owner can write a new one.',ok:'Clear bio'}),reset_icon:id=>({title:'Reset the icon of '+sName(id)+'?',text:'It goes back to the ER:LC or Discord icon.',ok:'Reset icon'})};
 sQ.addEventListener('input',drawS);pQ.addEventListener('input',()=>{clearTimeout(pt);pt=setTimeout(loadP,200)});
-document.addEventListener('click',async ev=>{const b=ev.target.closest('[data-k]');if(!b)return;const on=b.dataset.on!=='1',id=+b.dataset.id,k=b.dataset.k;b.disabled=true;
-  try{await api('/api/admin/verify',{kind:k,id,on});const L=k==='server'?S:P,x=L.find(y=>y.id===id);if(x)x.verified=on?1:0;k==='server'?drawS():drawP()}catch(x){alert(x.message);b.disabled=false}});
-drawS();loadP();
+document.addEventListener('click',async ev=>{
+  const m=ev.target.closest('[data-more]');if(m){const id=+m.dataset.more;open.has(id)?open.delete(id):open.add(id);drawS();return}
+  const b=ev.target.closest('[data-k],[data-a],[data-p],[data-dismiss]');if(!b)return;const id=+(b.dataset.id||b.dataset.dismiss);
+  try{
+    if(b.dataset.k){const on=b.dataset.on!=='1',k=b.dataset.k;b.disabled=true;await api('/api/admin/verify',{kind:k,id,on});const x=(k==='server'?S:P).find(y=>y.id===id);if(x)x.verified=on?1:0;k==='server'?drawS():drawP();return}
+    if(b.dataset.a){const a=b.dataset.a;if(CONFIRM[a]&&!(await ask(CONFIRM[a](id))))return;b.disabled=true;fresh(await api('/api/admin/server',{id,action:a}));return}
+    if(b.dataset.p){const a=b.dataset.p,x=P.find(y=>y.id===id);if(a==='suspend'&&!(await ask({title:'Suspend '+(x?x.roblox_name:'this person')+'?',text:'They are signed out of everything on Oversite: no CAD, no Explore, no staff tools. Every account on their Roblox is included.',ok:'Suspend',danger:true})))return;
+      b.disabled=true;await api('/api/admin/person',{id,action:a});if(x)x.suspended=a==='suspend'?1:0;drawP();return}
+    if(b.dataset.dismiss){b.disabled=true;fresh(await api('/api/admin/report',{id}));return}
+  }catch(x){b.disabled=false;await ask({title:'That didn\\'t work',text:x.message,ok:'OK'})}});
+drawR();drawS();loadP();
 ` });
 
 export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord, robloxOAuth }) => { const rbx = `<section class="card" id="rbx"><h2 class="hrow">Your Roblox account${user.roblox_name ? '<span class="tag ok">Linked</span>' : '<span class="tag warn">Not linked</span>'}</h2>
@@ -472,16 +513,29 @@ const render=()=>{ const t=q.value.trim().toLowerCase(), k=SORT[TAB];
     :'<b>No servers are listed yet.</b><p>Owners can add theirs in their server\\'s Settings, under Server profile.</p>'+(OWNED.length?'<a class="btn pri" href="/c/'+e(OWNED[0])+'/settings#profile">List your server</a>':''); };
 const toast=m=>{ const t=document.getElementById('xtoast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),3200); };
 tabs.addEventListener('click',ev=>{ const b=ev.target.closest('[data-t]'); if(!b) return; TAB=b.dataset.t; tabs.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x===b)); render(); });
+// report a listing to Oversite: pick a reason, add details, sent to the site admins' list on /admin
+const REASONS=[['name','Inappropriate name'],['icon','Inappropriate icon'],['bio','Inappropriate bio'],['fake','Fake or misleading'],['other','Something else']];
+const report=x=>{ const d=document.createElement('dialog'); d.className='dlg';
+  d.innerHTML='<form method="dialog" class="rp"><h2></h2><p>Tell Oversite what is wrong with this listing. The owner won\\'t see who reported it.</p><div class="rp-o">'+REASONS.map((r,i)=>'<label><input type="radio" name="rr" value="'+r[0]+'"'+(i?'':' checked')+'><span>'+r[1]+'</span></label>').join('')+'</div>'
+    +'<label for="rpD">Details <small>(optional)</small></label><textarea id="rpD" maxlength="500" rows="3" placeholder="What did you see?"></textarea><p class="msg" id="rpM"></p><div class="acts"><button type="button" class="btn" data-no>Cancel</button><button class="btn pri" data-send>Send report</button></div></form>';
+  d.querySelector('h2').textContent='Report '+x.name; document.body.appendChild(d);
+  const close=()=>{ d.classList.remove('in'); setTimeout(()=>{ d.close(); d.remove(); },180); };
+  d.querySelector('[data-no]').onclick=close; d.addEventListener('click',ev=>{ if(ev.target===d) close(); }); d.addEventListener('cancel',ev=>{ ev.preventDefault(); close(); });
+  d.querySelector('form').addEventListener('submit',async ev=>{ ev.preventDefault(); const b=d.querySelector('[data-send]'); b.disabled=true;
+    try{ await api('/api/explore/report',{slug:x.slug,reason:d.querySelector('[name=rr]:checked').value,details:d.querySelector('#rpD').value}); close(); toast('Thanks. Oversite will take a look at '+x.name+'.'); }
+    catch(err){ say(d.querySelector('#rpM'),err.message); b.disabled=false; } });
+  d.showModal(); requestAnimationFrame(()=>d.classList.add('in')); };
 const open=slug=>{ const x=S.find(s=>s.slug===slug); if(!x) return; const fact=(k,v)=>v?'<div><small>'+k+'</small><b>'+v+'</b></div>':'';
   document.getElementById('xdB').innerHTML='<button class="xp-x" type="button" aria-label="Close" data-close>&times;</button><div class="xd-top">'+ic(x)+'<div><h2 id="xdT">'+e(x.name)+(x.badge?VB:'')+'</h2>'+by(x)+'<div class="xr-m">'+meta(x)+'</div></div></div>'
     +'<div class="xr-t">'+status(x)+'</div>'+(x.bio?'<p class="xd-bio">'+e(x.bio)+'</p>':'')
     +'<div class="xd-facts">'+fact('In-game name',e(x.ingame))+fact('Join code',x.join_key?'<code>'+e(x.join_key)+'</code>':'')+fact('Co-owners',e(x.co_owners.join(', ')))+fact('Account verification',e(x.verified||''))
-    +fact('Team balance',x.team_balance?'On':'Off')+fact('Departments',e(x.depts.map(d=>d.name).join(', ')))+fact('Discord server',e([x.discord,x.dc_members!=null?n(x.dc_members)+' members':'',x.dc_online!=null?n(x.dc_online)+' online':''].filter(Boolean).join(' · ')))+'</div><div class="xr-a">'+acts(x)+'</div>';
+    +fact('Team balance',x.team_balance?'On':'Off')+fact('Departments',e(x.depts.map(d=>d.name).join(', ')))+fact('Discord server',e([x.discord,x.dc_members!=null?n(x.dc_members)+' members':'',x.dc_online!=null?n(x.dc_online)+' online':''].filter(Boolean).join(' · ')))+'</div><div class="xr-a">'+acts(x)+'</div>'+(x.role==='owner'?'':'<button type="button" class="xd-rep" data-report="'+e(x.slug)+'">Report this server</button>');
   dlg.showModal(); requestAnimationFrame(()=>dlg.classList.add('in')); };
 document.addEventListener('click',async ev=>{
   const v=ev.target.closest('[data-vote]'); if(v){ ev.preventDefault(); ev.stopPropagation(); const x=S.find(s=>s.slug===v.dataset.vote); if(!x) return;
     if(x.next_vote>0) return toast('You can vote for '+x.name+' again in '+hrs(x.next_vote)+'.');
     v.disabled=true; try{ const j=await api('/api/explore/vote',{slug:x.slug}); x.votes=j.votes; x.next_vote=j.next_vote; x.week++; toast('Thanks for voting for '+x.name+'!'); }catch(err){ toast(err.message); } render(); if(dlg.open) open(x.slug); return; }
+  const rp=ev.target.closest('[data-report]'); if(rp){ const x=S.find(s=>s.slug===rp.dataset.report); if(x){ dlg.close(); report(x); } return; }
   const pl=ev.target.closest('[data-play]'); if(pl){ navigator.clipboard?.writeText(pl.dataset.play).catch(()=>{}); toast('Join code '+pl.dataset.play+' copied. In ER:LC open Servers, then paste it to join.'); return; }
   if(ev.target.closest('a,button')) return; const c=ev.target.closest('.xr'); if(c&&g.contains(c)) open(c.dataset.slug); });
 g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xr')){ ev.preventDefault(); open(ev.target.dataset.slug); } });
@@ -514,7 +568,7 @@ ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.
 <label for="spInv">Discord invite</label><div class="sp-inv"><span>discord.gg/</span><input id="spInv" maxlength="80" placeholder="yourserver" value="${esc((P.invite || '').replace(/^https:\/\/discord\.gg\//, ''))}" spellcheck="false" autocomplete="off"></div><p class="hint" style="margin:4px 0 0">Just the code is enough. Pasting a full invite link works too.</p>
 <div class="cols2"><div><label for="spRegion">Region</label><select id="spRegion"><option value="">Not set</option>${Object.entries(regions).map(([k, [n, f]]) => `<option value="${k}"${P.region === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
 <div><label for="spLang">Language</label><select id="spLang"><option value="">Not set</option>${Object.entries(langs).map(([k, [n, f]]) => `<option value="${k}"${P.lang === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div></div>
-<label class="chk"><input type="checkbox" id="spList"${P.listed ? ' checked' : ''}> List this server on the <a href="/explore">Explore</a> page</label>
+<label class="chk"><input type="checkbox" id="spList"${P.listed ? ' checked' : ''}> List this server on the <a href="/explore">Explore</a> page</label>${c.hidden ? '<p class="hint" style="margin:4px 0 0;color:var(--warn)">Oversite has hidden this server from Explore. Email support@oversite.shop if you think this is a mistake.</p>' : ''}
 <div class="row" style="margin-top:14px"><button class="btn pri">Save profile</button></div><p class="msg" id="spMsg"></p></form></section>`; })()}
 <section class="card"><h2>Departments</h2><p class="note">Rename the departments for your server, and choose which in-game team belongs to each.</p>
 <form id="depts"><div class="cols">${['pd', 'fd', 'dot'].map(d => `<div class="dept"><h3><i style="background:${COL[d]}"></i>${{ pd: 'Law enforcement', fd: 'Fire and EMS', dot: 'Transportation' }[d]}</h3>
