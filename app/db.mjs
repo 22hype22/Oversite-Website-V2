@@ -33,6 +33,10 @@ CREATE TABLE IF NOT EXISTS staff_records (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, roblox_id TEXT, name TEXT NOT NULL,
   kind TEXT NOT NULL, reason TEXT NOT NULL DEFAULT '', by_user INTEGER, by_name TEXT NOT NULL DEFAULT '', result TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS staff_records_player ON staff_records (community_id, roblox_id);
+CREATE TABLE IF NOT EXISTS staff_sent (
+  id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, command TEXT NOT NULL,
+  by_user INTEGER, by_name TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS staff_sent_time ON staff_sent (community_id, created);
 UPDATE members SET role = 'staff' WHERE role = 'admin';
 `);
 
@@ -102,15 +106,21 @@ export const invites = {
   list: cid => q('SELECT * FROM invites WHERE community_id = ? AND revoked = 0 AND (expires IS NULL OR expires > ?) ORDER BY created DESC').all(cid, now()),
   revoke: (cid, code) => q('UPDATE invites SET revoked = 1 WHERE community_id = ? AND code = ?').run(cid, code),
 };
-// warnings, kicks, bans and notes written by a community's staff, one row per action
+// warnings, kicks, bans and notes written by a community's staff, one row per action; there is deliberately no way to delete them
 export const staffRecords = {
   add: r => Number(q('INSERT INTO staff_records (community_id, roblox_id, name, kind, reason, by_user, by_name, result, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .run(r.community_id, r.roblox_id || null, r.name, r.kind, r.reason || '', r.by_user || null, r.by_name || '', r.result || '', now()).lastInsertRowid),
   recent: (cid, n = 60) => q('SELECT * FROM staff_records WHERE community_id = ? ORDER BY id DESC LIMIT ?').all(cid, n),
+  since: (cid, t) => q('SELECT * FROM staff_records WHERE community_id = ? AND created > ? ORDER BY id DESC').all(cid, t),
   forPlayer: (cid, rid, name) => q('SELECT * FROM staff_records WHERE community_id = ? AND (roblox_id = ? OR (roblox_id IS NULL AND lower(name) = lower(?))) ORDER BY id DESC LIMIT 200').all(cid, rid || '', name || ''),
   search: (cid, text) => q("SELECT * FROM staff_records WHERE community_id = ? AND (lower(name) LIKE ? OR roblox_id = ?) ORDER BY id DESC LIMIT 200").all(cid, '%' + String(text).toLowerCase() + '%', String(text)),
   counts: cid => q("SELECT roblox_id, kind, COUNT(*) n FROM staff_records WHERE community_id = ? AND roblox_id IS NOT NULL GROUP BY roblox_id, kind").all(cid),
-  remove: (cid, id) => q('DELETE FROM staff_records WHERE community_id = ? AND id = ?').run(cid, id),
+  lastBans: cid => q("SELECT roblox_id, lower(name) AS lname, by_name, created FROM staff_records WHERE community_id = ? AND kind = 'ban' ORDER BY id DESC").all(cid),
+};
+// every in-game command Oversite ran, and who pressed the button, so ER:LC's "Remote Server" log lines can be traced to a person
+export const staffSent = {
+  add: (cid, command, by) => q('INSERT INTO staff_sent (community_id, command, by_user, by_name, created) VALUES (?, ?, ?, ?, ?)').run(cid, command, by.id || null, by.name || '', now()),
+  since: (cid, t) => q('SELECT command, by_user, by_name, created FROM staff_sent WHERE community_id = ? AND created > ? ORDER BY id DESC').all(cid, t),
 };
 export const roblox = {
   pending: uid => q('SELECT * FROM roblox_pending WHERE user_id = ?').get(uid),

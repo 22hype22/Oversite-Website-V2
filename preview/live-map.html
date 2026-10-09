@@ -753,6 +753,17 @@
   .st-pill.wait{color:#F1C48A;background:rgba(233,162,76,.14)}.st-pill.done{color:var(--dim);background:rgba(240,242,245,.07)}
   .st-btn{font:inherit;font-size:11.5px;font-weight:500;padding:6px 11px;border-radius:999px;border:1px solid var(--hair2);background:rgba(240,242,245,.06);color:var(--ink);cursor:pointer;white-space:nowrap}
   .st-btn:hover{background:rgba(240,242,245,.12)}
+  .st-bulk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;margin:0 0 6px;border:1px solid var(--hair);border-radius:12px;background:rgba(240,242,245,.03);font-size:12px;color:var(--dim)}
+  .st-bulk .grow{flex:1;min-width:0}
+  .st-bulk .st-go{padding:7px 14px;font-size:12px}
+  .st-bychips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+  .st-bychips button{font:inherit;font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid var(--hair2);background:none;color:var(--dim);cursor:pointer}
+  .st-bychips button:hover{color:var(--ink);border-color:rgba(240,242,245,.3)}
+  .st-cb{appearance:none;-webkit-appearance:none;flex:none;width:17px;height:17px;margin:0;border-radius:5px;border:1.5px solid rgba(240,242,245,.28);background:none;cursor:pointer;display:grid;place-items:center;transition:background .12s,border-color .12s}
+  .st-cb:checked{background:var(--ink);border-color:var(--ink)}
+  .st-cb:checked::after{content:"";width:8px;height:4px;border:2px solid #0B0B0C;border-top:0;border-right:0;transform:translateY(-1px) rotate(-45deg)}
+  .st-cb:indeterminate{border-color:var(--ink)}.st-cb:indeterminate::after{content:"";width:8px;height:2px;background:var(--ink);border-radius:1px}
+  .st-row.sel{background:rgba(240,242,245,.04);box-shadow:-12px 0 0 rgba(240,242,245,.04),12px 0 0 rgba(240,242,245,.04)}
   .st-empty{padding:28px 6px;text-align:center;color:var(--faint);font-size:12px;line-height:1.5}
   .st-gate{display:grid;place-items:center;text-align:center;padding:40px 20px;color:var(--dim);font-size:13px;grid-column:1/-1}
   .st-gate b{display:block;color:var(--ink);font-size:16px;font-weight:500;margin-bottom:6px}
@@ -2160,7 +2171,7 @@
     $('stCount').textContent = D.players.length; $('stSub').textContent = D.players.length + (D.players.length === 1 ? ' player' : ' players') + ' in the server';
     $('stPlayers').innerHTML = list.length ? list.map(p => `<button class="st-p" data-id="${esc(p.id)}" aria-pressed="${sel && sel.id === p.id}">${av(p.id, p.name)}<span style="min-width:0"><b>${esc(p.name)}</b><small><span class="st-team" style="--c:${COL[deptOf(p.team)] || '#8A8F98'}"><i></i>${esc(p.team || 'No team')}</span>${p.callsign ? ' · ' + esc(p.callsign) : ''}</small></span><span class="st-badges">${badges(p)}</span></button>`).join('')
       : `<div class="st-empty">${D.players.length ? 'No player matches that.' : 'Nobody is in the server right now.'}</div>`; };
-  const recHTML = (r, withName) => `<div class="st-rec"><span class="st-k k-${esc(r.kind)}">${esc(KIND[r.kind] || r.kind)}</span><div>${withName ? `<b>${r.roblox_id ? `<button class="lnk" data-open="${esc(r.roblox_id)}" data-name="${esc(r.name)}" style="background:none;border:0;color:inherit;font:inherit;padding:0;cursor:pointer">${esc(r.name)}</button>` : esc(r.name)}</b>` : ''}<p>${esc(r.reason) || '<i>No reason given</i>'}</p><p style="font-size:10.5px;color:var(--faint);margin-top:3px">by ${esc(r.by_name || 'staff')}${r.result && r.result !== 'sent' ? ' · ' + esc(r.result) : ''}</p></div><span class="side"><time title="${esc(when(r.created))}">${esc(ago(r.created))}</time>${isAdmin ? `<button class="x" data-del="${r.id}">Delete</button>` : ''}</span></div>`;
+  const recHTML = (r, withName) => `<div class="st-rec"><span class="st-k k-${esc(r.kind)}">${esc(KIND[r.kind] || r.kind)}</span><div>${withName ? `<b>${r.roblox_id ? `<button class="lnk" data-open="${esc(r.roblox_id)}" data-name="${esc(r.name)}" style="background:none;border:0;color:inherit;font:inherit;padding:0;cursor:pointer">${esc(r.name)}</button>` : esc(r.name)}</b>` : ''}<p>${esc(r.reason) || '<i>No reason given</i>'}</p><p style="font-size:10.5px;color:var(--faint);margin-top:3px">by ${esc(r.by_name || 'staff')}${r.result && r.result !== 'sent' ? ' · ' + esc(r.result) : ''}</p></div><span class="side"><time title="${esc(when(r.created))}">${esc(ago(r.created))}</time></span></div>`;
   const ICON = { warn: '<path d="M12 3 2 21h20zM12 10v5M12 18h.01"/>', pm: '<path d="M4 5h16v11H8l-4 4z"/>', kick: '<path d="M15 3h4v18h-4M10 17l5-5-5-5M15 12H3"/>', ban: '<circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/>', note: '<path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/>' };
   const actBtn = (k, label) => `<button class="st-act k-${k}" data-act="${k}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>${label}</button>`;
   let shownFor = null;
@@ -2179,10 +2190,27 @@
     h.innerHTML = r.records.length ? r.records.map(x => recHTML(x, false)).join('') : '<div class="st-empty">Clean record. Nothing on file for this player.</div>'; };
   const renderCalls = () => { const c = D.modCalls || [], open = c.filter(m => !m.moderator).length; $('stCallsN').textContent = open; $('stCallsN').hidden = !open;
     $('stCalls').innerHTML = c.length ? c.map(m => `<div class="st-row"><span class="grow"><button class="lnk" data-open="${esc(m.caller.id)}" data-name="${esc(m.caller.name)}">${esc(m.caller.name)}</button> called for staff<br><small>${esc(ago(m.at * 1000))}</small></span>${m.moderator ? `<span class="st-pill done">Answered by ${esc(m.moderator.name)}</span>` : '<span class="st-pill wait">Waiting</span>'}</div>`).join('') : '<div class="st-empty">No mod calls right now.</div>'; };
+  // bans: tick several (or everyone one staff member banned) and unban them together
+  const banSel = new Set();
   const renderBans = () => { const b = D.bans || []; $('stBansN').textContent = b.length; $('stBansN').hidden = !b.length;
-    $('stBans').innerHTML = b.length ? b.map(x => `<div class="st-row">${av(x.id, x.name, "width:28px;height:28px")}<span class="grow"><button class="lnk" data-open="${esc(x.id)}" data-name="${esc(x.name)}">${esc(x.name)}</button><br><small>ID ${esc(x.id)}</small></span><button class="st-btn" data-unban="${esc(x.id)}" data-name="${esc(x.name)}">Unban</button></div>`).join('') : '<div class="st-empty">Nobody is banned from this server.</div>'; };
+    for (const id of [...banSel]) if (!b.some(x => x.id === id)) banSel.delete(id);
+    if (!b.length) { $('stBans').innerHTML = '<div class="st-empty">Nobody is banned from this server.</div>'; return; }
+    const byCount = {}; for (const x of b) if (x.by) byCount[x.by] = (byCount[x.by] || 0) + 1;
+    const n = banSel.size, all = n === b.length;
+    $('stBans').innerHTML = `<div class="st-bulk"><input type="checkbox" class="st-cb" id="stBanAll" aria-label="Select everyone"${all ? ' checked' : ''}><span class="grow">${n ? `<b style="color:var(--ink)">${n}</b> selected` : `${b.length} banned`}</span>${n ? '<button class="st-btn" data-bclear>Clear</button>' : ''}<button class="st-go" data-bgo${n ? '' : ' disabled'}>Unban${n ? ' ' + n : ' selected'}</button></div>`
+      + (Object.keys(byCount).length ? `<div class="st-bychips">${Object.entries(byCount).sort((a, c) => c[1] - a[1]).map(([who, k]) => `<button data-bby="${esc(who)}">Select all banned by ${esc(who)} (${k})</button>`).join('')}</div>` : '')
+      + b.map(x => `<div class="st-row${banSel.has(x.id) ? ' sel' : ''}"><input type="checkbox" class="st-cb" data-bsel="${esc(x.id)}" aria-label="Select ${esc(x.name)}"${banSel.has(x.id) ? ' checked' : ''}>${av(x.id, x.name, "width:28px;height:28px")}<span class="grow"><button class="lnk" data-open="${esc(x.id)}" data-name="${esc(x.name)}">${esc(x.name)}</button><br><small>ID ${esc(x.id)}${x.by ? ` · banned by ${esc(x.by)} ${esc(ago(x.at))}` : ''}</small></span><button class="st-btn" data-unban="${esc(x.id)}" data-name="${esc(x.name)}">Unban</button></div>`).join('');
+    const a = $('stBanAll'); a.indeterminate = n > 0 && !all; };
+  $('stBans').addEventListener('change', e => { const b = D.bans || [];
+    if (e.target.id === 'stBanAll') { if (e.target.checked) b.forEach(x => banSel.add(x.id)); else banSel.clear(); }
+    else if (e.target.dataset.bsel) { const id = e.target.dataset.bsel; e.target.checked ? banSel.add(id) : banSel.delete(id); }
+    renderBans(); });
+  $('stBans').addEventListener('click', e => { const b = D.bans || [];
+    const by = e.target.closest('[data-bby]'); if (by) { b.filter(x => x.by === by.dataset.bby).forEach(x => banSel.add(x.id)); return renderBans(); }
+    if (e.target.closest('[data-bclear]')) { banSel.clear(); return renderBans(); }
+    if (e.target.closest('[data-bgo]')) { const many = b.filter(x => banSel.has(x.id)).map(x => ({ id: x.id, name: x.name })); if (many.length === 1) return sheet('unban', many[0]); if (many.length) sheet('unban', null, many); } });
   const renderLogs = () => { const cmds = D.commands || [], kills = D.kills || [];
-    $('stLogs').innerHTML = `<div class="st-h"><span>Commands</span></div>${cmds.length ? cmds.map(m => `<div class="st-row"><span class="grow"><code>${esc(m.command)}</code><br><small>${esc(m.by.name)} · ${esc(ago(m.at * 1000))}</small></span></div>`).join('') : '<div class="st-empty">No commands yet.</div>'}
+    $('stLogs').innerHTML = `<div class="st-h"><span>Commands</span></div>${cmds.length ? cmds.map(m => `<div class="st-row"><span class="grow"><code>${esc(m.command)}</code><br><small>${m.sentBy ? `<b class="st-by">${esc(m.sentBy)}</b> via Oversite` : esc(m.by.name)} · ${esc(ago(m.at * 1000))}</small></span></div>`).join('') : '<div class="st-empty">No commands yet.</div>'}
       <div class="st-h" style="margin-top:16px"><span>Kills</span></div>${kills.length ? kills.map(k => `<div class="st-row"><span class="grow"><button class="lnk" data-open="${esc(k.killer.id)}" data-name="${esc(k.killer.name)}">${esc(k.killer.name)}</button> killed <button class="lnk" data-open="${esc(k.killed.id)}" data-name="${esc(k.killed.name)}">${esc(k.killed.name)}</button><br><small>${esc(ago(k.at * 1000))}</small></span></div>`).join('') : '<div class="st-empty">No kills logged.</div>'}`; };
   const renderRecords = async () => { const r = await fetch(API + '/records?' + new URLSearchParams(recQ ? { q: recQ } : {})).then(x => x.json()).catch(() => ({ records: [] }));
     $('stRecords').innerHTML = r.records.length ? r.records.map(x => recHTML(x, true)).join('') : `<div class="st-empty">${recQ ? 'No records match that.' : 'No records yet. Warnings, kicks, bans and notes you give show up here.'}</div>`; };
@@ -2201,8 +2229,7 @@
     const o = e.target.closest('[data-open]'); if (o) return open(o.dataset.open, o.dataset.name);
     const a = e.target.closest('[data-act]'); if (a && sel) return sheet(a.dataset.act, sel);
     const u = e.target.closest('[data-unban]'); if (u) return sheet('unban', { id: u.dataset.unban, name: u.dataset.name });
-    const d = e.target.closest('[data-del]'); if (d) { if (!d.dataset.armed) { d.dataset.armed = '1'; d.textContent = 'Click again to delete'; setTimeout(() => { delete d.dataset.armed; d.textContent = 'Delete'; }, 3000); return; }
-      try { await post('/records/delete', { id: +d.dataset.del }); toast('Record deleted.'); pane === 'records' ? renderRecords() : (shownFor = null, renderPlayer()); load(); } catch (x) { toast(x.message); } } });
+  });
   $('stAnnounce').addEventListener('click', () => sheet('announce', null));
 
   // ── the action sheet ──
@@ -2211,21 +2238,32 @@
     pm: { t: 'Message', p: n => `Sends a private message to ${n} in game.`, ph: 'Your message', go: 'Send', chips: ['Please come to the staff spot', 'Please stop that', 'Thanks for reporting'] },
     kick: { t: 'Kick', p: n => `Removes ${n} from the server. They can join again.`, ph: 'Reason for the kick', go: 'Kick', danger: true, chips: ['RDM', 'VDM', 'Fail RP', 'Trolling', 'Exploiting'] },
     ban: { t: 'Ban', p: n => `Bans ${n} from the server until someone unbans them. The reason is saved on their record.`, ph: 'Reason for the ban', go: 'Ban', danger: true, chips: ['Exploiting', 'Repeated RDM', 'Harassment', 'Ban evasion'] },
-    unban: { t: 'Unban', p: n => `Lets ${n} join the server again.`, ph: 'Why are they being unbanned? (optional)', go: 'Unban', chips: ['Appeal accepted', 'Ban expired'] },
+    unban: { t: 'Unban', p: n => `Lets ${n} join the server again.`, ph: 'Why are they being unbanned? (optional)', go: 'Unban', chips: ['Banned by mistake', 'Appeal accepted', 'Ban expired'] },
     note: { t: 'Add note', p: n => `A private note on ${n}'s record. Nothing is sent in game.`, ph: 'Note for other staff', go: 'Save note', chips: [] },
     announce: { t: 'Announce', p: () => 'Shows a message to everyone in the server.', ph: 'Message to the whole server', go: 'Announce', chips: ['Server restart in 5 minutes', 'Staff are watching, roleplay properly', 'Join our Discord for updates'] },
   };
   const dlg = $('stDlg'); let cur = null;
-  const sheet = (kind, who) => { const S = SHEETS[kind]; cur = { kind, who };
-    $('stDlgT').textContent = S.t + (who ? ' ' + who.name : ''); $('stDlgP').textContent = S.p(who ? who.name : ''); $('stDlgR').value = ''; $('stDlgR').placeholder = S.ph;
+  const sheet = (kind, who, many) => { const S = SHEETS[kind]; cur = { kind, who, many };
+    const names = many ? (many.length > 4 ? many.slice(0, 3).map(x => x.name).join(', ') + ` and ${many.length - 3} more` : many.map(x => x.name).join(', ').replace(/, ([^,]*)$/, ' and $1')) : '';
+    $('stDlgT').textContent = many ? `${S.t} ${many.length} players` : S.t + (who ? ' ' + who.name : '');
+    $('stDlgP').textContent = many ? `${S.p(names)} ER:LC takes one command every 5 seconds, so this takes about ${Math.ceil(many.length * 5.3)} seconds. Keep this open until it finishes.` : S.p(who ? who.name : ''); $('stDlgR').value = ''; $('stDlgR').placeholder = S.ph;
     $('stDlgC').innerHTML = S.chips.map(c => `<button type="button">${esc(c)}</button>`).join(''); $('stDlgM').textContent = ''; $('stDlgM').className = 'msg';
     const go = $('stDlgGo'); go.textContent = S.go; go.className = 'st-go' + (S.danger ? ' danger' : ''); go.disabled = false;
     dlg.showModal(); requestAnimationFrame(() => dlg.classList.add('in')); $('stDlgR').focus(); };
   $('stDlgC').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const r = $('stDlgR'); r.value = r.value ? r.value.replace(/\s*$/, '') + ', ' + b.textContent : b.textContent; r.focus(); });
-  $('stDlgX').addEventListener('click', () => dlg.close());
+  let busy = false;
+  $('stDlgX').addEventListener('click', () => { if (!busy) dlg.close(); });
+  dlg.addEventListener('cancel', e => { if (busy) e.preventDefault(); });
   dlg.addEventListener('close', () => dlg.classList.remove('in'));
-  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
-  dlg.querySelector('form').addEventListener('submit', async e => { e.preventDefault(); const go = $('stDlgGo'), m = $('stDlgM'); go.disabled = true;
+  dlg.addEventListener('click', e => { if (e.target === dlg && !busy) dlg.close(); });
+  // several players: one request each, in order, showing progress; a failure is reported and the rest carry on
+  const runMany = async () => { const go = $('stDlgGo'), m = $('stDlgM'), list = cur.many, reason = $('stDlgR').value, failed = []; busy = true; go.disabled = true; $('stDlgX').disabled = true;
+    for (let i = 0; i < list.length; i++) { m.className = 'msg'; m.textContent = `${SHEETS[cur.kind].t === 'Unban' ? 'Unbanning' : 'Working on'} ${list[i].name} (${i + 1} of ${list.length})…`;
+      try { const r = await post('/action', { kind: cur.kind, name: list[i].name, id: list[i].id, reason }); if (r.delivered === false) failed.push(list[i].name); else banSel.delete(list[i].id); }
+      catch (x) { failed.push(list[i].name); } }
+    busy = false; $('stDlgX').disabled = false; dlg.close(); load();
+    toast(failed.length ? `Unbanned ${list.length - failed.length} of ${list.length}. Still banned: ${failed.join(', ')}.` : `Unbanned ${list.length} players.`); };
+  dlg.querySelector('form').addEventListener('submit', async e => { e.preventDefault(); if (cur.many) return runMany(); const go = $('stDlgGo'), m = $('stDlgM'); go.disabled = true;
     m.className = 'msg'; m.textContent = ['note'].includes(cur.kind) ? 'Saving…' : 'Sending in game…';
     const slow = setTimeout(() => { m.textContent = 'Waiting for ER:LC (one command every 5 seconds)…'; }, 1500);
     try { const r = await post('/action', { kind: cur.kind, name: cur.who ? cur.who.name : '', id: cur.who ? cur.who.id : '', reason: $('stDlgR').value });
