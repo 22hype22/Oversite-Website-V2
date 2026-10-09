@@ -64,7 +64,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xr-n{flex:1;min-width:0;padding-top:34px}.xr h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .by{display:inline-flex;align-items:center;gap:0;color:var(--dim);font-size:12.5px;margin-top:2px}.by .vb{margin-left:5px;vertical-align:-1px}.by img{width:16px;height:16px;border-radius:50%;background:#2a2d33}
 .xr-mine{flex:none;align-self:flex-end;margin-top:34px;font-size:12px;font-weight:500;color:var(--ink);text-decoration:none;padding:6px 11px;border-radius:999px;border:1px solid var(--hair2);background:rgba(240,242,245,.06)}.xr-mine:hover{background:rgba(240,242,245,.12)}
-.xr-m{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;color:var(--dim);font-size:12.5px}.xr-m span{display:inline-flex;align-items:center;gap:6px}
+.xr-m{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;color:var(--dim);font-size:12.5px}.xr-m span{display:inline-flex;align-items:center;gap:6px}.xr-m .xr-tag{gap:5px;padding:3px 10px 3px 8px;border-radius:999px;background:rgba(240,242,245,.07);border:1px solid var(--hair2);color:#E2E5E9;font-weight:500}.xr-m .xr-tag svg{color:#8DB6FF}
 .xr-b p{margin:0;color:#C9CDD3;font-size:13.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:3em}.xr-b p.none{color:var(--faint)}
 .xr-f{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:12px;border-top:1px solid var(--hair)}
 .xr-d,.xr-t{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
@@ -438,6 +438,8 @@ const PLAY='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" 
 const PPL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2"/></svg>';
 const STO='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>';
 const VB=${JSON.stringify(vbadge(16))},VBS=${JSON.stringify(vbadge(13))};
+const PIN='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+const LNG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>';
 const RN={owner:'Owner',co_owner:'Co-Owner',admin:'Admin',mod:'Mod',member:'Member'};
 const playing=x=>x.live&&x.players!=null?x.players:-1, full=x=>x.live&&x.max&&x.players>=x.max;
 const SORT={trending:x=>x.week*3+Math.max(0,playing(x))*2+x.votes*.2,active:x=>playing(x),popular:x=>x.dc_members??-1,voted:x=>x.votes,new:x=>x.created};
@@ -448,7 +450,7 @@ const spot=x=>{ let h=0; for(const c of x.slug) h=(h*31+c.charCodeAt(0))>>>0; re
 const state=x=>!x.live||x.players==null?'off':full(x)?'full':'open';
 const status=x=>state(x)==='off'?'<span class="xs off">Offline</span>':'<span class="xs '+state(x)+'"><b>'+x.players+'</b>'+(x.max?' / '+x.max:'')+' in game'+(full(x)?' · Full':'')+'</span>';
 const meta=x=>'<span title="Votes">'+STO+n(x.votes)+'</span>'+(x.dc_members!=null?'<span title="Discord members">'+PPL+n(x.dc_members)+'</span>':'')
-  +(x.region?'<span>'+x.region.flag+' '+e(x.region.name)+'</span>':'')+(x.lang?'<span>'+e(x.region&&x.lang.name.endsWith('('+x.region.name+')')?x.lang.name.split(' (')[0]:x.lang.name)+'</span>':'');
+  +(x.region?'<span class="xr-tag">'+PIN+e(x.region.name)+'</span>':'')+(x.lang?'<span class="xr-tag">'+LNG+e(x.region&&x.lang.name.endsWith('('+x.region.name+')')?x.lang.name.split(' (')[0]:x.lang.name)+'</span>':'');
 const by=x=>x.owner_name?'<span class="by">by '+e(x.owner_name)+(x.owner_badge?VBS:'')+'</span>':'';
 const voteBtn=x=>x.next_vote>0?'<button class="xb ghost voted" data-vote="'+e(x.slug)+'" title="You can vote again in '+hrs(x.next_vote)+'">'+STAR+'Voted · '+hrs(x.next_vote)+'</button>'
   :'<button class="xb ghost" data-vote="'+e(x.slug)+'">'+STO+'Vote'+(x.votes?' <small>'+n(x.votes)+'</small>':'')+'</button>';
@@ -510,8 +512,8 @@ ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.
 <div class="sp-erlc"><div class="sp-erlch"><span>From ER:LC</span><button type="button" class="lnk" id="spRefresh">${E.at ? 'Refresh' : 'Load from ER:LC'}</button></div>${E.at ? `<div class="sp-facts">${facts}</div>` : `<p class="hint" style="margin:6px 0 0">${keyStatus.connected ? 'Loading your server details…' : 'Connect your ER:LC server above to fill this in.'}</p>`}</div>
 <form id="spForm"><label for="spBio">Bio</label><textarea id="spBio" maxlength="300" rows="3" placeholder="What your server is about: the vibe, the rules, what makes it different.">${esc(P.bio || '')}</textarea><p class="hint" style="text-align:right;margin:4px 0 0"><span id="spCount">${(P.bio || '').length}</span> / 300</p>
 <label for="spInv">Discord invite</label><div class="sp-inv"><span>discord.gg/</span><input id="spInv" maxlength="80" placeholder="yourserver" value="${esc((P.invite || '').replace(/^https:\/\/discord\.gg\//, ''))}" spellcheck="false" autocomplete="off"></div><p class="hint" style="margin:4px 0 0">Just the code is enough. Pasting a full invite link works too.</p>
-<div class="cols2"><div><label for="spRegion">Region</label><select id="spRegion"><option value="">Not set</option>${Object.entries(regions).map(([k, [n, f]]) => `<option value="${k}"${P.region === k ? ' selected' : ''}>${f} ${esc(n)}</option>`).join('')}</select></div>
-<div><label for="spLang">Language</label><select id="spLang"><option value="">Not set</option>${Object.entries(langs).map(([k, [n, f]]) => `<option value="${k}"${P.lang === k ? ' selected' : ''}>${f} ${esc(n)}</option>`).join('')}</select></div></div>
+<div class="cols2"><div><label for="spRegion">Region</label><select id="spRegion"><option value="">Not set</option>${Object.entries(regions).map(([k, [n, f]]) => `<option value="${k}"${P.region === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
+<div><label for="spLang">Language</label><select id="spLang"><option value="">Not set</option>${Object.entries(langs).map(([k, [n, f]]) => `<option value="${k}"${P.lang === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div></div>
 <label class="chk"><input type="checkbox" id="spList"${P.listed ? ' checked' : ''}> List this server on the <a href="/explore">Explore</a> page</label>
 <div class="row" style="margin-top:14px"><button class="btn pri">Save profile</button></div><p class="msg" id="spMsg"></p></form></section>`; })()}
 <section class="card"><h2>Departments</h2><p class="note">Rename the departments for your server, and choose which in-game team belongs to each.</p>
