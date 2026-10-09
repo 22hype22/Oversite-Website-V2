@@ -1,7 +1,7 @@
 // A server's public profile: what ER:LC knows about it (name, join code, owner, size, rules), kept fresh from the API,
 // plus what only the owner can say (bio, icon, Discord invite). Saved now so the server browser can list servers later.
 import { rude, RUDE_MSG } from './clean.mjs';
-import { communities, communityIcons, users, members, votes } from './db.mjs';
+import { communities, communityIcons, users, members, votes, stats, reviews } from './db.mjs';
 import * as discordlink from './discordlink.mjs';
 
 // where a server is and what it speaks, shown as chips in the server browser (code: [label, flag])
@@ -66,15 +66,16 @@ export const startDirectory = () => { let busy = false;
   const pass = async () => { if (busy) return; busy = true;
     try { for (const c of communities.all()) { if (!c.settings.profile?.listed) continue;
       if (communities.key(c.id)) await refresh(c).catch(() => {});
+      { const E = communities.byId(c.id).settings.profile?.erlc; if (E?.at && Date.now() - E.at < 5 * 60000 && E.players != null) stats.add(c.id, E.players, E.max ?? null); }
       const P = communities.byId(c.id).settings.profile || {}, gid = c.settings.discord?.guild_id;   // Discord member count: every half hour is plenty
       if (gid && Date.now() - (P.dc_at || 0) > 30 * 60000) { const n = await discordlink.counts(gid); if (n) { const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), dc_members: n.members, dc_online: n.online, dc_at: Date.now() }; communities.saveSettings(c.id, s); } } } }
-    finally { busy = false; } };
+    finally { busy = false; stats.prune(); } };
   setTimeout(pass, 8000); setInterval(pass, 120000); };
 
 // what anyone browsing may see about a listed server; `me` marks the ones this person already belongs to
 export const directory = me => { const mine = new Map((me ? communities.forUser(me.id) : []).map(m => [m.id, m.role]));
   const total = votes.totals(), week = votes.since(Date.now() - 7 * 86400000), voted = me ? votes.mine(me.id) : {};
-  const vr = users.verifiedRoblox();
+  const vr = users.verifiedRoblox(), rv = reviews.summary();
   return communities.all().filter(c => c.settings.profile?.listed && !c.hidden && !c.suspended).map(c => { const P = c.settings.profile, E = P.erlc || {};
     return { slug: c.slug, name: c.name, bio: P.bio || '', invite: P.invite || '', players: E.players ?? null, max: E.max ?? null, join_key: E.join_key || '', ingame: E.name || '',
       owner_id: E.owner_id || '', owner_name: E.owner_name || '', co_owners: (E.co_owners || []).map(o => o.name).filter(Boolean), verified: E.verified || '', team_balance: !!E.team_balance,
@@ -82,7 +83,7 @@ export const directory = me => { const mine = new Map((me ? communities.forUser(
       role: mine.get(c.id) || null, live: !!E.at && Date.now() - E.at < 10 * 60000,
       votes: total[c.id] || 0, week: week[c.id] || 0, next_vote: voted[c.id] ? Math.max(0, voted[c.id] + VOTE_GAP - Date.now()) : 0,
       region: REGIONS[P.region] ? { code: P.region, name: REGIONS[P.region][0], flag: REGIONS[P.region][1] } : null, lang: LANGS[P.lang] ? { code: P.lang, name: LANGS[P.lang][0], flag: LANGS[P.lang][1] } : null,
-      dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, badge: !!c.verified, owner_badge: !!E.owner_id && vr.has(String(E.owner_id)) }; }); };
+      dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, badge: !!c.verified, owner_badge: !!E.owner_id && vr.has(String(E.owner_id)), rating: rv[c.id] ? Math.round(rv[c.id].avg * 10) / 10 : null, reviews: rv[c.id]?.n || 0, id: c.id }; }); };
 
 // one vote per person per server every 12 hours
 export const vote = (me, slug) => { const c = communities.bySlug(String(slug || '')); if (!c || !c.settings.profile?.listed || c.hidden || c.suspended) return { error: 'That server is not listed.' };

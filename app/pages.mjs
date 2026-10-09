@@ -64,7 +64,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xr-n{flex:1;min-width:0;padding-top:34px}.xr h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .by{display:inline-flex;align-items:center;gap:0;color:var(--dim);font-size:12.5px;margin-top:2px}.by .vb{margin-left:5px;vertical-align:-1px}.by img{width:16px;height:16px;border-radius:50%;background:#2a2d33}
 .xr-mine{flex:none;align-self:flex-end;margin-top:34px;font-size:12px;font-weight:500;color:var(--ink);text-decoration:none;padding:6px 11px;border-radius:999px;border:1px solid var(--hair2);background:rgba(240,242,245,.06)}.xr-mine:hover{background:rgba(240,242,245,.12)}
-.xr-m{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;color:var(--dim);font-size:12.5px}.xr-m span{display:inline-flex;align-items:center;gap:6px}.xr-m .xr-tag{gap:5px;padding:3px 10px 3px 8px;border-radius:999px;background:rgba(240,242,245,.07);border:1px solid var(--hair2);color:#E2E5E9;font-weight:500}.xr-m .xr-tag svg{color:#8DB6FF}
+.xr-m{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;color:var(--dim);font-size:12.5px}.xr-m span{display:inline-flex;align-items:center;gap:6px}.xr-m .xr-rt{color:#F2C46E;font-weight:600}.xr-m .xr-tag{gap:5px;padding:3px 10px 3px 8px;border-radius:999px;background:rgba(240,242,245,.07);border:1px solid var(--hair2);color:#E2E5E9;font-weight:500}.xr-m .xr-tag svg{color:#8DB6FF}
 .xr-b p{margin:0;color:#C9CDD3;font-size:13.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:3em}.xr-b p.none{color:var(--faint)}
 .xr-f{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:12px;border-top:1px solid var(--hair)}
 .xr-d,.xr-t{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
@@ -334,8 +334,9 @@ const sIc=x=>'<span class="pic sq">'+ini(x.name)+'<img src="/c/'+e(x.slug)+'/ico
 const vbtn=(k,id,on)=>'<button class="btn sm'+(on?' is-on':'')+'" data-k="'+k+'" data-id="'+id+'" data-on="'+(on?1:0)+'">'+(on?'Verified':'Verify')+'</button>';
 const act=(a,id,label,cls)=>'<button class="btn sm'+(cls?' '+cls:'')+'" data-a="'+a+'" data-id="'+id+'">'+label+'</button>';
 const open=new Set();
-const rRow=x=>'<div class="adm-r adm-rr">'+sIc(x)+'<div class="tx"><b>'+e(x.name)+'</b><small>'+tag(e(RS[x.reason]||x.reason),'warn')+' by '+e(x.by_name||'someone')+' · '+ago(x.created)+(x.hidden?' · '+tag('Hidden','dim'):'')+(x.suspended?' · '+tag('Suspended','bad'):'')+'</small>'+(x.details?'<q>'+e(x.details)+'</q>':'')+'</div>'
-  +'<div class="adm-b">'+(x.hidden?'':act('hide',x.community_id,'Hide server','warnb'))+'<button class="btn sm" data-dismiss="'+x.id+'">Dismiss</button></div></div>';
+const rRow=x=>'<div class="adm-r adm-rr">'+sIc(x)+'<div class="tx"><b>'+e(x.name)+'</b><small>'+tag(e(RS[x.reason]||x.reason),'warn')+' by '+e(x.by_name||'someone')+' · '+ago(x.created)+(x.hidden?' · '+tag('Hidden','dim'):'')+(x.suspended?' · '+tag('Suspended','bad'):'')+'</small>'
+  +(x.review_id?(x.review_body!=null?'<q>'+'★'.repeat(x.review_rating)+' '+e(x.review_body)+'</q><small>Review by '+e(x.review_by||'someone')+' · <a href="/s/'+e(x.slug)+'#reviews" target="_blank">open page</a></small>':'<q>This review was already deleted.</q>'):(x.details?'<q>'+e(x.details)+'</q>':''))+'</div>'
+  +'<div class="adm-b">'+(x.review_id?(x.review_body!=null?'<button class="btn sm warnb" data-rvd="'+x.review_id+'">Remove review</button>':''):(x.hidden?'':act('hide',x.community_id,'Hide server','warnb')))+'<button class="btn sm" data-dismiss="'+x.id+'">Dismiss</button></div></div>';
 const sRow=x=>'<div class="adm-r'+(x.verified?' on':'')+(x.suspended?' off':'')+'" data-srv="'+x.id+'">'+sIc(x)+'<div class="tx"><b>'+e(x.name)+(x.verified?VB:'')+'</b><small>/c/'+e(x.slug)+' · '+(x.owner_rbx||x.owner_name?'by '+e(x.owner_rbx||x.owner_name)+' · ':'')+x.members+' member'+(x.members===1?'':'s')+(x.listed&&!x.hidden?' · On Explore':'')+'</small>'
   +((x.open_reports||x.hidden||x.suspended)?'<span class="adm-ts">'+(x.open_reports?tag(x.open_reports+' report'+(x.open_reports===1?'':'s'),'warn'):'')+(x.hidden?tag('Hidden from Explore','dim'):'')+(x.suspended?tag('Suspended','bad'):'')+'</span>':'')+'</div>'
   +'<div class="adm-b">'+vbtn('server',x.id,x.verified)+'<button class="btn sm ghost" data-more="'+x.id+'" aria-expanded="'+open.has(x.id)+'">Manage</button></div>'
@@ -356,6 +357,7 @@ const CONFIRM={suspend:id=>({title:'Suspend '+sName(id)+'?',text:'Its CAD closes
 sQ.addEventListener('input',drawS);pQ.addEventListener('input',()=>{clearTimeout(pt);pt=setTimeout(loadP,200)});
 document.addEventListener('click',async ev=>{
   const m=ev.target.closest('[data-more]');if(m){const id=+m.dataset.more;open.has(id)?open.delete(id):open.add(id);drawS();return}
+  const rv=ev.target.closest('[data-rvd]');if(rv){if(!(await ask({title:'Remove this review?',text:'It is removed from the server page for everyone.',ok:'Remove review',danger:true})))return;rv.disabled=true;try{fresh(await api('/api/admin/review',{id:+rv.dataset.rvd}))}catch(x){rv.disabled=false}return}
   const b=ev.target.closest('[data-k],[data-a],[data-p],[data-dismiss]');if(!b)return;const id=+(b.dataset.id||b.dataset.dismiss);
   try{
     if(b.dataset.k){const on=b.dataset.on!=='1',k=b.dataset.k;b.disabled=true;await api('/api/admin/verify',{kind:k,id,on});const x=(k==='server'?S:P).find(y=>y.id===id);if(x)x.verified=on?1:0;k==='server'?drawS():drawP();return}
@@ -490,7 +492,7 @@ const ic=x=>'<span class="xr-ic">'+e(x.name.slice(0,1).toUpperCase())+'<img src=
 const spot=x=>{ let h=0; for(const c of x.slug) h=(h*31+c.charCodeAt(0))>>>0; return (12+h%76)+'% '+(14+(h>>>8)%72)+'%'; };
 const state=x=>!x.live||x.players==null?'off':full(x)?'full':'open';
 const status=x=>state(x)==='off'?'<span class="xs off">Offline</span>':'<span class="xs '+state(x)+'"><b>'+x.players+'</b>'+(x.max?' / '+x.max:'')+' in game'+(full(x)?' · Full':'')+'</span>';
-const meta=x=>'<span title="Votes">'+STO+n(x.votes)+'</span>'+(x.dc_members!=null?'<span title="Discord members">'+PPL+n(x.dc_members)+'</span>':'')
+const meta=x=>(x.rating!=null?'<span class="xr-rt" title="'+x.reviews+' review'+(x.reviews===1?'':'s')+'">★ '+x.rating.toFixed(1)+'</span>':'')+'<span title="Votes">'+STO+n(x.votes)+'</span>'+(x.dc_members!=null?'<span title="Discord members">'+PPL+n(x.dc_members)+'</span>':'')
   +(x.region?'<span class="xr-tag">'+PIN+e(x.region.name)+'</span>':'')+(x.lang?'<span class="xr-tag">'+LNG+e(x.region&&x.lang.name.endsWith('('+x.region.name+')')?x.lang.name.split(' (')[0]:x.lang.name)+'</span>':'');
 const by=x=>x.owner_name?'<span class="by">by '+e(x.owner_name)+(x.owner_badge?VBS:'')+'</span>':'';
 const voteBtn=x=>x.next_vote>0?'<button class="xb ghost voted" data-vote="'+e(x.slug)+'" title="You can vote again in '+hrs(x.next_vote)+'">'+STAR+'Voted · '+hrs(x.next_vote)+'</button>'
@@ -537,8 +539,8 @@ document.addEventListener('click',async ev=>{
     v.disabled=true; try{ const j=await api('/api/explore/vote',{slug:x.slug}); x.votes=j.votes; x.next_vote=j.next_vote; x.week++; toast('Thanks for voting for '+x.name+'!'); }catch(err){ toast(err.message); } render(); if(dlg.open) open(x.slug); return; }
   const rp=ev.target.closest('[data-report]'); if(rp){ const x=S.find(s=>s.slug===rp.dataset.report); if(x){ dlg.close(); report(x); } return; }
   const pl=ev.target.closest('[data-play]'); if(pl){ navigator.clipboard?.writeText(pl.dataset.play).catch(()=>{}); toast('Join code '+pl.dataset.play+' copied. In ER:LC open Servers, then paste it to join.'); return; }
-  if(ev.target.closest('a,button')) return; const c=ev.target.closest('.xr'); if(c&&g.contains(c)) open(c.dataset.slug); });
-g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xr')){ ev.preventDefault(); open(ev.target.dataset.slug); } });
+  if(ev.target.closest('a,button')) return; const c=ev.target.closest('.xr'); if(c&&g.contains(c)) location.href='/s/'+encodeURIComponent(c.dataset.slug); });
+g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xr')){ ev.preventDefault(); location.href='/s/'+encodeURIComponent(ev.target.dataset.slug); } });
 dlg.addEventListener('click',ev=>{ if(ev.target===dlg||ev.target.closest('[data-close]')) dlg.close(); }); dlg.addEventListener('close',()=>dlg.classList.remove('in'));
 q.addEventListener('input',render); render();
 setInterval(async()=>{ if(document.hidden||dlg.open) return; try{ const r=await fetch('/api/explore'); if(r.ok){ S=(await r.json()).servers; render(); } }catch(x){} },60000);   // live player counts

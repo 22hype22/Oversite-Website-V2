@@ -6,7 +6,8 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, members, invites, roblox, codes, reports, RESERVED, token } from './app/db.mjs';
+import { users, communities, members, invites, roblox, codes, reports, reviews, stats, voteDays, RESERVED, token } from './app/db.mjs';
+import { serverPage } from './app/serverpage.mjs';
 import { Feed, testKey, NOKEY } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
@@ -151,6 +152,32 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'admin/verify' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), id = Number(j.id);
     const n = j.kind === 'server' ? communities.setVerified(id, !!j.on) : j.kind === 'user' ? users.setVerified(id, !!j.on) : 0;
     if (!n) return json(res, { error: 'Not found.' }, 404); console.log(`verify: ${user.discord_id} set ${j.kind} ${id} ${j.on ? 'on' : 'off'}`); return json(res, { ok: true }); }
+  if (rest === 'reviews' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to write a review.' }, 403);
+    const j = await jsonBody(req), c = visible(j.slug); if (!c) return json(res, { error: 'That server is not listed.' }, 404);
+    if (runsServer(c.id, user.id)) return json(res, { error: 'You can\'t review a server you run.' }, 403);
+    const rating = Number(j.rating), body = String(j.body || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return json(res, { error: 'Pick a star rating from 1 to 5.' }, 400);
+    if (body.length < 10) return json(res, { error: 'Write at least a sentence about the server.' }, 400);
+    if (body.length > 600) return json(res, { error: 'Keep the review to 600 characters.' }, 400);
+    if (rude(body)) return json(res, { error: 'Your review has a word that isn\'t allowed on Oversite. Please change it.' }, 400);
+    if (!reviews.mine(c.id, user.id) && reviews.newToday(user.id) >= 5) return json(res, { error: 'You have written a lot of reviews today. Please try again tomorrow.' }, 429);
+    reviews.save(c.id, user.id, rating, body); return json(res, { ok: true, list: reviewList(c.id) }); }
+  if (rest === 'reviews/delete' && req.method === 'POST') { const r = reviews.byId(Number((await jsonBody(req)).id)); if (!r) return json(res, { error: 'That review is already gone.' }, 404);
+    if (r.user_id !== user.id && !isSiteAdmin(user)) return json(res, { error: 'You can only delete your own review.' }, 403);
+    reviews.remove(r.id); reports.resolveReview(r.id, 'removed'); if (r.user_id !== user.id) console.log(`moderation: ${user.discord_id} removed review ${r.id} on server ${r.community_id}`);
+    return json(res, { ok: true, list: reviewList(r.community_id) }); }
+  if (rest === 'reviews/reply' && req.method === 'POST') { const j = await jsonBody(req), r = reviews.byId(Number(j.id)); if (!r) return json(res, { error: 'That review is gone.' }, 404);
+    if (!runsServer(r.community_id, user.id)) return json(res, { error: 'Only the owner and co-owners can reply.' }, 403);
+    const text = String(j.reply || '').replace(/\r/g, '').trim(); if (text.length > 400) return json(res, { error: 'Keep the reply to 400 characters.' }, 400);
+    if (rude(text)) return json(res, { error: RUDE_MSG }, 400);
+    reviews.reply(r.id, text); return json(res, { ok: true, list: reviewList(r.community_id) }); }
+  if (rest === 'reviews/report' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to report a review.' }, 403);
+    const r = reviews.byId(Number((await jsonBody(req)).id)); if (!r) return json(res, { error: 'That review is gone.' }, 404); if (r.user_id === user.id) return json(res, { error: 'That is your own review.' }, 400);
+    if (reports.sameReview(user.id, r.id)) return json(res, { error: 'You already reported this review. Thanks, we have it.' }, 429);
+    if (reports.byUserSince(user.id, Date.now() - 864e5) >= 10) return json(res, { error: 'You have sent a lot of reports today. Please try again tomorrow.' }, 429);
+    reports.add(r.community_id, user.id, 'review', '', r.id); return json(res, { ok: true }); }
+  if (rest === 'admin/review' && req.method === 'POST') { if (!isSiteAdmin(user) || !sameOrigin(req)) return json(res, { error: 'Not found.' }, 404); const id = Number((await jsonBody(req)).id);
+    reviews.remove(id); reports.resolveReview(id, 'removed'); console.log(`moderation: ${user.discord_id} removed review ${id}`); return json(res, { ok: true, servers: communities.overview(), reports: reports.open() }); }
   if (rest === 'explore/report' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to report a server.' }, 403);
     const j = await jsonBody(req), c = communities.bySlug(String(j.slug || '')), reason = String(j.reason || ''), details = String(j.details || '').replace(/\s+/g, ' ').trim().slice(0, 500);
     if (!c || !c.settings.profile?.listed) return json(res, { error: 'That server is not listed.' }, 404);
@@ -190,10 +217,15 @@ const globalApi = async (req, res, rest) => {
   return json(res, { error: 'Not found.' }, 404); };
 
 export const REPORT_REASONS = { name: 'Inappropriate name', icon: 'Inappropriate icon', bio: 'Inappropriate bio', fake: 'Fake or misleading', other: 'Something else' };
+const REVIEW_REASON = 'Review';
+// a listed, visible server and its reviews, as the server page shows them
+const visible = slug => { const c = communities.bySlug(String(slug || '')); return c && c.settings.profile?.listed && !c.hidden && !c.suspended ? c : null; };
+const reviewList = cid => reviews.forServer(cid).map(r => ({ id: r.id, user_id: r.user_id, rating: r.rating, body: r.body, created: r.created, updated: r.updated, reply: r.reply, roblox_name: r.roblox_name, roblox_id: r.roblox_id, verified: !!r.verified }));
+const runsServer = (cid, uid) => ['owner', 'co_owner'].includes(members.role(cid, uid));
 const SUSPENDED_OK = /^\/(privacy|terms|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.png|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/avatar\/\d+)$/;
 // ── routes ──
 const route = async (req, res) => {
-  const url = new URL(req.url, 'http://x'), path = decodeURIComponent(url.pathname);
+  const url = new URL(req.url, 'http://x'), path = decodeURIComponent(url.pathname); let m0, m0r;
   const me0 = auth.currentUser(req);
   if (me0?.suspended && !isSiteAdmin(me0) && !SUSPENDED_OK.test(path)) { if (path.startsWith('/api/') || /^\/c\/[^/]+\/api\//.test(path)) return json(res, { error: 'Your account is suspended.' }, 403);
     return msg(res, me0, 'Your account is suspended', 'Oversite has suspended this account for breaking the Terms of Use, so you can\'t use the CAD or Explore right now. If you think this is a mistake, email support@oversite.shop.', { href: 'mailto:support@oversite.shop', label: 'Contact support' }, 403); }
@@ -205,8 +237,15 @@ const route = async (req, res) => {
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, user.roblox_name ? '/account' : '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
   if (path === '/explore') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/explore'); if (!user.roblox_name) return redirect(res, '/dashboard?link=%2Fexplore');
     return page(res, pages.explore({ logo: LOGO, user, servers: profile.directory(user), owned: communities.forUser(user.id).filter(m => m.role === 'owner' || m.role === 'co_owner').map(m => m.slug) })); }
+  if ((m0r = path.match(/^\/s\/([a-z0-9-]{3,32})$/))) { const user = auth.currentUser(req), c = communities.bySlug(m0r[1]);
+    const all = profile.directory(user), x = c && all.find(y => y.id === c.id);
+    if (!x) return msg(res, user, 'Server not found', 'It may have been taken off Explore, or the address is wrong.', { href: '/explore', label: 'Explore servers' }, 404);
+    const score = y => y.week * 3 + Math.max(0, y.live && y.players != null ? y.players : -1) * 2 + y.votes * .2, rank = [...all].sort((a, b) => score(b) - score(a)).findIndex(y => y.id === x.id) + 1;
+    const own = user && runsServer(c.id, user.id);
+    const me = user ? { id: user.id, owner: own, admin: isSiteAdmin(user), can: !!user.roblox_name && !own, why: !user.roblox_name ? 'Link your Roblox account to write a review.' : own ? 'Reviews are from players. You can reply to any review below.' : '' } : null;
+    return page(res, serverPage({ logo: LOGO, user, x, rank: all.length > 1 && rank <= 10 ? rank : 0, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me })); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
-    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: REPORT_REASONS })); }
+    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON } })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/c\/[a-z0-9-]{3,32}$/.test(from) ? from : null;
     return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }
@@ -217,7 +256,6 @@ const route = async (req, res) => {
     if (user.roblox_name && dest) return redirect(res, dest);
     if (user.roblox_name) return redirect(res, '/account');                     // the dashboard is only the Roblox link step now; the account page is home
     return page(res, pages.dashboard({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()) })); }
-  let m0, m0r;
   // a player's Roblox headshot, by Roblox user id: looked up once, then cached; the page shows initials if it fails
   // a server's icon, for server cards now and the server browser later
   if ((m0r = path.match(/^\/c\/([a-z0-9-]{3,32})\/icon$/))) { const c = communities.bySlug(m0r[1]), src = c && profile.iconSource(c);

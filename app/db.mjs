@@ -62,7 +62,15 @@ db.exec(`CREATE TABLE IF NOT EXISTS reports (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   reason TEXT NOT NULL, details TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL, resolved INTEGER, outcome TEXT);
 CREATE INDEX IF NOT EXISTS reports_open ON reports (resolved, created);
-CREATE INDEX IF NOT EXISTS reports_user ON reports (user_id, created);`);   // how the Roblox link was proven: 'discord' or 'profile'
+CREATE INDEX IF NOT EXISTS reports_user ON reports (user_id, created);`);
+// a listed server's player count every couple of minutes, for the charts on its page (kept 30 days)
+db.exec(`CREATE TABLE IF NOT EXISTS server_stats (
+  community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, at INTEGER NOT NULL, players INTEGER, max INTEGER, PRIMARY KEY (community_id, at));
+CREATE TABLE IF NOT EXISTS reviews (
+  id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL, body TEXT NOT NULL, created INTEGER NOT NULL, updated INTEGER, reply TEXT, reply_at INTEGER, UNIQUE (community_id, user_id));
+CREATE INDEX IF NOT EXISTS reviews_user ON reviews (user_id, created);`);
+try { db.exec('ALTER TABLE reports ADD COLUMN review_id INTEGER'); } catch (e) {}   // set when the report is about a review rather than the listing   // how the Roblox link was proven: 'discord' or 'profile'
 // server keys are encrypted at rest with a secret that lives in the environment or, failing that, next to the database
 const SECRET_FILE = join(DATA, 'app.secret');
 let secret = process.env.APP_SECRET ? createHash('sha256').update(process.env.APP_SECRET).digest() : null;
@@ -213,11 +221,38 @@ export const codes = {
 
 // ── reports from the Explore page, read by site admins on /admin ──
 export const reports = {
-  add: (cid, uid, reason, details) => q('INSERT INTO reports (community_id, user_id, reason, details, created) VALUES (?, ?, ?, ?, ?)').run(cid, uid, reason, details, now()).lastInsertRowid,
+  add: (cid, uid, reason, details, rid = null) => q('INSERT INTO reports (community_id, user_id, reason, details, created, review_id) VALUES (?, ?, ?, ?, ?, ?)').run(cid, uid, reason, details, now(), rid).lastInsertRowid,
+  sameReview: (uid, rid) => q('SELECT COUNT(*) AS n FROM reports WHERE user_id = ? AND review_id = ?').get(uid, rid).n,
+  resolveReview: (rid, outcome) => q('UPDATE reports SET resolved = ?, outcome = ? WHERE review_id = ? AND resolved IS NULL').run(now(), outcome, rid).changes,
   byUserSince: (uid, since) => q('SELECT COUNT(*) AS n FROM reports WHERE user_id = ? AND created > ?').get(uid, since).n,
   sameSince: (uid, cid, since) => q('SELECT COUNT(*) AS n FROM reports WHERE user_id = ? AND community_id = ? AND created > ?').get(uid, cid, since).n,
-  open: () => q(`SELECT r.id, r.community_id, r.reason, r.details, r.created, c.slug, c.name, c.hidden, c.suspended, u.roblox_name AS by_name
-    FROM reports r JOIN communities c ON c.id = r.community_id LEFT JOIN users u ON u.id = r.user_id WHERE r.resolved IS NULL ORDER BY r.created DESC LIMIT 200`).all(),
+  open: () => q(`SELECT r.id, r.community_id, r.reason, r.details, r.created, r.review_id, c.slug, c.name, c.hidden, c.suspended, u.roblox_name AS by_name,
+      v.body AS review_body, v.rating AS review_rating, a.roblox_name AS review_by
+    FROM reports r JOIN communities c ON c.id = r.community_id LEFT JOIN users u ON u.id = r.user_id LEFT JOIN reviews v ON v.id = r.review_id LEFT JOIN users a ON a.id = v.user_id
+    WHERE r.resolved IS NULL ORDER BY r.created DESC LIMIT 200`).all(),
   resolve: (id, outcome) => q('UPDATE reports SET resolved = ?, outcome = ? WHERE id = ? AND resolved IS NULL').run(now(), outcome, id).changes,
   resolveFor: (cid, outcome) => q('UPDATE reports SET resolved = ?, outcome = ? WHERE community_id = ? AND resolved IS NULL').run(now(), outcome, cid).changes,
+};
+
+export const stats = {
+  add: (cid, players, max) => q('INSERT OR REPLACE INTO server_stats (community_id, at, players, max) VALUES (?, ?, ?, ?)').run(cid, now(), players, max),
+  since: (cid, t) => q('SELECT at, players, max FROM server_stats WHERE community_id = ? AND at > ? ORDER BY at').all(cid, t),
+  prune: () => q('DELETE FROM server_stats WHERE at < ?').run(now() - 30 * 864e5),
+};
+// votes per day for a server's page
+export const voteDays = (cid, since) => q('SELECT created FROM server_votes WHERE community_id = ? AND created > ?').all(cid, since).map(r => r.created);
+
+// one review per person per server; the owner can answer each one
+export const reviews = {
+  forServer: cid => q(`SELECT r.id, r.user_id, r.rating, r.body, r.created, r.updated, r.reply, r.reply_at, u.roblox_name, u.roblox_id, u.verified
+    FROM reviews r JOIN users u ON u.id = r.user_id WHERE r.community_id = ? AND u.suspended = 0 ORDER BY r.created DESC LIMIT 300`).all(cid),
+  summary: () => Object.fromEntries(q('SELECT r.community_id, AVG(r.rating) AS avg, COUNT(*) AS n FROM reviews r JOIN users u ON u.id = r.user_id WHERE u.suspended = 0 GROUP BY r.community_id').all().map(r => [r.community_id, { avg: r.avg, n: r.n }])),
+  byId: id => q('SELECT * FROM reviews WHERE id = ?').get(id),
+  mine: (cid, uid) => q('SELECT * FROM reviews WHERE community_id = ? AND user_id = ?').get(cid, uid),
+  newToday: uid => q('SELECT COUNT(*) AS n FROM reviews WHERE user_id = ? AND created > ?').get(uid, now() - 864e5).n,
+  save: (cid, uid, rating, body) => { const old = reviews.mine(cid, uid);
+    if (old) q('UPDATE reviews SET rating = ?, body = ?, updated = ? WHERE id = ?').run(rating, body, now(), old.id);
+    else q('INSERT INTO reviews (community_id, user_id, rating, body, created) VALUES (?, ?, ?, ?, ?)').run(cid, uid, rating, body, now()); },
+  reply: (id, text) => q('UPDATE reviews SET reply = ?, reply_at = ? WHERE id = ?').run(text || null, text ? now() : null, id),
+  remove: id => q('DELETE FROM reviews WHERE id = ?').run(id).changes,
 };
