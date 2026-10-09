@@ -36,6 +36,7 @@ const COMMANDS = {
   note: null,
 };
 export const KINDS = Object.keys(COMMANDS);
+export const MOD_KINDS = ['warn', 'pm', 'kick', 'note'];                    // what a mod may do; admins and up can also ban, unban and announce
 const NEEDS_REASON = new Set(['warn', 'pm', 'kick', 'ban', 'announce', 'note']);
 
 const state = new Map();                                                     // community id -> { view, bans, queue, lastCmd }

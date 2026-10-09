@@ -730,7 +730,7 @@
   .st-facts div{padding:10px 12px;border-radius:11px;background:rgba(240,242,245,.04);border:1px solid var(--hair)}
   .st-facts small{display:block;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
   .st-facts b{display:block;font-size:13px;font-weight:500;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .st-acts{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px}
+  .st-acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-bottom:18px}
   .st-act{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:12px;border:1px solid var(--hair2);background:rgba(240,242,245,.05);color:var(--ink);font:inherit;font-size:12px;font-weight:500;cursor:pointer;transition:background-color .15s ease,transform .12s cubic-bezier(0.23,1,0.32,1)}
   .st-act:active{transform:scale(.97)}
   .st-act svg{opacity:.85}
@@ -759,6 +759,7 @@
   .st-btn:hover{background:rgba(240,242,245,.12)}
   .st-bulk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;margin:0 0 6px;border:1px solid var(--hair);border-radius:12px;background:rgba(240,242,245,.03);font-size:12px;color:var(--dim)}
   .st-bulk .grow{flex:1;min-width:0}
+  .st-ro .st-bulk,.st-ro .st-bychips,.st-ro .st-cb,.st-ro [data-unban]{display:none}
   .st-bulk .st-go{padding:7px 14px;font-size:12px}
   .st-bychips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
   .st-bychips button{font:inherit;font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid var(--hair2);background:none;color:var(--dim);cursor:pointer}
@@ -2228,7 +2229,9 @@
 (() => {
   const OV = window.OVERSITE, tab = document.querySelector('.menu [data-view="staff"]'); if (!tab) return;
   const page = document.getElementById('staffMdt'), $ = id => document.getElementById(id);
-  const isStaff = !!OV && ['staff', 'admin', 'owner'].includes(OV.role), isAdmin = !!OV && ['admin', 'owner'].includes(OV.role);
+  // ranks: mods warn, message, kick and note; admins and up also ban, unban and announce; owner and co-owners can delete records
+  const RK = { member: 1, mod: 2, staff: 3, admin: 3, co_owner: 4, owner: 5 }[OV && OV.role] || (OV ? 0 : 5);
+  const isStaff = RK >= 2, canBan = RK >= 3, isAdmin = RK >= 4;
   if (OV && !isStaff) { tab.remove(); dispatchEvent(new Event('resize')); return; }             // members never see the staff tab
   const toDispatch = () => document.querySelector('.menu [data-view="dispatch"]').click(); $('stClose').addEventListener('click', toDispatch);
   if (!OV) { page.querySelector('.tscreens').innerHTML = '<div class="st-gate" style="height:100%"><div><b>Server Staff</b>Open your server\'s CAD from the dashboard to use the staff tools.</div></div>'; return; }
@@ -2272,7 +2275,7 @@
     const facts = live ? [['Team', p.team || 'None'], ['Callsign', p.callsign || 'None'], ['Location', p.postal ? `${p.postal} ${p.street}`.trim() : 'Unknown'], ['In-game role', (p.permission || 'Normal').replace('Server ', '')]] : [['Status', 'Not in the server']];
     const head = `<div class="st-who">${av(p.id, p.name)}<div><h3>${esc(p.name)}</h3><p>Roblox ID ${esc(p.id || 'unknown')}${live ? '' : ' · offline'}</p></div><button class="st-btn" data-look="${esc(p.name)}" style="margin-left:auto;align-self:center">Command history</button></div>
       <div class="st-facts">${facts.map(([k, v]) => `<div><small>${k}</small><b>${esc(v)}</b></div>`).join('')}</div>
-      <div class="st-acts">${actBtn('warn', 'Warn')}${actBtn('pm', 'Message')}${actBtn('kick', 'Kick')}${actBtn('ban', 'Ban')}${actBtn('note', 'Note')}</div><div class="st-h"><span>Record</span><span id="stRecN"></span></div><div id="stHist"><div class="st-empty">Loading…</div></div>`;
+      <div class="st-acts">${actBtn('warn', 'Warn')}${actBtn('pm', 'Message')}${actBtn('kick', 'Kick')}${canBan ? actBtn('ban', 'Ban') : ''}${actBtn('note', 'Note')}</div><div class="st-h"><span>Record</span><span id="stRecN"></span></div><div id="stHist"><div class="st-empty">Loading…</div></div>`;
     if (shownFor !== p.id + ':' + !!live) { box.innerHTML = head; shownFor = p.id + ':' + !!live; }
     else { const f = box.querySelector('.st-facts'); if (f) f.innerHTML = facts.map(([k, v]) => `<div><small>${k}</small><b>${esc(v)}</b></div>`).join(''); }
     const r = await fetch(API + '/records?' + new URLSearchParams({ id: p.id || '', name: p.name })).then(x => x.json()).catch(() => ({ records: [] }));
@@ -2351,7 +2354,8 @@
     const d = e.target.closest('[data-del]'); if (d) { if (!d.dataset.armed) { d.dataset.armed = '1'; d.textContent = 'Click again to delete'; setTimeout(() => { delete d.dataset.armed; d.textContent = 'Delete'; }, 3000); return; }
       try { await post('/records/delete', { id: +d.dataset.del }); toast('Record deleted. The command log still shows what ran in game.'); pane === 'records' ? renderRecords() : (shownFor = null, renderPlayer()); load(); } catch (x) { toast(x.message); } }
   });
-  $('stAnnounce').addEventListener('click', () => sheet('announce', null));
+  if (!canBan) $('stBans').classList.add('st-ro');                          // mods see the ban list but cannot unban
+  if (canBan) $('stAnnounce').addEventListener('click', () => sheet('announce', null)); else $('stAnnounce').remove();
 
   // ── the action sheet ──
   const SHEETS = {

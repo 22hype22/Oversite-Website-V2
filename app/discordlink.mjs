@@ -6,8 +6,8 @@ import { communities, members } from './db.mjs';
 const DID = process.env.DISCORD_CLIENT_ID || '', DSECRET = process.env.DISCORD_CLIENT_SECRET || '', BOT = process.env.DISCORD_BOT_TOKEN || '';
 const DAPI = process.env.DISCORD_API || 'https://discord.com/api', DWEB = process.env.DISCORD_WEB || 'https://discord.com';
 export const ready = () => !!(DID && DSECRET && BOT);
-export const LEVELS = ['staff'];                                   // Discord roles only decide who gets the staff tools; departments come from the in-game team
-const RANK = { member: 1, staff: 2, admin: 3, owner: 4 };
+export const LEVELS = ['admin', 'mod'];                            // Discord roles only decide staff rank; departments come from the in-game team
+const RANK = { member: 1, mod: 2, admin: 3, co_owner: 4, owner: 5 };
 export const higher = (a, b) => ((RANK[a] || 0) >= (RANK[b] || 0) ? a : b) || null;
 
 const bot = async path => { const r = await fetch(DAPI + path, { headers: { authorization: 'Bot ' + BOT } }); if (r.status === 404 || r.status === 403) return null;
@@ -35,7 +35,8 @@ export const forget = gid => { for (const k of cache.keys()) if (k.startsWith(gi
 // the access a Discord account's roles give in this community, or null
 export const levelFor = async (c, discordId) => { const d = c.settings && c.settings.discord; if (!ready() || !d || !d.guild_id || !discordId) return null;
   const mine = await memberRoles(d.guild_id, discordId); if (!mine) return null; let best = null;
-  for (const lvl of LEVELS) if ((d.roles?.[lvl] || []).some(id => mine.includes(id))) best = higher(best, lvl);
+  const picks = { ...(d.roles || {}) }; if (picks.staff && !picks.admin) picks.admin = picks.staff;   // older links picked one 'staff' list: those are admins now
+  for (const lvl of LEVELS) if ((picks[lvl] || []).some(id => mine.includes(id))) best = higher(best, lvl);
   return best; };
 
 // after a Discord sign-in: join every community whose Discord server makes this person staff

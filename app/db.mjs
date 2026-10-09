@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS command_log (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, player TEXT NOT NULL, player_id TEXT NOT NULL DEFAULT '',
   command TEXT NOT NULL, at INTEGER NOT NULL, UNIQUE (community_id, at, player, command));
 CREATE INDEX IF NOT EXISTS command_log_player ON command_log (community_id, player COLLATE NOCASE);
-UPDATE members SET role = 'staff' WHERE role = 'admin';
+UPDATE members SET role = 'admin' WHERE role = 'staff';
 `);
 
 try { db.exec('ALTER TABLE users ADD COLUMN roblox_via TEXT'); } catch (e) {}   // how the Roblox link was proven: 'discord' or 'profile'
@@ -69,7 +69,7 @@ export const users = {
   byRoblox: rid => q('SELECT * FROM users WHERE roblox_id = ? ORDER BY id LIMIT 1').get(rid),
   // fold a duplicate account (same person signed in with a code on another device) into the one that already has their Roblox link
   merge: (from, into) => { for (const m of q('SELECT community_id, role FROM members WHERE user_id = ?').all(from)) { const cur = q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(m.community_id, into);
-      const rank = r => ({ member: 1, staff: 2, admin: 3, owner: 4 }[r] || 0); if (!cur) q('INSERT INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(m.community_id, into, m.role, now()); else if (rank(m.role) > rank(cur.role)) q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ?').run(m.role, m.community_id, into); }
+      const rank = r => ({ member: 1, mod: 2, admin: 3, co_owner: 4, owner: 5 }[r] || 0); if (!cur) q('INSERT INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(m.community_id, into, m.role, now()); else if (rank(m.role) > rank(cur.role)) q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ?').run(m.role, m.community_id, into); }
     q('UPDATE communities SET owner_id = ? WHERE owner_id = ?').run(into, from); q('DELETE FROM users WHERE id = ?').run(from); },
 };
 export const sessions = {
@@ -100,7 +100,7 @@ export const members = {
   role: (cid, uid) => q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(cid, uid)?.role || null,
   list: cid => q('SELECT u.id, u.name, u.avatar, u.discord_id, u.roblox_name, m.role, m.joined FROM members m JOIN users u ON u.id = m.user_id WHERE m.community_id = ? ORDER BY CASE m.role WHEN \'owner\' THEN 0 WHEN \'admin\' THEN 1 WHEN \'staff\' THEN 2 ELSE 3 END, u.name').all(cid),
   add: (cid, uid, role = 'member') => q('INSERT OR IGNORE INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(cid, uid, role, now()),
-  raise: (cid, uid, role) => { const rank = r => ({ member: 1, staff: 2, admin: 3, owner: 4 }[r] || 0), cur = q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(cid, uid)?.role;   // join, or move up a role; never down
+  raise: (cid, uid, role) => { const rank = r => ({ member: 1, mod: 2, admin: 3, co_owner: 4, owner: 5 }[r] || 0), cur = q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(cid, uid)?.role;   // join, or move up a role; never down
     if (!cur) q('INSERT INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(cid, uid, role, now()); else if (rank(role) > rank(cur)) q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ?').run(role, cid, uid); },
   setRole: (cid, uid, role) => q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ? AND role != \'owner\'').run(role, cid, uid),
   remove: (cid, uid) => q('DELETE FROM members WHERE community_id = ? AND user_id = ? AND role != \'owner\'').run(cid, uid),

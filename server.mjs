@@ -42,7 +42,7 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // ── the CAD page, with this community's settings injected ──
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, canEdit: role === 'owner' };
+  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};</script>`;
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
@@ -54,7 +54,8 @@ const headshot = async id => { const hit = heads.get(id); if (hit && Date.now() 
   if (heads.size > 5000) heads.clear(); heads.set(id, { url, at: Date.now() }); return url; };
 
 // ── community access ──
-const ROLE_RANK = { member: 1, staff: 2, admin: 3, owner: 4 };
+// owner > co-owner > admin > mod > member. Co-owners run Settings (not deleting the server or the owner code); admins and mods get the Staff MDT
+const ROLE_RANK = { member: 1, mod: 2, admin: 3, co_owner: 4, owner: 5 };
 // access = the stored membership, raised by the person's roles in the community's linked Discord server (checked live)
 const access = async (req, slug) => { const user = auth.currentUser(req), c = communities.bySlug(slug); if (!c) return { c: null, user };
   let role = user ? members.role(c.id, user.id) : null;
@@ -72,28 +73,29 @@ const communityApi = async (req, res, slug, rest) => {
   const f = feedFor(c), M = req.method;
   if (rest === 'stream' && M === 'GET') return f.stream(req, res, calOf(c));
   if (rest.startsWith('v2/server') && M === 'GET') { const s = await f.snapshot(); res.writeHead(s.status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...s.headers }); return res.end(s.body); }
-  if (rest === 'cal') { if (M === 'GET') return json(res, calOf(c)); if (!can(role, 'owner')) return json(res, { error: 'Only the owner can move the map calibration.' }, 403);
+  if (rest === 'cal') { if (M === 'GET') return json(res, calOf(c)); if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner can move the map calibration.' }, 403);
     const j = await jsonBody(req), num = v => typeof v === 'number' && Number.isFinite(v);
     c.settings.cal = j.clear ? [] : (Array.isArray(j.manual) ? j.manual.filter(p => p && num(p.sx) && num(p.sz) && num(p.wx) && num(p.wy)).slice(0, 20).map(p => ({ name: String(p.name || 'Point').slice(0, 60), sx: p.sx, sz: p.sz, wx: p.wx, wy: p.wy })) : c.settings.cal);
     communities.saveSettings(c.id, c.settings); f.bcast('cal', JSON.stringify(calOf(c))); return json(res, calOf(c)); }
   if (rest === 'key') {
-    if (M === 'GET') return json(res, { hasKey: !!communities.key(c.id), persistent: true, canEdit: can(role, 'owner') });
-    if (!can(role, 'owner')) return json(res, { error: 'Only the owner can change the server key.' }, 403);
-    if (M === 'DELETE') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can disconnect the server.' }, 403); communities.setKey(c.id, null); f.setKey(''); return json(res, { ok: true }); }
+    if (M === 'GET') return json(res, { hasKey: !!communities.key(c.id), persistent: true, canEdit: can(role, 'co_owner') });
+    if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can change the server key.' }, 403);
+    if (M === 'DELETE') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner can disconnect the server.' }, 403); communities.setKey(c.id, null); f.setKey(''); return json(res, { ok: true }); }
     const k = String((await jsonBody(req)).key || '').trim(); if (!/^[A-Za-z0-9_\-]{8,200}$/.test(k)) return json(res, { error: 'That does not look like an ER:LC server key.' }, 400);
     const t = await testKey(k); if (!t.ok) return json(res, { error: t.message }, 400);
     communities.setKey(c.id, k); f.setKey(k); return json(res, { ok: true, persistent: true, name: t.name, players: t.players }); }
-  if (rest === 'track' && M === 'GET') { if (!can(role, 'owner')) return json(res, { error: 'Owner only.' }, 403); return json(res, { stats: f.stats(), players: Object.fromEntries([...f.track].map(([k, v]) => [k.split(':')[0], v])) }); }
+  if (rest === 'track' && M === 'GET') { if (!can(role, 'co_owner')) return json(res, { error: 'Owner only.' }, 403); return json(res, { stats: f.stats(), players: Object.fromEntries([...f.track].map(([k, v]) => [k.split(':')[0], v])) }); }
   // staff tools: Staff and up
-  if (rest.startsWith('staff/')) { if (!can(role, 'staff')) return json(res, { error: 'Staff only.' }, 403);
+  if (rest.startsWith('staff/')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403);
     const sub = rest.slice(6), by = { id: user.id, name: user.roblox_name || user.name };
     if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); return json(res, v, v.error ? 502 : 200); }
-    if (sub === 'action' && M === 'POST') { const r = await staff.act(c, communities.key(c.id), by, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
+    if (sub === 'action' && M === 'POST' && !can(role, 'admin') && !staff.MOD_KINDS.includes(String((req._body = await jsonBody(req)).kind))) return json(res, { error: 'Mods can warn, message, kick and add notes. Bans, unbans and announcements need an admin.' }, 403);
+    if (sub === 'action' && M === 'POST') { const r = await staff.act(c, communities.key(c.id), by, req._body || await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'logs' && M === 'GET') return json(res, staff.lookup(c, new URL(req.url, 'http://x').searchParams.get('user')));
-    if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can delete records.' }, 403); staff.removeRecord(c, (await jsonBody(req)).id); return json(res, { ok: true }); }   // records can go; the command log never can
+    if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can delete records.' }, 403); staff.removeRecord(c, (await jsonBody(req)).id); return json(res, { ok: true }); }   // records can go; the command log never can
     if (sub === 'records' && M === 'GET') return json(res, { records: staff.records(c, Object.fromEntries(new URL(req.url, 'http://x').searchParams)) });
     return json(res, { error: 'Not found.' }, 404); }
-  if (!can(role, 'owner')) return json(res, { error: 'Only the owner can do that.' }, 403);
+  if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can do that.' }, 403);
   if (rest === 'profile/refresh' && M === 'POST') { const r = await profile.refresh(c); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/save' && M === 'POST') { const r = profile.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 5e5) || '{}'); } catch (e) {} const r = profile.setIcon(c, j.data); return json(res, r, r.error ? 400 : 200); }
@@ -108,7 +110,7 @@ const communityApi = async (req, res, slug, rest) => {
     const r = j.generate && j.role === 'member' ? auth.newMemberCode(c.id) : auth.setCode(c.id, j.role, j.code); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
   if (rest === 'invites' && M === 'POST') { const code = invites.create(c.id, user.id); return json(res, { code, url: `${origin(req)}/join/${code}` }); }
   if (rest === 'invites/revoke' && M === 'POST') { invites.revoke(c.id, String((await jsonBody(req)).code || '')); return json(res, { ok: true }); }
-  if (rest.startsWith('discord')) { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can manage the Discord link.' }, 403);
+  if (rest.startsWith('discord')) {
     const d = c.settings.discord || null;
     if (rest === 'discord' && M === 'GET') { if (!d) return json(res, { ready: discordlink.ready(), linked: null });
       const roles = await discordlink.roles(d.guild_id).catch(e => ({ error: e.message })); return json(res, { ready: discordlink.ready(), linked: d, roles: Array.isArray(roles) ? roles : null, missing: roles === null, error: roles && roles.error }); }
@@ -118,10 +120,12 @@ const communityApi = async (req, res, slug, rest) => {
       c.settings.discord = { ...d, roles: out }; communities.saveSettings(c.id, c.settings); discordlink.forget(d.guild_id); return json(res, { ok: true, roles: out }); }
     if (rest === 'discord/unlink' && M === 'POST') { delete c.settings.discord; communities.saveSettings(c.id, c.settings); if (d) discordlink.forget(d.guild_id); return json(res, { ok: true }); }
     return json(res, { error: 'Not found.' }, 404); }
-  if (rest === 'members/role' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can change roles.' }, 403); const j = await jsonBody(req);
-    if (!['member', 'staff'].includes(j.role)) return json(res, { error: 'Unknown role.' }, 400); members.setRole(c.id, +j.userId, j.role); return json(res, { ok: true }); }
+  if (rest === 'members/role' && M === 'POST') { const j = await jsonBody(req), target = members.role(c.id, +j.userId);
+    if (!['member', 'mod', 'admin', 'co_owner'].includes(j.role)) return json(res, { error: 'Unknown rank.' }, 400);
+    if (!target || +j.userId === user.id || !(ROLE_RANK[target] < ROLE_RANK[role]) || !(ROLE_RANK[j.role] < ROLE_RANK[role])) return json(res, { error: 'You can only change the rank of people below you, to a rank below yours.' }, 403);
+    members.setRole(c.id, +j.userId, j.role); return json(res, { ok: true }); }
   if (rest === 'members/remove' && M === 'POST') { const j = await jsonBody(req), target = members.role(c.id, +j.userId);
-    if (!target || target === 'owner' || +j.userId === user.id) return json(res, { error: 'That member cannot be removed.' }, 400);
+    if (!target || target === 'owner' || +j.userId === user.id || !(ROLE_RANK[target] < ROLE_RANK[role])) return json(res, { error: 'That member cannot be removed.' }, 400);
     members.remove(c.id, +j.userId); return json(res, { ok: true }); }
   if (rest === 'delete' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can delete the community.' }, 403);
     if ((await jsonBody(req)).confirm !== c.slug) return json(res, { error: 'Type the address to confirm.' }, 400); communities.remove(c.id); feeds.delete(c.id); return json(res, { ok: true }); }
@@ -176,13 +180,13 @@ const route = async (req, res) => {
   if (path === '/privacy') return page(res, pages.privacy({ logo: LOGO, user: auth.currentUser(req) }));
   if (path === '/terms') return redirect(res, 'https://www.oversite.shop/terms');
   if ((m0 = path.match(/^\/c\/([a-z0-9-]+)\/discord\/connect$/))) { const { c, user, role } = await access(req, m0[1]);
-    if (!c || !user || !can(role, 'owner')) return msg(res, user, 'Owners only', 'Only the server owner can connect a Discord server.', { href: '/dashboard', label: 'Back' }, 403);
+    if (!c || !user || !can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner or a co-owner can connect a Discord server.', { href: '/dashboard', label: 'Back' }, 403);
     if (!discordlink.ready()) return msg(res, user, 'Discord is not set up yet', 'Oversite needs its Discord bot keys before servers can be linked.', { href: `/c/${c.slug}/settings`, label: 'Back' });
     const state = token(16); return redirect(res, discordlink.installUrl(req, state), { 'set-cookie': auth.setCookie(req, 'ov_dg', `${state}|${c.slug}`, 600) }); }
   if (path === '/auth/discord/guild') { const [state, slug] = (auth.cookies(req).ov_dg || '').split('|'), back = slug ? `/c/${slug}/settings` : '/dashboard', u0 = auth.currentUser(req);
     try { if (!state || state !== url.searchParams.get('state')) throw new Error('That link expired. Please try connecting again.');
       if (url.searchParams.get('error')) throw new Error('Adding the bot was cancelled.');
-      const { c, user, role } = await access(req, slug); if (!c || !user || !can(role, 'owner')) throw new Error('Only the server owner can connect a Discord server.');
+      const { c, user, role } = await access(req, slug); if (!c || !user || !can(role, 'co_owner')) throw new Error('Only the owner or a co-owner can connect a Discord server.');
       const g = await discordlink.finishInstall(req, url.searchParams.get('code'));
       c.settings.discord = { ...g, roles: c.settings.discord?.guild_id === g.guild_id ? c.settings.discord.roles || {} : {} }; communities.saveSettings(c.id, c.settings); discordlink.forget(g.guild_id);
       return redirect(res, back + '?discord=1#discord', { 'set-cookie': auth.setCookie(req, 'ov_dg', '', 0) }); }
@@ -226,7 +230,7 @@ const route = async (req, res) => {
     if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', { href: '/dashboard', label: 'Go to dashboard' }, 403);
     if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(path + url.search)}`);   // no CAD without a linked Roblox account
     if (sub === '/') return html(res, mapPage(c, user, role));
-    if (sub === '/settings') { if (!can(role, 'owner')) return msg(res, user, 'Owner only', 'Only the server owner can change its settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
+    if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
       return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), iconKind: profile.iconSource(c)?.kind || null, codes: can(role, 'owner') ? { owner: codes.show(c.id, 'owner'), member: codes.show(c.id, 'member') } : (can(role, 'admin') ? { owner: null, member: codes.show(c.id, 'member') } : null) })); }
     return msg(res, user, 'Not found', 'That page does not exist.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 404); }
