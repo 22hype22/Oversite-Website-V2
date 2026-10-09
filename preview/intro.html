@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oversite · Intro previews</title>
+<link rel="icon" type="image/png" href="/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Intro (splash) animation candidates. Each one lives in a .stage sized with container units, so the same markup plays in a tile or full screen. */
+:root{color-scheme:dark;--ink:#F0F2F5;--dim:#9A9EA6;--faint:#62666D;--hair:rgba(240,242,245,.08);--hair2:rgba(240,242,245,.14);
+  --sea:#386069;--glow:#7FE3D3;--red:#E24B4B;--blue:#4C8DFF;--ok:#46D07C;
+  --ease-out:cubic-bezier(0.23,1,0.32,1);--ease-io:cubic-bezier(0.77,0,0.175,1)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font:14px/1.5 "Geist",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#0B0C0E;-webkit-font-smoothing:antialiased}
+main{max-width:1240px;margin:0 auto;padding:40px 24px 80px}
+header.page{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+header.page h1{font-size:30px;font-weight:300;letter-spacing:-.02em;margin:0}header.page h1 b{font-weight:600}
+header.page p{color:var(--dim);margin:6px 0 0;max-width:60ch}
+.back{color:var(--dim);font-size:13px;text-decoration:none;border:1px solid var(--hair2);padding:8px 14px;border-radius:999px}.back:hover{color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:22px}
+.tile{display:grid;gap:12px}
+.tile .frame{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--hair);aspect-ratio:16/9;background:#07080A;cursor:pointer}
+.tile .frame:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.tile .meta{display:flex;align-items:flex-start;gap:12px}
+.tile .num{flex:none;width:28px;height:28px;border-radius:9px;border:1px solid var(--hair2);display:grid;place-items:center;font:500 12px "Geist Mono",monospace;color:var(--dim)}
+.tile h2{margin:0;font-size:15px;font-weight:600}.tile p{margin:2px 0 0;color:var(--dim);font-size:13px}
+.tile .sp{flex:1}
+.btn{font:inherit;font-size:12.5px;font-weight:500;color:var(--ink);background:rgba(255,255,255,.06);border:1px solid var(--hair2);border-radius:999px;padding:7px 14px;cursor:pointer;white-space:nowrap;transition:background-color .15s ease,transform .12s var(--ease-out)}
+.btn:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){.btn:hover{background:rgba(255,255,255,.11)}}
+
+/* ───────── shared stage ───────── */
+.stage{position:absolute;inset:0;container-type:size;overflow:hidden;background:#07080A;isolation:isolate}
+.stage .under{position:absolute;inset:0;background:#0d1416}
+.stage .under::before{content:"";position:absolute;inset:0;background:var(--sea) url(/liberty-county.jpg) center/cover;filter:brightness(.42) saturate(.85)}
+.stage .under .mock{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:3cqh;text-align:center}
+.stage .under .mock b{font-size:7cqh;font-weight:600;letter-spacing:-.02em}.stage .under .mock b span{font-weight:300}
+.stage .under .mock i{display:flex;gap:2cqw}.stage .under .mock i::before,.stage .under .mock i::after{content:"";width:26cqw;height:22cqh;border-radius:2cqh;background:rgba(16,16,18,.78);border:1px solid var(--hair)}
+.splash{position:absolute;inset:0;background:#07080A;overflow:hidden}
+.run .splash{animation:exit .6s var(--ease-out) var(--exit,3s) both}
+@keyframes exit{to{opacity:0;transform:scale(1.035);visibility:hidden}}
+.map{position:absolute;inset:0;background:var(--sea) url(/liberty-county.jpg) center/cover}
+.brand{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:2.4cqh;text-align:center;white-space:nowrap}
+.mk{width:13cqh;height:13cqh;border-radius:3.6cqh;background:rgba(22,23,26,.86);border:1px solid var(--hair2);display:grid;place-items:center;box-shadow:0 2cqh 6cqh rgba(0,0,0,.45)}
+.mk img{width:58%;height:58%;object-fit:contain;display:block}
+.wm{font-size:7.4cqh;line-height:1;letter-spacing:-.025em;font-weight:300}.wm b{font-weight:600}
+.tag{font:500 2.1cqh "Geist Mono",monospace;letter-spacing:.32em;text-transform:uppercase;color:var(--dim);margin-right:-.32em}
+.run .mk,.run .wm,.run .tag{animation:rise .7s var(--ease-out) both}
+@keyframes rise{from{opacity:0;transform:translateY(2.4cqh) scale(.97)}}
+@keyframes fade{from{opacity:0}}
+
+/* ───────── 1 · Radar sweep ───────── */
+.v-radar{--exit:3.3s}
+.v-radar .map{filter:brightness(.4) saturate(.6) hue-rotate(-8deg);opacity:0}
+.run.v-radar .map{animation:fadeTo .9s ease-out .25s both}
+@keyframes fadeTo{to{opacity:1}}
+.v-radar .rings{position:absolute;left:50%;top:50%;width:150cqh;height:150cqh;translate:-50% -50%;border-radius:50%;
+  background:repeating-radial-gradient(circle,transparent 0 calc(18.75cqh - 1px),rgba(127,227,211,.16) calc(18.75cqh - 1px) 18.75cqh);opacity:0}
+.run.v-radar .rings{animation:ringIn 1s var(--ease-out) .1s both}
+@keyframes ringIn{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+.v-radar .sweep{position:absolute;left:50%;top:50%;width:150cqh;height:150cqh;translate:-50% -50%;border-radius:50%;
+  background:conic-gradient(from 0deg,rgba(127,227,211,0) 0deg,rgba(127,227,211,0) 300deg,rgba(127,227,211,.32) 358deg,rgba(220,255,248,.75) 360deg);opacity:0}
+.run.v-radar .sweep{animation:sweep 2.3s linear .15s both}
+@keyframes sweep{0%{opacity:0;transform:rotate(0)}8%{opacity:1}85%{opacity:1}100%{opacity:0;transform:rotate(450deg)}}
+.v-radar .blip{position:absolute;width:1.3cqh;height:1.3cqh;margin:-.65cqh;border-radius:50%;background:var(--glow);box-shadow:0 0 1.6cqh var(--glow);opacity:0}
+.v-radar .blip::after{content:"";position:absolute;inset:-1.4cqh;border-radius:50%;border:1px solid var(--glow);opacity:0}
+.run.v-radar .blip{animation:blip 1.6s var(--ease-out) var(--d) both}
+.run.v-radar .blip::after{animation:ping 1.1s var(--ease-out) var(--d) forwards}
+@keyframes blip{0%{opacity:0;transform:scale(.4)}12%{opacity:1;transform:scale(1)}100%{opacity:.55}}
+@keyframes ping{0%{opacity:.9;transform:scale(.3)}100%{opacity:0;transform:scale(2.4)}}
+.v-radar .brand{--b:1.75s}
+.run.v-radar .mk{animation-delay:1.65s}.run.v-radar .wm{animation-delay:1.78s}.run.v-radar .tag{animation-delay:1.9s}
+
+/* ───────── 2 · Satellite descent ───────── */
+.v-sat{--exit:3.2s}
+.v-sat .map{filter:brightness(.3) blur(1.6cqh) saturate(.7);transform:scale(2.6)}
+.run.v-sat .map{animation:descend 2.4s var(--ease-out) both}
+@keyframes descend{to{transform:scale(1.06);filter:brightness(.5) blur(0) saturate(.9)}}
+.v-sat .vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 30%,rgba(7,8,10,.85) 100%)}
+.v-sat .cross{position:absolute;inset:0;opacity:0}
+.v-sat .cross::before,.v-sat .cross::after{content:"";position:absolute;background:rgba(240,242,245,.22)}
+.v-sat .cross::before{left:50%;top:8%;bottom:8%;width:1px}.v-sat .cross::after{top:50%;left:6%;right:6%;height:1px}
+.run.v-sat .cross{animation:crossIn 2.2s var(--ease-out) .2s both}
+@keyframes crossIn{0%{opacity:0;transform:scale(1.4)}30%{opacity:1}70%{opacity:1;transform:none}100%{opacity:0;transform:none}}
+@property --alt{syntax:'<integer>';inherits:false;initial-value:12000}
+.v-sat .hud{position:absolute;left:4.5cqw;bottom:6cqh;font:500 2.2cqh "Geist Mono",monospace;letter-spacing:.14em;color:var(--dim);display:grid;gap:.6cqh;opacity:0}
+.v-sat .alt{--alt:12000;counter-reset:a var(--alt)}.v-sat .alt::after{content:"ALT " counter(a) " FT"}
+.run.v-sat .hud{animation:hud 2.6s ease-out .1s both}
+.run.v-sat .alt{animation:alt 2.3s var(--ease-out) .1s both}
+@keyframes hud{0%{opacity:0}12%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes alt{to{--alt:400}}
+.run.v-sat .mk{animation-delay:1.5s}.run.v-sat .wm{animation-delay:1.62s}.run.v-sat .tag{animation-delay:1.74s}
+
+/* ───────── 3 · Dispatch boot ───────── */
+.v-boot{--exit:3.5s}
+.v-boot .term{position:absolute;left:50%;top:50%;translate:-50% -50%;width:min(86cqw,120cqh);font:400 2.7cqh/1.75 "Geist Mono",monospace;color:#B9C0C8}
+.v-boot .ln{display:flex;gap:1.2cqh;white-space:nowrap;clip-path:inset(0 100% 0 0)}
+.v-boot .ln u{text-decoration:none;color:var(--faint);flex:1;overflow:hidden}
+.v-boot .ln u::before{content:"..............................................................................."}
+.v-boot .ln em{font-style:normal;color:var(--ok);opacity:0}
+.run.v-boot .ln{animation:type .42s steps(24,end) var(--d) both}
+.run.v-boot .ln em{animation:fadeTo .2s ease-out calc(var(--d) + .44s) forwards}
+@keyframes type{to{clip-path:inset(0 0 0 0)}}
+.v-boot .bar{margin-top:2.4cqh;height:.5cqh;border-radius:1cqh;background:rgba(240,242,245,.08);overflow:hidden}
+.v-boot .bar i{display:block;height:100%;background:var(--ink);transform:scaleX(0);transform-origin:left}
+.run.v-boot .bar i{animation:fill 1.6s cubic-bezier(.6,.05,.25,1) .25s both}
+@keyframes fill{to{transform:scaleX(1)}}
+.run.v-boot .term{animation:termOut .45s var(--ease-io) 2.05s both}
+@keyframes termOut{to{opacity:0;transform:translateY(-3cqh)}}
+.run.v-boot .mk{animation-delay:2.3s}.run.v-boot .wm{animation-delay:2.42s}.run.v-boot .tag{animation-delay:2.54s}
+.v-boot .map{filter:brightness(.32) saturate(.7);opacity:0}
+.run.v-boot .map{animation:fadeTo .9s ease-out 2.2s both}
+
+/* ───────── 4 · Light bar ───────── */
+.v-lights{--exit:3.3s}
+.v-lights .glow{position:absolute;top:50%;width:120cqh;height:120cqh;margin-top:-60cqh;border-radius:50%;opacity:0;mix-blend-mode:screen}
+.v-lights .glow.r{left:50%;margin-left:-104cqh;background:radial-gradient(circle,rgba(226,75,75,.55),rgba(226,75,75,0) 62%)}
+.v-lights .glow.b{left:50%;margin-left:-16cqh;background:radial-gradient(circle,rgba(76,141,255,.55),rgba(76,141,255,0) 62%)}
+.run.v-lights .glow.r{animation:flash .4s ease-out .25s 3 both}
+.run.v-lights .glow.b{animation:flash .4s ease-out .45s 3 both}
+@keyframes flash{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+.v-lights .lb{position:absolute;left:50%;top:50%;translate:-50% -50%;width:44cqh;height:5.2cqh;border-radius:5cqh;background:#121316;border:1px solid var(--hair2);display:flex;overflow:hidden;opacity:0}
+.v-lights .lb i{flex:1;margin:.7cqh;border-radius:3cqh;opacity:.18}
+.v-lights .lb i:nth-child(-n+3){background:var(--red)}.v-lights .lb i:nth-child(n+4){background:var(--blue)}
+.run.v-lights .lb{animation:lbLife 1.9s var(--ease-out) .1s both}
+@keyframes lbLife{0%{opacity:0;transform:scale(.94)}10%{opacity:1;transform:none}82%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-6cqh) scale(.9)}}
+.run.v-lights .lb i:nth-child(-n+3){animation:seg .4s steps(1) .25s 3 both}
+.run.v-lights .lb i:nth-child(n+4){animation:seg .4s steps(1) .45s 3 both}
+@keyframes seg{0%{opacity:1}50%{opacity:.18}}
+.v-lights .map{filter:brightness(.35) saturate(.7);opacity:0}
+.run.v-lights .map{animation:fadeTo 1s ease-out 1.7s both}
+.run.v-lights .mk{animation-delay:1.85s}.run.v-lights .wm{animation-delay:1.97s}.run.v-lights .tag{animation-delay:2.09s}
+
+/* ───────── 5 · Route trace ───────── */
+.v-route{--exit:3.4s}
+.v-route .map{filter:brightness(.34) saturate(.7);opacity:0}
+.run.v-route .map{animation:fadeTo .8s ease-out both}
+.v-route svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.v-route .trail{fill:none;stroke:var(--glow);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100;filter:drop-shadow(0 0 6px rgba(127,227,211,.7))}
+.v-route .head{fill:none;stroke:#fff;stroke-width:16;stroke-linecap:round;stroke-dasharray:.001 200;stroke-dashoffset:0;filter:drop-shadow(0 0 10px var(--glow));opacity:0}
+.run.v-route .trail{animation:draw 1.7s var(--ease-io) .2s both,trailOut .5s ease-out 2s both}
+.run.v-route .head{animation:ride 1.7s var(--ease-io) .2s both,headOut .3s ease-out 1.9s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes trailOut{to{opacity:.25}}
+@keyframes ride{0%{opacity:1;stroke-dashoffset:0}100%{opacity:1;stroke-dashoffset:-100}}
+@keyframes headOut{from{opacity:1;stroke-dashoffset:-100}to{opacity:0;stroke-dashoffset:-100}}
+.v-route .ripple{position:absolute;left:50%;top:50%;width:13cqh;height:13cqh;margin:-6.5cqh;border-radius:3.6cqh;border:1px solid var(--glow);opacity:0}
+.run.v-route .ripple{animation:ripple .9s var(--ease-out) 1.85s forwards}
+@keyframes ripple{0%{opacity:.9;transform:scale(.9)}100%{opacity:0;transform:scale(2.2)}}
+.run.v-route .mk{animation-delay:1.8s}.run.v-route .wm{animation-delay:1.95s}.run.v-route .tag{animation-delay:2.07s}
+
+/* ───────── 6 · Iris ───────── */
+.v-iris{--exit:3s}
+.v-iris .map{filter:brightness(.42) saturate(.85);clip-path:circle(0% at 50% 42%)}
+.run.v-iris .map{animation:iris 1.25s var(--ease-io) .75s both}
+@keyframes iris{to{clip-path:circle(80% at 50% 42%)}}
+.v-iris .ring{position:absolute;left:50%;top:42%;width:13cqh;height:13cqh;margin:-6.5cqh;border-radius:50%;border:1px solid rgba(240,242,245,.6);opacity:0}
+.run.v-iris .ring{animation:ringOut 1.25s var(--ease-io) .75s forwards}
+@keyframes ringOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(14)}}
+.v-iris .brand{gap:3cqh}
+.run.v-iris .mk{animation:mkIris .7s var(--ease-out) .1s both}
+@keyframes mkIris{from{opacity:0;transform:scale(.9)}}
+.v-iris .wm span{display:inline-block}
+.run.v-iris .wm{animation:none}
+.run.v-iris .wm span{animation:letter .6s var(--ease-out) calc(1.05s + var(--i) * 45ms) both}
+@keyframes letter{from{opacity:0;transform:translateY(55%)}}
+.run.v-iris .tag{animation-delay:1.6s}
+
+/* ───────── 7 · Grid lock ───────── */
+.v-grid{--exit:3.3s}
+.v-grid .map{filter:brightness(.3) saturate(.6) contrast(1.05);opacity:0}
+.run.v-grid .map{animation:fadeTo .9s ease-out .1s both}
+.v-grid .lines{position:absolute;inset:0;background:
+  repeating-linear-gradient(90deg,rgba(127,227,211,.14) 0 1px,transparent 1px 6.25cqw),
+  repeating-linear-gradient(0deg,rgba(127,227,211,.14) 0 1px,transparent 1px 6.25cqw);clip-path:inset(0 100% 100% 0)}
+.run.v-grid .lines{animation:gridIn 1.1s var(--ease-io) .15s both,gridDim .6s ease-out 1.9s forwards}
+@keyframes gridIn{to{clip-path:inset(0 0 0 0)}}
+@keyframes gridDim{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 0 0 0);opacity:.35}}
+.v-grid .box{position:absolute;left:50%;top:50%;width:44cqh;height:44cqh;margin:-22cqh;opacity:0}
+.v-grid .box i{position:absolute;width:6cqh;height:6cqh;border:solid var(--ink);border-width:0}
+.v-grid .box i:nth-child(1){left:0;top:0;border-left-width:2px;border-top-width:2px}
+.v-grid .box i:nth-child(2){right:0;top:0;border-right-width:2px;border-top-width:2px}
+.v-grid .box i:nth-child(3){left:0;bottom:0;border-left-width:2px;border-bottom-width:2px}
+.v-grid .box i:nth-child(4){right:0;bottom:0;border-right-width:2px;border-bottom-width:2px}
+.run.v-grid .box{animation:lock .9s var(--ease-out) .6s both,boxOut .4s ease-out 2.25s forwards}
+@keyframes lock{0%{opacity:0;transform:scale(2.3)}40%{opacity:1}100%{opacity:1;transform:scale(1)}}
+@keyframes boxOut{from{opacity:1}to{opacity:.0;transform:scale(1.15)}}
+.v-grid .coords{position:absolute;left:50%;top:calc(50% + 25cqh);translate:-50% 0;font:500 2.1cqh "Geist Mono",monospace;letter-spacing:.2em;color:var(--glow);opacity:0}
+.run.v-grid .coords{animation:coords 1.6s ease-out 1.1s both}
+@keyframes coords{0%{opacity:0}15%{opacity:1}75%{opacity:1}100%{opacity:0}}
+.v-grid .brand .wm,.v-grid .brand .tag{position:relative}
+.run.v-grid .mk{animation-delay:1.2s}.run.v-grid .wm{animation-delay:1.7s}.run.v-grid .tag{animation-delay:1.82s}
+.v-grid .brand{gap:2.4cqh}
+
+/* ───────── reduced motion: every variant becomes a short fade of the brand ───────── */
+@media (prefers-reduced-motion:reduce){
+  .run .splash *,.run .splash *::before,.run .splash *::after{animation:none!important}
+  .run .splash .map{opacity:1!important;transform:none!important;clip-path:none!important;filter:brightness(.4)!important}
+  .run .splash .brand{animation:fade .5s ease-out both}
+  .run .splash .wm span{opacity:1;transform:none}
+}
+
+/* ───────── full screen player ───────── */
+.full{position:fixed;inset:0;z-index:50;background:#07080A;display:none}
+.full.on{display:block}
+.full iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0d1416}
+.full .stage{background:transparent}
+.full .stage .under{display:none}
+.full .ctl{position:absolute;right:18px;top:18px;display:flex;gap:8px;z-index:3;opacity:0;transition:opacity .25s ease}
+.full.done .ctl{opacity:1}
+.full .label{position:absolute;left:20px;bottom:18px;z-index:3;font:500 12px "Geist Mono",monospace;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;opacity:0;transition:opacity .25s ease}
+.full.done .label{opacity:1}
+@media (max-width:520px){main{padding:24px 16px 60px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <header class="page">
+    <div><h1><b>Intro</b> previews</h1><p>Seven openers for the first time someone lands on Oversite. They loop here. Click one to watch it full screen over the real site, then tell me the number you want.</p></div>
+    <a class="back" href="/">Back to Oversite</a>
+  </header>
+  <section class="grid" id="grid"></section>
+</main>
+
+<div class="full" id="full" role="dialog" aria-modal="true" aria-label="Intro preview">
+  <iframe id="site" title="Oversite" tabindex="-1"></iframe>
+  <div class="label" id="flabel"></div>
+  <div class="ctl"><button class="btn" id="replay">Replay</button><button class="btn" id="close">Close</button></div>
+</div>
+
+<!-- the seven splash variants; each template is cloned into a tile and into the full screen player -->
+<template id="t-radar"><div class="splash">
+  <div class="map"></div><div class="rings"></div><div class="sweep"></div>
+  <i class="blip" style="left:63%;top:30%;--d:.42s"></i><i class="blip" style="left:72%;top:58%;--d:.7s"></i><i class="blip" style="left:55%;top:76%;--d:.98s"></i>
+  <i class="blip" style="left:33%;top:66%;--d:1.25s"></i><i class="blip" style="left:28%;top:36%;--d:1.5s"></i><i class="blip" style="left:44%;top:22%;--d:1.72s"></i>
+  <div class="brand"><div class="mk"><img src="/logo.png" alt=""></div><div class="wm"><b>Oversite</b> CAD</div><div class="tag">Live dispatch</div></div>
+</div></template>
+
+<template id="t-sat"><div class="splash">
+  <div class="map"></div><div class="vig"></div><div class="cross"></div>
+  <div class="hud"><span class="alt"></span><span>LIBERTY COUNTY</span></div>
+  <div class="brand"><div class="mk"><img src="/logo.png" alt=""></div><div class="wm"><b>Oversite</b> CAD</div><div class="tag">Live dispatch</div></div>
+</div></template>
+
+<template id="t-boot"><div class="splash">
+  <div class="map"></div>
+  <div class="term">
+    <div class="ln" style="--d:.1s"><span>oversite cad</span><u></u><em>v2</em></div>
+    <div class="ln" style="--d:.42s"><span>linking er:lc server</span><u></u><em>ok</em></div>
+    <div class="ln" style="--d:.74s"><span>streaming units</span><u></u><em>14 online</em></div>
+    <div class="ln" style="--d:1.06s"><span>911 queue</span><u></u><em>2 active</em></div>
+    <div class="ln" style="--d:1.38s"><span>liberty county map</span><u></u><em>ready</em></div>
+    <div class="bar"><i></i></div>
+  </div>
+  <div class="brand"><div class="mk"><img src="/logo.png" alt=""></div><div class="wm"><b>Oversite</b> CAD</div><div class="tag">Live dispatch</div></div>
+</div></template>
+
+<template id="t-lights"><div class="splash">
+  <div class="map"></div><div class="glow r"></div><div class="glow b"></div>
+  <div class="lb"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="brand"><div class="mk"><img src="/logo.png" alt=""></div><div class="wm"><b>Oversite</b> CAD</div><div class="tag">Live dispatch</div></div>
+</div></template>
+
+<template id="t-route"><div class="splash">
+  <div class="map"></div>
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <path class="trail" pathLength="100" d="M-60 770 C 160 770 240 640 400 630 S 610 700 720 600 S 860 330 1040 340 S 1270 500 1150 610 S 900 560 800 450"/>
+    <path class="head" pathLength="100" d="M-60 770 C 160 770 240 640 400 630 S 610 700 720 600 S 860 330 1040 340 S 1270 500 1150 610 S 900 560 800 450"/>
+  </svg>
+  <div class="ripple"></div>
+  <div class="brand"><div class="mk"><img src="/logo.png" alt=""></div><div class="wm"><b>Oversite</b> CAD</div><div class="tag">Live dispatch</div></div>
+</div></template>
+
+<template id="t-iris"><div class="splash">
+  <div class="map"></div><div class="ring"></div>
+  <div class="brand"><div class="mk"><img src="/logo.png" alt=""></div><div class="wm" data-split><b>Oversite</b> CAD</div><div class="tag">Live dispatch</div></div>
+</div></template>
+
+<template id="t-grid"><div class="splash">
+  <div class="map"></div><div class="lines"></div>
+  <div class="box"><i></i><i></i><i></i><i></i></div>
+  <div class="coords">POSTAL 101 · X 1024 · Z 0768</div>
+  <div class="brand"><div class="mk"><img src="/logo.png" alt=""></div><div class="wm"><b>Oversite</b> CAD</div><div class="tag">Live dispatch</div></div>
+</div></template>
+
+<script>
+const V = [
+  { id: 'radar', name: 'Radar sweep', text: 'A dispatch radar sweeps the county and units ping in before the logo lands.', ms: 3900 },
+  { id: 'sat', name: 'Satellite descent', text: 'Drops out of the sky onto Liberty County, with the altitude counting down.', ms: 3800 },
+  { id: 'boot', name: 'Dispatch boot', text: 'The CAD checks in like a terminal: server, units, 911 queue, map.', ms: 4100 },
+  { id: 'lights', name: 'Light bar', text: 'A red and blue light bar flashes three times, then the scene settles.', ms: 3900 },
+  { id: 'route', name: 'Route trace', text: 'A unit drives a glowing route across the map and arrives at the logo.', ms: 4000 },
+  { id: 'iris', name: 'Iris', text: 'The logo opens a window onto the map and the name rises in letter by letter.', ms: 3600 },
+  { id: 'grid', name: 'Grid lock', text: 'The postal grid draws in and brackets lock onto the centre.', ms: 3900 },
+];
+const build = v => { const st = document.createElement('div'); st.className = 'stage v-' + v.id;
+  st.innerHTML = '<div class="under"><div class="mock"><b>Oversite <span>CAD</span></b><i></i></div></div>';
+  st.appendChild(document.getElementById('t-' + v.id).content.cloneNode(true));
+  st.querySelectorAll('[data-split]').forEach(el => { let i = 0; const walk = n => { [...n.childNodes].forEach(c => { if (c.nodeType === 3) { const f = document.createDocumentFragment();
+    for (const ch of c.textContent) { const s = document.createElement('span'); s.textContent = ch === ' ' ? ' ' : ch; s.style.setProperty('--i', i++); f.appendChild(s); } c.replaceWith(f); } else walk(c); }); }; walk(el); });
+  return st; };
+const play = st => { st.classList.remove('run'); void st.offsetWidth; st.classList.add('run'); };
+
+// tiles loop while they are on screen
+const grid = document.getElementById('grid'), timers = new Map();
+V.forEach((v, i) => {
+  const tile = document.createElement('article'); tile.className = 'tile';
+  tile.innerHTML = `<div class="frame" tabindex="0" role="button" aria-label="Play ${v.name} full screen"></div><div class="meta"><span class="num">${i + 1}</span><div><h2>${v.name}</h2><p>${v.text}</p></div><span class="sp"></span><button class="btn">Full screen</button></div>`;
+  const frame = tile.querySelector('.frame'), st = build(v); frame.appendChild(st); grid.appendChild(tile);
+  const open = () => openFull(v, i); frame.addEventListener('click', open); tile.querySelector('.btn').addEventListener('click', open);
+  frame.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  st._loop = () => { play(st); timers.set(st, setTimeout(st._loop, v.ms + 1300)); };
+});
+const io = new IntersectionObserver(es => es.forEach(e => { const st = e.target.querySelector('.stage');
+  if (e.isIntersecting && !timers.has(st)) { setTimeout(st._loop, 120 * [...grid.children].indexOf(e.target)); timers.set(st, 1); }
+  else if (!e.isIntersecting) { clearTimeout(timers.get(st)); timers.delete(st); st.classList.remove('run'); } }), { threshold: .3 });
+[...grid.children].forEach(t => io.observe(t));
+
+// full screen: the intro plays once over the real site, then hands off to it
+const full = document.getElementById('full'), site = document.getElementById('site'); let cur = null, fst = null, ft = 0, last = null;
+const openFull = (v, i) => { cur = v; last = document.activeElement; if (!site.src) site.src = '/';
+  document.getElementById('flabel').textContent = (i + 1) + ' · ' + v.name;
+  fst?.remove(); fst = build(v); full.insertBefore(fst, full.querySelector('.label'));
+  full.classList.add('on'); full.classList.remove('done'); document.body.style.overflow = 'hidden';
+  play(fst); clearTimeout(ft); ft = setTimeout(() => { full.classList.add('done'); document.getElementById('replay').focus(); }, v.ms); };
+const closeFull = () => { full.classList.remove('on', 'done'); fst?.remove(); fst = null; clearTimeout(ft); document.body.style.overflow = ''; last?.focus(); };
+document.getElementById('replay').onclick = () => openFull(cur, V.indexOf(cur));
+document.getElementById('close').onclick = closeFull;
+addEventListener('keydown', e => { if (e.key === 'Escape' && full.classList.contains('on')) closeFull(); });
+</script>
+</body>
+</html>
