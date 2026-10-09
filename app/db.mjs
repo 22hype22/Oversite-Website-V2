@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS staff_sent (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, command TEXT NOT NULL,
   by_user INTEGER, by_name TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS staff_sent_time ON staff_sent (community_id, created);
+CREATE TABLE IF NOT EXISTS command_log (
+  id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, player TEXT NOT NULL, player_id TEXT NOT NULL DEFAULT '',
+  command TEXT NOT NULL, at INTEGER NOT NULL, UNIQUE (community_id, at, player, command));
+CREATE INDEX IF NOT EXISTS command_log_player ON command_log (community_id, player COLLATE NOCASE);
 UPDATE members SET role = 'staff' WHERE role = 'admin';
 `);
 
@@ -115,12 +119,26 @@ export const staffRecords = {
   forPlayer: (cid, rid, name) => q('SELECT * FROM staff_records WHERE community_id = ? AND (roblox_id = ? OR (roblox_id IS NULL AND lower(name) = lower(?))) ORDER BY id DESC LIMIT 200').all(cid, rid || '', name || ''),
   search: (cid, text) => q("SELECT * FROM staff_records WHERE community_id = ? AND (lower(name) LIKE ? OR roblox_id = ?) ORDER BY id DESC LIMIT 200").all(cid, '%' + String(text).toLowerCase() + '%', String(text)),
   counts: cid => q("SELECT roblox_id, kind, COUNT(*) n FROM staff_records WHERE community_id = ? AND roblox_id IS NOT NULL GROUP BY roblox_id, kind").all(cid),
-  lastBans: cid => q("SELECT roblox_id, lower(name) AS lname, by_name, created FROM staff_records WHERE community_id = ? AND kind = 'ban' ORDER BY id DESC").all(cid),
+  idFor: (cid, name) => q('SELECT roblox_id FROM staff_records WHERE community_id = ? AND lower(name) = lower(?) AND roblox_id IS NOT NULL ORDER BY id DESC LIMIT 1').get(cid, name)?.roblox_id || null,
+  actors: cid => q("SELECT by_user, by_name, COUNT(*) AS n FROM staff_records WHERE community_id = ? AND result = 'sent' GROUP BY by_user, lower(by_name)").all(cid),
+  sentByActors: (cid, ids, name) => q(`SELECT * FROM staff_records WHERE community_id = ? AND result = 'sent' AND (by_user IN (${ids.map(() => '?').join(', ') || 'NULL'}) OR (by_user IS NULL AND lower(by_name) = lower(?))) ORDER BY id DESC LIMIT 1000`).all(cid, ...ids, name),
+  lastBans: cid => q("SELECT roblox_id, lower(name) AS lname, by_user, by_name, created FROM staff_records WHERE community_id = ? AND kind = 'ban' ORDER BY id DESC").all(cid),
 };
 // every in-game command Oversite ran, and who pressed the button, so ER:LC's "Remote Server" log lines can be traced to a person
 export const staffSent = {
   add: (cid, command, by) => q('INSERT INTO staff_sent (community_id, command, by_user, by_name, created) VALUES (?, ?, ?, ?, ?)').run(cid, command, by.id || null, by.name || '', now()),
   since: (cid, t) => q('SELECT command, by_user, by_name, created FROM staff_sent WHERE community_id = ? AND created > ? ORDER BY id DESC').all(cid, t),
+  first: cid => q('SELECT MIN(created) AS t FROM staff_sent WHERE community_id = ?').get(cid)?.t || null,
+  actors: cid => q('SELECT by_user, by_name, COUNT(*) AS n FROM staff_sent WHERE community_id = ? GROUP BY by_user, lower(by_name)').all(cid),
+  byActors: (cid, ids, name) => q(`SELECT command, by_user, by_name, created FROM staff_sent WHERE community_id = ? AND (by_user IN (${ids.map(() => '?').join(', ') || 'NULL'}) OR (by_user IS NULL AND lower(by_name) = lower(?))) ORDER BY id DESC LIMIT 1000`).all(cid, ...ids, name),
+};
+// every command ER:LC has reported for a community, kept for good (ER:LC itself only returns the latest few); nothing deletes from it
+export const commandLog = {
+  add: (cid, rows) => { const ins = q('INSERT OR IGNORE INTO command_log (community_id, player, player_id, command, at) VALUES (?, ?, ?, ?, ?)'); let n = 0;
+    db.exec('BEGIN'); try { for (const r of rows) n += Number(ins.run(cid, r.player, r.player_id || '', r.command, r.at).changes); db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); throw e; } return n; },
+  byPlayer: (cid, name) => q('SELECT * FROM command_log WHERE community_id = ? AND (player = ? COLLATE NOCASE OR player_id = ?) ORDER BY at DESC LIMIT 1000').all(cid, name, name),
+  mentioning: (cid, name) => q("SELECT * FROM command_log WHERE community_id = ? AND lower(command) LIKE ? ESCAPE '\\' ORDER BY at DESC LIMIT 1000").all(cid, '% ' + String(name).toLowerCase().replace(/[\\%_]/g, '\\$&') + '%'),
+  names: cid => q('SELECT player AS name, player_id AS id, COUNT(*) AS n, MAX(at) AS last FROM command_log WHERE community_id = ? GROUP BY player COLLATE NOCASE ORDER BY last DESC LIMIT 400').all(cid),
 };
 export const roblox = {
   pending: uid => q('SELECT * FROM roblox_pending WHERE user_id = ?').get(uid),

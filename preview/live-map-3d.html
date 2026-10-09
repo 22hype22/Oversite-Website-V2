@@ -765,6 +765,18 @@
   .st-cb:checked::after{content:"";width:8px;height:4px;border:2px solid #0B0B0C;border-top:0;border-right:0;transform:translateY(-1px) rotate(-45deg)}
   .st-cb:indeterminate{border-color:var(--ink)}.st-cb:indeterminate::after{content:"";width:8px;height:2px;background:var(--ink);border-radius:1px}
   .st-row.sel{background:rgba(240,242,245,.04);box-shadow:-12px 0 0 rgba(240,242,245,.04),12px 0 0 rgba(240,242,245,.04)}
+  .st-lkh{display:flex;align-items:center;gap:12px;padding:4px 0 12px}
+  .st-lkh .grow{flex:1;min-width:0}.st-lkh b{display:block;font-size:15px;font-weight:600;color:var(--ink)}.st-lkh small{display:block;color:var(--faint);font-size:11px;margin-top:2px}
+  .st-kinds{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+  .st-kinds button{font:inherit;font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid var(--hair2);background:none;color:var(--dim);cursor:pointer;display:flex;gap:6px;align-items:center}
+  .st-kinds button code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
+  .st-kinds button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#0B0B0C}.st-kinds button[aria-pressed="true"] code{color:#0B0B0C}
+  .st-via{font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:5px;margin-right:6px;background:rgba(240,242,245,.07);color:var(--dim)}
+  .st-via.ov{background:rgba(124,140,255,.14);color:#AEB8FF}
+  #stLookF .st-btn{padding:4px 11px}
+  .st-gate{display:flex;align-items:center;gap:12px;margin:0 16px 10px;padding:11px 14px;border-radius:12px;border:1px solid rgba(242,153,74,.35);background:rgba(242,153,74,.1);color:#F6C08F;font-size:12.5px;line-height:1.45}
+  .st-gate span{flex:1;min-width:0}.st-gate b{color:#FFE0C2}
+  .st-gate a{flex:none;font-weight:600;font-size:12px;padding:7px 13px;border-radius:999px;background:#F6C08F;color:#1A1208;text-decoration:none}
   .st-empty{padding:28px 6px;text-align:center;color:var(--faint);font-size:12px;line-height:1.5}
   .st-gate{display:grid;place-items:center;text-align:center;padding:40px 20px;color:var(--dim);font-size:13px;grid-column:1/-1}
   .st-gate b{display:block;color:var(--ink);font-size:16px;font-weight:500;margin-bottom:6px}
@@ -1034,7 +1046,7 @@
           <section class="tscreen st-pane" data-p="calls"><div class="thead"><div><h2>Mod calls</h2><small>Players calling for staff in game</small></div></div><div id="stCalls"></div></section>
           <section class="tscreen st-pane" data-p="records"><div class="thead"><div><h2>Records</h2><small>Every warning, kick, ban and note</small></div></div><label class="st-search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stRecFind" placeholder="Search records by player" autocomplete="off" spellcheck="false"></label><div id="stRecords"></div></section>
           <section class="tscreen st-pane" data-p="bans"><div class="thead"><div><h2>Bans</h2><small>Banned from the server</small></div></div><div id="stBans"></div></section>
-          <section class="tscreen st-pane" data-p="logs"><div class="thead"><div><h2>Logs</h2><small>In-game commands and kills</small></div></div><div id="stLogs"></div></section>
+          <section class="tscreen st-pane" data-p="logs"><div class="thead"><div><h2>Logs</h2><small>In-game commands and kills. Commands are kept for good.</small></div></div><form class="st-search" id="stLookF" autocomplete="off"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stLookQ" list="stLookL" placeholder="Look up a player or staff member to see every command they used" spellcheck="false"><datalist id="stLookL"></datalist><button class="st-btn">Look up</button></form><div id="stLook" hidden></div><div id="stLogs"></div></section>
         </div>
       </div>
     </div>
@@ -2228,6 +2240,7 @@
   const stop = () => { clearInterval(timer); timer = 0; };
   addEventListener('viewchange', e => { const on = e.detail === 'staff'; page.setAttribute('aria-hidden', !on); on ? start() : stop(); });
   const clock = () => { $('stClock').textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }; clock(); setInterval(clock, 15000);
+  if (!OV.signed) page.querySelector('.sbar').insertAdjacentHTML('afterend', '<div class="st-gate" role="status"><span><b>Link your Roblox account to use staff actions.</b> Every warning, kick and ban is signed with the Roblox name of whoever did it, so it can always be traced. You can look around until then.</span><a href="/dashboard#rbx">Link Roblox</a></div>');
   $('stMe').textContent = OV.me || OV.user || 'Staff'; $('stMeAv').textContent = ini($('stMe').textContent);
   if (/^\d+$/.test(OV.rid || '')) $('stMeAv').insertAdjacentHTML('beforeend', `<img src="/rbx/avatar/${OV.rid}" alt="" onerror="this.remove()">`);
 
@@ -2247,7 +2260,7 @@
     if (!sel) { box.innerHTML = '<div class="st-empty">Pick a player on the left to warn, message, kick or ban them and see their record.</div>'; shownFor = null; return; }
     const live = (D.players || []).find(p => p.id === sel.id), p = live || sel;
     const facts = live ? [['Team', p.team || 'None'], ['Callsign', p.callsign || 'None'], ['Location', p.postal ? `${p.postal} ${p.street}`.trim() : 'Unknown'], ['In-game role', (p.permission || 'Normal').replace('Server ', '')]] : [['Status', 'Not in the server']];
-    const head = `<div class="st-who">${av(p.id, p.name)}<div><h3>${esc(p.name)}</h3><p>Roblox ID ${esc(p.id || 'unknown')}${live ? '' : ' · offline'}</p></div></div>
+    const head = `<div class="st-who">${av(p.id, p.name)}<div><h3>${esc(p.name)}</h3><p>Roblox ID ${esc(p.id || 'unknown')}${live ? '' : ' · offline'}</p></div><button class="st-btn" data-look="${esc(p.name)}" style="margin-left:auto;align-self:center">Command history</button></div>
       <div class="st-facts">${facts.map(([k, v]) => `<div><small>${k}</small><b>${esc(v)}</b></div>`).join('')}</div>
       <div class="st-acts">${actBtn('warn', 'Warn')}${actBtn('pm', 'Message')}${actBtn('kick', 'Kick')}${actBtn('ban', 'Ban')}${actBtn('note', 'Note')}</div><div class="st-h"><span>Record</span><span id="stRecN"></span></div><div id="stHist"><div class="st-empty">Loading…</div></div>`;
     if (shownFor !== p.id + ':' + !!live) { box.innerHTML = head; shownFor = p.id + ':' + !!live; }
@@ -2278,8 +2291,36 @@
     if (e.target.closest('[data-bclear]')) { banSel.clear(); return renderBans(); }
     if (e.target.closest('[data-bgo]')) { const many = b.filter(x => banSel.has(x.id)).map(x => ({ id: x.id, name: x.name })); if (many.length === 1) return sheet('unban', many[0]); if (many.length) sheet('unban', null, many); } });
   const renderLogs = () => { const cmds = D.commands || [], kills = D.kills || [];
-    $('stLogs').innerHTML = `<div class="st-h"><span>Commands</span></div>${cmds.length ? cmds.map(m => `<div class="st-row"><span class="grow"><code>${esc(m.command)}</code><br><small>${m.sentBy ? `<b class="st-by">${esc(m.sentBy)}</b> via Oversite` : esc(m.by.name)} · ${esc(ago(m.at * 1000))}</small></span></div>`).join('') : '<div class="st-empty">No commands yet.</div>'}
+    $('stLogs').innerHTML = `<div class="st-h"><span>Commands</span></div>${cmds.length ? cmds.map(m => `<div class="st-row"><span class="grow"><code>${esc(m.command)}</code><br><small>${m.sentBy ? `<button class="lnk" data-look="${esc(m.sentBy)}"><b class="st-by">${esc(m.sentBy)}</b></button> via Oversite` : who(m.by.name)} · ${esc(ago(m.at * 1000))}</small></span></div>`).join('') : '<div class="st-empty">No commands yet.</div>'}
       <div class="st-h" style="margin-top:16px"><span>Kills</span></div>${kills.length ? kills.map(k => `<div class="st-row"><span class="grow"><button class="lnk" data-open="${esc(k.killer.id)}" data-name="${esc(k.killer.name)}">${esc(k.killer.name)}</button> killed <button class="lnk" data-open="${esc(k.killed.id)}" data-name="${esc(k.killed.name)}">${esc(k.killed.name)}</button><br><small>${esc(ago(k.at * 1000))}</small></span></div>`).join('') : '<div class="st-empty">No kills logged.</div>'}`; };
+  // ── command lookup: everything one person used (typed in game or sent through Oversite) and everything used on them ──
+  const who = n => /^remote server$/i.test(n) ? esc(n) : `<button class="lnk" data-look="${esc(n)}">${esc(n)}</button>`;
+  let LK = null, lkKind = '', lkNamesAt = 0;
+  const lookNames = async () => { if (Date.now() - lkNamesAt < 60000) return; lkNamesAt = Date.now(); const r = await fetch(API + '/logs').then(x => x.json()).catch(() => ({ names: [] }));
+    $('stLookL').innerHTML = (r.names || []).map(n => `<option value="${esc(n.name)}">${n.staff ? 'Staff, through Oversite · ' : ''}${n.n} command${n.n === 1 ? '' : 's'}</option>`).join(''); };
+  const lkRow = (m, by) => `<div class="st-row"><span class="grow"><code>${esc(m.command)}</code><br><small>${by} · <time title="${esc(when(m.at * 1000))}">${esc(ago(m.at * 1000))}</time></small></span></div>`;
+  const renderLook = () => { const r = LK, box = $('stLook'); if (!r) return;
+    const used = lkKind ? r.used.filter(m => (m.command.match(/^:?\S+/) || [''])[0].toLowerCase() === lkKind) : r.used, kinds = Object.entries(r.kinds || {}).sort((a, b) => b[1] - a[1]);
+    box.innerHTML = `<div class="st-lkh">${av(r.id, r.name, 'width:40px;height:40px')}<div class="grow"><b>${esc(r.name)}</b><small>${r.used.length} command${r.used.length === 1 ? '' : 's'} used · ${r.on.length} used on them</small></div><button class="st-btn" data-lookx>Back to all logs</button></div>`
+      + (kinds.length > 1 ? `<div class="st-kinds">${kinds.map(([k, n]) => `<button data-kind="${esc(k)}" aria-pressed="${lkKind === k}"><code>${esc(k)}</code>${n}</button>`).join('')}</div>` : '')
+      + `<div class="st-h"><span>Used by ${esc(r.name)}${lkKind ? ` · only <code>${esc(lkKind)}</code>` : ''}</span><span>${used.length}</span></div>`
+      + (used.length ? used.map(m => lkRow(m, m.via === 'oversite' ? '<span class="st-via ov">Oversite</span>Sent from the Staff MDT' : '<span class="st-via">In game</span>Typed in game')).join('') : `<div class="st-empty">No commands from ${esc(r.name)} on record yet.</div>`)
+      + `<div class="st-h" style="margin-top:18px"><span>Used on ${esc(r.name)}</span><span>${r.on.length}</span></div>`
+      + (r.on.length ? r.on.map(m => lkRow(m, m.sentBy ? `<button class="lnk" data-look="${esc(m.sentBy)}"><b>${esc(m.sentBy)}</b></button> via Oversite` : who(m.by.name))).join('') : '<div class="st-empty">Nothing used on them on record.</div>'); };
+  const look = async name => { name = String(name || '').trim(); $('stLookQ').value = name; lkKind = ''; const box = $('stLook');
+    if (!name) { LK = null; box.hidden = true; $('stLogs').hidden = false; return; }
+    if (pane !== 'logs') show('logs');
+    box.hidden = false; $('stLogs').hidden = true; box.innerHTML = '<div class="st-empty">Looking up…</div>';
+    const r = await fetch(API + '/logs?' + new URLSearchParams({ user: name })).then(x => x.ok ? x.json() : null).catch(() => null);
+    if (!r) { box.innerHTML = '<div class="st-empty">Could not load that. Try again.</div>'; return; }
+    LK = r; renderLook(); $('staffMdt').querySelector('[data-p="logs"].st-pane').scrollTop = 0; };
+  $('stLookF').addEventListener('submit', e => { e.preventDefault(); look($('stLookQ').value); });
+  $('stLookQ').addEventListener('focus', lookNames);
+  $('stLookQ').addEventListener('input', e => { if (!e.target.value.trim() && LK) look(''); });
+  document.querySelector('#stTabs [data-p="logs"]').addEventListener('click', lookNames);
+  $('staffMdt').addEventListener('click', e => { const l = e.target.closest('[data-look]'); if (l) { e.stopPropagation(); return look(l.dataset.look); }
+    if (e.target.closest('[data-lookx]')) return look('');
+    const k = e.target.closest('[data-kind]'); if (k) { lkKind = lkKind === k.dataset.kind ? '' : k.dataset.kind; renderLook(); } });
   const renderRecords = async () => { const r = await fetch(API + '/records?' + new URLSearchParams(recQ ? { q: recQ } : {})).then(x => x.json()).catch(() => ({ records: [] }));
     $('stRecords').innerHTML = r.records.length ? r.records.map(x => recHTML(x, true)).join('') : `<div class="st-empty">${recQ ? 'No records match that.' : 'No records yet. Warnings, kicks, bans and notes you give show up here.'}</div>`; };
   let render = () => { if (!D) return; $('stLive').style.background = 'var(--green)'; $('stServer').textContent = `${D.server.name || 'Server'} · ${D.server.players ?? D.players.length}/${D.server.max ?? '?'}`;
