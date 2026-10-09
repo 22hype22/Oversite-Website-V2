@@ -38,6 +38,8 @@ header.page p{color:var(--dim);margin:6px 0 0;max-width:60ch}
 .stage .under::before{content:"";position:absolute;inset:0;background:var(--sea) url(/liberty-county.jpg) center/cover;filter:brightness(.42) saturate(.85)}
 .stage .under .mock{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:3cqh;text-align:center}
 .stage .under .mock b{font-size:7cqh;font-weight:600;letter-spacing:-.02em}.stage .under .mock b span{font-weight:300}
+.stage .under .mock em{width:7.5cqh;height:7.5cqh;border-radius:2.2cqh;background:rgba(28,28,31,.8);border:1px solid var(--hair);display:grid;place-items:center}
+.stage .under .mock em img{width:54%;height:54%;display:block}
 .stage .under .mock i{display:flex;gap:2cqw}.stage .under .mock i::before,.stage .under .mock i::after{content:"";width:26cqw;height:22cqh;border-radius:2cqh;background:rgba(16,16,18,.78);border:1px solid var(--hair)}
 .splash{position:absolute;inset:0;background:#07080A;overflow:hidden}
 .run .splash{animation:exit .6s var(--ease-out) var(--exit,3s) both}
@@ -202,20 +204,27 @@ header.page p{color:var(--dim);margin:6px 0 0;max-width:60ch}
 .v-logo .map{filter:brightness(.32) saturate(.7);opacity:0}
 .run.v-logo .map{animation:fadeTo .8s ease-out both}
 .v-logo svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.v-logo .rt{fill:none;stroke:var(--glow);stroke-width:4;stroke-linecap:round;stroke-dasharray:4000;stroke-dashoffset:4000;filter:drop-shadow(0 0 6px rgba(127,227,211,.7));transition:opacity .8s ease-out}
+.v-logo .rt{fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-dasharray:4000;stroke-dashoffset:4000;filter:drop-shadow(0 0 6px rgba(255,255,255,.65));transition:opacity .8s ease-out}
 .v-logo.onlogo .rt{opacity:0}
-.v-logo .ol-base{fill:none;stroke:rgba(127,227,211,.32);stroke-width:2.5;stroke-linejoin:round;stroke-dasharray:6000;stroke-dashoffset:6000;transition:opacity .45s ease-out}
-.v-logo .comets{filter:drop-shadow(0 0 var(--glow-r,6px) rgba(127,227,211,.85))}
-.v-logo .ol-c{fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .45s ease-out}
-.v-logo .c1{stroke:rgba(127,227,211,.35);stroke-width:6}
-.v-logo .c2{stroke:rgba(127,227,211,.8);stroke-width:4.5}
-.v-logo .c3{stroke:#EFFFFC;stroke-width:3.5}
-.v-logo .dot{fill:#fff;filter:drop-shadow(0 0 9px var(--glow));opacity:0;transition:opacity .3s ease-out}
+.v-logo .ol-base{fill:none;stroke:rgba(255,255,255,.26);stroke-width:2.5;stroke-linejoin:round;stroke-dasharray:6000;stroke-dashoffset:6000;transition:opacity .45s ease-out}
+.v-logo .comets{filter:drop-shadow(0 0 var(--glow-r,6px) rgba(255,255,255,.8))}
+.v-logo .ol-c{fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.v-logo .c1{stroke:rgba(255,255,255,.28);stroke-width:6}
+.v-logo .c2{stroke:rgba(255,255,255,.7);stroke-width:4.5}
+.v-logo .c3{stroke:#fff;stroke-width:3.5}
+.v-logo .dot{fill:#fff;filter:drop-shadow(0 0 9px #fff);opacity:0}
 .run.v-logo .dot{opacity:1}
-.v-logo .solid{fill:var(--ink);opacity:0;transform:scale(.985);transform-box:fill-box;transform-origin:center;transition:opacity .55s ease-out,transform .55s var(--ease-out)}
+.v-logo .solid{fill:#fff;opacity:0;transform:scale(.985);transform-box:fill-box;transform-origin:center;transition:opacity .55s ease-out,transform .55s var(--ease-out)}
 .v-logo.lit .solid{opacity:1;transform:none;animation:bloom .9s ease-out both}
-.v-logo.lit .ol-c,.v-logo.lit .ol-base,.v-logo.lit .dot{opacity:0!important}
-@keyframes bloom{from{filter:drop-shadow(0 0 26px rgba(127,227,211,.95))}to{filter:drop-shadow(0 0 0 rgba(127,227,211,0))}}
+.v-logo.done .ol-c,.v-logo.done .ol-base,.v-logo.done .dot{opacity:0!important}
+@keyframes bloom{from{filter:drop-shadow(0 0 26px rgba(255,255,255,.9))}to{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}}
+/* hand-off: the splash background fades while the solid logo glides into the page's own logo (flyLogo), so it never disappears */
+.run.v-logo .splash{animation:none;background:transparent}
+.v-logo .bgfill{position:absolute;inset:0;background:#07080A}
+.v-logo .bgwrap{position:absolute;inset:0;transition:opacity .75s ease-out}
+.v-logo.leave .bgwrap{opacity:0}
+.v-logo svg{transform-origin:0 0}
+.v-logo.landed svg{opacity:0;transition:opacity .2s ease-out}
 
 /* ───────── reduced motion: every variant becomes a short fade of the brand ───────── */
 @media (prefers-reduced-motion:reduce){
@@ -309,7 +318,7 @@ header.page p{color:var(--dim);margin:6px 0 0;max-width:60ch}
 </div></template>
 
 <template id="t-logo"><div class="splash">
-  <div class="map"></div>
+  <div class="bgwrap"><div class="bgfill"></div><div class="map"></div></div>
   <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
     <path class="solid" d="M648.9 445.9 L649.3 456.5 L650.6 465.6 L653.3 475.8 L657.1 486.0 L664.2 500.2 L669.0 508.1 L676.4 518.9 L686.3 530.8 L715.1 560.7 L745.0 588.9 L758.2 600.4 L766.0 605.8 L779.0 611.9 L787.8 614.0 L795.6 614.7 L806.1 614.0 L816.0 611.9 L826.1 608.2 L835.0 603.8 L845.8 597.0 L857.7 588.2 L884.9 564.8 L900.8 549.5 L925.6 523.3 L936.5 509.4 L942.3 499.9 L947.3 487.7 L949.7 478.2 L950.7 469.0 L950.7 462.6 L949.7 453.4 L946.3 442.9 L943.6 437.8 L938.9 431.7 L934.8 427.6 L927.0 421.5 L912.0 413.0 L899.1 407.6 L896.8 407.2 L887.6 403.8 L862.1 398.1 L834.6 394.3 L805.1 393.0 L803.1 393.3 L802.0 394.3 L802.0 395.3 L818.0 412.7 L860.1 454.8 L860.1 456.8 L816.0 500.6 L803.1 514.2 L800.7 513.5 L786.1 497.2 L738.9 446.9 L738.9 443.2 L875.7 304.7 L875.7 302.7 L872.3 300.3 L846.5 292.1 L825.1 287.0 L810.9 285.0 L793.5 285.0 L783.0 286.7 L770.8 290.8 L763.0 294.5 L756.5 298.6 L744.0 308.8 L717.8 332.9 L698.5 352.2 L681.9 370.6 L674.7 379.7 L666.9 391.3 L659.1 405.9 L653.3 421.1 L651.0 430.3 Z"/>
     <path class="rt" d="M-80 640 C 200 640 330 380 470 330 C 560 300 648.9 330 648.9 445.9"/>
@@ -328,45 +337,67 @@ const V = [
   { id: 'route', name: 'Route trace', text: 'A unit drives a glowing route across the map and arrives at the logo.', ms: 4000 },
   { id: 'iris', name: 'Iris', text: 'The logo opens a window onto the map and the name rises in letter by letter.', ms: 3600 },
   { id: 'grid', name: 'Grid lock', text: 'The postal grid draws in and brackets lock onto the centre.', ms: 3900 },
-  { id: 'logo', name: 'Route to logo', text: 'A route sweeps in and laps the Oversite logo, faster every time round, until the logo lights up solid and the site fades in.', ms: 4500 },
+  { id: 'logo', name: 'Route to logo', text: 'A route sweeps in and laps the Oversite logo, faster every time round, until the logo lights up solid and the site fades in.', ms: 4700 },
 ];
 const build = v => { const st = document.createElement('div'); st.className = 'stage v-' + v.id;
-  st.innerHTML = '<div class="under"><div class="mock"><b>Oversite <span>CAD</span></b><i></i></div></div>';
+  st.innerHTML = '<div class="under"><div class="mock"><em><img src="/logo.png" alt=""></em><b>Oversite <span>CAD</span></b><i></i></div></div>';
   st.appendChild(document.getElementById('t-' + v.id).content.cloneNode(true));
   st.querySelectorAll('[data-split]').forEach(el => { let i = 0; const walk = n => { [...n.childNodes].forEach(c => { if (c.nodeType === 3) { const f = document.createDocumentFragment();
     for (const ch of c.textContent) { const s = document.createElement('span'); s.textContent = ch === ' ' ? ' ' : ch; s.style.setProperty('--i', i++); f.appendChild(s); } c.replaceWith(f); } else walk(c); }); }; walk(el); });
   return st; };
 const play = st => { st.classList.remove('run'); void st.offsetWidth; st.classList.add('run'); if (st.classList.contains('v-logo')) startLogo(st); };
-const stop = st => { cancelAnimationFrame(st._raf); };
+const stop = st => { cancelAnimationFrame(st._raf); (st._to || []).forEach(clearTimeout); st._to = []; if (st._hid) { st._hid.style.visibility = ''; st._hid = null; } };
 
 // Route to logo: the head travels route + LAPS outline laps with speed v(t) = v0 + (v1 - v0)(t/T)^2, so it never jerks, only builds.
 // Tail length and glow follow the speed; in the last fifth the tail stretches to the whole outline, then the logo fills.
 const LOGO = { delay: .25, T: 2.6, laps: 4, accel: 6 };
 const startLogo = st => {
-  stop(st); st.classList.remove('lit', 'onlogo');
+  stop(st); const bw = st.querySelector('.bgwrap'); bw.style.transition = 'none'; st.classList.remove('lit', 'onlogo', 'leave', 'landed', 'done'); void bw.offsetWidth; bw.style.transition = '';
   const svg = st.querySelector('svg'), route = st.querySelector('.rt'), base = st.querySelector('.ol-base'), cs = [...st.querySelectorAll('.ol-c')], dot = st.querySelector('.dot');
   const Lr = route.getTotalLength(), Lo = base.getTotalLength(), end = Lr + LOGO.laps * Lo, T = LOGO.T, a = LOGO.accel, v0 = 3 * end / ((a + 2) * T);
   route.style.strokeDasharray = Lr + ' ' + Lr; route.style.strokeDashoffset = Lr; base.style.strokeDasharray = Lo + ' ' + Lo; base.style.strokeDashoffset = Lo;
-  cs.forEach(c => { c.style.opacity = 0; });
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { st.classList.add('onlogo', 'lit'); return; }
+  cs.forEach(c => { c.style.opacity = 0; }); svg.style.transition = 'none'; svg.style.transform = ''; dot.style.opacity = ''; base.style.opacity = '';
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { st.classList.add('onlogo', 'lit', 'done'); st._to.push(setTimeout(() => st.classList.add('leave', 'landed'), 1200)); return; }
   const t0 = performance.now() + LOGO.delay * 1000;
+  // after the last lap the beam keeps its top speed and fades out over FADE seconds while the solid logo fills in behind it
+  const FADE = .55, vTop = a * v0;
   const frame = now => {
-    const t = Math.min(T, Math.max(0, (now - t0) / 1000)), s = v0 * t + (a - 1) * v0 * t * t * t / (3 * T * T), v = v0 + (a - 1) * v0 * (t / T) ** 2;
+    const tt = Math.max(0, (now - t0) / 1000), t = Math.min(T, tt), over = Math.max(0, tt - T);
+    const s = v0 * t + (a - 1) * v0 * t * t * t / (3 * T * T) + vTop * over, v = v0 + (a - 1) * v0 * (t / T) ** 2;
+    const fade = (1 - Math.min(1, over / FADE)) ** 1.5;
     let pt;
     if (s <= Lr) { route.style.strokeDashoffset = Lr - s; pt = route.getPointAtLength(s); }
     else {
       if (!st.classList.contains('onlogo')) { st.classList.add('onlogo'); route.style.strokeDashoffset = 0; }
-      const u = Math.min(s, end) - Lr, pos = u >= LOGO.laps * Lo ? Lo : u % Lo, k = Math.max(0, (t / T - .8) / .2), ramp = k * k * (3 - 2 * k);
-      base.style.strokeDashoffset = Lo - Math.min(u, Lo);
+      const u = s - Lr, pos = u % Lo, k = Math.min(1, Math.max(0, (t / T - .8) / .2)), ramp = k * k * (3 - 2 * k);
+      base.style.strokeDashoffset = Lo - Math.min(u, Lo); base.style.opacity = fade;
       const Lc = Math.min(Lo, u, (36 + v * .12) * (1 - ramp) + Lo * ramp);
-      [1, .55, .22].forEach((f, i) => { const L = Math.max(.5, Lc * f), c = cs[i]; c.style.opacity = 1; c.style.strokeDasharray = L + ' ' + (Lo - L + .01); c.style.strokeDashoffset = L - pos; });
-      pt = base.getPointAtLength(pos % Lo);
+      [1, .55, .22].forEach((f, i) => { const L = Math.max(.5, Lc * f), c = cs[i]; c.style.opacity = fade; c.style.strokeDasharray = L + ' ' + (Lo - L + .01); c.style.strokeDashoffset = L - pos; });
+      pt = base.getPointAtLength(pos);
     }
-    dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y);
-    svg.style.setProperty('--glow-r', (4 + 14 * (v / (a * v0))).toFixed(1) + 'px');
-    if (t < T) st._raf = requestAnimationFrame(frame); else st.classList.add('lit');
+    dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y); dot.style.opacity = fade;
+    svg.style.setProperty('--glow-r', (4 + 14 * (v / vTop)).toFixed(1) + 'px');
+    if (over > .12 && !st.classList.contains('lit')) st.classList.add('lit');
+    if (over < FADE) st._raf = requestAnimationFrame(frame); else { st.classList.add('done'); st._to.push(setTimeout(() => flyLogo(st), 350)); }
   };
   st._raf = requestAnimationFrame(frame);
+};
+// The solid logo glides (FLIP) onto the page's own logo above "Oversite CAD" while the splash background fades,
+// then hands off to it. Full screen measures the real page in the frame; tiles use the mock page under them.
+const GLYPH = { x: 67 / 1024, y: 27 / 1024, w: 890 / 1024, h: 972 / 1024 };   // where the mark sits inside logo.png
+const flyLogo = st => {
+  const svg = st.querySelector('svg'), S = st.querySelector('.solid').getBoundingClientRect(), O = svg.getBoundingClientRect();
+  let img = null, off = { left: 0, top: 0 };
+  if (st.closest('.full')) { try { const f = document.getElementById('site'), d = f.contentDocument; img = d && (d.querySelector('.hero .mark img') || d.querySelector('.brand img')); off = f.getBoundingClientRect(); } catch (e) {} }
+  else img = st.querySelector('.under .mock em img');
+  st.classList.add('leave');
+  if (!img) { st._to.push(setTimeout(() => st.classList.add('landed'), 500)); return; }
+  img.style.visibility = 'hidden'; st._hid = img;   // one logo on screen at a time: the page's own appears the moment the flying one lands
+  const r = img.getBoundingClientRect(), G = { x: off.left + r.left + r.width * GLYPH.x, y: off.top + r.top + r.height * GLYPH.y, w: r.width * GLYPH.w };
+  const k = G.w / S.width, dx = G.x - O.left - k * (S.left - O.left), dy = G.y - O.top - k * (S.top - O.top);
+  svg.style.transition = 'transform .8s cubic-bezier(0.65, 0, 0.35, 1)';
+  svg.style.transform = `translate(${dx}px, ${dy}px) scale(${k})`;
+  st._to.push(setTimeout(() => { img.style.visibility = ''; st._hid = null; st.classList.add('landed'); }, 820));
 };
 
 // tiles loop while they are on screen
