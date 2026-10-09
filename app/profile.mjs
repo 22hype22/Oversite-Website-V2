@@ -1,6 +1,6 @@
 // A server's public profile: what ER:LC knows about it (name, join code, owner, size, rules), kept fresh from the API,
 // plus what only the owner can say (bio, icon, Discord invite). Saved now so the server browser can list servers later.
-import { communities, communityIcons, users } from './db.mjs';
+import { communities, communityIcons, users, members } from './db.mjs';
 
 const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg';
 const RUSERS = process.env.ROBLOX_USERS_API || 'https://users.roblox.com';
@@ -17,7 +17,9 @@ const names = async ids => { ids = [...new Set(ids.map(Number).filter(Boolean))]
 export const refresh = async c => { const key = communities.key(c.id); if (!key) return { error: 'Connect your ER:LC server first.' };
   let r, j = {}; try { r = await fetch(UPSTREAM + '/v2/server', { headers: { 'server-key': key } }); j = await r.json().catch(() => ({})); } catch (e) { return { error: 'Could not reach ER:LC right now.' }; }
   if (!r.ok) return { error: j.message || `ER:LC answered ${r.status}.` };
-  const co = (j.CoOwnerIds || []).map(String), who = await names([j.OwnerId, ...co]);
+  const co = (j.CoOwnerIds || []).map(String), prev = communities.byId(c.id).settings.profile?.erlc;
+  const known = prev && prev.owner_id === String(j.OwnerId || '') && prev.co_owners?.map(o => o.id).join() === co.join() && prev.owner_name;   // names only change when the people do
+  const who = known ? Object.fromEntries([[prev.owner_id, prev.owner_name], ...prev.co_owners.map(o => [o.id, o.name])]) : await names([j.OwnerId, ...co]);
   const erlc = { name: j.Name || '', join_key: j.JoinKey || '', players: j.CurrentPlayers ?? null, max: j.MaxPlayers ?? null, verified: j.AccVerifiedReq || '', team_balance: !!j.TeamBalance,
     owner_id: j.OwnerId ? String(j.OwnerId) : '', owner_name: who[String(j.OwnerId)] || '', co_owners: co.map(id => ({ id, name: who[id] || '' })), at: Date.now() };
   const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), erlc }; communities.saveSettings(c.id, s); return { ok: true, erlc }; };
@@ -40,3 +42,18 @@ export const iconSource = c => { const own = communityIcons.get(c.id); if (own) 
   const d = c.settings.discord; if (d && d.icon) return { kind: 'discord', url: d.icon.replace(/size=\d+/, 'size=256') };
   const oid = c.settings.profile?.erlc?.owner_id || users.byId(c.owner_id)?.roblox_id; if (oid) return { kind: 'owner', url: '/rbx/avatar/' + oid };
   return null; };
+
+// ── the server browser ──
+// listed servers' player counts are re-read every two minutes (one small request per listed server), so the browser stays live
+export const startDirectory = () => { let busy = false;
+  const pass = async () => { if (busy) return; busy = true;
+    try { for (const c of communities.all()) { if (!c.settings.profile?.listed || !communities.key(c.id)) continue; await refresh(c).catch(() => {}); } } finally { busy = false; } };
+  setTimeout(pass, 8000); setInterval(pass, 120000); };
+
+// what anyone browsing may see about a listed server; `me` marks the ones this person already belongs to
+export const directory = me => { const mine = new Map((me ? communities.forUser(me.id) : []).map(m => [m.id, m.role]));
+  return communities.all().filter(c => c.settings.profile?.listed).map(c => { const P = c.settings.profile, E = P.erlc || {};
+    return { slug: c.slug, name: c.name, bio: P.bio || '', invite: P.invite || '', players: E.players ?? null, max: E.max ?? null, join_key: E.join_key || '', ingame: E.name || '',
+      owner_id: E.owner_id || '', owner_name: E.owner_name || '', co_owners: (E.co_owners || []).map(o => o.name).filter(Boolean), verified: E.verified || '', team_balance: !!E.team_balance,
+      depts: ['pd', 'fd', 'dot'].map(d => c.settings.depts?.[d]?.name).filter(Boolean), discord: c.settings.discord?.guild_name || '', at: E.at || 0, created: c.created || 0,
+      role: mine.get(c.id) || null, live: !!E.at && Date.now() - E.at < 10 * 60000 }; }); };

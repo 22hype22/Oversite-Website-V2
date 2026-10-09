@@ -11,6 +11,7 @@ a{color:inherit}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;letter-spacing:-.01em}
 .brand i{display:grid;place-items:center}.brand .ov{font-weight:400}.brand .cad{font-weight:700;margin-left:-5px}.brand img{height:26px;width:auto;display:block}
 .top .sp{flex:1}
+.nav{color:var(--dim);text-decoration:none;font-size:13.5px;font-weight:500;padding:7px 12px;border-radius:999px;transition:background .15s,color .15s}.nav:hover{color:var(--ink);background:rgba(255,255,255,.06)}
 .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);text-decoration:none;padding:3px 10px 3px 3px;border-radius:999px;transition:background .15s,color .15s}.who:hover{background:rgba(255,255,255,.06);color:var(--ink)}
 .sp-head{display:flex;align-items:center;gap:16px;margin:4px 0 14px}
 .sp-icon{position:relative;width:76px;height:76px;flex:none;border-radius:18px;border:1px solid var(--hair2);background:linear-gradient(160deg,#2d3440,#1b1f26);color:var(--ink);font:600 28px/1 inherit;cursor:pointer;padding:0;overflow:hidden;display:grid;place-items:center}
@@ -31,6 +32,37 @@ a{color:inherit}
 label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--dim);cursor:pointer}label.chk input{width:auto;margin:0}
 .setup-dg{display:flex;align-items:center;gap:18px;margin:0 0 18px;border-color:rgba(88,101,242,.5);background:linear-gradient(120deg,rgba(88,101,242,.16),var(--panel) 60%)}.setup-dg h2{margin-bottom:4px}.setup-dg .note{margin:0}.setup-dg .btn{flex:none}
 @media (max-width:700px){.setup-dg{flex-direction:column;align-items:stretch}}
+.xp{max-width:1180px}.xp-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:20px}.xp-head .lead{margin:0}
+.xp-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.xp-tools select{width:auto;min-width:150px}.xp-tools .dd{display:inline-flex!important;width:170px!important;flex:none!important;margin:0!important}.xp-open{margin:0!important}
+.xp-search{display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;background:var(--field);border:1px solid var(--hair2);color:var(--faint);min-width:240px}.xp-search:focus-within{border-color:rgba(240,242,245,.45)}
+.xp-search input{border:0;background:none;padding:10px 0;outline:0}
+.xp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.xc{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:16px;background:var(--panel);border:1px solid var(--hair);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);cursor:pointer;transition:border-color .15s,transform .2s cubic-bezier(.23,1,.32,1)}
+.xc:hover{border-color:rgba(240,242,245,.18)}.xc:active{transform:scale(.99)}.xc:focus-visible{outline:2px solid rgba(240,242,245,.5);outline-offset:2px}
+.xc-top{display:flex;align-items:center;gap:12px}.xc-id{flex:1;min-width:0}.xc-id b{display:block;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xc-ic,.xd-ic{position:relative;overflow:hidden;flex:none;display:grid;place-items:center;font-weight:600;background:linear-gradient(160deg,#2d3440,#1b1f26);border:1px solid var(--hair)}
+.xc-ic{width:48px;height:48px;border-radius:13px;font-size:18px}.xd-ic{width:64px;height:64px;border-radius:16px;font-size:24px}
+.xc-ic img,.xd-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.xc-who{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:12.5px;margin-top:2px}.xc-who img{width:16px;height:16px;border-radius:50%;background:#2a2d33}
+.xc-bio{margin:0;color:#C9CDD3;font-size:13.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:3em}.xc-bio.none{color:var(--faint)}
+.xc-pl{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;font-size:12.5px;color:var(--dim)}.xc-pl b{color:var(--ink);font-weight:600}
+.xc-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(70,208,124,.15)}.xc-pl.off .xc-dot{background:var(--faint);box-shadow:none}.xc-pl.full .xc-dot{background:var(--warn);box-shadow:0 0 0 3px rgba(233,176,76,.15)}
+.xc-bar{flex-basis:100%;height:4px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}.xc-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#46D07C,#8be0a8)}.xc-pl.full .xc-bar i{background:var(--warn)}
+.xc-tags{display:flex;flex-wrap:wrap;gap:6px}.xc-tags span{font-size:11.5px;color:var(--dim);padding:3px 9px;border-radius:999px;border:1px solid var(--hair2)}
+.xc-act{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}.xc-act .btn{gap:7px}.xc-code code{font-family:ui-monospace,"Geist Mono",monospace;color:var(--ink)}
+.xp-empty{text-align:center;padding:60px 20px;border:1px dashed var(--hair2);border-radius:16px;color:var(--dim)}.xp-empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:6px}.xp-empty p{margin:0 0 16px}
+.xp-dlg{border:0;padding:0;background:none;max-width:min(560px,calc(100vw - 32px));width:100%;color:var(--ink)}
+.xp-dlg::backdrop{background:rgba(5,6,8,.6);backdrop-filter:blur(4px);opacity:0;transition:opacity .2s}.xp-dlg.in::backdrop{opacity:1}
+.xp-dlgin{position:relative;display:flex;flex-direction:column;gap:14px;padding:22px;border-radius:18px;background:#141518;border:1px solid var(--hair2);box-shadow:0 30px 60px -20px rgba(0,0,0,.7);opacity:0;transform:translateY(6px) scale(.985);transition:opacity .2s,transform .25s cubic-bezier(.23,1,.32,1)}
+.xp-dlg.in .xp-dlgin{opacity:1;transform:none}
+.xp-x{position:absolute;right:14px;top:12px;width:32px;height:32px;border-radius:9px;border:1px solid var(--hair2);background:none;color:var(--dim);font-size:18px;cursor:pointer}.xp-x:hover{color:var(--ink)}
+.xd-top{display:flex;align-items:center;gap:14px;padding-right:36px}.xd-top h2{margin:0 0 3px;font-size:20px}
+.xd-bio{margin:0;color:#C9CDD3;line-height:1.55;white-space:pre-line}
+.xd-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;padding:14px;border-radius:12px;border:1px solid var(--hair);background:rgba(255,255,255,.02)}
+.xd-facts small{display:block;color:var(--faint);font-size:11px}.xd-facts b{display:block;font-size:13px;font-weight:500;margin-top:2px;overflow-wrap:anywhere}.xd-facts code{font-family:ui-monospace,"Geist Mono",monospace}
+@media (max-width:640px){.xp-search{min-width:0;flex:1 1 100%}.xp-tools .dd{flex:1!important;width:auto!important}.xd-facts{grid-template-columns:1fr}}
+@media (max-width:560px){.top form{display:none}.top{gap:6px;padding:14px 16px}.nav{padding:7px 9px}}
+@media (prefers-reduced-motion:reduce){.xp-dlgin,.xp-dlg::backdrop,.xc{transition:none}}
 .acct{max-width:980px}.prof{display:flex;align-items:center;gap:18px;margin:0 0 26px}.prof .pic{width:84px;height:84px;border-radius:50%;flex:none;background:#2a2d33 center/cover;border:1px solid var(--hair2);display:grid;place-items:center;font-size:30px;font-weight:600;overflow:hidden}.prof .pic{position:relative}.prof .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .prof h1{margin:0}.prof p{margin:4px 0 0;color:var(--dim);font-size:13.5px}
 .lrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--hair)}.lrow:first-of-type{border-top:0}.lrow .tx{flex:1;min-width:0}.lrow b{display:block;font-size:14px;font-weight:600}.lrow small{color:var(--dim);font-size:12.5px}
@@ -156,7 +188,7 @@ export const layout = ({ title, logo, user, body, bg = true, top = true, script 
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>${INTRO_HEAD}<script src="/dropdown.js?v=1" defer></script></head><body>${bg ? '<div class="bg"></div>' : ''}
 ${top ? `<header class="top"><a class="brand" href="${user ? '/account' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i><span class="ov">Oversite</span> <span class="cad">CAD</span></a><span class="sp"></span>
-${user ? `<a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}${esc(user.roblox_name || user.name)}</a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
+${user ? `<a class="nav" href="/explore">Explore</a><a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}${esc(user.roblox_name || user.name)}</a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
 ${body}<script>${JS}${script}</script></body></html>`;
 
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
@@ -270,7 +302,7 @@ ${(() => { const row = c => { const owner = c.role === 'owner';
 <label for="ccode">Owner code</label><input id="ccode" maxlength="24" placeholder="2 to 24 letters or numbers" spellcheck="false" required><p class="hint">You sign in with it, so keep it private.</p>
 <p class="hint" style="margin:10px 0 0">Next you connect your server's <b>Discord</b>. Every Oversite server needs one: it's how staff ranks and roles work.</p><div class="row" style="margin-top:14px"><button class="btn pri">Create and connect Discord</button></div><p class="msg" id="cmsg"></p></form></details></section>
 <section class="card" style="margin-top:18px"><h2>Joined servers</h2>${joined.length ? joined.map(row).join('') : '<p class="note">You haven\'t joined anyone else\'s server yet.</p>'}
-<details class="mk"${joined.length ? '' : ' open'}><summary>Join another server</summary><p class="note">Enter the server code its owner gave you.</p>
+<p class="note" style="margin:12px 0 0"><a href="/explore">Explore servers</a> to find one to join.</p><details class="mk"${joined.length ? '' : ' open'}><summary>Join another server</summary><p class="note">Enter the server code its owner gave you.</p>
 <form id="join" class="row" autocomplete="off" style="flex-wrap:nowrap"><input id="jcode" placeholder="Server code" aria-label="Server code" spellcheck="false" required><button class="btn pri">Join</button></form><p class="msg" id="jmsg"></p></details>
 <p class="msg" id="lmsg"></p></section>`; })()}
 </div><div>
@@ -290,6 +322,53 @@ document.getElementById('create').addEventListener('submit',async e=>{e.preventD
 document.getElementById('join').addEventListener('submit',async e=>{e.preventDefault();try{await api('/auth/code',{code:document.getElementById('jcode').value});location.reload()}catch(x){say(document.getElementById('jmsg'),x.message)}});
 const sw=document.getElementById('switch');if(sw)sw.addEventListener('click',async()=>{if(!await ask({title:'Switch Roblox account?',text:'This unlinks your current Roblox account. You will need to link one again before you can open a CAD.',ok:'Unlink and switch'}))return;await api('/api/roblox/unlink');location.href='/dashboard#rbx'});
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-leave]');if(!b)return;if(!await ask({title:'Leave '+b.dataset.name+'?',text:'You lose access to its CAD until someone gives you a code or invite again.',ok:'Leave',danger:true}))return;try{await api('/api/leave',{slug:b.dataset.leave});location.reload()}catch(x){say(document.getElementById('lmsg'),x.message)}});
+` });
+
+// the server browser: every server whose owner listed it (Settings, Server profile), with live player counts
+export const explore = ({ logo, user, servers, owned }) => layout({ title: 'Explore servers · Oversite CAD', logo, user, body: `
+<main class="xp"><div class="xp-head"><div><h1><span style="font-weight:400">Explore</span> <b>servers</b></h1><p class="lead">ER:LC servers running Oversite CAD. Join one in game with its code, or through its Discord.</p></div>
+<div class="xp-tools"><label class="xp-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="xq" placeholder="Search servers" autocomplete="off" spellcheck="false" aria-label="Search servers"></label>
+<select id="xs" aria-label="Sort"><option value="players">Most players</option><option value="new">Newest</option><option value="name">A to Z</option></select>
+<label class="chk xp-open"><input type="checkbox" id="xo"> Has open slots</label></div></div>
+<div class="xp-grid" id="xg"></div>
+<div class="xp-empty" id="xe" hidden></div>
+</main>
+<dialog class="xp-dlg" id="xd" aria-labelledby="xdT"><div class="xp-dlgin" id="xdB"></div></dialog>`, script: `
+let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};
+const g=document.getElementById('xg'),q=document.getElementById('xq'),so=document.getElementById('xs'),op=document.getElementById('xo'),em=document.getElementById('xe'),dlg=document.getElementById('xd');
+const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DC='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg>';
+const RN={owner:'Owner',co_owner:'Co-Owner',admin:'Admin',mod:'Mod',member:'Member'};
+const ic=(x,cls)=>'<span class="'+cls+'">'+e(x.name.slice(0,1).toUpperCase())+'<img src="/c/'+e(x.slug)+'/icon" alt="" loading="lazy" onerror="this.remove()"></span>';
+const who=x=>x.owner_name?'<span class="xc-who">'+(x.owner_id?'<img src="/rbx/avatar/'+e(x.owner_id)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'Owned by '+e(x.owner_name)+'</span>':'';
+const ver=x=>x.verified&&!/^disabled$/i.test(x.verified)?'Verified accounts: '+x.verified:'';
+const tags=x=>[ver(x),x.team_balance?'Team balance':'',x.depts.length?x.depts.length+' departments':''].filter(Boolean).map(t=>'<span>'+e(t)+'</span>').join('');
+const pl=x=>{ if(!x.live||x.players==null) return '<div class="xc-pl off"><span class="xc-dot"></span><span>Player count unavailable</span></div>';
+  const full=x.max&&x.players>=x.max, pct=x.max?Math.min(100,Math.round(x.players/x.max*100)):0;
+  return '<div class="xc-pl'+(full?' full':'')+'"><span class="xc-dot"></span><span><b>'+x.players+'</b>'+(x.max?' / '+x.max:'')+' playing'+(full?' · Full':'')+'</span><div class="xc-bar"><i style="width:'+pct+'%"></i></div></div>'; };
+const acts=x=>(x.join_key?'<button class="btn sm xc-code" data-copy="'+e(x.join_key)+'" title="Copy the join code">Code <code>'+e(x.join_key)+'</code></button>':'')
+  +(x.invite?'<a class="btn sm discord" href="'+e(x.invite)+'" target="_blank" rel="noopener">'+DC+'Discord</a>':'')+(x.role?'<a class="btn sm pri" href="/c/'+e(x.slug)+'">Open CAD</a>':'');
+const card=x=>'<article class="xc" tabindex="0" role="button" data-slug="'+e(x.slug)+'" aria-label="'+e(x.name)+'"><div class="xc-top">'+ic(x,'xc-ic')+'<div class="xc-id"><b>'+e(x.name)+'</b>'+who(x)+'</div>'+(x.role?'<span class="tag ok">'+e(RN[x.role]||'Member')+'</span>':'')+'</div>'
+  +'<p class="xc-bio'+(x.bio?'':' none')+'">'+e(x.bio||'No description yet.')+'</p>'+pl(x)+(tags(x)?'<div class="xc-tags">'+tags(x)+'</div>':'')+'<div class="xc-act">'+acts(x)+'</div></article>';
+const render=()=>{ const t=q.value.trim().toLowerCase();
+  let L=S.filter(x=>!t||[x.name,x.bio,x.owner_name,x.ingame,x.discord,...x.depts].join(' ').toLowerCase().includes(t)).filter(x=>!op.checked||(x.live&&x.max&&x.players<x.max));
+  L.sort(so.value==='name'?(a,b)=>a.name.localeCompare(b.name):so.value==='new'?(a,b)=>b.created-a.created:(a,b)=>((b.live?b.players:-1)??-1)-((a.live?a.players:-1)??-1)||a.name.localeCompare(b.name));
+  g.innerHTML=L.map(card).join('');
+  em.hidden=!!L.length; if(!L.length) em.innerHTML=S.length?'<b>No servers match that.</b><p>Try a different search, or turn off "Has open slots".</p>'
+    :'<b>No servers are listed yet.</b><p>Owners can add theirs in their server\\'s Settings, under Server profile.</p>'+(OWNED.length?'<a class="btn pri" href="/c/'+e(OWNED[0])+'/settings#profile">List your server</a>':''); };
+const open=slug=>{ const x=S.find(s=>s.slug===slug); if(!x) return;
+  const fact=(k,v)=>v?'<div><small>'+k+'</small><b>'+v+'</b></div>':'';
+  document.getElementById('xdB').innerHTML='<button class="xp-x" type="button" aria-label="Close" data-close>&times;</button><div class="xd-top">'+ic(x,'xd-ic')+'<div><h2 id="xdT">'+e(x.name)+'</h2>'+who(x)+'</div></div>'
+    +(x.bio?'<p class="xd-bio">'+e(x.bio)+'</p>':'')+pl(x)
+    +'<div class="xd-facts">'+fact('In-game name',e(x.ingame))+fact('Join code',x.join_key?'<code>'+e(x.join_key)+'</code>':'')+fact('Co-owners',e(x.co_owners.join(', ')))+fact('Account verification',e(x.verified||''))
+    +fact('Team balance',x.team_balance?'On':'Off')+fact('Departments',e(x.depts.join(', ')))+fact('Discord server',e(x.discord))+'</div><div class="xc-act">'+acts(x)+'</div>';
+  dlg.showModal(); requestAnimationFrame(()=>dlg.classList.add('in')); };
+g.addEventListener('click',ev=>{ if(ev.target.closest('a,[data-copy]')) return; const c=ev.target.closest('.xc'); if(c) open(c.dataset.slug); });
+g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xc')){ ev.preventDefault(); open(ev.target.dataset.slug); } });
+dlg.addEventListener('click',ev=>{ if(ev.target===dlg||ev.target.closest('[data-close]')) dlg.close(); }); dlg.addEventListener('close',()=>dlg.classList.remove('in'));
+document.addEventListener('click',async ev=>{ const b=ev.target.closest('[data-copy]'); if(!b) return; ev.preventDefault(); await navigator.clipboard?.writeText(b.dataset.copy).catch(()=>{}); const h=b.innerHTML; b.textContent='Copied'; setTimeout(()=>b.innerHTML=h,1200); },true);
+[q,so,op].forEach(i=>i.addEventListener(i===q?'input':'change',render)); render();
+setInterval(async()=>{ if(document.hidden) return; try{ const r=await fetch('/api/explore'); if(r.ok){ S=(await r.json()).servers; render(); } }catch(x){} },60000);   // live player counts
 ` });
 
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };

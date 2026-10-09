@@ -140,6 +140,7 @@ const origin = req => (process.env.PUBLIC_URL || `${(req.headers['x-forwarded-pr
 
 const globalApi = async (req, res, rest) => {
   const user = auth.currentUser(req); if (!user) return json(res, { error: 'Sign in first.' }, 401);
+  if (rest === 'explore' && req.method === 'GET') return json(res, { servers: profile.directory(user) });   // read-only: the server browser's live refresh
   if (req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
   if (rest === 'communities' && req.method === 'POST') { const j = await jsonBody(req), name = String(j.name || '').trim(), slug = String(j.slug || '').trim().toLowerCase();
     if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400);
@@ -165,13 +166,15 @@ const route = async (req, res) => {
   if (path === '/' || path === '/dashboard') { const user = auth.currentUser(req); if (stranded(user)) return redirect(res, '/', { 'set-cookie': auth.signOut(req) }); }
   // signed in: straight to your account (or the Roblox link step first); signed out: the sign-in page
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, user.roblox_name ? '/account' : '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
+  if (path === '/explore') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/explore'); if (!user.roblox_name) return redirect(res, '/dashboard?link=%2Fexplore');
+    return page(res, pages.explore({ logo: LOGO, user, servers: profile.directory(user), owned: communities.forUser(user.id).filter(m => m.role === 'owner' || m.role === 'co_owner').map(m => m.slug) })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/c\/[a-z0-9-]{3,32}$/.test(from) ? from : null;
     return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
     const p = roblox.pending(user.id), w = url.searchParams.get('welcome'), wc = w && communities.bySlug(w);
     // a Roblox link is required; once it is there, carry on to the CAD they were heading for
-    const back = url.searchParams.get('link'), dest = back && /^\/c\/[a-z0-9-]{3,32}(\/[a-z]*)?(\?[a-z0-9=&]*)?$/.test(back) ? back : wc && members.role(wc.id, user.id) ? `/c/${wc.slug}` : null;
+    const back = url.searchParams.get('link'), dest = back && (/^\/c\/[a-z0-9-]{3,32}(\/[a-z]*)?(\?[a-z0-9=&]*)?$/.test(back) || back === '/explore') ? back : wc && members.role(wc.id, user.id) ? `/c/${wc.slug}` : null;
     if (user.roblox_name && dest) return redirect(res, dest);
     if (user.roblox_name) return redirect(res, '/account');                     // the dashboard is only the Roblox link step now; the account page is home
     return page(res, pages.dashboard({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()) })); }
@@ -313,6 +316,6 @@ http.createServer((req, res) => {
   if (CANON.startsWith('www.') && host === CANON.slice(4)) { res.writeHead(301, { location: `https://${CANON}${req.url}`, 'cache-control': 'no-store' }); return res.end(); }
   gate(req, res).catch(e => { console.error(e); if (!res.headersSent) json(res, { error: 'Server error.' }, 500); else res.end(); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
-staff.startHistory();
+staff.startHistory(); profile.startDirectory();
 // the address ER:LC sees our commands come from, for checking against the server owner's allowlist
 fetch('https://api.ipify.org?format=json').then(r => r.json()).then(j => console.log('Outbound IP:', j.ip)).catch(e => console.log('Outbound IP check failed:', e.message));
