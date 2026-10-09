@@ -52,6 +52,7 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .hero h1{font-size:34px;margin:0 0 8px}.hero .lead{margin:0 auto 26px}
 .hero .actions{display:grid;gap:10px}
 .hero.wide .box{width:min(820px,100%)}
+.hero.notop{min-height:100dvh}
 .paths{display:grid;grid-template-columns:1fr 1fr;gap:16px;text-align:left;align-items:start}.paths .card+.card{margin-top:0}.path{display:grid;gap:10px;align-content:start}.path h2{margin:0}.path .note{margin:0 0 4px}.path .hint{margin:-4px 0 0}.path .hint.addr{margin-top:-4px}
 @media (max-width:720px){.paths{grid-template-columns:1fr}}
 .or{display:flex;align-items:center;gap:10px;color:var(--faint);font-size:12px;margin:8px 0}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--hair)}
@@ -91,16 +92,16 @@ document.body.appendChild(d);d.showModal();requestAnimationFrame(()=>d.classList
 // Opener (preview/intro-splash.js): once per browser session. The cover goes up before first paint so the page never flashes first;
 // if the script never arrives the cover lifts by itself.
 export const INTRO_HEAD = `<script>try{if(sessionStorage.getItem('ov_intro_seen')!=='1'){const r=document.documentElement;r.classList.add('ov-intro');setTimeout(()=>r.classList.remove('ov-intro'),2500)}}catch(e){}</script><style>html.ov-intro::after{content:"";position:fixed;inset:0;z-index:2147483646;background:#07080A}</style><script src="/intro-splash.js" defer></script>`;
-export const layout = ({ title, logo, user, body, bg = true, script = '' }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+export const layout = ({ title, logo, user, body, bg = true, top = true, script = '' }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title><link rel="icon" type="image/png" href="data:image/png;base64,${logo}">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>${INTRO_HEAD}</head><body>${bg ? '<div class="bg"></div>' : ''}
-<header class="top"><a class="brand" href="${user ? '/dashboard' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i>Oversite</a><span class="sp"></span>
-${user ? `<span class="who">${user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc(user.name.slice(0, 1).toUpperCase())}</span>`}${esc(user.name)}</span><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>
+${top ? `<header class="top"><a class="brand" href="${user ? '/dashboard' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i>Oversite</a><span class="sp"></span>
+${user ? `<span class="who">${user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc(user.name.slice(0, 1).toUpperCase())}</span>`}${esc(user.name)}</span><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
 ${body}<script>${JS}${script}</script></body></html>`;
 
-export const landing = ({ logo, discord, owner, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, body: `
-<section class="hero wide"><div class="box">
+export const landing = ({ logo, discord, owner, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
+<section class="hero wide notop"><div class="box">
 <div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div>
 <h1><b>Oversite</b> CAD</h1>
 <p class="lead">A live dispatch system for ER:LC private servers. Every unit on a 3D map of Liberty County, live from your server.</p>
