@@ -1780,7 +1780,7 @@
     a.textContent = (O.me || O.user || '?').slice(0, 1).toUpperCase();
     if (/^\d+$/.test(O.rid || '')) { const im = new Image(); im.alt = ''; im.onload = () => { a.textContent = ''; a.appendChild(im); }; im.src = '/rbx/avatar/' + O.rid; }
     avEl.replaceWith(a); }
-  const mark = document.querySelector('.bar .mark') || document.querySelector('.mark'); if (mark) { mark.style.cursor = 'pointer'; mark.title = O.name + ' · back to dashboard'; mark.addEventListener('click', () => { location.href = '/dashboard'; }); }
+  const mark = document.querySelector('.bar .mark') || document.querySelector('.mark'); if (mark) { mark.style.cursor = 'pointer'; mark.title = O.name + ' · your account'; mark.addEventListener('click', () => { location.href = '/account'; }); }
   dispatchEvent(new Event('resize')); })();
 </script>
 <aside class="admin" id="admin" aria-label="Admin panel" aria-hidden="true">

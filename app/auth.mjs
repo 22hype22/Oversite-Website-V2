@@ -8,7 +8,7 @@ export const setCookie = (req, name, value, maxAge) => `${name}=${encodeURICompo
 export const currentUser = req => sessions.user(cookies(req).ov_sess);
 export const signIn = (req, userId) => setCookie(req, 'ov_sess', sessions.create(userId), 30 * 86400);
 export const signOut = req => { sessions.drop(cookies(req).ov_sess); return setCookie(req, 'ov_sess', '', 0); };
-export const safeNext = n => (typeof n === 'string' && /^\/(?!\/)[\w\-\/?=&.%]*$/.test(n) ? n : '/dashboard');
+export const safeNext = n => (typeof n === 'string' && /^\/(?!\/)[\w\-\/?=&.%]*$/.test(n) ? n : '/account');
 
 // ── Discord ──
 const DID = process.env.DISCORD_CLIENT_ID || '', DSECRET = process.env.DISCORD_CLIENT_SECRET || '', DAPI = process.env.DISCORD_API || 'https://discord.com/api';

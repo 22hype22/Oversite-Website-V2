@@ -163,8 +163,9 @@ const route = async (req, res) => {
   // an account that only ever came from a server code (no Discord, no Roblox) is nothing once its last server is gone: sign it out and start over
   const stranded = user => user && !user.discord_id && !user.roblox_id && !communities.forUser(user.id).length;
   if (path === '/' || path === '/dashboard') { const user = auth.currentUser(req); if (stranded(user)) return redirect(res, '/', { 'set-cookie': auth.signOut(req) }); }
-  if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
-  if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account');
+  // signed in: straight to your account (or the Roblox link step first); signed out: the sign-in page
+  if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, user.roblox_name ? '/account' : '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
+  if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/c\/[a-z0-9-]{3,32}$/.test(from) ? from : null;
     return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
@@ -172,6 +173,7 @@ const route = async (req, res) => {
     // a Roblox link is required; once it is there, carry on to the CAD they were heading for
     const back = url.searchParams.get('link'), dest = back && /^\/c\/[a-z0-9-]{3,32}(\/[a-z]*)?(\?[a-z0-9=&]*)?$/.test(back) ? back : wc && members.role(wc.id, user.id) ? `/c/${wc.slug}` : null;
     if (user.roblox_name && dest) return redirect(res, dest);
+    if (user.roblox_name) return redirect(res, '/account');                     // the dashboard is only the Roblox link step now; the account page is home
     return page(res, pages.dashboard({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()) })); }
   let m0, m0r;
   // a player's Roblox headshot, by Roblox user id: looked up once, then cached; the page shows initials if it fails
