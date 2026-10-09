@@ -279,3 +279,5 @@ http.createServer((req, res) => {
   if (CANON.startsWith('www.') && host === CANON.slice(4)) { res.writeHead(301, { location: `https://${CANON}${req.url}`, 'cache-control': 'no-store' }); return res.end(); }
   gate(req, res).catch(e => { console.error(e); if (!res.headersSent) json(res, { error: 'Server error.' }, 500); else res.end(); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
+// the address ER:LC sees our commands come from, for checking against the server owner's allowlist
+fetch('https://api.ipify.org?format=json').then(r => r.json()).then(j => console.log('Outbound IP:', j.ip)).catch(e => console.log('Outbound IP check failed:', e.message));

@@ -57,6 +57,7 @@ const run = (c, key, command) => { const s = of(c.id);
     let r = await send(); s.lastCmd = Date.now();
     if (r.status === 429) { const ra = Math.min(30, +r.headers.get('retry-after') || 6); await new Promise(res => setTimeout(res, ra * 1000)); r = await send(); s.lastCmd = Date.now(); }
     let j = {}; try { j = await r.json(); } catch (e) {}
+    if (!r.ok) console.log(`ER:LC command refused for community ${c.id}: ${r.status} ${JSON.stringify(j).slice(0, 300)}`);
     if (r.ok) return { ok: true, message: j.message || 'Sent' };
     return { ok: false, message: r.status === 422 ? 'The server is offline or empty, so the command could not run.' : (j.message || `ER:LC answered ${r.status}`) };
   });
