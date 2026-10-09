@@ -39,7 +39,7 @@ export const view = async (c, key) => {
   for (const row of staffRecords.counts(c.id)) (counts[row.roblox_id] ||= {})[row.kind] = row.n;
   return {
     at: s.viewAt, server: { name: v.Name, players: v.CurrentPlayers, max: v.MaxPlayers },
-    players: (v.Players || []).map(p => ({ ...split(p.Player), team: p.Team || '', callsign: p.Callsign || '', permission: p.Permission || 'Normal', postal: p.Location?.PostalCode || '', street: p.Location?.StreetName || '', wanted: p.WantedStars || 0 }))
+    players: (v.Players || []).map(p => ({ ...split(p.Player), team: p.Team || '', callsign: p.Callsign || '', permission: p.Permission || 'Normal', postal: p.Location?.PostalCode || '', street: p.Location?.StreetName || '', wanted: p.WantedStars || 0, x: p.Location?.LocationX ?? null, z: p.Location?.LocationZ ?? null }))
       .sort((a, b) => a.name.localeCompare(b.name)),
     modCalls: (v.ModCalls || []).slice(-40).reverse().map(m => ({ caller: split(m.Caller), moderator: m.Moderator ? split(m.Moderator) : null, at: m.Timestamp })),
     commands: (v.CommandLogs || []).slice(-60).reverse().map(m => ({ by: split(m.Player), command: m.Command, at: m.Timestamp })),

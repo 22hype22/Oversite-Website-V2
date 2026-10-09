@@ -20,6 +20,26 @@ CSS = r"""  /* staff:start  Staff MDT (Server Staff tab) */
   .sdock .st-search{margin:0 0 10px}
   .sdock .tside .ann{margin-top:8px;color:#E9EAEC;border:1px solid var(--line)}
   @media (max-width:1180px){.sdock .tscreen.split.on{grid-template-columns:200px 1fr}}
+  /* Map app: every player, civilians included */
+  .sdock .tscreen.mapp.on{display:flex;flex-direction:column;overflow:hidden;padding-bottom:18px}
+  .sdock .mapp .thead{flex-wrap:wrap}
+  .st-mfilt{display:flex;gap:6px;flex-wrap:wrap}
+  .st-mfilt button{font:inherit;font-size:12px;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--mute);cursor:pointer;display:flex;gap:6px;align-items:center}
+  .st-mfilt button b{font-weight:600;color:#E9EAEC}
+  .st-mfilt button[aria-pressed="true"]{color:#fff;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)}
+  .st-mapwrap{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:12px;background:#3E6973;cursor:grab;touch-action:none;border:1px solid var(--line)}
+  .st-mapwrap.drag{cursor:grabbing}
+  .st-mapin{position:absolute;left:0;top:0;width:1000px;height:1000px;transform-origin:0 0;will-change:transform}
+  .st-mapin img{position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none}
+  .st-dot{position:absolute;left:0;top:0;transition:transform .45s linear}
+  .st-dot i{position:absolute;left:0;top:0;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--c);border:2px solid #0C0D0F;box-shadow:0 0 0 1px rgba(255,255,255,.25);transform:scale(var(--inv,1));cursor:pointer}
+  .st-dot b{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;font-weight:600;color:#fff;text-shadow:0 1px 3px #000,0 0 2px #000;transform:translate(9px,-50%) scale(var(--inv,1));transform-origin:-9px 50%;opacity:0;pointer-events:none;transition:opacity .15s}
+  .st-dot:hover b,.st-mapwrap.near .st-dot b{opacity:1}
+  .st-dot.dim{opacity:.18}
+  .st-mapctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+  .st-mapctl button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:rgba(12,13,15,.85);color:#E9EAEC;font:inherit;font-size:16px;cursor:pointer}
+  .st-legend{position:absolute;left:10px;bottom:10px;display:flex;gap:10px;flex-wrap:wrap;padding:7px 10px;border-radius:9px;background:rgba(12,13,15,.85);font-size:11px;color:var(--mute)}
+  .st-legend span{display:flex;align-items:center;gap:5px}.st-legend i{width:8px;height:8px;border-radius:50%;background:var(--c)}
   .staffp .ph .sv{display:flex;align-items:center;gap:10px;min-width:0}
   .staffp .ph .sv b{display:block;font-size:15px;font-weight:500}
   .staffp .ph .sv small{display:block;font-size:11px;color:var(--dim);margin-top:1px}
@@ -119,6 +139,7 @@ HTML = r"""<!-- staff:start -->
         <nav class="tside" role="tablist" aria-label="Staff apps" id="stTabs">
           <div class="crest" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Staff MDT</div>
           <button role="tab" data-p="player" aria-selected="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>Players<i class="badge" id="stCount">0</i></button>
+          <button role="tab" data-p="map" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Map</button>
           <button role="tab" data-p="calls" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/><path d="M12 8v3M12 13.5h.01"/></svg>Calls<i class="badge" id="stCallsN" hidden>0</i></button>
           <button role="tab" data-p="records" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg>Records</button>
           <button role="tab" data-p="bans" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></svg>Bans<i class="badge" id="stBansN" hidden>0</i></button>
@@ -133,6 +154,11 @@ HTML = r"""<!-- staff:start -->
               <div class="st-list" id="stPlayers"></div></div>
             <div class="col" id="stPlayer"></div>
           </section>
+          <section class="tscreen st-pane mapp" data-p="map"><div class="thead"><div><h2>Server map</h2><small id="stMapSub">Every player in the server, civilians included</small></div>
+            <div class="st-mfilt" id="stMapF"><button data-f="all" aria-pressed="true">All <b id="stMfAll">0</b></button><button data-f="civ" aria-pressed="false">Civilians <b id="stMfCiv">0</b></button><button data-f="resp" aria-pressed="false">First responders <b id="stMfResp">0</b></button></div></div>
+            <div class="st-mapwrap" id="stMapWrap"><div class="st-mapin" id="stMapIn"><img src="liberty-county.jpg" alt="" draggable="false" id="stMapImg"><div id="stDots"></div></div>
+              <div class="st-mapctl"><button id="stZin" aria-label="Zoom in">+</button><button id="stZout" aria-label="Zoom out">−</button><button id="stZfit" aria-label="Fit map">⤢</button></div>
+              <div class="st-legend" id="stLegend"></div></div></section>
           <section class="tscreen st-pane" data-p="calls"><div class="thead"><div><h2>Mod calls</h2><small>Players calling for staff in game</small></div></div><div id="stCalls"></div></section>
           <section class="tscreen st-pane" data-p="records"><div class="thead"><div><h2>Records</h2><small>Every warning, kick, ban and note</small></div></div><label class="st-search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stRecFind" placeholder="Search records by player" autocomplete="off" spellcheck="false"></label><div id="stRecords"></div></section>
           <section class="tscreen st-pane" data-p="bans"><div class="thead"><div><h2>Bans</h2><small>Banned from the server</small></div></div><div id="stBans"></div></section>
@@ -212,11 +238,11 @@ JS = r"""<script id="staff">
       <div class="st-h" style="margin-top:16px"><span>Kills</span></div>${kills.length ? kills.map(k => `<div class="st-row"><span class="grow"><button class="lnk" data-open="${esc(k.killer.id)}" data-name="${esc(k.killer.name)}">${esc(k.killer.name)}</button> killed <button class="lnk" data-open="${esc(k.killed.id)}" data-name="${esc(k.killed.name)}">${esc(k.killed.name)}</button><br><small>${esc(ago(k.at * 1000))}</small></span></div>`).join('') : '<div class="st-empty">No kills logged.</div>'}`; };
   const renderRecords = async () => { const r = await fetch(API + '/records?' + new URLSearchParams(recQ ? { q: recQ } : {})).then(x => x.json()).catch(() => ({ records: [] }));
     $('stRecords').innerHTML = r.records.length ? r.records.map(x => recHTML(x, true)).join('') : `<div class="st-empty">${recQ ? 'No records match that.' : 'No records yet. Warnings, kicks, bans and notes you give show up here.'}</div>`; };
-  const render = () => { if (!D) return; $('stLive').style.background = 'var(--green)'; $('stServer').textContent = `${D.server.name || 'Server'} · ${D.server.players ?? D.players.length}/${D.server.max ?? '?'}`;
+  let render = () => { if (!D) return; $('stLive').style.background = 'var(--green)'; $('stServer').textContent = `${D.server.name || 'Server'} · ${D.server.players ?? D.players.length}/${D.server.max ?? '?'}`;
     renderPlayers(); renderCalls(); renderBans(); renderLogs(); if (pane === 'player') renderPlayer(); };
 
   // ── navigation ──
-  const show = p => { pane = p; document.querySelectorAll('#stTabs [data-p]').forEach(b => b.setAttribute('aria-selected', b.dataset.p === p)); document.querySelectorAll('#staffMdt .st-pane').forEach(x => x.classList.toggle('on', x.dataset.p === p));
+  let show = p => { pane = p; document.querySelectorAll('#stTabs [data-p]').forEach(b => b.setAttribute('aria-selected', b.dataset.p === p)); document.querySelectorAll('#staffMdt .st-pane').forEach(x => x.classList.toggle('on', x.dataset.p === p));
     if (p === 'records') renderRecords(); if (p === 'player') renderPlayer(); };
   const open = (id, name) => { const live = D && D.players.find(p => p.id === id); sel = live || { id, name, team: '', callsign: '', permission: '' }; show('player'); if (D) renderPlayers(); };
   $('stTabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) show(b.dataset.p); });
@@ -258,6 +284,42 @@ JS = r"""<script id="staff">
       clearTimeout(slow); dlg.close(); toast(r.delivered === false ? r.message : `${SHEETS[cur.kind].t} done${cur.who ? ' for ' + cur.who.name : ''}.`); load(); if (pane === 'player') { shownFor = null; renderPlayer(); } }
     catch (x) { clearTimeout(slow); m.className = 'msg err'; m.textContent = x.message; go.disabled = false; } });
   const toast = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2800); };
+  // ── Map app: every player on the official map (ER:LC gives positions as pixels of the 5355 px map) ──
+  const MS = 1000, PX = 5355, wrap = $('stMapWrap'), inner = $('stMapIn'), dots = $('stDots'), img = $('stMapImg');
+  const TEAMCOL = t => { const d = deptOf(t); if (d) return COL[d]; return /civil/i.test(t) ? '#A3A9B1' : /jail|prison/i.test(t) ? '#F2994A' : '#C9CDD3'; };
+  const isCiv = t => !deptOf(t);
+  let V = { k: 1, x: 0, y: 0 }, fitted = false, mf = 'all';
+  const place = () => { inner.style.transform = `translate(${V.x}px,${V.y}px) scale(${V.k})`; inner.style.setProperty('--inv', (1 / V.k).toFixed(4)); wrap.classList.toggle('near', V.k / fitK() > 2.2);
+    if (V.k / fitK() > 1.6 && img.src.indexOf('-hd') < 0) img.src = 'liberty-county-hd.jpg'; };
+  const fitK = () => Math.min(wrap.clientWidth, wrap.clientHeight) / MS;
+  const fit = () => { const k = fitK(); if (!k) return; V = { k, x: (wrap.clientWidth - MS * k) / 2, y: (wrap.clientHeight - MS * k) / 2 }; fitted = true; place(); };
+  const zoomAt = (f, cx, cy) => { const k0 = fitK(), k = Math.min(k0 * 12, Math.max(k0, V.k * f)); V.x = cx - (cx - V.x) * k / V.k; V.y = cy - (cy - V.y) * k / V.k; V.k = k; place(); };
+  wrap.addEventListener('wheel', e => { e.preventDefault(); const r = wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  let drag = null; wrap.addEventListener('pointerdown', e => { if (e.target.closest('.st-mapctl,.st-dot i')) return; drag = { x: e.clientX, y: e.clientY, vx: V.x, vy: V.y }; wrap.classList.add('drag'); wrap.setPointerCapture(e.pointerId); });
+  wrap.addEventListener('pointermove', e => { if (!drag) return; V.x = drag.vx + e.clientX - drag.x; V.y = drag.vy + e.clientY - drag.y; place(); });
+  const endDrag = () => { drag = null; wrap.classList.remove('drag'); }; wrap.addEventListener('pointerup', endDrag); wrap.addEventListener('pointercancel', endDrag);
+  wrap.addEventListener('dblclick', e => { const r = wrap.getBoundingClientRect(); zoomAt(2, e.clientX - r.left, e.clientY - r.top); });
+  const mid = () => [wrap.clientWidth / 2, wrap.clientHeight / 2];
+  $('stZin').onclick = () => zoomAt(1.6, ...mid()); $('stZout').onclick = () => zoomAt(1 / 1.6, ...mid()); $('stZfit').onclick = fit;
+  addEventListener('resize', () => { if (pane === 'map') fit(); });
+  $('stMapF').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; mf = b.dataset.f; $('stMapF').querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', x === b)); drawMap(); });
+  dots.addEventListener('click', e => { const d = e.target.closest('.st-dot'); if (d) open(d.dataset.id, d.dataset.name); });
+  const livePlayers = () => { const L = window.live && window.live.players ? window.live.players() : null;
+    if (L && L.length) return L.map(p => { const [name, id] = String(p.Player || '').split(':'); return { name, id, team: p.Team || '', callsign: p.Callsign || '', x: p.Location?.LocationX, z: p.Location?.LocationZ }; });
+    return (D && D.players) || []; };
+  const drawMap = () => { if (pane !== 'map') return; if (!fitted) fit(); const ps = livePlayers().filter(p => Number.isFinite(p.x) && Number.isFinite(p.z));
+    const civ = ps.filter(p => isCiv(p.team)).length; $('stMfAll').textContent = ps.length; $('stMfCiv').textContent = civ; $('stMfResp').textContent = ps.length - civ;
+    const seen = new Set();
+    for (const p of ps) { const key = p.id || p.name; seen.add(key); let d = dots.querySelector(`[data-key="${CSS.escape(key)}"]`);
+      if (!d) { d = document.createElement('div'); d.className = 'st-dot'; d.dataset.key = key; d.innerHTML = '<i></i><b></b>'; dots.appendChild(d); }
+      d.dataset.id = p.id || ''; d.dataset.name = p.name; d.style.setProperty('--c', TEAMCOL(p.team)); d.querySelector('b').textContent = p.name + (p.callsign ? ' · ' + p.callsign : '');
+      d.title = `${p.name} · ${p.team || 'No team'}`; d.style.transform = `translate(${(p.x / PX * MS).toFixed(1)}px,${(p.z / PX * MS).toFixed(1)}px)`;
+      d.classList.toggle('dim', mf === 'civ' ? !isCiv(p.team) : mf === 'resp' ? isCiv(p.team) : false); }
+    dots.querySelectorAll('.st-dot').forEach(d => { if (!seen.has(d.dataset.key)) d.remove(); });
+    const teams = [...new Set(ps.map(p => p.team || 'No team'))].sort(); $('stLegend').innerHTML = teams.map(t => `<span style="--c:${TEAMCOL(t)}"><i></i>${esc(t)}</span>`).join(''); };
+  addEventListener('players', drawMap);
+  const _show = show; show = p => { _show(p); if (p === 'map') { requestAnimationFrame(() => { fitted = false; drawMap(); }); } };
+  const _render = render; render = () => { _render(); drawMap(); };
   show('player');
 })();
 </script>

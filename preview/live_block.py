@@ -401,7 +401,7 @@ LIVE_JS = r"""<script id="live">
   // ── live updates: a server-sent stream when the page is served by server.mjs (or a relay), paced polling otherwise ──
   let lastUpdate = 0, updates = 0, source = '', fixAt = 0; const eventTimes = [];                 // fixAt = last time any unit's reported position changed
   const ERR = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
-  const handle = (body, rl, src, taken) => { const tFix = fixTime(taken); lastServer = body; lastPlayers = body.Players || []; lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
+  const handle = (body, rl, src, taken) => { const tFix = fixTime(taken); lastServer = body; lastPlayers = body.Players || []; dispatchEvent(new Event('players')); lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
     updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs, tFix); publish(lastUnits); pushCalls(body.EmergencyCalls); flyToMe();
     const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
     status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
@@ -443,7 +443,7 @@ LIVE_JS = r"""<script id="live">
 
   renderCal();
   if (S.live) start();
-  window.live = { settings: S, units, toWorld, toWorldP, cal: () => cal, poll, roadScore, stats: () => ({ lastUpdate, updates, source, streaming: streaming(), fixAt, rate: eventTimes.length / 10 }), samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
+  window.live = { settings: S, units, players: () => lastPlayers || [], toWorld, toWorldP, cal: () => cal, poll, roadScore, stats: () => ({ lastUpdate, updates, source, streaming: streaming(), fixAt, rate: eventTimes.length / 10 }), samplesRaw: () => SAMPLES.slice(0, 5), debug: () => ({ samples: SAMPLES.length, newSamples, onRoadNow: roadScore(cal.a, cal.bx, cal.bz), cal, fit: S.fit }) , roadFitNow: () => { lastFitAt = 0; newSamples = 999; roadFit(); } };
 })();
 </script>
 """
