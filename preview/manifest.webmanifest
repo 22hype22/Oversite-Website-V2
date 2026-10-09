@@ -1,0 +1,15 @@
+{
+  "name": "Oversite CAD",
+  "short_name": "Oversite",
+  "description": "Live CAD and MDT for ER:LC servers.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0D1416",
+  "theme_color": "#0D1416",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
