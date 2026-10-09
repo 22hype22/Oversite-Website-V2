@@ -188,7 +188,7 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .foot-sp{height:58px}
 @media (max-width:560px){.top{padding:14px 16px;gap:4px}.top .brand{margin-right:auto}.nav{padding:7px 9px}.who{padding:3px}.who .nm{display:none}}
 @media (max-width:440px){.top form{display:none}}
-.site-foot{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;justify-content:center;gap:16px;padding:11px 16px calc(11px + env(safe-area-inset-bottom));font-size:12.5px;background:rgba(10,11,13,.66);border-top:1px solid var(--hair);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2)}
+.site-foot{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;justify-content:center;gap:16px;padding:11px 16px calc(11px + env(safe-area-inset-bottom));font-size:12.5px;pointer-events:none;text-shadow:0 1px 8px rgba(0,0,0,.9)}.site-foot>*{pointer-events:auto}.site-foot svg{filter:drop-shadow(0 1px 6px rgba(0,0,0,.85))}
 .site-foot nav{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 18px}.site-foot a{color:var(--dim);text-decoration:none;transition:color .15s}.site-foot a:hover{color:var(--ink)}
 .site-foot .sep{width:1px;height:16px;background:var(--hair2);flex:none}
 .site-foot .soc{display:grid;place-items:center;width:30px;height:30px;margin:-4px -8px;border-radius:8px;color:#fff;opacity:.8;transition:opacity .15s,background .15s}.site-foot .soc:hover{opacity:1;background:rgba(255,255,255,.07)}
