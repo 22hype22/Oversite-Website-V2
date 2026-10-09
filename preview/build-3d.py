@@ -49,8 +49,19 @@ out=out.replace(old_layers,picker)
 # keep the 2D script; add the 3D module and a mode controller after it
 ctl='''<script type="module">
 /* ── map style controller: 3D / 3D Dark / 2D / 2D Dark ── */
-const state = { dim: '3d', theme: 'light' };
 const body = document.body, picker = document.getElementById('layers'), zfit = document.getElementById('zfit');
+// 3D needs graphics acceleration: without it every frame is copied back through the main thread and clicks lag by close to a second.
+// The browser can tell us (failIfMajorPerformanceCaveat); then the CAD starts on the 2D map without glass blur. A person's own choice is remembered.
+const slow = (() => { try { const c = document.createElement('canvas'), g = c.getContext('webgl2', { failIfMajorPerformanceCaveat: true }) || c.getContext('webgl', { failIfMajorPerformanceCaveat: true }); if (!g) return true;
+  const d = g.getExtension('WEBGL_debug_renderer_info'), r = d ? String(g.getParameter(d.UNMASKED_RENDERER_WEBGL)) : ''; g.getExtension('WEBGL_lose_context')?.loseContext();
+  return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(r); } catch (e) { return false; } })();   // software drawing (Chrome's SwiftShader, Mesa llvmpipe, Windows' basic driver)
+let saved = null; try { saved = JSON.parse(localStorage.getItem('ov.mapstyle') || 'null'); } catch (e) {}
+const state = saved && (saved.dim === '2d' || saved.dim === '3d') ? { dim: saved.dim, theme: saved.theme === 'dark' ? 'dark' : 'light' } : { dim: slow ? '2d' : '3d', theme: 'light' };
+const lowgpu = () => { if (body.classList.contains('lowgpu')) return; body.classList.add('lowgpu'); const st = document.createElement('style');
+  st.textContent = 'body.lowgpu{--blur:none;--glass:rgba(13,13,15,.88);--glass2:rgba(20,20,23,.9)}.gpu-note{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:12px;max-width:min(640px,calc(100vw - 32px));padding:12px 14px 12px 16px;border-radius:14px;background:#17181B;border:1px solid rgba(240,242,245,.14);box-shadow:0 18px 40px -12px rgba(0,0,0,.6);color:#C9CDD3;font-size:13px;line-height:1.45}.gpu-note b{color:#F0F2F5}.gpu-note button{flex:none;font:inherit;font-size:12.5px;font-weight:500;padding:7px 12px;border-radius:999px;border:1px solid rgba(240,242,245,.18);background:rgba(240,242,245,.06);color:#F0F2F5;cursor:pointer}.gpu-note button.x{padding:7px 10px}';
+  document.head.appendChild(st); };
+if (slow) lowgpu();
+const remember = () => { try { localStorage.setItem('ov.mapstyle', JSON.stringify(state)); } catch (e) {} };
 const L = document.getElementById('mapsrc').getAttribute('href'), D = document.getElementById('mapsrc-dark').getAttribute('href');
 const img2d = document.querySelector('.view img'); img2d.dataset.light = L; img2d.dataset.dark = D;
 
@@ -63,11 +74,21 @@ const apply = () => {
   dispatchEvent(new CustomEvent('maptheme', { detail: { ...state } }));
 };
 addEventListener('viewchange', e => { window.map3d.setActive(e.detail === 'dispatch' && state.dim === '3d'); });
-picker.addEventListener('click', e => { const b = e.target.closest('[data-dim]'); if (!b) return; state.dim = b.dataset.dim; state.theme = b.dataset.theme; apply(); });
+picker.addEventListener('click', e => { const b = e.target.closest('[data-dim]'); if (!b) return; state.dim = b.dataset.dim; state.theme = b.dataset.theme; remember(); apply(); });
 document.getElementById('zin').onclick = () => (state.dim === '3d' ? window.map3d : window.map2d).zoomIn();
 document.getElementById('zout').onclick = () => (state.dim === '3d' ? window.map3d : window.map2d).zoomOut();
 if (zfit) zfit.onclick = () => state.dim === '3d' ? window.map3d.toggleFollow() : window.map2d.fit();
 apply();
+let noted = false; try { noted = localStorage.getItem('ov.gpunote') === '1'; } catch (e) {}
+const note = () => { if (noted || document.querySelector('.gpu-note')) return; const n = document.createElement('div'); n.className = 'gpu-note'; n.setAttribute('role', 'status');
+  n.innerHTML = '<span><b>Showing the 2D map.</b> Your browser is not using graphics acceleration, so the 3D map would make the CAD lag. Turn on hardware acceleration in your browser settings to use 3D smoothly.</span><button type="button" data-g="3d">Use 3D anyway</button><button type="button" class="x" data-g="x" aria-label="Dismiss">&times;</button>';
+  n.addEventListener('click', e => { const g = e.target.closest('[data-g]'); if (!g) return; if (g.dataset.g === '3d') { state.dim = '3d'; remember(); apply(); } try { localStorage.setItem('ov.gpunote', '1'); } catch (x) {} n.remove(); });
+  body.appendChild(n); };
+if (slow && !saved) note();
+// and if 3D turns out to make this computer lag anyway (a weak graphics chip), drop to 2D once, unless the person picked 3D themselves
+if (!saved && state.dim === '3d') { let n = 0, bad = 0; const ping = () => { if (state.dim !== '3d' || document.hidden) return setTimeout(ping, 1000); const t0 = performance.now();
+    setTimeout(() => { n++; if (performance.now() - t0 > 120) bad++; if (n < 12) setTimeout(ping, 250); else if (bad >= 6) { lowgpu(); state.dim = '2d'; apply(); note(); } }, 0); };
+  setTimeout(ping, 3500); }
 </script>'''
 j=out.index('</script>\n</body>')
 out=out[:j+len('</script>')]+'\n<script id="geo" type="application/json">'+geo+'</script>\n<script id="landmarks" type="application/json">'+landmarks+'</script>\n<script type="module">\n'+js+'</script>\n'+ctl+out[j+len('</script>'):]

@@ -319,8 +319,10 @@ const quiet = () => { quietUntil = performance.now() + 550; };              // a
 addEventListener('viewchange', quiet); addEventListener('mdt', quiet);
 const frame = () => {
   const t = performance.now(), moving = UN.some(u => u.m && Math.hypot(u.m.Dv[0], u.m.Dv[1]) > 0.3);
-  const busy = controls._dragging || !!flight || follow || t - lastInteract < 900 || moving;
-  const fps = t < quietUntil ? 20 : document.body.classList.contains('mdt-open') ? 15 : busy ? 0 : 30;   // 0 = every display frame
+  // full display rate only while the person is moving the camera; moving units look smooth at 30; behind the MDT tablet the map barely shows, so 5 is plenty.
+  // Every frame here also costs the page's clicks and scrolling, so the map never draws more than it needs to.
+  const steering = controls._dragging || !!flight || t - lastInteract < 900;
+  const fps = document.body.classList.contains('mdt-open') ? 5 : t < quietUntil ? 20 : steering ? 0 : (moving || follow) ? 30 : 12;   // 0 = every display frame
   if (fps && t - lastDrawn < 1000 / fps - 3) return;
   lastDrawn = t;
   const dt = Math.min(clock.getDelta(), 0.1), now = clock.elapsedTime; if (!fps) adapt(dt); else acc = n = 0;   // only judge speed at full rate
