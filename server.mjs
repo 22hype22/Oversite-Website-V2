@@ -41,7 +41,7 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // ── the CAD page, with this community's settings injected ──
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!(user.roblox_name || user.discord_id), depts: c.settings.depts, teams: c.settings.teams, canEdit: role === 'owner' };
+  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, canEdit: role === 'owner' };
   const inject = `<base href="/"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};</script>`;
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
@@ -66,6 +66,7 @@ const communityApi = async (req, res, slug, rest) => {
   if (!c) return json(res, { error: 'No such community.' }, 404);
   if (!user) return json(res, { error: 'Sign in first.' }, 401);
   if (!role) return json(res, { error: 'You are not a member of this community.' }, 403);
+  if (!user.roblox_name) return json(res, { error: 'Link your Roblox account first. Open the dashboard to link it.' }, 403);
   if (req.method !== 'GET' && req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
   const f = feedFor(c), M = req.method;
   if (rest === 'stream' && M === 'GET') return f.stream(req, res, calOf(c));
@@ -86,7 +87,6 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest.startsWith('staff/')) { if (!can(role, 'staff')) return json(res, { error: 'Staff only.' }, 403);
     const sub = rest.slice(6), by = { id: user.id, name: user.roblox_name || user.name };
     if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); return json(res, v, v.error ? 502 : 200); }
-    if (sub === 'action' && M === 'POST' && !user.roblox_name && !user.discord_id) return json(res, { error: 'Link your Roblox account first (Dashboard, then Roblox account). Staff actions are signed with your Roblox name so they can always be traced.' }, 403);
     if (sub === 'action' && M === 'POST') { const r = await staff.act(c, communities.key(c.id), by, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'logs' && M === 'GET') return json(res, staff.lookup(c, new URL(req.url, 'http://x').searchParams.get('user')));
     if (sub === 'records' && M === 'GET') return json(res, { records: staff.records(c, Object.fromEntries(new URL(req.url, 'http://x').searchParams)) });
@@ -148,6 +148,9 @@ const route = async (req, res) => {
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
     const p = roblox.pending(user.id), w = url.searchParams.get('welcome'), wc = w && communities.bySlug(w);
+    // a Roblox link is required; once it is there, carry on to the CAD they were heading for
+    const back = url.searchParams.get('link'), dest = back && /^\/c\/[a-z0-9-]{3,32}(\/[a-z]*)?(\?[a-z0-9=&]*)?$/.test(back) ? back : wc && members.role(wc.id, user.id) ? `/c/${wc.slug}` : null;
+    if (user.roblox_name && dest) return redirect(res, dest);
     return page(res, pages.dashboard({ logo: LOGO, user, comms: communities.forUser(user.id), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()) })); }
   let m0, m0r;
   // a player's Roblox headshot, by Roblox user id: looked up once, then cached; the page shows initials if it fails
@@ -204,6 +207,7 @@ const route = async (req, res) => {
     if (!c) return msg(res, user, 'Community not found', 'Check the address, or ask your community for an invite link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
     if (!user) return redirect(res, `/?next=${encodeURIComponent(path)}`);
     if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', { href: '/dashboard', label: 'Go to dashboard' }, 403);
+    if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(path + url.search)}`);   // no CAD without a linked Roblox account
     if (sub === '/') return html(res, mapPage(c, user, role));
     if (sub === '/settings') { if (!can(role, 'owner')) return msg(res, user, 'Owner only', 'Only the server owner can change its settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();

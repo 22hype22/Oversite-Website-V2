@@ -41,6 +41,7 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .btn.danger{color:#F3A3A3;border-color:rgba(226,75,75,.4)}.btn.danger:hover{background:rgba(226,75,75,.12)}
 .btn.sm{padding:6px 12px;font-size:12.5px}
 .msg{font-size:13px;margin-top:10px;min-height:1em}.msg:empty{display:none}.msg.ok{color:var(--ok)}.msg.err{color:#F3A3A3}
+.link1{max-width:560px}.link1 .lead{max-width:none}
 .phrase{font:500 15px/1.4 ui-monospace,"Geist Mono",monospace;background:rgba(255,255,255,.05);border:1px dashed var(--hair2);border-radius:10px;padding:12px;margin:8px 0;user-select:all}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:9px 6px;border-top:1px solid var(--hair)}th{color:var(--faint);font-weight:500;font-size:12px;border-top:0}
 td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
@@ -180,9 +181,15 @@ export const privacy = ({ logo, user }) => layout({ title: 'Privacy · Oversite 
 <h2>Changes</h2><p>If this policy changes, the new version is posted here with a new effective date.</p>
 </section></main>` });
 
-export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord, robloxOAuth }) => layout({ title: 'Dashboard · Oversite', logo, user, body: `
+export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord, robloxOAuth }) => { const rbx = `<section class="card" id="rbx"><h2 class="hrow">Your Roblox account${user.roblox_name ? '<span class="tag ok">Linked</span>' : '<span class="tag warn">Not linked</span>'}</h2>
+${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>${user.roblox_via === 'discord' ? ', the Roblox account verified on your Discord' : user.roblox_via === 'oauth' ? ', confirmed by Roblox' : ''}. Your servers use this to find you in game and open your department's MDT.</p>${user.roblox_via === 'discord' ? '<p class="hint" style="margin:-6px 0 0">To change it, change the Roblox connection in Discord and sign in with Discord again.</p>' : '<button class="btn sm" id="unlink">Unlink</button>'}`
+: robloxOAuth ? `<p class="note">The CAD uses it to find you on the map and open your department\'s MDT.</p><a class="btn roblox" id="rlink" href="/auth/roblox?next=/dashboard">Link with Roblox</a><p class="msg" id="rlmsg"></p><p class="hint" style="margin:10px 0 0">You sign in on roblox.com and pick your account there, so it is always the right one. Oversite only sees your username and avatar.</p>${discord ? '<a class="btn discord sm" href="/auth/discord?next=/dashboard" style="margin-top:12px">Or use the Roblox account on my Discord</a>' : ''}<details class="mk"><summary>Roblox sign-in not working? Verify with your profile instead</summary><p class="note">Type your username, then add a short phrase to your Roblox profile so we can confirm it is yours.</p><form id="rstart" autocomplete="off"><input id="ruser" placeholder="Your Roblox username" aria-label="Roblox username" required><div class="row" style="margin-top:10px"><button class="btn">Continue</button></div><p class="msg" id="rmsg"></p></form></details>`
+: pending ? `<p class="note">Add this phrase anywhere in the <b>About</b> section of <a href="https://www.roblox.com/users/${esc(pending.roblox_id)}/profile" target="_blank" rel="noopener">${esc(pending.roblox_name)}'s profile</a>, save, then press Verify. You can remove it afterwards.</p>
+<div class="phrase">${esc(pending.phrase)}</div><div class="row"><button class="btn pri" id="verify">Verify</button><button class="btn sm" id="restart">Use a different account</button></div><p class="msg" id="rmsg"></p>`
+: `<p class="note">The CAD uses it to find you on the map and open your department\'s MDT. No password needed.</p>${discord ? `<a class="btn discord" href="/auth/discord?next=/dashboard" style="width:100%">Use the Roblox account on my Discord</a><p class="hint" style="margin:8px 0 2px">Works if Roblox is connected in Discord (Settings, Connections). Or link it here:</p>` : ''}<form id="rstart" autocomplete="off"><label for="ruser">Roblox username</label><input id="ruser" placeholder="Your Roblox username" required><div class="row" style="margin-top:12px"><button class="btn pri">Continue</button></div><p class="msg" id="rmsg"></p></form>`}
+</section>`;
+  return layout({ title: user.roblox_name ? 'Dashboard · Oversite' : 'Link your Roblox account · Oversite', logo, user, body: user.roblox_name ? `
 <main class="dash"><h1>Welcome back, <b>${esc(user.roblox_name || user.name)}</b></h1><p class="lead">${comms.length ? (comms.length === 1 ? 'Open your CAD below.' : 'Pick a server to open its CAD.') : 'Join your server with the code from its owner, or create a new one.'}</p>
-${welcome && !user.roblox_name ? `<section class="card" style="margin-bottom:18px;border-color:rgba(76,141,255,.35)"><h2>You're in ${esc(welcome.name)}</h2><p class="note" style="margin-bottom:10px">Link your Roblox account on the right so the CAD knows which player you are and opens your department's MDT. Or skip it for now.</p><a class="btn sm" href="/c/${esc(welcome.slug)}">Skip and open the CAD</a></section>` : ''}
 <div class="grid"><div>
 ${comms.length ? `<section class="card"><h2>Your servers</h2>
 ${comms.map(c => { const admin = c.role === 'owner', setup = !c.connected && admin, role = c.role[0].toUpperCase() + c.role.slice(1);
@@ -198,21 +205,18 @@ ${comms.map(c => { const admin = c.role === 'owner', setup = !c.connected && adm
 <label for="ccode">Owner code</label><input id="ccode" maxlength="24" placeholder="2 to 24 letters or numbers" spellcheck="false" required><p class="hint">You sign in with it, so keep it private.</p>
 <div class="row" style="margin-top:14px"><button class="btn pri">Create server</button></div><p class="msg" id="cmsg"></p></form></details></section>
 </div><div>
-<section class="card" id="rbx"><h2 class="hrow">Your Roblox account${user.roblox_name ? '<span class="tag ok">Linked</span>' : '<span class="tag warn">Not linked</span>'}</h2>
-${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>${user.roblox_via === 'discord' ? ', the Roblox account verified on your Discord' : user.roblox_via === 'oauth' ? ', confirmed by Roblox' : ''}. Your servers use this to find you in game and open your department's MDT.</p>${user.roblox_via === 'discord' ? '<p class="hint" style="margin:-6px 0 0">To change it, change the Roblox connection in Discord and sign in with Discord again.</p>' : '<button class="btn sm" id="unlink">Unlink</button>'}`
-: robloxOAuth ? `<p class="note">The CAD uses it to find you on the map and open your department\'s MDT.</p><a class="btn roblox" id="rlink" href="/auth/roblox?next=/dashboard">Link with Roblox</a><p class="msg" id="rlmsg"></p><p class="hint" style="margin:10px 0 0">You sign in on roblox.com and pick your account there, so it is always the right one. Oversite only sees your username and avatar.</p>${discord ? '<a class="btn discord sm" href="/auth/discord?next=/dashboard" style="margin-top:12px">Or use the Roblox account on my Discord</a>' : ''}<details class="mk"><summary>Roblox sign-in not working? Verify with your profile instead</summary><p class="note">Type your username, then add a short phrase to your Roblox profile so we can confirm it is yours.</p><form id="rstart" autocomplete="off"><input id="ruser" placeholder="Your Roblox username" aria-label="Roblox username" required><div class="row" style="margin-top:10px"><button class="btn">Continue</button></div><p class="msg" id="rmsg"></p></form></details>`
-: pending ? `<p class="note">Add this phrase anywhere in the <b>About</b> section of <a href="https://www.roblox.com/users/${esc(pending.roblox_id)}/profile" target="_blank" rel="noopener">${esc(pending.roblox_name)}'s profile</a>, save, then press Verify. You can remove it afterwards.</p>
-<div class="phrase">${esc(pending.phrase)}</div><div class="row"><button class="btn pri" id="verify">Verify</button><button class="btn sm" id="restart">Use a different account</button></div><p class="msg" id="rmsg"></p>`
-: `<p class="note">The CAD uses it to find you on the map and open your department\'s MDT. No password needed.</p>${discord ? `<a class="btn discord" href="/auth/discord?next=/dashboard" style="width:100%">Use the Roblox account on my Discord</a><p class="hint" style="margin:8px 0 2px">Works if Roblox is connected in Discord (Settings, Connections). Or link it here:</p>` : ''}<form id="rstart" autocomplete="off"><label for="ruser">Roblox username</label><input id="ruser" placeholder="Your Roblox username" required><div class="row" style="margin-top:12px"><button class="btn pri">Continue</button></div><p class="msg" id="rmsg"></p></form>`}
-</section>
-${discordLinkable ? `<section class="card"><h2>Discord</h2><p class="note">You signed in with the owner code. Link Discord so you can sign in with it from now on.</p><a class="btn discord" href="/auth/discord?next=/dashboard">Link Discord</a></section>` : ''}
-</div></div></main>`, script: `
-const cn=document.getElementById('cname'),cs=document.getElementById('cslug'),sp=document.getElementById('slugp');let touched=false;
+${rbx}${discordLinkable ? `<section class="card"><h2>Discord</h2><p class="note">You signed in with the owner code. Link Discord so you can sign in with it from now on.</p><a class="btn discord" href="/auth/discord?next=/dashboard">Link Discord</a></section>` : ''}
+</div></div></main>` : `
+<main class="dash link1"><h1>Link your <b>Roblox account</b></h1><p class="lead">${welcome ? `You're in <b>${esc(welcome.name)}</b>. ` : ''}Every Oversite CAD needs to know which Roblox player you are. It's how the CAD finds you in game and opens your department's MDT, and every staff action is signed with your Roblox name. You only do this once.</p>
+${rbx}
+${comms.length ? `<p class="hint" style="margin-top:14px">Your servers: ${comms.map(c => esc(c.name)).join(', ')}. They open as soon as you're linked.</p>` : ''}
+</main>`, script: `
+if(document.getElementById('create')){const cn=document.getElementById('cname'),cs=document.getElementById('cslug'),sp=document.getElementById('slugp');let touched=false;
 const slugify=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
 cn.addEventListener('input',()=>{if(!touched){cs.value=slugify(cn.value);sp.textContent=cs.value||'liberty-county'}});
 cs.addEventListener('input',()=>{touched=true;cs.value=slugify(cs.value);sp.textContent=cs.value||'liberty-county'});
 document.getElementById('create').addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('cmsg');try{const j=await api('/api/communities',{name:cn.value.trim(),slug:cs.value,ownerCode:document.getElementById('ccode').value});location.href='/c/'+j.slug+'/settings?new=1'}catch(x){say(m,x.message)}});
-document.getElementById('join').addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/auth/code',{code:document.getElementById('jcode').value});location.href=j.next}catch(x){say(document.getElementById('jmsg'),x.message)}});
+document.getElementById('join').addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/auth/code',{code:document.getElementById('jcode').value});location.href=j.next}catch(x){say(document.getElementById('jmsg'),x.message)}});}
 const rs=document.getElementById('rstart');if(rs)rs.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('rmsg');try{await api('/api/roblox/start',{username:document.getElementById('ruser').value});location.reload()}catch(x){say(m,x.message)}});
 const v=document.getElementById('verify');if(v)v.addEventListener('click',async()=>{const m=document.getElementById('rmsg');v.disabled=true;try{await api('/api/roblox/verify');location.reload()}catch(x){say(m,x.message);v.disabled=false}});
 const re=document.getElementById('restart');if(re)re.addEventListener('click',async()=>{await api('/api/roblox/cancel');location.reload()});
@@ -220,7 +224,7 @@ const rl=document.getElementById('rlink');if(rl)rl.addEventListener('click',e=>{
 const t=setInterval(()=>{if(w.closed){clearInterval(t);location.reload()}},800)});
 addEventListener('message',e=>{if(e.origin===location.origin&&e.data&&e.data.ov==='roblox-linked')location.reload()});
 const ul=document.getElementById('unlink');if(ul)ul.addEventListener('click',async()=>{if(!await ask({title:'Unlink your Roblox account?',text:'Your name on the CAD goes back to your sign-in name until you link again.',ok:'Unlink'}))return;await api('/api/roblox/unlink');location.reload()});
-` });
+` }); };
 
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
 export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
