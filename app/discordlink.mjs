@@ -1,12 +1,12 @@
-// A community's Discord server: the owner adds the Oversite bot to it and picks which roles mean member, staff and admin in the
-// CAD. Anyone signed in with Discord then gets the highest access their roles give, checked live (cached for a minute), so
-// taking a role away in Discord takes the access away too.
+// A community's Discord server: the owner adds the Oversite bot to it and picks which roles are staff. Anyone signed in with
+// Discord who holds one of those roles gets the Server Staff tools, checked live (cached for a minute), so taking the role
+// away in Discord takes the access away too. Everything else in the CAD follows the player's in-game team.
 import { communities, members } from './db.mjs';
 
 const DID = process.env.DISCORD_CLIENT_ID || '', DSECRET = process.env.DISCORD_CLIENT_SECRET || '', BOT = process.env.DISCORD_BOT_TOKEN || '';
 const DAPI = process.env.DISCORD_API || 'https://discord.com/api', DWEB = process.env.DISCORD_WEB || 'https://discord.com';
 export const ready = () => !!(DID && DSECRET && BOT);
-export const LEVELS = ['member', 'staff', 'admin'];
+export const LEVELS = ['staff'];                                   // Discord roles only decide who gets the staff tools; departments come from the in-game team
 const RANK = { member: 1, staff: 2, admin: 3, owner: 4 };
 export const higher = (a, b) => ((RANK[a] || 0) >= (RANK[b] || 0) ? a : b) || null;
 
@@ -38,7 +38,7 @@ export const levelFor = async (c, discordId) => { const d = c.settings && c.sett
   for (const lvl of LEVELS) if ((d.roles?.[lvl] || []).some(id => mine.includes(id))) best = higher(best, lvl);
   return best; };
 
-// after a Discord sign-in: join every community whose Discord server gives this person a role there
+// after a Discord sign-in: join every community whose Discord server makes this person staff
 export const autoJoin = async user => { if (!ready() || !user?.discord_id) return 0; let n = 0;
   for (const c of communities.withDiscord()) { if (members.role(c.id, user.id)) continue; if (await levelFor(c, user.discord_id)) { members.add(c.id, user.id, 'member'); n++; } }
   return n; };
