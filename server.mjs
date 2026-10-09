@@ -61,6 +61,11 @@ const access = async (req, slug) => { const user = auth.currentUser(req), c = co
   let role = user ? members.role(c.id, user.id) : null;
   if (user && user.discord_id && role !== 'owner') { const lvl = await discordlink.levelFor(c, user.discord_id).catch(() => null); if (lvl) { if (!role) members.add(c.id, user.id, 'member'); role = discordlink.higher(role, lvl); } }
   return { c, user, role }; };
+// new servers must connect a Discord server before they can be used; servers made before this rule are left alone
+const requireDiscord = id => { if (!discordlink.ready()) return; const c = communities.byId(id); c.settings.discordRequired = true; communities.saveSettings(id, c.settings); };
+export const needsDiscord = c => !!(c && c.settings.discordRequired && !c.settings.discord?.guild_id && discordlink.ready());
+const withSetup = list => list.map(x => ({ ...x, setup: needsDiscord(communities.byId(x.id)) }));
+const nextAfterCreate = slug => discordlink.ready() ? `/c/${slug}/discord/connect?new=1` : `/c/${slug}/settings?new=1`;
 const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
 
 const communityApi = async (req, res, slug, rest) => {
@@ -141,7 +146,7 @@ const globalApi = async (req, res, rest) => {
     if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(slug) || slug.includes('--')) return json(res, { error: 'The address must be 3 to 32 lowercase letters, numbers or single dashes.' }, 400);
     if (RESERVED.has(slug) || communities.bySlug(slug)) return json(res, { error: 'That address is taken. Try another.' }, 409);
     if (communities.forUser(user.id).filter(c => c.role === 'owner').length >= 10) return json(res, { error: 'You can own up to 10 communities.' }, 400);
-    const r = auth.createServer(req, user, { name, slug, ownerCode: j.ownerCode }, RESERVED); if (r.error) return json(res, { error: r.error }, 400); legacyKey(r.id); return json(res, { slug }); }
+    const r = auth.createServer(req, user, { name, slug, ownerCode: j.ownerCode }, RESERVED); if (r.error) return json(res, { error: r.error }, 400); legacyKey(r.id); requireDiscord(r.id); return json(res, { slug, next: nextAfterCreate(slug) }); }
   if (rest === 'roblox/start' && req.method === 'POST') { const r = await auth.robloxStart(user, (await jsonBody(req)).username); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
   if (rest === 'roblox/verify' && req.method === 'POST') { const r = await auth.robloxVerify(user); if (r.error) return json(res, { error: r.error }, 400); return json(res, r, 200, r.mergedInto ? { 'set-cookie': auth.signIn(req, r.mergedInto) } : {}); }
   if (rest === 'roblox/cancel' && req.method === 'POST') { roblox.clear(user.id); return json(res, { ok: true }); }
@@ -161,13 +166,13 @@ const route = async (req, res) => {
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account');
     const from = url.searchParams.get('from'), back = from && /^\/c\/[a-z0-9-]{3,32}$/.test(from) ? from : null;
-    return page(res, pages.account({ logo: LOGO, user, comms: communities.forUser(user.id), discord: auth.discordReady(), back })); }
+    return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
     const p = roblox.pending(user.id), w = url.searchParams.get('welcome'), wc = w && communities.bySlug(w);
     // a Roblox link is required; once it is there, carry on to the CAD they were heading for
     const back = url.searchParams.get('link'), dest = back && /^\/c\/[a-z0-9-]{3,32}(\/[a-z]*)?(\?[a-z0-9=&]*)?$/.test(back) ? back : wc && members.role(wc.id, user.id) ? `/c/${wc.slug}` : null;
     if (user.roblox_name && dest) return redirect(res, dest);
-    return page(res, pages.dashboard({ logo: LOGO, user, comms: communities.forUser(user.id), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()) })); }
+    return page(res, pages.dashboard({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()) })); }
   let m0, m0r;
   // a player's Roblox headshot, by Roblox user id: looked up once, then cached; the page shows initials if it fails
   // a server's icon, for server cards now and the server browser later
@@ -182,14 +187,14 @@ const route = async (req, res) => {
   if ((m0 = path.match(/^\/c\/([a-z0-9-]+)\/discord\/connect$/))) { const { c, user, role } = await access(req, m0[1]);
     if (!c || !user || !can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner or a co-owner can connect a Discord server.', { href: '/dashboard', label: 'Back' }, 403);
     if (!discordlink.ready()) return msg(res, user, 'Discord is not set up yet', 'Oversite needs its Discord bot keys before servers can be linked.', { href: `/c/${c.slug}/settings`, label: 'Back' });
-    const state = token(16); return redirect(res, discordlink.installUrl(req, state), { 'set-cookie': auth.setCookie(req, 'ov_dg', `${state}|${c.slug}`, 600) }); }
-  if (path === '/auth/discord/guild') { const [state, slug] = (auth.cookies(req).ov_dg || '').split('|'), back = slug ? `/c/${slug}/settings` : '/dashboard', u0 = auth.currentUser(req);
+    const state = token(16); return redirect(res, discordlink.installUrl(req, state), { 'set-cookie': auth.setCookie(req, 'ov_dg', `${state}|${c.slug}|${url.searchParams.has('new') ? 'new' : ''}`, 600) }); }
+  if (path === '/auth/discord/guild') { const [state, slug, fresh] = (auth.cookies(req).ov_dg || '').split('|'), back = slug ? `/c/${slug}/settings` : '/dashboard', u0 = auth.currentUser(req);
     try { if (!state || state !== url.searchParams.get('state')) throw new Error('That link expired. Please try connecting again.');
       if (url.searchParams.get('error')) throw new Error('Adding the bot was cancelled.');
       const { c, user, role } = await access(req, slug); if (!c || !user || !can(role, 'co_owner')) throw new Error('Only the owner or a co-owner can connect a Discord server.');
       const g = await discordlink.finishInstall(req, url.searchParams.get('code'));
       c.settings.discord = { ...g, roles: c.settings.discord?.guild_id === g.guild_id ? c.settings.discord.roles || {} : {} }; communities.saveSettings(c.id, c.settings); discordlink.forget(g.guild_id);
-      return redirect(res, back + '?discord=1#discord', { 'set-cookie': auth.setCookie(req, 'ov_dg', '', 0) }); }
+      return redirect(res, back + (fresh ? '?new=1&discord=1#discord' : '?discord=1#discord'), { 'set-cookie': auth.setCookie(req, 'ov_dg', '', 0) }); }
     catch (e) { return msg(res, u0, 'Could not connect Discord', e.message, { href: back, label: 'Back' }, 400); } }
   if (path === '/auth/roblox') { if (!auth.robloxOAuthReady()) return msg(res, auth.currentUser(req), 'Roblox linking is not set up yet', 'The site owner needs to add the Roblox app keys first.', { href: '/dashboard', label: 'Back' });
     const { url: to, cookie } = auth.robloxOAuthStart(req, url.searchParams.get('next') || '/dashboard'); return redirect(res, to, { 'set-cookie': cookie }); }
@@ -209,9 +214,9 @@ const route = async (req, res) => {
     const user = auth.currentUser(req), j = await jsonBody(req);
     const r = path === '/auth/create' ? auth.createServer(req, user, { name: j.name, slug: j.slug, ownerCode: j.ownerCode }, RESERVED) : auth.codeSignIn(req, user, j.code);
     if (r.error) return json(res, { error: r.error }, 400);
-    if (path === '/auth/create') legacyKey(r.id);
+    if (path === '/auth/create') { legacyKey(r.id); requireDiscord(r.id); }
     const slug = r.slug || r.community.slug, u = users.byId(r.user.id);
-    let next = path === '/auth/create' ? `/c/${slug}/settings?new=1` : (u.roblox_name ? `/c/${slug}` : `/dashboard?welcome=${slug}`);
+    let next = path === '/auth/create' ? nextAfterCreate(slug) : (u.roblox_name ? `/c/${slug}` : `/dashboard?welcome=${slug}`);
     if (j.roblox && !u.roblox_name) { const s2 = await auth.robloxStart(u, j.roblox); if (!s2.error && path === '/auth/code') next = `/dashboard?welcome=${slug}`; }
     return json(res, { next }, 200, user ? {} : { 'set-cookie': auth.signIn(req, r.user.id) }); }
   if (path === '/auth/logout' && req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, '/'); return redirect(res, '/', { 'set-cookie': [auth.signOut(req), auth.setCookie(req, COOKIE, '', 0)] }); }   // signing out also forgets the preview code, so the browser is back at the very first screen
@@ -229,10 +234,11 @@ const route = async (req, res) => {
     if (!user) return redirect(res, `/?next=${encodeURIComponent(path)}`);
     if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', { href: '/dashboard', label: 'Go to dashboard' }, 403);
     if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(path + url.search)}`);   // no CAD without a linked Roblox account
+    if (needsDiscord(c) && sub === '/') return can(role, 'co_owner') ? redirect(res, `/c/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
     if (sub === '/') return html(res, mapPage(c, user, role));
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), iconKind: profile.iconSource(c)?.kind || null, codes: can(role, 'owner') ? { owner: codes.show(c.id, 'owner'), member: codes.show(c.id, 'member') } : (can(role, 'admin') ? { owner: null, member: codes.show(c.id, 'member') } : null) })); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, codes: can(role, 'owner') ? { owner: codes.show(c.id, 'owner'), member: codes.show(c.id, 'member') } : (can(role, 'admin') ? { owner: null, member: codes.show(c.id, 'member') } : null) })); }
     return msg(res, user, 'Not found', 'That page does not exist.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
   return serve(req, res, path); };

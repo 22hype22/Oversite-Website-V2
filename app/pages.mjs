@@ -29,6 +29,8 @@ a{color:inherit}
 .sp-who{display:inline-flex;align-items:center;gap:6px}.sp-who img{width:18px;height:18px;border-radius:50%;background:#2a2d33}
 #spForm textarea{width:100%;resize:vertical;min-height:72px}
 label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--dim);cursor:pointer}label.chk input{width:auto;margin:0}
+.setup-dg{display:flex;align-items:center;gap:18px;margin:0 0 18px;border-color:rgba(88,101,242,.5);background:linear-gradient(120deg,rgba(88,101,242,.16),var(--panel) 60%)}.setup-dg h2{margin-bottom:4px}.setup-dg .note{margin:0}.setup-dg .btn{flex:none}
+@media (max-width:700px){.setup-dg{flex-direction:column;align-items:stretch}}
 .acct{max-width:980px}.prof{display:flex;align-items:center;gap:18px;margin:0 0 26px}.prof .pic{width:84px;height:84px;border-radius:50%;flex:none;background:#2a2d33 center/cover;border:1px solid var(--hair2);display:grid;place-items:center;font-size:30px;font-weight:600;overflow:hidden}.prof .pic{position:relative}.prof .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .prof h1{margin:0}.prof p{margin:4px 0 0;color:var(--dim);font-size:13.5px}
 .lrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--hair)}.lrow:first-of-type{border-top:0}.lrow .tx{flex:1;min-width:0}.lrow b{display:block;font-size:14px;font-weight:600}.lrow small{color:var(--dim);font-size:12.5px}
@@ -170,7 +172,7 @@ export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', err
 <input id="mname" maxlength="48" placeholder="Server name" aria-label="Server name" required>
 <input id="mslug" maxlength="32" placeholder="address" aria-label="Address" required><p class="hint addr">oversitescad.com/c/<span id="slugp">your-server</span></p>
 <input id="mcode" maxlength="24" placeholder="Your owner code" aria-label="Owner code" spellcheck="false" required><p class="hint">2 to 24 letters or numbers. You sign in with it, so keep it private.</p>
-<button class="btn pri">Create server</button><p class="msg" id="makemsg"></p></form>
+<p class="hint" style="margin:0 0 10px">Next you connect your server's <b>Discord</b>. Every Oversite server needs one: it's how staff ranks and roles work.</p><button class="btn pri">Create and connect Discord</button><p class="msg" id="makemsg"></p></form>
 </div>
 ${discord ? `<div class="or">or</div><a class="btn discord" href="/auth/discord?next=${encodeURIComponent(next)}">Continue with Discord</a>` : ''}
 ${owner ? `<form method="post" action="/auth/owner" class="row" style="justify-content:center;margin-top:14px" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" style="max-width:200px" required><button class="btn sm">Sign in</button></form>` : ''}
@@ -220,7 +222,7 @@ ${comms.length ? `<section class="card"><h2>Your servers</h2>
 ${comms.map(c => { const admin = runs(c.role), setup = !c.connected && admin, role = RANK_LABEL[c.role] || c.role;
   return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(c.slug)}/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b title="oversitescad.com/c/${esc(c.slug)}">${esc(c.name)}</b>
 <small><i class="st ${c.connected ? 'ok' : 'warn'}"></i>${c.connected ? 'Live data connected' : 'ER:LC not connected yet'}<span class="sep">·</span>${role}</small></div>
-<div class="go">${admin ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Settings</a>` : ''}${setup ? `<a class="btn ghost" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn pri" href="/c/${esc(c.slug)}/settings">Connect ER:LC</a>` : `<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>`}</div></div>`; }).join('')}
+<div class="go">${c.setup ? (admin ? `<a class="btn pri discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord to finish</a>` : '<span class="tag warn">Being set up</span>') : `${admin ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Settings</a>` : ''}${setup ? `<a class="btn ghost" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn pri" href="/c/${esc(c.slug)}/settings">Connect ER:LC</a>` : `<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>`}`}</div></div>`; }).join('')}
 </section>` : ''}
 <section class="card"><h2>${comms.length ? 'Add another server' : 'Get started'}</h2><p class="note">${comms.length ? 'Got a code from another server owner? Enter it here.' : 'Enter the server code your server owner gave you.'}</p>
 <form id="join" class="row" autocomplete="off" style="flex-wrap:nowrap"><input id="jcode" placeholder="Server code" aria-label="Server code" spellcheck="false" required><button class="btn pri">Join</button></form><p class="msg" id="jmsg"></p>
@@ -228,7 +230,7 @@ ${comms.map(c => { const admin = runs(c.role), setup = !c.connected && admin, ro
 <form id="create" autocomplete="off"><label for="cname">Server name</label><input id="cname" maxlength="48" placeholder="Liberty County Roleplay" required>
 <label for="cslug">Address</label><input id="cslug" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="liberty-county" required><p class="hint">oversitescad.com/c/<span id="slugp">liberty-county</span></p>
 <label for="ccode">Owner code</label><input id="ccode" maxlength="24" placeholder="2 to 24 letters or numbers" spellcheck="false" required><p class="hint">You sign in with it, so keep it private.</p>
-<div class="row" style="margin-top:14px"><button class="btn pri">Create server</button></div><p class="msg" id="cmsg"></p></form></details></section>
+<p class="hint" style="margin:10px 0 0">Next you connect your server's <b>Discord</b>. Every Oversite server needs one: it's how staff ranks and roles work.</p><div class="row" style="margin-top:14px"><button class="btn pri">Create and connect Discord</button></div><p class="msg" id="cmsg"></p></form></details></section>
 </div><div>
 ${rbx}${discordLinkable ? `<section class="card"><h2>Discord</h2><p class="note">You signed in with the owner code. Link Discord so you can sign in with it from now on.</p><a class="btn discord" href="/auth/discord?next=/dashboard">Link Discord</a></section>` : ''}
 </div></div></main>` : `
@@ -240,7 +242,7 @@ if(document.getElementById('create')){const cn=document.getElementById('cname'),
 const slugify=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
 cn.addEventListener('input',()=>{if(!touched){cs.value=slugify(cn.value);sp.textContent=cs.value||'liberty-county'}});
 cs.addEventListener('input',()=>{touched=true;cs.value=slugify(cs.value);sp.textContent=cs.value||'liberty-county'});
-document.getElementById('create').addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('cmsg');try{const j=await api('/api/communities',{name:cn.value.trim(),slug:cs.value,ownerCode:document.getElementById('ccode').value});location.href='/c/'+j.slug+'/settings?new=1'}catch(x){say(m,x.message)}});
+document.getElementById('create').addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('cmsg');try{const j=await api('/api/communities',{name:cn.value.trim(),slug:cs.value,ownerCode:document.getElementById('ccode').value});location.href=j.next||('/c/'+j.slug+'/settings?new=1')}catch(x){say(m,x.message)}});
 document.getElementById('join').addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/auth/code',{code:document.getElementById('jcode').value});location.href=j.next}catch(x){say(document.getElementById('jmsg'),x.message)}});}
 const rs=document.getElementById('rstart');if(rs)rs.addEventListener('submit',async e=>{e.preventDefault();const m=document.getElementById('rmsg');try{await api('/api/roblox/start',{username:document.getElementById('ruser').value});location.reload()}catch(x){say(m,x.message)}});
 const v=document.getElementById('verify');if(v)v.addEventListener('click',async()=>{const m=document.getElementById('rmsg');v.disabled=true;try{await api('/api/roblox/verify');location.reload()}catch(x){say(m,x.message);v.disabled=false}});
@@ -259,14 +261,14 @@ export const account = ({ logo, user, comms, discord, back }) => layout({ title:
 <div class="grid"><div>
 ${(() => { const row = c => { const owner = c.role === 'owner';
   return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(c.slug)}/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>${esc(c.name)}</b><small>${esc(RANK_LABEL[c.role] || c.role)}</small></div>
-<div class="go">${runs(c.role) ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Server settings</a>` : ''}${owner ? '' : `<button class="btn ghost" data-leave="${esc(c.slug)}" data-name="${esc(c.name)}">Leave</button>`}<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD</a></div></div>`; };
+<div class="go">${runs(c.role) ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Server settings</a>` : ''}${owner ? '' : `<button class="btn ghost" data-leave="${esc(c.slug)}" data-name="${esc(c.name)}">Leave</button>`}${c.setup ? (runs(c.role) ? `<a class="btn pri discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord</a>` : '<span class="tag warn">Being set up</span>') : `<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD</a>`}</div></div>`; };
   const mine = comms.filter(c => c.role === 'owner'), joined = comms.filter(c => c.role !== 'owner');
   return `<section class="card"><h2>Your servers</h2>${mine.length ? mine.map(row).join('') : '<p class="note">You don\'t own a server yet.</p>'}
 <details class="mk"${mine.length ? '' : ' open'}><summary>Make a new server</summary><p class="note">One per ER:LC server. Members join with the member code you get afterwards.</p>
 <form id="create" autocomplete="off"><label for="cname">Server name</label><input id="cname" maxlength="48" placeholder="Liberty County Roleplay" required>
 <label for="cslug">Address</label><input id="cslug" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="liberty-county" required><p class="hint">oversitescad.com/c/<span id="slugp">liberty-county</span></p>
 <label for="ccode">Owner code</label><input id="ccode" maxlength="24" placeholder="2 to 24 letters or numbers" spellcheck="false" required><p class="hint">You sign in with it, so keep it private.</p>
-<div class="row" style="margin-top:14px"><button class="btn pri">Create server</button></div><p class="msg" id="cmsg"></p></form></details></section>
+<p class="hint" style="margin:10px 0 0">Next you connect your server's <b>Discord</b>. Every Oversite server needs one: it's how staff ranks and roles work.</p><div class="row" style="margin-top:14px"><button class="btn pri">Create and connect Discord</button></div><p class="msg" id="cmsg"></p></form></details></section>
 <section class="card" style="margin-top:18px"><h2>Joined servers</h2>${joined.length ? joined.map(row).join('') : '<p class="note">You haven\'t joined anyone else\'s server yet.</p>'}
 <details class="mk"${joined.length ? '' : ' open'}><summary>Join another server</summary><p class="note">Enter the server code its owner gave you.</p>
 <form id="join" class="row" autocomplete="off" style="flex-wrap:nowrap"><input id="jcode" placeholder="Server code" aria-label="Server code" spellcheck="false" required><button class="btn pri">Join</button></form><p class="msg" id="jmsg"></p></details>
@@ -284,16 +286,17 @@ const cn=document.getElementById('cname'),cs=document.getElementById('cslug'),sp
 const slugify=x=>x.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
 cn.addEventListener('input',()=>{if(!touched){cs.value=slugify(cn.value);sp.textContent=cs.value||'liberty-county'}});
 cs.addEventListener('input',()=>{touched=true;cs.value=slugify(cs.value);sp.textContent=cs.value||'liberty-county'});
-document.getElementById('create').addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/api/communities',{name:cn.value.trim(),slug:cs.value,ownerCode:document.getElementById('ccode').value});location.href='/c/'+j.slug+'/settings?new=1'}catch(x){say(document.getElementById('cmsg'),x.message)}});
+document.getElementById('create').addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/api/communities',{name:cn.value.trim(),slug:cs.value,ownerCode:document.getElementById('ccode').value});location.href=j.next||('/c/'+j.slug+'/settings?new=1')}catch(x){say(document.getElementById('cmsg'),x.message)}});
 document.getElementById('join').addEventListener('submit',async e=>{e.preventDefault();try{await api('/auth/code',{code:document.getElementById('jcode').value});location.reload()}catch(x){say(document.getElementById('jmsg'),x.message)}});
 const sw=document.getElementById('switch');if(sw)sw.addEventListener('click',async()=>{if(!await ask({title:'Switch Roblox account?',text:'This unlinks your current Roblox account. You will need to link one again before you can open a CAD.',ok:'Unlink and switch'}))return;await api('/api/roblox/unlink');location.href='/dashboard#rbx'});
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-leave]');if(!b)return;if(!await ask({title:'Leave '+b.dataset.name+'?',text:'You lose access to its CAD until someone gives you a code or invite again.',ok:'Leave',danger:true}))return;try{await api('/api/leave',{slug:b.dataset.leave});location.reload()}catch(x){say(document.getElementById('lmsg'),x.message)}});
 ` });
 
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
-export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes, iconKind }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
+export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main><h1><b>${esc(c.name)}</b> settings</h1><p class="lead">${isNew ? 'Your server is ready. Connect it to ER:LC, then give your members the member code.' : 'Manage your server connection, codes, departments and members.'}</p>
 <div class="row" style="margin:-8px 0 20px"><a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn sm" href="/dashboard">All servers</a></div>
+${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord server to finish</h2><p class="note">Every Oversite server is tied to its Discord. Members can't open the CAD until it's connected, and it's where you pick which Discord roles are Admin and Mod.</p></div><a class="btn discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord server</a></section>` : ''}
 <div class="grid"><div>
 <section class="card"><h2>ER:LC server</h2>
 <p class="note" id="kstat">${keyStatus.connected ? `Connected${keyStatus.name ? ` to <b>${esc(keyStatus.name)}</b>` : ''}. The key is stored encrypted and is never sent to anyone's browser.` : 'Not connected. In ER:LC open your private server settings, find the API section, and copy the server key.'}</p>
