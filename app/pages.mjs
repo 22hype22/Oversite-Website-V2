@@ -1,5 +1,6 @@
 // Server-rendered pages around the live map: landing, dashboard, community settings, invites. Same visual language as the map.
 import { DOCS, UPDATED } from './legal.mjs';
+import { isSiteAdmin } from './admins.mjs';
 export const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CSS = `
 :root{color-scheme:dark;--ink:#F0F2F5;--dim:#9A9EA6;--faint:#62666D;--hair:rgba(240,242,245,.08);--hair2:rgba(240,242,245,.14);--panel:rgba(16,16,18,.78);--field:rgba(255,255,255,.04);--acc:#4C8DFF;--ok:#46D07C;--warn:#E9B04C;--bad:#E24B4B}
@@ -127,13 +128,13 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}@media (max-width:700px){.cols{grid-template-columns:1fr}}
 .dept{border:1px solid var(--hair);border-radius:12px;padding:12px}.dept h3{margin:0 0 2px;font-size:13px;display:flex;align-items:center;gap:8px}.dept h3 i{width:9px;height:9px;border-radius:50%}
 .teams{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;align-items:center}.teams span{font-size:13px}
-.hero{min-height:calc(100dvh - 70px);display:grid;place-items:center;padding:24px}
+.hero{min-height:calc(100dvh - 128px);display:grid;place-items:center;padding:24px}
 .hero .box{width:min(460px,100%);text-align:center}
 .hero .mark{display:flex;justify-content:center;margin:0 auto 20px}.hero .mark img{height:66px;width:auto;display:block}
 .hero h1{font-size:34px;margin:0 0 8px}.hero .lead{margin:0 auto 26px}
 .hero .actions{display:grid;gap:10px}
 .hero.wide .box{width:min(820px,100%)}
-.hero.notop{min-height:100dvh}
+.hero.notop{min-height:calc(100dvh - 58px)}
 .paths{display:grid;grid-template-columns:1fr 1fr;gap:16px;text-align:left;align-items:start}.paths .card+.card{margin-top:0}.path{display:grid;gap:10px;align-content:start}.path h2{margin:0}.path .note{margin:0 0 4px}.path .hint{margin:-4px 0 0}.path .hint.addr{margin-top:-4px}
 @media (max-width:720px){.paths{grid-template-columns:1fr}}
 .or{display:flex;align-items:center;gap:10px;color:var(--faint);font-size:12px;margin:8px 0}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--hair)}
@@ -170,7 +171,29 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .lg-tw{overflow-x:auto}
 @media (max-width:820px){.lg-body{grid-template-columns:1fr;gap:16px}.lg-toc{position:static}.lg-toc nav{display:grid;grid-template-columns:1fr 1fr}.lg-s{padding:18px 16px}}
 @media (max-width:520px){.lg-toc nav{grid-template-columns:1fr}.lg-short{flex-direction:column;gap:4px}}
-.site-foot{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:center;padding:28px 16px 34px;font-size:12px;color:var(--faint)}.site-foot a{color:var(--faint);text-decoration:none}.site-foot a:hover{color:var(--dim)}
+.vb{display:inline-block;vertical-align:-2px;margin-left:6px;flex:none}
+.adm{max-width:1080px}.adm h1{margin:0 0 4px}.adm .lead{margin:0 0 22px}
+.adm-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}.adm-cols .card+.card{margin-top:0}
+.adm-h{display:flex;align-items:center;gap:10px;margin:0 0 12px}.adm-h h2{margin:0;font-size:17px}.adm-h span{margin-left:auto;font-size:12px;color:var(--faint)}
+.adm-q{width:100%;margin:0 0 10px}
+.adm-l{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;max-height:62vh;overflow:auto;margin:0 -6px;padding:0 6px}
+.adm-r{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:12px;border:1px solid var(--hair);background:rgba(255,255,255,.02)}
+.adm-r.on{border-color:rgba(76,141,255,.35);background:rgba(76,141,255,.07)}
+.adm-r .pic{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;position:relative;overflow:hidden;background:#2a2d33;font-weight:600;font-size:14px}.adm-r .pic.sq{border-radius:10px}
+.adm-r .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.adm-r .tx{flex:1;min-width:0}.adm-r .tx b{display:flex;align-items:center;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.adm-r .tx small{display:block;color:var(--faint);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm-r .btn{flex:none;min-width:92px}.adm-r .btn.is-on{background:rgba(76,141,255,.16);border-color:rgba(76,141,255,.45);color:#CFE0FF}
+.adm-e{color:var(--faint);font-size:13px;padding:14px 4px}
+@media (max-width:860px){.adm-cols{grid-template-columns:1fr}.adm-l{max-height:none}}
+.foot-sp{height:58px}
+@media (max-width:560px){.top{padding:14px 16px;gap:4px}.top .brand{margin-right:auto}.nav{padding:7px 9px}.who{padding:3px}.who .nm{display:none}}
+@media (max-width:440px){.top form{display:none}}
+.site-foot{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;justify-content:center;gap:16px;padding:11px 16px calc(11px + env(safe-area-inset-bottom));font-size:12.5px;background:rgba(10,11,13,.66);border-top:1px solid var(--hair);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2)}
+.site-foot nav{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 18px}.site-foot a{color:var(--dim);text-decoration:none;transition:color .15s}.site-foot a:hover{color:var(--ink)}
+.site-foot .sep{width:1px;height:16px;background:var(--hair2);flex:none}
+.site-foot .soc{display:grid;place-items:center;width:30px;height:30px;margin:-4px -8px;border-radius:8px;color:#fff;opacity:.8;transition:opacity .15s,background .15s}.site-foot .soc:hover{opacity:1;background:rgba(255,255,255,.07)}
+@media (max-width:480px){.site-foot{gap:10px;font-size:12px}.site-foot nav{gap:4px 12px}}
+.xp-toast{bottom:74px}
 .foot{display:flex;gap:16px;justify-content:center;margin-top:26px;font-size:12px}.foot a{color:var(--faint);text-decoration:none}.foot a:hover{color:var(--dim)}
 .srv{display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--hair);background:rgba(255,255,255,.025)}
 .srv+.srv{margin-top:10px}
@@ -226,14 +249,21 @@ export const INTRO_HEAD = `<script>try{if(sessionStorage.getItem('ov_intro_seen'
 // the five ranks, as people read them
 export const RANK_LABEL = { owner: 'Owner', co_owner: 'Co-Owner', admin: 'Admin', mod: 'Mod', member: 'Member', staff: 'Admin' };
 const runs = r => r === 'owner' || r === 'co_owner';
-const FOOT = '<footer class="site-foot"><span>© 2026 Oversite</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="mailto:support@oversite.shop">Support</a></footer>';
+// Oversite's blue check: a scalloped seal, given by hand from /admin
+const SEAL = '<path fill="#4C8DFF" d="M12 1.6l2.3 1.7 2.8-.3 1.1 2.6 2.6 1.1-.3 2.8L22.4 12l-1.9 2.5.3 2.8-2.6 1.1-1.1 2.6-2.8-.3L12 22.4l-2.3-1.9-2.8.3-1.1-2.6-2.6-1.1.3-2.8L1.6 12l1.9-2.5-.3-2.8 2.6-1.1 1.1-2.6 2.8.3z"/><path fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m7.8 12.3 2.8 2.8 5.6-5.8"/>';
+export const vbadge = (size = 16) => `<svg class="vb" width="${size}" height="${size}" viewBox="0 0 24 24" role="img" aria-label="Verified by Oversite"><title>Verified by Oversite</title>${SEAL}</svg>`;
+// pinned to the bottom of every page: the same legal links as oversite.shop, then our Roblox group and Discord
+const ROBLOX_GROUP = 'https://www.roblox.com/communities/691798472/Oversite-Customs', DISCORD_INVITE = 'https://discord.gg/ovs';
+const FOOT = `<div class="foot-sp" aria-hidden="true"></div><footer class="site-foot"><nav aria-label="Legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Use</a><a href="https://www.oversite.shop/legal/sales-and-refunds">Sales and Refunds</a></nav><span class="sep" aria-hidden="true"></span>
+<a class="soc" href="${ROBLOX_GROUP}" target="_blank" rel="noopener" aria-label="Oversite on Roblox" title="Oversite on Roblox"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5.92 1.47 22.53 5.92 18.08 22.53 1.47 18.08Z M10.37 9.18 14.82 10.37 13.63 14.82 9.18 13.63Z"/></svg></a>
+<a class="soc" href="${DISCORD_INVITE}" target="_blank" rel="noopener" aria-label="Oversite on Discord" title="Oversite on Discord"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg></a></footer>`;
 export const layout = ({ title, logo, user, body, bg = true, top = true, script = '' }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title><link rel="icon" href="/favicon.ico?v=3" sizes="any"><link rel="icon" type="image/png" href="/icon-192.png?v=3"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3"><link rel="manifest" href="/manifest.webmanifest?v=3"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>${INTRO_HEAD}<script src="/dropdown.js?v=1" defer></script></head><body>${bg ? '<div class="bg"></div>' : ''}
 ${top ? `<header class="top"><a class="brand" href="${user ? '/account' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i><span class="ov">Oversite</span> <span class="cad">CAD</span></a><span class="sp"></span>
-${user ? `<a class="nav" href="/explore">Explore</a><a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}${esc(user.roblox_name || user.name)}</a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
-${body}${top ? FOOT : ''}<script>${JS}${script}</script></body></html>`;
+${user ? `${isSiteAdmin(user) ? '<a class="nav" href="/admin">Verify</a>' : ''}<a class="nav" href="/explore">Explore</a><a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}<span class="nm">${esc(user.roblox_name || user.name)}</span></a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
+${body}${FOOT}<script>${JS}${script}</script></body></html>`;
 
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
 <section class="hero wide notop"><div class="box">
@@ -253,8 +283,7 @@ export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', err
 ${discord ? `<div class="or">or</div><a class="btn discord" href="/auth/discord?next=${encodeURIComponent(next)}">Continue with Discord</a>` : ''}
 ${owner ? `<form method="post" action="/auth/owner" class="row" style="justify-content:center;margin-top:14px" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" style="max-width:200px" required><button class="btn sm">Sign in</button></form>` : ''}
 ${error ? `<p class="msg err">${esc(error)}</p>` : ''}
-<div class="feats"><div><b>Live map</b>Units move on the map as they drive in game.</div><div><b>Real 911 calls</b>Calls from the game land on the dispatch board.</div><div><b>Department MDTs</b>Each team gets its own MDT, locked to its members.</div></div>
-<nav class="foot"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="https://www.oversite.shop">Oversite</a></nav></div></section>`, script: `
+<div class="feats"><div><b>Live map</b>Units move on the map as they drive in game.</div><div><b>Real 911 calls</b>Calls from the game land on the dispatch board.</div><div><b>Department MDTs</b>Each team gets its own MDT, locked to its members.</div></div></div></section>`, script: `
 const go=async(url,body,m)=>{try{const j=await api(url,body);location.href=j.next}catch(x){say(m,x.message)}};
 document.getElementById('codeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/code',{code:document.getElementById('code').value},document.getElementById('codemsg'))});
 const mn=document.getElementById('mname'),ms=document.getElementById('mslug'),sp=document.getElementById('slugp');let touched=false;
@@ -264,7 +293,7 @@ ms.addEventListener('input',()=>{touched=true;ms.value=slugify(ms.value);sp.text
 document.getElementById('makeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/create',{name:mn.value.trim(),slug:ms.value,ownerCode:document.getElementById('mcode').value},document.getElementById('makemsg'))});
 ` });
 
-// Terms of Service and Privacy Policy (text in legal.mjs). Public, outside the preview lock, so Roblox and Discord can link to them.
+// Terms of Use and Privacy Policy (text in legal.mjs). Public, outside the preview lock, so Roblox and Discord can link to them.
 export const legal = ({ logo, user, doc }) => { const d = DOCS[doc]; return layout({ title: `${d.title} · Oversite CAD`, logo, user, body: `
 <main class="lg"><nav class="lg-sw" aria-label="Legal pages">${Object.values(DOCS).map(o => `<a href="${o.path}"${o === d ? ' aria-current="page"' : ''}>${esc(o.title)}</a>`).join('')}</nav>
 <header class="lg-hd"><h1>${esc(d.title)}</h1><p class="lead">${d.intro}</p><p class="upd">Last updated ${esc(UPDATED)}</p></header>
@@ -272,6 +301,30 @@ export const legal = ({ logo, user, doc }) => { const d = DOCS[doc]; return layo
 <div>${d.sections.map((x, i) => `<section class="lg-s" id="${x.id}"><h2><span>${String(i + 1).padStart(2, '0')}</span>${esc(x.h)}</h2><p class="lg-short"><b>In short</b><span>${x.short}</span></p>${x.body.replace(/<table class="lg-t">/g, '<div class="lg-tw"><table class="lg-t">').replace(/<\/table>/g, '</table></div>')}</section>`).join('')}</div></div></main>`, script: `
 const tl=[...document.querySelectorAll('.lg-toc a')];const io=new IntersectionObserver(es=>{for(const e of es)if(e.isIntersecting)tl.forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id))},{rootMargin:'-20% 0px -70% 0px'});document.querySelectorAll('.lg-s').forEach(s=>io.observe(s));
 ` }); };
+
+// Site admins only (see admins.mjs): give or take away the blue check on servers and people.
+export const admin = ({ logo, user, servers }) => layout({ title: 'Verify · Oversite', logo, user, body: `
+<main class="adm"><h1>Verification</h1><p class="lead">Give servers and people the blue check ${vbadge(18)} Only you can see this page. It shows on Explore, on account pages and in member lists.</p>
+<div class="adm-cols">
+<section class="card"><div class="adm-h"><h2>Servers</h2><span id="sN"></span></div><input class="adm-q" id="sQ" type="search" placeholder="Search servers" aria-label="Search servers" autocomplete="off"><div class="adm-l" id="sL"></div></section>
+<section class="card"><div class="adm-h"><h2>People</h2><span id="pN"></span></div><input class="adm-q" id="pQ" type="search" placeholder="Search by name, Roblox name or ID" aria-label="Search people" autocomplete="off"><div class="adm-l" id="pL"></div></section>
+</div></main>`, script: `
+const VB=${JSON.stringify(vbadge(15))};let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};
+const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ini=t=>e(String(t||'?').slice(0,1).toUpperCase());
+const btn=(k,id,on)=>'<button class="btn sm'+(on?' is-on':'')+'" data-k="'+k+'" data-id="'+id+'" data-on="'+(on?1:0)+'">'+(on?'Verified':'Verify')+'</button>';
+const sRow=x=>'<div class="adm-r'+(x.verified?' on':'')+'"><span class="pic sq">'+ini(x.name)+'<img src="/c/'+e(x.slug)+'/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>'+e(x.name)+(x.verified?VB:'')+'</b><small>/c/'+e(x.slug)+' · '+(x.owner_rbx||x.owner_name?'by '+e(x.owner_rbx||x.owner_name)+' · ':'')+x.members+' member'+(x.members===1?'':'s')+(x.listed?' · On Explore':'')+'</small></div>'+btn('server',x.id,x.verified)+'</div>';
+const pRow=x=>'<div class="adm-r'+(x.verified?' on':'')+'"><span class="pic">'+ini(x.roblox_name||x.name)+(x.roblox_id?'<img src="/rbx/avatar/'+e(x.roblox_id)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'</span><div class="tx"><b>'+e(x.roblox_name||x.name)+(x.verified?VB:'')+'</b><small>'+(x.roblox_name&&x.name!==x.roblox_name?e(x.name)+' · ':'')+(x.roblox_id?'Roblox '+e(x.roblox_id):'Roblox not linked')+(x.discord_id?' · Discord':'')+' · '+x.servers+' server'+(x.servers===1?'':'s')+'</small></div>'+btn('user',x.id,x.verified)+'</div>';
+const sL=document.getElementById('sL'),sQ=document.getElementById('sQ'),pL=document.getElementById('pL'),pQ=document.getElementById('pQ');
+const drawS=()=>{const t=sQ.value.trim().toLowerCase(),L=S.filter(x=>!t||(x.name+' '+x.slug+' '+(x.owner_rbx||'')+' '+(x.owner_name||'')).toLowerCase().includes(t));
+  sL.innerHTML=L.map(sRow).join('')||'<p class="adm-e">No servers match.</p>';document.getElementById('sN').textContent=S.filter(x=>x.verified).length+' verified of '+S.length};
+let P=[],pt=0;const loadP=async()=>{try{const j=await api('/api/admin/people?q='+encodeURIComponent(pQ.value.trim()),null,'GET');P=j.people;drawP()}catch(x){pL.innerHTML='<p class="adm-e">'+e(x.message)+'</p>'}};
+const drawP=()=>{pL.innerHTML=P.map(pRow).join('')||'<p class="adm-e">Nobody matches.</p>';document.getElementById('pN').textContent=pQ.value.trim()?P.length+' found':'Newest and verified'};
+sQ.addEventListener('input',drawS);pQ.addEventListener('input',()=>{clearTimeout(pt);pt=setTimeout(loadP,200)});
+document.addEventListener('click',async ev=>{const b=ev.target.closest('[data-k]');if(!b)return;const on=b.dataset.on!=='1',id=+b.dataset.id,k=b.dataset.k;b.disabled=true;
+  try{await api('/api/admin/verify',{kind:k,id,on});const L=k==='server'?S:P,x=L.find(y=>y.id===id);if(x)x.verified=on?1:0;k==='server'?drawS():drawP()}catch(x){alert(x.message);b.disabled=false}});
+drawS();loadP();
+` });
 
 export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord, robloxOAuth }) => { const rbx = `<section class="card" id="rbx"><h2 class="hrow">Your Roblox account${user.roblox_name ? '<span class="tag ok">Linked</span>' : '<span class="tag warn">Not linked</span>'}</h2>
 ${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>${user.roblox_via === 'discord' ? ', the Roblox account verified on your Discord' : user.roblox_via === 'oauth' ? ', confirmed by Roblox' : ''}. Your servers use this to find you in game and open your department's MDT.</p>${user.roblox_via === 'discord' ? '<p class="hint" style="margin:-6px 0 0">To change it, change the Roblox connection in Discord and sign in with Discord again.</p>' : '<button class="btn sm" id="unlink">Unlink</button>'}`
@@ -322,7 +375,7 @@ const ul=document.getElementById('unlink');if(ul)ul.addEventListener('click',asy
 export const account = ({ logo, user, comms, discord, back }) => layout({ title: 'Your account · Oversite', logo, user, body: `
 <main class="acct">${back ? `<div class="row" style="margin:0 0 18px"><a class="btn sm" href="${esc(back)}">&larr; Back to the CAD</a></div>` : ''}
 <div class="prof"><span class="pic">${esc((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase())}${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.remove()">` : ''}</span>
-<div><h1><b>${esc(user.roblox_name || user.name)}</b></h1><p>${comms.length ? `Member of ${comms.length} server${comms.length === 1 ? '' : 's'}` : 'Not in any server yet'}${user.discord_id ? ' · Signs in with Discord' : ''}</p></div></div>
+<div><h1><b>${esc(user.roblox_name || user.name)}</b>${user.verified ? vbadge(22) : ''}</h1><p>${comms.length ? `Member of ${comms.length} server${comms.length === 1 ? '' : 's'}` : 'Not in any server yet'}${user.discord_id ? ' · Signs in with Discord' : ''}</p></div></div>
 <div class="grid"><div>
 ${(() => { const row = c => { const owner = c.role === 'owner';
   return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(c.slug)}/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>${esc(c.name)}</b><small>${esc(RANK_LABEL[c.role] || c.role)}</small></div>
@@ -384,6 +437,7 @@ const STAR='<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" 
 const PLAY='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg>';
 const PPL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2"/></svg>';
 const STO='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>';
+const VB=${JSON.stringify(vbadge(16))};
 const RN={owner:'Owner',co_owner:'Co-Owner',admin:'Admin',mod:'Mod',member:'Member'};
 const playing=x=>x.live&&x.players!=null?x.players:-1, full=x=>x.live&&x.max&&x.players>=x.max;
 const SORT={trending:x=>x.week*3+Math.max(0,playing(x))*2+x.votes*.2,active:x=>playing(x),popular:x=>x.dc_members??-1,voted:x=>x.votes,new:x=>x.created};
@@ -404,7 +458,7 @@ const pct=x=>x.live&&x.max?Math.min(100,Math.round(x.players/x.max*100)):0;
 const card=(x,i)=>'<article class="xr st-'+state(x)+(i===0?' is-top':'')+'" tabindex="0" data-slug="'+e(x.slug)+'" aria-label="'+e(x.name)+'">'
   +'<div class="xr-map" style="--pos:'+spot(x)+'"><div class="xr-mt">'+status(x)+(i===0?'<span class="xr-badge">'+(TAB==='new'?'Newest':TAB==='voted'?'Most voted':TAB==='popular'?'Most popular':'Most active')+'</span>':i<3?'<span class="xr-rank">#'+(i+1)+'</span>':'')+'</div>'
   +(x.join_key?'<span class="xr-code" title="Join code">'+e(x.join_key)+'</span>':'')+'<div class="xr-bar"><i style="width:'+pct(x)+'%"></i></div></div>'
-  +'<div class="xr-b"><div class="xr-h">'+ic(x)+'<div class="xr-n"><h3>'+e(x.name)+'</h3>'+by(x)+'</div>'+(x.role?'<a class="xr-mine" href="/c/'+e(x.slug)+'">'+e(RN[x.role]||'Member')+' · Open CAD</a>':'')+'</div>'
+  +'<div class="xr-b"><div class="xr-h">'+ic(x)+'<div class="xr-n"><h3>'+e(x.name)+(x.badge?VB:'')+'</h3>'+by(x)+'</div>'+(x.role?'<a class="xr-mine" href="/c/'+e(x.slug)+'">'+e(RN[x.role]||'Member')+' · Open CAD</a>':'')+'</div>'
   +'<div class="xr-m">'+meta(x)+'</div><p class="'+(x.bio?'':'none')+'">'+e(x.bio||'No description yet.')+'</p>'
   +'<div class="xr-f"><div class="xr-a">'+acts(x)+'</div></div></div></article>';
 const row=card;
@@ -417,7 +471,7 @@ const render=()=>{ const t=q.value.trim().toLowerCase(), k=SORT[TAB];
 const toast=m=>{ const t=document.getElementById('xtoast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),3200); };
 tabs.addEventListener('click',ev=>{ const b=ev.target.closest('[data-t]'); if(!b) return; TAB=b.dataset.t; tabs.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x===b)); render(); });
 const open=slug=>{ const x=S.find(s=>s.slug===slug); if(!x) return; const fact=(k,v)=>v?'<div><small>'+k+'</small><b>'+v+'</b></div>':'';
-  document.getElementById('xdB').innerHTML='<button class="xp-x" type="button" aria-label="Close" data-close>&times;</button><div class="xd-top">'+ic(x)+'<div><h2 id="xdT">'+e(x.name)+'</h2>'+by(x)+'<div class="xr-m">'+meta(x)+'</div></div></div>'
+  document.getElementById('xdB').innerHTML='<button class="xp-x" type="button" aria-label="Close" data-close>&times;</button><div class="xd-top">'+ic(x)+'<div><h2 id="xdT">'+e(x.name)+(x.badge?VB:'')+'</h2>'+by(x)+'<div class="xr-m">'+meta(x)+'</div></div></div>'
     +'<div class="xr-t">'+status(x)+'</div>'+(x.bio?'<p class="xd-bio">'+e(x.bio)+'</p>':'')
     +'<div class="xd-facts">'+fact('In-game name',e(x.ingame))+fact('Join code',x.join_key?'<code>'+e(x.join_key)+'</code>':'')+fact('Co-owners',e(x.co_owners.join(', ')))+fact('Account verification',e(x.verified||''))
     +fact('Team balance',x.team_balance?'On':'Off')+fact('Departments',e(x.depts.map(d=>d.name).join(', ')))+fact('Discord server',e([x.discord,x.dc_members!=null?n(x.dc_members)+' members':'',x.dc_online!=null?n(x.dc_online)+' online':''].filter(Boolean).join(' · ')))+'</div><div class="xr-a">'+acts(x)+'</div>';
@@ -477,7 +531,7 @@ ${codes.owner !== null ? `<label style="margin-top:16px">Owner code</label><div 
 ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><div class="tx"><code title="${esc(origin)}/join/${esc(i.code)}">${esc(origin.replace(/^https?:\/\//, ''))}/join/${esc(i.code)}</code><small>${i.uses} ${i.uses === 1 ? 'use' : 'uses'}${i.expires ? ` · expires ${new Date(i.expires).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</small></div><div class="acts"><button class="btn sm" data-copy="${esc(origin)}/join/${esc(i.code)}">Copy</button><button class="btn sm danger" data-revoke="${esc(i.code)}">Revoke</button></div></div>`).join('')}</div>` : '<p class="empty">No active invite links.</p>'}
 </section>
 <section class="card"><h2>Members</h2><p class="note"><b>Owner</b> and <b>Co-Owners</b> run these settings (only the owner can delete the server or change the owner code). <b>Admins</b> get the Server Staff tablet with everything: warn, kick, ban, unban, announce. <b>Mods</b> get the tablet to warn, message, kick and add notes. <b>Members</b> use the CAD. Which department MDT someone gets follows their team in game.</p>
-<table><tr><th>Member</th><th>Roblox</th><th>Role</th><th></th></tr>${members.map(m => `<tr><td>${esc(m.name)}</td><td>${m.roblox_name ? esc(m.roblox_name) : '<span style="color:var(--faint)">Not linked</span>'}</td>
+<table><tr><th>Member</th><th>Roblox</th><th>Role</th><th></th></tr>${members.map(m => `<tr><td>${esc(m.name)}${m.verified ? vbadge(14) : ''}</td><td>${m.roblox_name ? esc(m.roblox_name) : '<span style="color:var(--faint)">Not linked</span>'}</td>
 <td>${(() => { const R = { owner: 5, co_owner: 4, admin: 3, mod: 2, member: 1, staff: 3 }, mine = R[role] || 0, can = m.id !== user.id && (R[m.role] || 0) < mine;
   if (!can) return esc(RANK_LABEL[m.role] || m.role);
   return `<select data-role="${m.id}">${['co_owner', 'admin', 'mod', 'member'].filter(k => R[k] < mine).map(k => `<option value="${k}"${(m.role === k || (m.role === 'staff' && k === 'admin')) ? ' selected' : ''}>${RANK_LABEL[k]}</option>`).join('')}</select>`; })()}</td>

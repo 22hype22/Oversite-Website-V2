@@ -13,6 +13,7 @@ import * as discordlink from './app/discordlink.mjs';
 import * as staff from './app/staff.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
+import { isSiteAdmin } from './app/admins.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'preview');
 const PORT = +(process.env.PORT || 8080);
@@ -140,8 +141,14 @@ const origin = req => (process.env.PUBLIC_URL || `${(req.headers['x-forwarded-pr
 
 const globalApi = async (req, res, rest) => {
   const user = auth.currentUser(req); if (!user) return json(res, { error: 'Sign in first.' }, 401);
-  if (rest === 'explore' && req.method === 'GET') return json(res, { servers: profile.directory(user) });   // read-only: the server browser's live refresh
+  if (rest === 'explore' && req.method === 'GET') return json(res, { servers: profile.directory(user) });
+  // the verification page; anyone else gets a plain not-found
+  if (rest.startsWith('admin/') && !isSiteAdmin(user)) return json(res, { error: 'Not found.' }, 404);
+  if (rest === 'admin/people' && req.method === 'GET') return json(res, { people: users.search(new URL(req.url, 'http://x').searchParams.get('q')) });   // read-only: the server browser's live refresh
   if (req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
+  if (rest === 'admin/verify' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), id = Number(j.id);
+    const n = j.kind === 'server' ? communities.setVerified(id, !!j.on) : j.kind === 'user' ? users.setVerified(id, !!j.on) : 0;
+    if (!n) return json(res, { error: 'Not found.' }, 404); console.log(`verify: ${user.discord_id} set ${j.kind} ${id} ${j.on ? 'on' : 'off'}`); return json(res, { ok: true }); }
   if (rest === 'explore/vote' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to vote.' }, 403); const r = profile.vote(user, (await jsonBody(req)).slug); return json(res, r, r.error ? 429 : 200); }
   if (rest === 'communities' && req.method === 'POST') { const j = await jsonBody(req), name = String(j.name || '').trim(), slug = String(j.slug || '').trim().toLowerCase();
     if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400);
@@ -169,6 +176,8 @@ const route = async (req, res) => {
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, user.roblox_name ? '/account' : '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
   if (path === '/explore') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/explore'); if (!user.roblox_name) return redirect(res, '/dashboard?link=%2Fexplore');
     return page(res, pages.explore({ logo: LOGO, user, servers: profile.directory(user), owned: communities.forUser(user.id).filter(m => m.role === 'owner' || m.role === 'co_owner').map(m => m.slug) })); }
+  if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
+    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview() })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/c\/[a-z0-9-]{3,32}$/.test(from) ? from : null;
     return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }

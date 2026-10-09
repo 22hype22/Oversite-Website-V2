@@ -1,11 +1,11 @@
-// Oversite CAD's Terms of Service and Privacy Policy. Every section opens with a plain-language "In short" so people can see
+// Oversite CAD's Terms of Use and Privacy Policy. Every section opens with a plain-language "In short" so people can see
 // what they are agreeing to without reading legal text; the full wording follows. Edit the text here; pages.mjs only lays it out.
 export const UPDATED = 'October 9, 2026';
 const CONTACT = '<a href="mailto:support@oversite.shop">support@oversite.shop</a>';
 
 export const DOCS = {
   terms: {
-    title: 'Terms of Service', path: '/terms',
+    title: 'Terms of Use', path: '/terms',
     intro: 'These terms are the rules for using Oversite CAD. We have kept them short and in plain language. Each section starts with a summary, then the details.',
     sections: [
       { id: 'about', h: 'Who we are', short: 'Oversite CAD is a dispatch tool for ER:LC private servers, run by Oversite.',

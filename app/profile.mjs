@@ -77,7 +77,7 @@ export const directory = me => { const mine = new Map((me ? communities.forUser(
       role: mine.get(c.id) || null, live: !!E.at && Date.now() - E.at < 10 * 60000,
       votes: total[c.id] || 0, week: week[c.id] || 0, next_vote: voted[c.id] ? Math.max(0, voted[c.id] + VOTE_GAP - Date.now()) : 0,
       region: REGIONS[P.region] ? { code: P.region, name: REGIONS[P.region][0], flag: REGIONS[P.region][1] } : null, lang: LANGS[P.lang] ? { code: P.lang, name: LANGS[P.lang][0], flag: LANGS[P.lang][1] } : null,
-      dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null }; }); };
+      dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, badge: !!c.verified }; }); };
 
 // one vote per person per server every 12 hours
 export const vote = (me, slug) => { const c = communities.bySlug(String(slug || '')); if (!c || !c.settings.profile?.listed) return { error: 'That server is not listed.' };
