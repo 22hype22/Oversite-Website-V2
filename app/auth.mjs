@@ -52,15 +52,17 @@ export const ownerLogin = (req, code) => { const ip = (req.headers['x-forwarded-
 // The app lives under the Oversite Customs group on Roblox (Creator Dashboard, Credentials, OAuth 2.0 Apps); redirect: <site>/auth/roblox/callback
 const RID = process.env.ROBLOX_CLIENT_ID || '', RSECRET = process.env.ROBLOX_CLIENT_SECRET || '', RAPI = process.env.ROBLOX_OAUTH || 'https://apis.roblox.com/oauth';
 export const robloxOAuthReady = () => !!(RID && RSECRET);
+// where Roblox sends people back; ROBLOX_REDIRECT_URI overrides it (e.g. a shared app whose registered redirect bounces here)
+const rbxRedirect = req => process.env.ROBLOX_REDIRECT_URI || base(req) + '/auth/roblox/callback';
 export const robloxOAuthStart = (req, next) => { const state = token(16), verifier = token(32), challenge = createHash('sha256').update(verifier).digest('base64url');
-  const url = `${RAPI}/v1/authorize?${new URLSearchParams({ client_id: RID, redirect_uri: base(req) + '/auth/roblox/callback', response_type: 'code', scope: 'openid profile', state, code_challenge: challenge, code_challenge_method: 'S256' })}`;
+  const url = `${RAPI}/v1/authorize?${new URLSearchParams({ client_id: RID, redirect_uri: rbxRedirect(req), response_type: 'code', scope: 'openid profile', state, code_challenge: challenge, code_challenge_method: 'S256' })}`;
   return { url, cookie: setCookie(req, 'ov_rbx', `${state}|${verifier}|${safeNext(next)}`, 600) }; };
 export const robloxOAuthFinish = async (req, params) => {
   const [state, verifier, next] = (cookies(req).ov_rbx || '').split('|');
   if (!state || state !== params.get('state')) throw new Error('The Roblox link expired. Please try again.');
   if (params.get('error')) throw new Error('Linking with Roblox was cancelled.');
   const tok = await fetch(RAPI + '/v1/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: RID, client_secret: RSECRET, grant_type: 'authorization_code', code: params.get('code') || '', code_verifier: verifier || '', redirect_uri: base(req) + '/auth/roblox/callback' }) }).then(r => r.json()).catch(() => ({}));
+    body: new URLSearchParams({ client_id: RID, client_secret: RSECRET, grant_type: 'authorization_code', code: params.get('code') || '', code_verifier: verifier || '', redirect_uri: rbxRedirect(req) }) }).then(r => r.json()).catch(() => ({}));
   if (!tok.access_token) throw new Error('Roblox did not accept the link. Please try again.');
   const me = await fetch(RAPI + '/v1/userinfo', { headers: { authorization: `Bearer ${tok.access_token}` } }).then(r => r.json()).catch(() => ({}));
   if (!me.sub) throw new Error('Could not read your Roblox account.');

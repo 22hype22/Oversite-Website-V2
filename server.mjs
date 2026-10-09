@@ -121,6 +121,8 @@ const route = async (req, res) => {
   if (path === '/terms') return redirect(res, 'https://www.oversite.shop/terms');
   if (path === '/auth/roblox') { if (!auth.robloxOAuthReady()) return msg(res, auth.currentUser(req), 'Roblox linking is not set up yet', 'The site owner needs to add the Roblox app keys first.', { href: '/dashboard', label: 'Back' });
     const { url: to, cookie } = auth.robloxOAuthStart(req, url.searchParams.get('next') || '/dashboard'); return redirect(res, to, { 'set-cookie': cookie }); }
+  // end of the second-tab flow: tell the page that opened it, then close; opened directly it just goes to the dashboard
+  if (path === '/auth/roblox/done') return html(res, `<!doctype html><meta charset="utf-8"><title>Linked</title><body style="background:#0B0C0E;color:#F0F2F5;font:15px system-ui;display:grid;place-items:center;height:100vh;margin:0"><p>Roblox linked. You can close this tab.</p><script>try{if(window.opener&&!window.opener.closed){window.opener.postMessage({ov:'roblox-linked'},location.origin);window.close()}}catch(e){}setTimeout(()=>{location.replace('/dashboard')},600)</script>`);
   if (path === '/auth/roblox/callback') { try { const { user, next } = await auth.robloxOAuthFinish(req, url.searchParams); return redirect(res, next, { 'set-cookie': [auth.signIn(req, user.id), auth.setCookie(req, 'ov_rbx', '', 0)] }); }
     catch (e) { const u = auth.currentUser(req); return msg(res, u, 'Could not link Roblox', e.message, { href: u ? '/dashboard' : '/', label: 'Back' }, 400); } }
   if (path === '/auth/discord') { if (!auth.discordReady()) return msg(res, auth.currentUser(req), 'Discord sign-in is not set up yet', 'The site owner needs to connect a Discord application first.', { href: '/', label: 'Back' });
