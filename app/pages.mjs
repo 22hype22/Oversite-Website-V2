@@ -9,7 +9,7 @@ body{font:14px/1.5 "Geist",system-ui,-apple-system,"Segoe UI",sans-serif;color:v
 a{color:inherit}
 .top{display:flex;align-items:center;gap:12px;padding:16px 24px;max-width:1180px;margin:0 auto}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;letter-spacing:-.01em}
-.brand i{width:30px;height:30px;border-radius:9px;background:rgba(28,28,31,.8);border:1px solid var(--hair);display:grid;place-items:center}.brand img{width:17px;height:17px}
+.brand i{display:grid;place-items:center}.brand img{height:26px;width:auto;display:block}
 .top .sp{flex:1}
 .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);text-decoration:none;padding:3px 10px 3px 3px;border-radius:999px;transition:background .15s,color .15s}.who:hover{background:rgba(255,255,255,.06);color:var(--ink)}
 .sp-head{display:flex;align-items:center;gap:16px;margin:4px 0 14px}
@@ -73,7 +73,7 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .teams{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;align-items:center}.teams span{font-size:13px}
 .hero{min-height:calc(100dvh - 70px);display:grid;place-items:center;padding:24px}
 .hero .box{width:min(460px,100%);text-align:center}
-.hero .mark{width:52px;height:52px;border-radius:15px;background:rgba(28,28,31,.8);border:1px solid var(--hair);display:grid;place-items:center;margin:0 auto 20px}.hero .mark img{width:28px;height:28px}
+.hero .mark{display:flex;justify-content:center;margin:0 auto 20px}.hero .mark img{height:66px;width:auto;display:block}
 .hero h1{font-size:34px;margin:0 0 8px}.hero .lead{margin:0 auto 26px}
 .hero .actions{display:grid;gap:10px}
 .hero.wide .box{width:min(820px,100%)}
@@ -152,7 +152,7 @@ export const INTRO_HEAD = `<script>try{if(sessionStorage.getItem('ov_intro_seen'
 export const RANK_LABEL = { owner: 'Owner', co_owner: 'Co-Owner', admin: 'Admin', mod: 'Mod', member: 'Member', staff: 'Admin' };
 const runs = r => r === 'owner' || r === 'co_owner';
 export const layout = ({ title, logo, user, body, bg = true, top = true, script = '' }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)}</title><link rel="icon" type="image/png" href="data:image/png;base64,${logo}"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416">
+<title>${esc(title)}</title><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/icon-192.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>${INTRO_HEAD}<script src="/dropdown.js?v=1" defer></script></head><body>${bg ? '<div class="bg"></div>' : ''}
 ${top ? `<header class="top"><a class="brand" href="${user ? '/account' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i>Oversite</a><span class="sp"></span>
