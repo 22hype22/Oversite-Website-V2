@@ -1,5 +1,6 @@
 // Sign-in (Discord, or an owner code until Discord is set up), sessions, and Roblox account linking.
 import { users, sessions, roblox, token, communities, members, codes, codeOk, normCode, newCode } from './db.mjs';
+import { createHash } from 'node:crypto';
 
 export const cookies = req => Object.fromEntries((req.headers.cookie || '').split(/;\s*/).filter(Boolean).map(c => { const i = c.indexOf('='); return [c.slice(0, i), decodeURIComponent(c.slice(i + 1))]; }));
 const secure = req => ((req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : '');
@@ -46,6 +47,35 @@ export const ownerLogin = (req, code) => { const ip = (req.headers['x-forwarded-
   if (Date.now() < a.until) return { error: 'Too many tries. Wait a minute.' };
   if (!ownerLoginOn() || code !== OWNER_CODE) { a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } tries.set(ip, a); return { error: 'That code is not right.' }; }
   tries.delete(ip); let u = users.localOwner(); if (!u) u = users.byId(users.create({ name: 'Owner', is_local_owner: 1 })); return { user: u }; };
+
+// ── Roblox sign-in (OAuth, "Log in with Roblox"): Roblox itself confirms which account is theirs, so the link is always right.
+// The app lives under the Oversite Customs group on Roblox (Creator Dashboard, Credentials, OAuth 2.0 Apps); redirect: <site>/auth/roblox/callback
+const RID = process.env.ROBLOX_CLIENT_ID || '', RSECRET = process.env.ROBLOX_CLIENT_SECRET || '', RAPI = process.env.ROBLOX_OAUTH || 'https://apis.roblox.com/oauth';
+export const robloxOAuthReady = () => !!(RID && RSECRET);
+export const robloxOAuthStart = (req, next) => { const state = token(16), verifier = token(32), challenge = createHash('sha256').update(verifier).digest('base64url');
+  const url = `${RAPI}/v1/authorize?${new URLSearchParams({ client_id: RID, redirect_uri: base(req) + '/auth/roblox/callback', response_type: 'code', scope: 'openid profile', state, code_challenge: challenge, code_challenge_method: 'S256' })}`;
+  return { url, cookie: setCookie(req, 'ov_rbx', `${state}|${verifier}|${safeNext(next)}`, 600) }; };
+export const robloxOAuthFinish = async (req, params) => {
+  const [state, verifier, next] = (cookies(req).ov_rbx || '').split('|');
+  if (!state || state !== params.get('state')) throw new Error('The Roblox link expired. Please try again.');
+  if (params.get('error')) throw new Error('Linking with Roblox was cancelled.');
+  const tok = await fetch(RAPI + '/v1/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: RID, client_secret: RSECRET, grant_type: 'authorization_code', code: params.get('code') || '', code_verifier: verifier || '', redirect_uri: base(req) + '/auth/roblox/callback' }) }).then(r => r.json()).catch(() => ({}));
+  if (!tok.access_token) throw new Error('Roblox did not accept the link. Please try again.');
+  const me = await fetch(RAPI + '/v1/userinfo', { headers: { authorization: `Bearer ${tok.access_token}` } }).then(r => r.json()).catch(() => ({}));
+  if (!me.sub) throw new Error('Could not read your Roblox account.');
+  const rid = String(me.sub), rname = me.preferred_username || me.nickname || me.name || 'Roblox user', avatar = me.picture || null;
+  const current = currentUser(req), existing = users.byRoblox(rid); let u;
+  if (current && existing && existing.id !== current.id) {                     // this Roblox account already has an Oversite account (another device): fold this one into it
+    if (current.discord_id && existing.discord_id && current.discord_id !== existing.discord_id) throw new Error('That Roblox account is already linked to a different Oversite account.');
+    const discord = current.discord_id && !existing.discord_id ? current.discord_id : null;
+    users.merge(current.id, existing.id); if (discord) users.update(existing.id, { discord_id: discord }); u = users.byId(existing.id);
+  } else if (current) u = current;
+  else if (existing) u = existing;                                             // signing in with Roblox to an account that is already linked
+  else throw new Error('No Oversite account uses that Roblox account yet. Join your server with its code first, then link Roblox from your dashboard.');
+  users.update(u.id, { roblox_id: rid, roblox_name: rname, roblox_via: 'oauth', ...(['Owner', 'Member'].includes(u.name) ? { name: rname } : {}), ...(!u.avatar && avatar ? { avatar } : {}) });
+  roblox.clear(u.id);
+  return { user: users.byId(u.id), next: safeNext(next) }; };
 
 // ── Roblox linking: the user puts a short phrase in their Roblox profile "About"; Roblox's public API confirms it ──
 const WORDS = 'amber anchor apple arrow aspen badge banner beacon birch bison blaze bolt brook cactus canyon cedar cobalt comet coral crane delta ember falcon fern fjord flint forest frost garnet glacier harbor hawk hazel heron indigo iris jade juniper kestrel lantern lemon lotus maple marble meadow mesa mint nova oak ocean olive onyx orbit otter pebble pine plume quartz raven reef ridge river robin rocket sable sage sierra slate spruce summit sunset thunder tiger topaz tulip valley violet willow'.split(' ');

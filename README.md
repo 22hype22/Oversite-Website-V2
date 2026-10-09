@@ -30,9 +30,20 @@ Opens on http://localhost:8080.
 | `ACCESS_CODE` | Puts the whole site behind a numeric preview code. Also the owner sign-in code unless `OWNER_CODE` is set. |
 | `OWNER_CODE`, `OWNER_LOGIN=1` | Optional site-wide owner sign-in (off by default; server codes replace it). |
 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | Turn on "Continue with Discord". |
+| `ROBLOX_CLIENT_ID`, `ROBLOX_CLIENT_SECRET` | Turn on "Link with Roblox" and "Sign in with Roblox" (replaces typing a username). |
 | `PUBLIC_URL` | Optional, e.g. `https://www.oversitescad.com`; used for the Discord redirect and invite links. |
 | `APP_SECRET` | Optional; encrypts server keys. Without it a random secret is created next to the database. |
 | `DATA_DIR` | Where the database lives (default `/data` if present, else `./.data`). |
+
+## Roblox account linking
+
+Players link their Roblox account by signing in on roblox.com (OAuth), so the link is always the right account.
+
+1. In the Roblox Creator Dashboard (create.roblox.com), switch the owner at the top left to the **Oversite Customs** group, then open **Credentials, OAuth 2.0 Apps** and create an app.
+2. Redirect URL: `https://www.oversitescad.com/auth/roblox/callback`. Scopes: `openid` and `profile`.
+3. Add `ROBLOX_CLIENT_ID` and `ROBLOX_CLIENT_SECRET` to the Railway service variables and redeploy.
+
+Until those are set, the dashboard falls back to verifying a phrase on the player's Roblox profile.
 
 ## Discord sign-in
 

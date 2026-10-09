@@ -37,6 +37,7 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .btn:hover{background:rgba(255,255,255,.1)}.btn:active{transform:scale(.98)}.btn[disabled]{opacity:.5;pointer-events:none}
 .btn.pri{background:#F0F2F5;color:#0B0B0C;border-color:#F0F2F5}.btn.pri:hover{background:#fff}
 .btn.discord{background:#5865F2;border-color:#5865F2;color:#fff}.btn.discord:hover{background:#6873f5}
+.btn.roblox{width:100%;padding:12px 16px;font-weight:600;background:#F0F2F5;color:#0B0B0C;border-color:#F0F2F5}.btn.roblox:hover{background:#fff}
 .btn.danger{color:#F3A3A3;border-color:rgba(226,75,75,.4)}.btn.danger:hover{background:rgba(226,75,75,.12)}
 .btn.sm{padding:6px 12px;font-size:12.5px}
 .msg{font-size:13px;margin-top:10px;min-height:1em}.msg:empty{display:none}.msg.ok{color:var(--ok)}.msg.err{color:#F3A3A3}
@@ -117,7 +118,7 @@ ${top ? `<header class="top"><a class="brand" href="${user ? '/dashboard' : '/'}
 ${user ? `<span class="who">${user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc(user.name.slice(0, 1).toUpperCase())}</span>`}${esc(user.name)}</span><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
 ${body}<script>${JS}${script}</script></body></html>`;
 
-export const landing = ({ logo, discord, owner, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
+export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
 <section class="hero wide notop"><div class="box">
 <div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div>
 <h1><b>Oversite</b> CAD</h1>
@@ -125,7 +126,7 @@ export const landing = ({ logo, discord, owner, next = '/dashboard', error = '' 
 <div class="paths">
 <form class="card path" id="codeform" autocomplete="off"><h2>Join your server</h2><p class="note">Enter the code your server owner gave you.</p>
 <input id="code" placeholder="Server code" aria-label="Server code" autocapitalize="characters" spellcheck="false" required>
-<button class="btn pri">Sign in</button><p class="msg" id="codemsg"></p></form>
+<button class="btn pri">Sign in</button><p class="msg" id="codemsg"></p>${roblox ? '<div class="or">already linked Roblox?</div><a class="btn" href="/auth/roblox?next=/dashboard">Sign in with Roblox</a>' : ''}</form>
 <form class="card path" id="makeform" autocomplete="off"><h2>Create a server</h2><p class="note">Set up a CAD for your ER:LC server.</p>
 <input id="mname" maxlength="48" placeholder="Server name" aria-label="Server name" required>
 <input id="mslug" maxlength="32" placeholder="address" aria-label="Address" required><p class="hint addr">oversitescad.com/c/<span id="slugp">your-server</span></p>
@@ -146,7 +147,7 @@ ms.addEventListener('input',()=>{touched=true;ms.value=slugify(ms.value);sp.text
 document.getElementById('makeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/create',{name:mn.value.trim(),slug:ms.value,ownerCode:document.getElementById('mcode').value},document.getElementById('makemsg'))});
 ` });
 
-export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord }) => layout({ title: 'Dashboard · Oversite', logo, user, body: `
+export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord, robloxOAuth }) => layout({ title: 'Dashboard · Oversite', logo, user, body: `
 <main class="dash"><h1>Welcome back, <b>${esc(user.roblox_name || user.name)}</b></h1><p class="lead">${comms.length ? (comms.length === 1 ? 'Open your CAD below.' : 'Pick a server to open its CAD.') : 'Join your server with the code from its owner, or create a new one.'}</p>
 ${welcome && !user.roblox_name ? `<section class="card" style="margin-bottom:18px;border-color:rgba(76,141,255,.35)"><h2>You're in ${esc(welcome.name)}</h2><p class="note" style="margin-bottom:10px">Link your Roblox account on the right so the CAD knows which player you are and opens your department's MDT. Or skip it for now.</p><a class="btn sm" href="/c/${esc(welcome.slug)}">Skip and open the CAD</a></section>` : ''}
 <div class="grid"><div>
@@ -165,7 +166,8 @@ ${comms.map(c => { const admin = c.role !== 'member', setup = !c.connected && ad
 <div class="row" style="margin-top:14px"><button class="btn pri">Create server</button></div><p class="msg" id="cmsg"></p></form></details></section>
 </div><div>
 <section class="card" id="rbx"><h2 class="hrow">Your Roblox account${user.roblox_name ? '<span class="tag ok">Linked</span>' : '<span class="tag warn">Not linked</span>'}</h2>
-${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>${user.roblox_via === 'discord' ? ', the Roblox account verified on your Discord' : ''}. Your servers use this to find you in game and open your department's MDT.</p>${user.roblox_via === 'discord' ? '<p class="hint" style="margin:-6px 0 0">To change it, change the Roblox connection in Discord and sign in with Discord again.</p>' : '<button class="btn sm" id="unlink">Unlink</button>'}`
+${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>${user.roblox_via === 'discord' ? ', the Roblox account verified on your Discord' : user.roblox_via === 'oauth' ? ', confirmed by Roblox' : ''}. Your servers use this to find you in game and open your department's MDT.</p>${user.roblox_via === 'discord' ? '<p class="hint" style="margin:-6px 0 0">To change it, change the Roblox connection in Discord and sign in with Discord again.</p>' : '<button class="btn sm" id="unlink">Unlink</button>'}`
+: robloxOAuth ? `<p class="note">The CAD uses it to find you on the map and open your department\'s MDT.</p><a class="btn roblox" href="/auth/roblox?next=/dashboard">Link with Roblox</a><p class="hint" style="margin:10px 0 0">You sign in on roblox.com and pick your account there, so it is always the right one. Oversite only sees your username and avatar.</p>${discord ? '<a class="btn discord sm" href="/auth/discord?next=/dashboard" style="margin-top:12px">Or use the Roblox account on my Discord</a>' : ''}`
 : pending ? `<p class="note">Add this phrase anywhere in the <b>About</b> section of <a href="https://www.roblox.com/users/${esc(pending.roblox_id)}/profile" target="_blank" rel="noopener">${esc(pending.roblox_name)}'s profile</a>, save, then press Verify. You can remove it afterwards.</p>
 <div class="phrase">${esc(pending.phrase)}</div><div class="row"><button class="btn pri" id="verify">Verify</button><button class="btn sm" id="restart">Use a different account</button></div><p class="msg" id="rmsg"></p>`
 : `<p class="note">The CAD uses it to find you on the map and open your department\'s MDT. No password needed.</p>${discord ? `<a class="btn discord" href="/auth/discord?next=/dashboard" style="width:100%">Use the Roblox account on my Discord</a><p class="hint" style="margin:8px 0 2px">Works if Roblox is connected in Discord (Settings, Connections). Or link it here:</p>` : ''}<form id="rstart" autocomplete="off"><label for="ruser">Roblox username</label><input id="ruser" placeholder="Your Roblox username" required><div class="row" style="margin-top:12px"><button class="btn pri">Continue</button></div><p class="msg" id="rmsg"></p></form>`}
