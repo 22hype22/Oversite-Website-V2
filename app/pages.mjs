@@ -24,6 +24,8 @@ a{color:inherit}
 .sp-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-top:10px}
 .sp-facts small{display:block;color:var(--faint);font-size:11px}.sp-facts b{display:block;font-size:13px;font-weight:500;margin-top:2px;overflow-wrap:anywhere}
 .sp-facts code{font-family:ui-monospace,"Geist Mono",monospace;font-size:12.5px}
+.sp-inv{display:flex;align-items:center;background:var(--field);border:1px solid var(--hair2);border-radius:10px;transition:border-color .15s}.sp-inv:focus-within{border-color:rgba(240,242,245,.45)}
+.sp-inv span{padding:0 0 0 12px;color:var(--faint);white-space:nowrap}.sp-inv input{border:0;background:none;padding-left:1px}
 .sp-who{display:inline-flex;align-items:center;gap:6px}.sp-who img{width:18px;height:18px;border-radius:50%;background:#2a2d33}
 #spForm textarea{width:100%;resize:vertical;min-height:72px}
 label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--dim);cursor:pointer}label.chk input{width:auto;margin:0}
@@ -305,7 +307,7 @@ ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.
 <div class="row" style="margin-top:8px"><button type="button" class="btn sm" id="spUp">Upload icon</button>${iconKind === 'custom' ? '<button type="button" class="btn sm" id="spDefault">Use default</button>' : ''}<input type="file" id="spFile" accept="image/png,image/jpeg,image/webp" hidden></div></div></div>
 <div class="sp-erlc"><div class="sp-erlch"><span>From ER:LC</span><button type="button" class="lnk" id="spRefresh">${E.at ? 'Refresh' : 'Load from ER:LC'}</button></div>${E.at ? `<div class="sp-facts">${facts}</div>` : `<p class="hint" style="margin:6px 0 0">${keyStatus.connected ? 'Loading your server details…' : 'Connect your ER:LC server above to fill this in.'}</p>`}</div>
 <form id="spForm"><label for="spBio">Bio</label><textarea id="spBio" maxlength="300" rows="3" placeholder="What your server is about: the vibe, the rules, what makes it different.">${esc(P.bio || '')}</textarea><p class="hint" style="text-align:right;margin:4px 0 0"><span id="spCount">${(P.bio || '').length}</span> / 300</p>
-<label for="spInv">Discord invite</label><input id="spInv" maxlength="60" placeholder="https://discord.gg/yourserver" value="${esc(P.invite || '')}" spellcheck="false">
+<label for="spInv">Discord invite</label><div class="sp-inv"><span>discord.gg/</span><input id="spInv" maxlength="80" placeholder="yourserver" value="${esc((P.invite || '').replace(/^https:\/\/discord\.gg\//, ''))}" spellcheck="false" autocomplete="off"></div><p class="hint" style="margin:4px 0 0">Just the code is enough. Pasting a full invite link works too.</p>
 <label class="chk"><input type="checkbox" id="spList"${P.listed ? ' checked' : ''}> List this server in the server browser when it launches</label>
 <div class="row" style="margin-top:14px"><button class="btn pri">Save profile</button></div><p class="msg" id="spMsg"></p></form></section>`; })()}
 <section class="card"><h2>Departments</h2><p class="note">Rename the departments for your server, and choose which in-game team belongs to each.</p>
@@ -335,6 +337,8 @@ ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p
 const A='/c/${esc(c.slug)}/api';
 // ── server profile ──
 (()=>{const P=document.getElementById('profile');if(!P)return;const m=document.getElementById('spMsg'),f=document.getElementById('spFile');
+const inv=document.getElementById('spInv'),code=v=>{const m=/(?:discord\\.gg|discord(?:app)?\\.com\\/invite)\\/([A-Za-z0-9-]{2,32})/i.exec(v);return m?m[1]:v.trim()};
+inv.addEventListener('input',()=>{if(/discord/i.test(inv.value))inv.value=code(inv.value)});
 const bio=document.getElementById('spBio');bio.addEventListener('input',()=>{document.getElementById('spCount').textContent=bio.value.length});
 document.getElementById('spForm').addEventListener('submit',async e=>{e.preventDefault();try{await api(A+'/profile/save',{bio:bio.value,invite:document.getElementById('spInv').value,listed:document.getElementById('spList').checked});say(m,'Profile saved.',true)}catch(x){say(m,x.message)}});
 const pick=()=>f.click();document.getElementById('spPick').addEventListener('click',pick);document.getElementById('spUp').addEventListener('click',pick);

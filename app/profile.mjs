@@ -5,7 +5,8 @@ import { communities, communityIcons, users } from './db.mjs';
 const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg';
 const RUSERS = process.env.ROBLOX_USERS_API || 'https://users.roblox.com';
 const BIO_MAX = 300, ICON_MAX = 300000;
-const INVITE = /^(https?:\/\/)?(www\.)?(discord\.gg|discord\.com\/invite)\/[A-Za-z0-9-]{2,32}\/?$/;
+// an invite can be typed as just its code or pasted as any discord.gg / discord.com/invite link; it is stored as https://discord.gg/<code>
+const inviteCode = t => { t = String(t || '').trim().replace(/^<|>$/g, ''); const m = /^(?:https?:\/\/)?(?:www\.)?(?:discord\.gg|discord(?:app)?\.com\/invite)\/([A-Za-z0-9-]{2,32})\/?(?:\?.*)?$/i.exec(t) || /^([A-Za-z0-9-]{2,32})$/.exec(t); return m ? m[1] : null; };
 
 // Roblox usernames for a set of user IDs, in one request
 const names = async ids => { ids = [...new Set(ids.map(Number).filter(Boolean))]; if (!ids.length) return {};
@@ -23,8 +24,8 @@ export const refresh = async c => { const key = communities.key(c.id); if (!key)
 
 export const save = (c, b) => { const bio = String(b.bio || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
   if (bio.length > BIO_MAX) return { error: `Keep the bio to ${BIO_MAX} characters.` };
-  let invite = String(b.invite || '').trim(); if (invite && !INVITE.test(invite)) return { error: 'That doesn\'t look like a Discord invite link (discord.gg/...).' };
-  if (invite && !/^https?:/.test(invite)) invite = 'https://' + invite;
+  const raw = String(b.invite || '').trim(), code = raw ? inviteCode(raw) : ''; if (code === null) return { error: 'That doesn\'t look like a Discord invite. Type the code after discord.gg/, like "libertyrp".' };
+  const invite = code ? 'https://discord.gg/' + code : '';
   const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), bio, invite, listed: !!b.listed }; communities.saveSettings(c.id, s); return { ok: true }; };
 
 // a custom icon arrives as a small data URL the browser already cropped and resized
