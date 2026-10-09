@@ -42,7 +42,6 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xp-tabs button svg{width:15px;height:15px}.xp-tabs button:hover{color:var(--ink)}.xp-tabs button[aria-selected="true"]{color:#0B0B0C;background:#F0F2F5}
 .xp-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .xr{position:relative;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;background:var(--panel);border:1px solid var(--hair);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);cursor:pointer;transition:border-color .2s,transform .25s cubic-bezier(.23,1,.32,1),box-shadow .25s}
-.xr::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;z-index:2;background:var(--sc,#62666D)}
 .xr.st-open{--sc:#46D07C}.xr.st-full{--sc:#E9B04C}
 .xr:hover{transform:translateY(-3px);border-color:rgba(240,242,245,.2);box-shadow:0 22px 44px -22px rgba(0,0,0,.85)}.xr:focus-visible{outline:2px solid rgba(240,242,245,.5);outline-offset:2px}
 .xr.is-top{border-color:rgba(240,242,245,.24);box-shadow:0 0 0 1px rgba(240,242,245,.06),0 24px 60px -30px rgba(200,215,255,.35)}
@@ -57,7 +56,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xr-rank{font-size:11.5px;font-weight:600;color:#E9EAEC;padding:4px 9px;border-radius:999px;background:rgba(8,9,11,.72);border:1px solid rgba(255,255,255,.08)}
 .xr-code{position:absolute;right:14px;bottom:12px;z-index:1;font:600 11.5px/1 ui-monospace,"Geist Mono",Menlo,monospace;letter-spacing:.06em;color:#E9EAEC;padding:5px 8px;border-radius:7px;background:rgba(8,9,11,.6);border:1px solid rgba(255,255,255,.12)}
 .xr-bar{position:absolute;left:0;right:0;bottom:0;z-index:1;height:2px;background:rgba(255,255,255,.06)}.xr-bar i{display:block;height:100%;background:var(--sc,#46D07C);box-shadow:0 0 10px var(--sc,#46D07C)}
-.xr-b{display:flex;flex-direction:column;gap:12px;padding:0 18px 18px 21px;flex:1}
+.xr-b{display:flex;flex-direction:column;gap:12px;padding:0 18px 18px;flex:1}
 .xr-h{display:flex;align-items:flex-end;gap:14px;margin-top:-30px;position:relative;z-index:1}
 .xr-ic{position:relative;overflow:hidden;flex:none;width:64px;height:64px;border-radius:17px;display:grid;place-items:center;font-size:24px;font-weight:700;background:linear-gradient(160deg,#2d3440,#1b1f26);border:3px solid #141517;box-shadow:0 10px 22px rgba(0,0,0,.45)}
 .xr-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -68,7 +67,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xr-b p{margin:0;color:#C9CDD3;font-size:13.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:3em}.xr-b p.none{color:var(--faint)}
 .xr-f{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:12px;border-top:1px solid var(--hair)}
 .xr-d,.xr-t{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
-.xd{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#D5D8DD;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid var(--hair2)}.xd i{width:7px;height:7px;border-radius:2px;background:var(--c)}
+.xd{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#D5D8DD;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid var(--hair2)}
 .xr-a{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .xb{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:500;padding:8px 14px;border-radius:999px;border:1px solid var(--hair2);background:rgba(240,242,245,.06);color:var(--ink);text-decoration:none;white-space:nowrap;cursor:pointer;transition:background .15s,transform .15s cubic-bezier(.23,1,.32,1),border-color .15s}
 .xb:hover{background:rgba(240,242,245,.12)}.xb:active{transform:scale(.97)}.xb small{color:var(--dim);font-weight:500;font-size:12px}
@@ -385,8 +384,7 @@ const ic=x=>'<span class="xr-ic">'+e(x.name.slice(0,1).toUpperCase())+'<img src=
 const spot=x=>{ let h=0; for(const c of x.slug) h=(h*31+c.charCodeAt(0))>>>0; return (12+h%76)+'% '+(14+(h>>>8)%72)+'%'; };
 const state=x=>!x.live||x.players==null?'off':full(x)?'full':'open';
 const status=x=>state(x)==='off'?'<span class="xs off"><i></i>Offline</span>':'<span class="xs '+state(x)+'"><i></i><b>'+x.players+'</b>'+(x.max?' / '+x.max:'')+' in game'+(full(x)?' · Full':'')+'</span>';
-const DCOL={pd:'#4C8DFF',fd:'#E24B4B',dot:'#E9C24C'};
-const depts=x=>x.depts.map(d=>'<span class="xd" style="--c:'+DCOL[d.k]+'" title="'+e(d.name)+'"><i></i>'+e(d.short)+'</span>').join('');
+const depts=x=>x.depts.map(d=>'<span class="xd" title="'+e(d.name)+'">'+e(d.short)+'</span>').join('');
 const meta=x=>'<span title="Votes">'+STO+n(x.votes)+'</span>'+(x.dc_members!=null?'<span title="Discord members">'+PPL+n(x.dc_members)+'</span>':'')
   +(x.region?'<span>'+x.region.flag+' '+e(x.region.name)+'</span>':'')+(x.lang?'<span>'+e(x.lang.name)+'</span>':'');
 const by=x=>x.owner_name?'<span class="by">'+(x.owner_id?'<img src="/rbx/avatar/'+e(x.owner_id)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'by '+e(x.owner_name)+'</span>':'';
