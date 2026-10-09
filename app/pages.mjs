@@ -295,7 +295,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-leav
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
 export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main><h1><b>${esc(c.name)}</b> settings</h1><p class="lead">${isNew ? 'Your server is ready. Connect it to ER:LC, then give your members the member code.' : 'Manage your server connection, codes, departments and members.'}</p>
-<div class="row" style="margin:-8px 0 20px"><a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn sm" href="/dashboard">All servers</a></div>
+<div class="row" style="margin:-8px 0 20px"><a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a></div>
 ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord server to finish</h2><p class="note">Every Oversite server is tied to its Discord. Members can't open the CAD until it's connected, and it's where you pick which Discord roles are Admin and Mod.</p></div><a class="btn discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord server</a></section>` : ''}
 <div class="grid"><div>
 <section class="card"><h2>ER:LC server</h2>
