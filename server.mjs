@@ -191,7 +191,7 @@ input{position:absolute;opacity:0;width:1px;height:1px;left:-9999px}
 .hint{color:var(--faint);font-size:12px}.msg{color:#F0A0A0;font-size:13px;margin:0 0 8px}
 @media (max-width:420px){.boxes{gap:6px}.boxes i{width:44px;height:56px;font-size:24px}}
 @media (prefers-reduced-motion:reduce){form.shake .boxes{animation:none}}
-</style></head><body><div class="map"></div><div class="wrap">
+</style>${pages.INTRO_HEAD}</head><body><div class="map"></div><div class="wrap">
 <form method="post" action="/unlock" autocomplete="off" id="f" class="${m ? 'err shake' : ''}">
 <div class="mark"><img src="data:image/png;base64,${LOGO}" alt=""></div>
 <h1><b>Oversite</b> is in private preview</h1><p>Enter your ${['four', 'five', 'six', 'seven', 'eight'][n - 4]}-digit access code.</p>
@@ -211,7 +211,7 @@ const unlock = (req, res, code, next = '/') => { const ip = ipOf(req), a = attem
   a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } attempts.set(ip, a); return html(res, lockPage('That code is not right.'), 401); };
 const gate = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = url.pathname;
-  if (path === '/health' || path === '/liberty-county.jpg') return route(req, res);
+  if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js') return route(req, res);
   if (path === '/unlock' && req.method === 'POST') { const f = await formBody(req); return unlock(req, res, String(f.get('code') || '').trim()); }
   if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });
   const q = url.searchParams.get('code'); if (q && CODE && !hasAccess(req)) { url.searchParams.delete('code'); return unlock(req, res, q.trim(), url.pathname + (url.search || '')); }

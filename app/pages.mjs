@@ -88,10 +88,13 @@ d.querySelector('[data-no]').onclick=()=>d.close('no');d.addEventListener('click
 d.addEventListener('close',()=>{d.classList.remove('in');res(d.returnValue==='yes');setTimeout(()=>d.remove(),200)});
 document.body.appendChild(d);d.showModal();requestAnimationFrame(()=>d.classList.add('in'));(inp||d.querySelector('[data-no]')).focus()});
 `;
+// Opener (preview/intro-splash.js): once per browser session. The cover goes up before first paint so the page never flashes first;
+// if the script never arrives the cover lifts by itself.
+export const INTRO_HEAD = `<script>try{if(sessionStorage.getItem('ov_intro_seen')!=='1'){const r=document.documentElement;r.classList.add('ov-intro');setTimeout(()=>r.classList.remove('ov-intro'),2500)}}catch(e){}</script><style>html.ov-intro::after{content:"";position:fixed;inset:0;z-index:2147483646;background:#07080A}</style><script src="/intro-splash.js" defer></script>`;
 export const layout = ({ title, logo, user, body, bg = true, script = '' }) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title><link rel="icon" type="image/png" href="data:image/png;base64,${logo}">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>${CSS}</style></head><body>${bg ? '<div class="bg"></div>' : ''}
+<style>${CSS}</style>${INTRO_HEAD}</head><body>${bg ? '<div class="bg"></div>' : ''}
 <header class="top"><a class="brand" href="${user ? '/dashboard' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i>Oversite</a><span class="sp"></span>
 ${user ? `<span class="who">${user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc(user.name.slice(0, 1).toUpperCase())}</span>`}${esc(user.name)}</span><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>
 ${body}<script>${JS}${script}</script></body></html>`;
