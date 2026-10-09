@@ -14,6 +14,7 @@ import * as staff from './app/staff.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin } from './app/admins.mjs';
+import { rude, RUDE_MSG } from './app/clean.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'preview');
 const PORT = +(process.env.PORT || 8080);
@@ -107,8 +108,8 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'profile/icon' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 5e5) || '{}'); } catch (e) {} const r = profile.setIcon(c, j.data); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon/remove' && M === 'POST') return json(res, profile.clearIcon(c));
   if (rest === 'settings' && M === 'POST') { const j = await jsonBody(req), s = c.settings;
-    const name = String(j.name || '').trim(); if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400);
-    for (const d of ['pd', 'fd', 'dot']) { const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); s.depts[d] = { name: n, short: sh }; }
+    const name = String(j.name || '').trim(); if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400); if (rude(name)) return json(res, { error: RUDE_MSG }, 400);
+    for (const d of ['pd', 'fd', 'dot']) { const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); if (rude(n) || rude(sh)) return json(res, { error: RUDE_MSG }, 400); s.depts[d] = { name: n, short: sh }; }
     for (const [t, d] of Object.entries(j.teams || {})) if (t in s.teams && ['pd', 'fd', 'dot', ''].includes(d)) s.teams[t] = d;
     communities.rename(c.id, name); communities.saveSettings(c.id, s); return json(res, { ok: true }); }
   if (rest === 'codes' && M === 'POST') { const j = await jsonBody(req); if (j.role === 'owner' && !can(role, 'owner')) return json(res, { error: 'Only owners can change the owner code.' }, 403);

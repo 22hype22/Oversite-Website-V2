@@ -1,4 +1,5 @@
 // Sign-in (Discord, or an owner code until Discord is set up), sessions, and Roblox account linking.
+import { rude, RUDE_MSG } from './clean.mjs';
 import { users, sessions, roblox, token, communities, members, codes, codeOk, normCode, newCode } from './db.mjs';
 import { createHash } from 'node:crypto';
 
@@ -111,6 +112,7 @@ export const codeSignIn = (req, user, code) => {
 export const createServer = (req, user, { name, slug, ownerCode }, RESERVED) => {
   name = String(name || '').trim(); slug = String(slug || '').trim().toLowerCase();
   if (name.length < 2 || name.length > 48) return { error: 'The server name must be 2 to 48 characters.' };
+  if (rude(name) || rude(slug.replace(/-/g, ' ')) || rude(slug.replace(/-/g, ''))) return { error: RUDE_MSG };
   if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(slug) || slug.includes('--')) return { error: 'The address must be 3 to 32 lowercase letters, numbers or single dashes.' };
   if (RESERVED.has(slug) || communities.bySlug(slug)) return { error: 'That address is taken. Try another.' };
   if (!codeOk(ownerCode)) return { error: 'The owner code must be 2 to 24 letters or numbers.' };

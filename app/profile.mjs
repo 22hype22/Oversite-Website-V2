@@ -1,5 +1,6 @@
 // A server's public profile: what ER:LC knows about it (name, join code, owner, size, rules), kept fresh from the API,
 // plus what only the owner can say (bio, icon, Discord invite). Saved now so the server browser can list servers later.
+import { rude, RUDE_MSG } from './clean.mjs';
 import { communities, communityIcons, users, members, votes } from './db.mjs';
 import * as discordlink from './discordlink.mjs';
 
@@ -37,7 +38,9 @@ export const refresh = async c => { const key = communities.key(c.id); if (!key)
 
 export const save = (c, b) => { const bio = String(b.bio || '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
   if (bio.length > BIO_MAX) return { error: `Keep the bio to ${BIO_MAX} characters.` };
+  if (rude(bio)) return { error: 'The bio has a word that isn\'t allowed on Oversite. Please change it.' };
   const raw = String(b.invite || '').trim(), code = raw ? inviteCode(raw) : ''; if (code === null) return { error: 'That doesn\'t look like a Discord invite. Type the code after discord.gg/, like "libertyrp".' };
+  if (code && rude(code)) return { error: RUDE_MSG };
   const invite = code ? 'https://discord.gg/' + code : '';
   const region = REGIONS[b.region] ? b.region : '', lang = LANGS[b.lang] ? b.lang : '';
   const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), bio, invite, listed: !!b.listed, region, lang }; communities.saveSettings(c.id, s); return { ok: true }; };
@@ -70,6 +73,7 @@ export const startDirectory = () => { let busy = false;
 // what anyone browsing may see about a listed server; `me` marks the ones this person already belongs to
 export const directory = me => { const mine = new Map((me ? communities.forUser(me.id) : []).map(m => [m.id, m.role]));
   const total = votes.totals(), week = votes.since(Date.now() - 7 * 86400000), voted = me ? votes.mine(me.id) : {};
+  const vr = users.verifiedRoblox();
   return communities.all().filter(c => c.settings.profile?.listed).map(c => { const P = c.settings.profile, E = P.erlc || {};
     return { slug: c.slug, name: c.name, bio: P.bio || '', invite: P.invite || '', players: E.players ?? null, max: E.max ?? null, join_key: E.join_key || '', ingame: E.name || '',
       owner_id: E.owner_id || '', owner_name: E.owner_name || '', co_owners: (E.co_owners || []).map(o => o.name).filter(Boolean), verified: E.verified || '', team_balance: !!E.team_balance,
@@ -77,7 +81,7 @@ export const directory = me => { const mine = new Map((me ? communities.forUser(
       role: mine.get(c.id) || null, live: !!E.at && Date.now() - E.at < 10 * 60000,
       votes: total[c.id] || 0, week: week[c.id] || 0, next_vote: voted[c.id] ? Math.max(0, voted[c.id] + VOTE_GAP - Date.now()) : 0,
       region: REGIONS[P.region] ? { code: P.region, name: REGIONS[P.region][0], flag: REGIONS[P.region][1] } : null, lang: LANGS[P.lang] ? { code: P.lang, name: LANGS[P.lang][0], flag: LANGS[P.lang][1] } : null,
-      dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, badge: !!c.verified }; }); };
+      dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, badge: !!c.verified, owner_badge: !!E.owner_id && vr.has(String(E.owner_id)) }; }); };
 
 // one vote per person per server every 12 hours
 export const vote = (me, slug) => { const c = communities.bySlug(String(slug || '')); if (!c || !c.settings.profile?.listed) return { error: 'That server is not listed.' };

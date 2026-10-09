@@ -62,7 +62,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xr-ic{position:relative;overflow:hidden;flex:none;width:64px;height:64px;border-radius:17px;display:grid;place-items:center;font-size:24px;font-weight:700;background:linear-gradient(160deg,#2d3440,#1b1f26);border:3px solid #141517;box-shadow:0 10px 22px rgba(0,0,0,.45)}
 .xr-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .xr-n{flex:1;min-width:0;padding-top:34px}.xr h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.by{display:inline-flex;align-items:center;gap:6px;color:var(--dim);font-size:12.5px;margin-top:2px}.by img{width:16px;height:16px;border-radius:50%;background:#2a2d33}
+.by{display:inline-flex;align-items:center;gap:0;color:var(--dim);font-size:12.5px;margin-top:2px}.by .vb{margin-left:5px;vertical-align:-1px}.by img{width:16px;height:16px;border-radius:50%;background:#2a2d33}
 .xr-mine{flex:none;align-self:flex-end;margin-top:34px;font-size:12px;font-weight:500;color:var(--ink);text-decoration:none;padding:6px 11px;border-radius:999px;border:1px solid var(--hair2);background:rgba(240,242,245,.06)}.xr-mine:hover{background:rgba(240,242,245,.12)}
 .xr-m{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;color:var(--dim);font-size:12.5px}.xr-m span{display:inline-flex;align-items:center;gap:6px}
 .xr-b p{margin:0;color:#C9CDD3;font-size:13.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:3em}.xr-b p.none{color:var(--faint)}
@@ -307,14 +307,14 @@ export const admin = ({ logo, user, servers }) => layout({ title: 'Verify · Ove
 <main class="adm"><h1>Verification</h1><p class="lead">Give servers and people the blue check ${vbadge(18)} Only you can see this page. It shows on Explore, on account pages and in member lists.</p>
 <div class="adm-cols">
 <section class="card"><div class="adm-h"><h2>Servers</h2><span id="sN"></span></div><input class="adm-q" id="sQ" type="search" placeholder="Search servers" aria-label="Search servers" autocomplete="off"><div class="adm-l" id="sL"></div></section>
-<section class="card"><div class="adm-h"><h2>People</h2><span id="pN"></span></div><input class="adm-q" id="pQ" type="search" placeholder="Search by name, Roblox name or ID" aria-label="Search people" autocomplete="off"><div class="adm-l" id="pL"></div></section>
+<section class="card"><div class="adm-h"><h2>People</h2><span id="pN"></span></div><input class="adm-q" id="pQ" type="search" placeholder="Search by Roblox or Discord name, or ID" aria-label="Search people" autocomplete="off"><div class="adm-l" id="pL"></div></section>
 </div></main>`, script: `
 const VB=${JSON.stringify(vbadge(15))};let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};
 const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ini=t=>e(String(t||'?').slice(0,1).toUpperCase());
 const btn=(k,id,on)=>'<button class="btn sm'+(on?' is-on':'')+'" data-k="'+k+'" data-id="'+id+'" data-on="'+(on?1:0)+'">'+(on?'Verified':'Verify')+'</button>';
 const sRow=x=>'<div class="adm-r'+(x.verified?' on':'')+'"><span class="pic sq">'+ini(x.name)+'<img src="/c/'+e(x.slug)+'/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>'+e(x.name)+(x.verified?VB:'')+'</b><small>/c/'+e(x.slug)+' · '+(x.owner_rbx||x.owner_name?'by '+e(x.owner_rbx||x.owner_name)+' · ':'')+x.members+' member'+(x.members===1?'':'s')+(x.listed?' · On Explore':'')+'</small></div>'+btn('server',x.id,x.verified)+'</div>';
-const pRow=x=>'<div class="adm-r'+(x.verified?' on':'')+'"><span class="pic">'+ini(x.roblox_name||x.name)+(x.roblox_id?'<img src="/rbx/avatar/'+e(x.roblox_id)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'</span><div class="tx"><b>'+e(x.roblox_name||x.name)+(x.verified?VB:'')+'</b><small>'+(x.roblox_name&&x.name!==x.roblox_name?e(x.name)+' · ':'')+(x.roblox_id?'Roblox '+e(x.roblox_id):'Roblox not linked')+(x.discord_id?' · Discord':'')+' · '+x.servers+' server'+(x.servers===1?'':'s')+'</small></div>'+btn('user',x.id,x.verified)+'</div>';
+const pRow=x=>'<div class="adm-r'+(x.verified?' on':'')+'"><span class="pic">'+ini(x.roblox_name)+'<img src="/rbx/avatar/'+e(x.roblox_id)+'" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>'+e(x.roblox_name)+(x.verified?VB:'')+'</b><small>Roblox '+e(x.roblox_id)+(x.discord?' · Discord '+e(x.discord_name||''):'')+' · '+x.servers+' server'+(x.servers===1?'':'s')+'</small></div>'+btn('user',x.id,x.verified)+'</div>';
 const sL=document.getElementById('sL'),sQ=document.getElementById('sQ'),pL=document.getElementById('pL'),pQ=document.getElementById('pQ');
 const drawS=()=>{const t=sQ.value.trim().toLowerCase(),L=S.filter(x=>!t||(x.name+' '+x.slug+' '+(x.owner_rbx||'')+' '+(x.owner_name||'')).toLowerCase().includes(t));
   sL.innerHTML=L.map(sRow).join('')||'<p class="adm-e">No servers match.</p>';document.getElementById('sN').textContent=S.filter(x=>x.verified).length+' verified of '+S.length};
@@ -414,7 +414,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-leav
 export const explore = ({ logo, user, servers, owned }) => layout({ title: 'Explore servers · Oversite CAD', logo, user, body: `
 <main class="xp"><div class="xp-head"><div><h1><span style="font-weight:400">Explore</span> <b>servers</b></h1><p class="lead">ER:LC servers running Oversite CAD. Vote for your favourites, jump in game, or join their Discord.</p></div>
 <div class="xp-tools"><label class="xp-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="xq" placeholder="Search servers" autocomplete="off" spellcheck="false" aria-label="Search servers"></label>
-<label class="chk xp-open"><input type="checkbox" id="xo"> Has open slots</label></div></div>
+</div></div>
 <nav class="xp-tabs" id="xt" role="tablist" aria-label="Sort servers">
 <button role="tab" data-t="trending" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Trending</button>
 <button role="tab" data-t="active" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 4v16l13-8z"/></svg>Active now</button>
@@ -429,7 +429,7 @@ export const explore = ({ logo, user, servers, owned }) => layout({ title: 'Expl
 <dialog class="xp-dlg" id="xd" aria-labelledby="xdT"><div class="xp-dlgin" id="xdB"></div></dialog>`, script: `
 let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};let TAB='trending';
 const ERLC='https://www.roblox.com/games/2534724415/Emergency-Response-Liberty-County';
-const g=document.getElementById('xg'),q=document.getElementById('xq'),op=document.getElementById('xo'),em=document.getElementById('xe'),dlg=document.getElementById('xd'),tabs=document.getElementById('xt');
+const g=document.getElementById('xg'),q=document.getElementById('xq'),em=document.getElementById('xe'),dlg=document.getElementById('xd'),tabs=document.getElementById('xt');
 const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n=v=>Number(v||0).toLocaleString();
 const DC='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg>';
@@ -437,7 +437,7 @@ const STAR='<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" 
 const PLAY='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg>';
 const PPL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2"/></svg>';
 const STO='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>';
-const VB=${JSON.stringify(vbadge(16))};
+const VB=${JSON.stringify(vbadge(16))},VBS=${JSON.stringify(vbadge(13))};
 const RN={owner:'Owner',co_owner:'Co-Owner',admin:'Admin',mod:'Mod',member:'Member'};
 const playing=x=>x.live&&x.players!=null?x.players:-1, full=x=>x.live&&x.max&&x.players>=x.max;
 const SORT={trending:x=>x.week*3+Math.max(0,playing(x))*2+x.votes*.2,active:x=>playing(x),popular:x=>x.dc_members??-1,voted:x=>x.votes,new:x=>x.created};
@@ -449,7 +449,7 @@ const state=x=>!x.live||x.players==null?'off':full(x)?'full':'open';
 const status=x=>state(x)==='off'?'<span class="xs off">Offline</span>':'<span class="xs '+state(x)+'"><b>'+x.players+'</b>'+(x.max?' / '+x.max:'')+' in game'+(full(x)?' · Full':'')+'</span>';
 const meta=x=>'<span title="Votes">'+STO+n(x.votes)+'</span>'+(x.dc_members!=null?'<span title="Discord members">'+PPL+n(x.dc_members)+'</span>':'')
   +(x.region?'<span>'+x.region.flag+' '+e(x.region.name)+'</span>':'')+(x.lang?'<span>'+e(x.region&&x.lang.name.endsWith('('+x.region.name+')')?x.lang.name.split(' (')[0]:x.lang.name)+'</span>':'');
-const by=x=>x.owner_name?'<span class="by">'+(x.owner_id?'<img src="/rbx/avatar/'+e(x.owner_id)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'by '+e(x.owner_name)+'</span>':'';
+const by=x=>x.owner_name?'<span class="by">by '+e(x.owner_name)+(x.owner_badge?VBS:'')+'</span>':'';
 const voteBtn=x=>x.next_vote>0?'<button class="xb ghost voted" data-vote="'+e(x.slug)+'" title="You can vote again in '+hrs(x.next_vote)+'">'+STAR+'Voted · '+hrs(x.next_vote)+'</button>'
   :'<button class="xb ghost" data-vote="'+e(x.slug)+'">'+STO+'Vote'+(x.votes?' <small>'+n(x.votes)+'</small>':'')+'</button>';
 const acts=x=>(x.join_key?'<a class="xb pri" href="'+ERLC+'" target="_blank" rel="noopener" data-play="'+e(x.join_key)+'">'+PLAY+'Play</a>':'')+voteBtn(x)
@@ -463,10 +463,10 @@ const card=(x,i)=>'<article class="xr st-'+state(x)+(i===0?' is-top':'')+'" tabi
   +'<div class="xr-f"><div class="xr-a">'+acts(x)+'</div></div></div></article>';
 const row=card;
 const render=()=>{ const t=q.value.trim().toLowerCase(), k=SORT[TAB];
-  const L=S.filter(x=>!t||[x.name,x.bio,x.owner_name,x.ingame,x.discord,x.region&&x.region.name,x.lang&&x.lang.name,...x.depts.map(d=>d.name+' '+d.short)].join(' ').toLowerCase().includes(t)).filter(x=>!op.checked||(x.live&&x.max&&x.players<x.max))
+  const L=S.filter(x=>!t||[x.name,x.bio,x.owner_name,x.ingame,x.discord,x.region&&x.region.name,x.lang&&x.lang.name,...x.depts.map(d=>d.name+' '+d.short)].join(' ').toLowerCase().includes(t))
     .sort((a,b)=>k(b)-k(a)||b.votes-a.votes||a.name.localeCompare(b.name));
   g.innerHTML=L.map(row).join(''); em.hidden=!!L.length;
-  if(!L.length) em.innerHTML=S.length?'<b>No servers match that.</b><p>Try a different search, or turn off "Has open slots".</p>'
+  if(!L.length) em.innerHTML=S.length?'<b>No servers match that.</b><p>Try a different search.</p>'
     :'<b>No servers are listed yet.</b><p>Owners can add theirs in their server\\'s Settings, under Server profile.</p>'+(OWNED.length?'<a class="btn pri" href="/c/'+e(OWNED[0])+'/settings#profile">List your server</a>':''); };
 const toast=m=>{ const t=document.getElementById('xtoast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),3200); };
 tabs.addEventListener('click',ev=>{ const b=ev.target.closest('[data-t]'); if(!b) return; TAB=b.dataset.t; tabs.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x===b)); render(); });
@@ -484,7 +484,7 @@ document.addEventListener('click',async ev=>{
   if(ev.target.closest('a,button')) return; const c=ev.target.closest('.xr'); if(c&&g.contains(c)) open(c.dataset.slug); });
 g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xr')){ ev.preventDefault(); open(ev.target.dataset.slug); } });
 dlg.addEventListener('click',ev=>{ if(ev.target===dlg||ev.target.closest('[data-close]')) dlg.close(); }); dlg.addEventListener('close',()=>dlg.classList.remove('in'));
-[q,op].forEach(i=>i.addEventListener(i===q?'input':'change',render)); render();
+q.addEventListener('input',render); render();
 setInterval(async()=>{ if(document.hidden||dlg.open) return; try{ const r=await fetch('/api/explore'); if(r.ok){ S=(await r.json()).servers; render(); } }catch(x){} },60000);   // live player counts
 ` });
 

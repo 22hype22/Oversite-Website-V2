@@ -73,13 +73,18 @@ export const users = {
   localOwner: () => q('SELECT * FROM users WHERE is_local_owner = 1').get(),
   create: ({ discord_id = null, name, avatar = null, is_local_owner = 0 }) => q('INSERT INTO users (discord_id, name, avatar, is_local_owner, created) VALUES (?, ?, ?, ?, ?)').run(discord_id, name, avatar, is_local_owner, now()).lastInsertRowid,
   update: (id, f) => { for (const [k, v] of Object.entries(f)) if (['discord_id', 'name', 'avatar', 'roblox_id', 'roblox_name', 'roblox_via'].includes(k)) q(`UPDATE users SET ${k} = ? WHERE id = ?`).run(v, id); },
-  setVerified: (id, on) => q('UPDATE users SET verified = ? WHERE id = ?').run(on ? 1 : 0, id).changes,
-  // for the verification page: name, Roblox name or either ID; newest first when there is nothing to search
+  // the check belongs to the person, so every account on the same Roblox gets it
+  setVerified: (id, on) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(id); if (!u) return 0;
+    return u.roblox_id ? q('UPDATE users SET verified = ? WHERE roblox_id = ?').run(on ? 1 : 0, u.roblox_id).changes : q('UPDATE users SET verified = ? WHERE id = ?').run(on ? 1 : 0, id).changes; },
+  verifiedRoblox: () => new Set(q('SELECT DISTINCT roblox_id FROM users WHERE verified = 1 AND roblox_id IS NOT NULL').all().map(r => String(r.roblox_id))),
+  // for the verification page: only real people (a linked Roblox account; code-only "Owner"/"Member" placeholders are left out),
+  // one row per Roblox account; searched by Roblox name, Discord name or either ID, newest first when there is nothing to search
   search: (term, limit = 40) => { const t = String(term || '').trim();
-    const cols = 'u.id, u.name, u.avatar, u.discord_id, u.roblox_id, u.roblox_name, u.verified, u.created, (SELECT COUNT(*) FROM members m WHERE m.user_id = u.id) AS servers';
-    if (!t) return q(`SELECT ${cols} FROM users u ORDER BY u.verified DESC, u.id DESC LIMIT ?`).all(limit);
+    const sel = `SELECT MIN(u.id) AS id, u.roblox_id, MAX(u.roblox_name) AS roblox_name, MAX(CASE WHEN u.discord_id IS NOT NULL THEN u.name END) AS discord_name, MAX(u.discord_id IS NOT NULL) AS discord, MAX(u.verified) AS verified,
+      (SELECT COUNT(DISTINCT m.community_id) FROM members m JOIN users x ON x.id = m.user_id WHERE x.roblox_id = u.roblox_id) AS servers, MAX(u.id) AS newest FROM users u WHERE u.roblox_id IS NOT NULL`;
+    if (!t) return q(`${sel} GROUP BY u.roblox_id ORDER BY verified DESC, newest DESC LIMIT ?`).all(limit);
     const like = '%' + t.replace(/[%_\\]/g, c => '\\' + c) + '%';
-    return q(`SELECT ${cols} FROM users u WHERE u.name LIKE ? ESCAPE '\\' OR u.roblox_name LIKE ? ESCAPE '\\' OR u.discord_id = ? OR u.roblox_id = ? ORDER BY u.verified DESC, u.roblox_name IS NULL, u.name LIMIT ?`).all(like, like, t, t, limit); },
+    return q(`${sel} AND (u.roblox_name LIKE ? ESCAPE '\\' OR (u.discord_id IS NOT NULL AND u.name LIKE ? ESCAPE '\\') OR u.discord_id = ? OR u.roblox_id = ?) GROUP BY u.roblox_id ORDER BY verified DESC, roblox_name LIMIT ?`).all(like, like, t, t, limit); },
   byRoblox: rid => q('SELECT * FROM users WHERE roblox_id = ? ORDER BY id LIMIT 1').get(rid),
   // fold a duplicate account (same person signed in with a code on another device) into the one that already has their Roblox link
   merge: (from, into) => { for (const m of q('SELECT community_id, role FROM members WHERE user_id = ?').all(from)) { const cur = q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(m.community_id, into);
