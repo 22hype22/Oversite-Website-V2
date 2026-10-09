@@ -352,6 +352,7 @@ const flyTo = (x, z, dist = 520, az = 0.9, smooth = false) => { const y = height
   follow = false; flight = { t0: performance.now(), ms: 900, T0: controls.target.clone(), P0: camera.position.clone(), T, P }; };
 const rayc = new THREE.Raycaster(), ndc = new THREE.Vector2();
 const pick = (cx, cy) => { ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); rayc.setFromCamera(ndc, camera); const hit = rayc.intersectObject(ground, false)[0]; return hit ? [hit.point.x, hit.point.z] : null; };
+addEventListener('showcall', e => { const c = e.detail; if (c && Number.isFinite(c.x)) flyTo(c.x, c.y, 380); });   // "Show on live map" from a call card
 window.map3d = { zoomIn: () => dolly(0.78), zoomOut: () => dolly(1.28), toggleFollow, setTheme, setActive, reset, flyTo, pick,
   pose: () => [...camera.position.toArray(), ...controls.target.toArray()].map(n => +n.toFixed(2)), controls, info: () => ({ frames: renderer.info.render.frame, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, tex: renderer.info.memory.textures, pr, objects: (() => { let n = 0; scene.traverse(() => n++); return n; })() }) };
 window.map3dReady = true;

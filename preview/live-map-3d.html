@@ -579,6 +579,16 @@
   .detail{margin-top:10px;padding-top:6px;border-top:1px solid var(--line)}
   .det .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;font-size:13px;margin:4px 0 10px}
   .det .row2 span{color:var(--mute);display:block;font-size:12px;margin-bottom:2px} .det .row2 b{font-weight:600}
+  .cmap{position:relative;height:190px;margin:2px 0 12px;border-radius:var(--r);overflow:hidden;background:#3E6973;border:1px solid var(--hair)}
+  .cmap>img{position:absolute;left:0;top:0;max-width:none;user-select:none;pointer-events:none;transition:transform .35s cubic-bezier(.23,1,.32,1),width .35s cubic-bezier(.23,1,.32,1),height .35s cubic-bezier(.23,1,.32,1)}
+  .cmap .cm-pin{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--red);border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.5)}
+  .cmap .cm-pin i{position:absolute;inset:-9px;border-radius:50%;border:2px solid var(--red);animation:callring 1.8s cubic-bezier(.32,.72,0,1) infinite}
+  .cmap .cm-ctl{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
+  .cmap .cm-ctl button,.cmap .cm-open{font:inherit;color:#E9EAEC;background:rgba(12,13,15,.82);border:1px solid rgba(255,255,255,.14);cursor:pointer;backdrop-filter:blur(6px)}
+  .cmap .cm-ctl button{width:28px;height:28px;border-radius:8px;font-size:15px;line-height:1}
+  .cmap .cm-open{position:absolute;left:8px;bottom:8px;font-size:12px;font-weight:500;padding:6px 11px;border-radius:999px}
+  .cmap button:hover{background:rgba(30,31,35,.92)}
+  @media (prefers-reduced-motion:reduce){.cmap .cm-pin i{animation:none}.cmap>img{transition:none}}
   .det .notes{font-size:13px;color:#C9CCD3;line-height:1.5;padding:10px 12px;border-radius:var(--r);background:rgba(255,255,255,.04);margin-bottom:12px}
   .screen .btn{font-size:13px;font-weight:600;padding:9px 14px;border-radius:var(--r);background:#E9EAEC;color:#0C0D0F;border:1px solid transparent}
   .screen .btn:active{transform:translateY(1px)} .screen .btn:hover{background:#fff}
@@ -1068,7 +1078,7 @@
   <div class="tablet">
     <span class="cam"></span>
     <div class="screen">
-      <div class="sbar"><span id="tbClock">00:00</span><span class="sb-mid">Liberty County Fire Department</span><span class="sb-r"><svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="3" y="4" width="2" height="6" rx=".5"/><rect x="6" y="2" width="2" height="8" rx=".5"/><rect x="9" y="0" width="2" height="10" rx=".5"/></svg><svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="18" height="9" rx="2.5"/><rect x="2" y="2" width="13" height="6" rx="1.2" fill="currentColor" stroke="none"/><path d="M20 3.5v3" stroke-width="1.5"/></svg></span></div>
+      <div class="sbar"><span id="tbClock">00:00</span><span class="sb-mid" id="tbDept">Fire Department</span><span class="sb-r"><svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="3" y="4" width="2" height="6" rx=".5"/><rect x="6" y="2" width="2" height="8" rx=".5"/><rect x="9" y="0" width="2" height="10" rx=".5"/></svg><svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="18" height="9" rx="2.5"/><rect x="2" y="2" width="13" height="6" rx="1.2" fill="currentColor" stroke="none"/><path d="M20 3.5v3" stroke-width="1.5"/></svg></span></div>
       <div class="tbody">
         <nav class="tside" role="tablist" aria-label="MDT apps">
           <div class="crest" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 1-3s0 2 2 2c1 0 2-1 2-3 0-2-2-3-2-6 0 0 2 0 2 0z"/></svg>MDT</div>
@@ -1630,7 +1640,7 @@
   const STAGES = ['Dispatched', 'En route', 'On scene'];
   const CODES = { fd: new Set(['10-70', '10-50', '10-52', '10-45']), pd: new Set(['10-31', '10-32', '10-80', '10-38', '10-66', '10-91', '10-50']), dot: new Set(['10-53', '10-46']) };
   const fdCall = c => c.dept === DEPT() || (!c.unit && CODES[DEPT()].has(c.code));
-  const applyDept = () => { const d = DEPT(); const sb = document.querySelector('#mdt .sb-mid'); if (sb) sb.textContent = 'Liberty County ' + DEPT_NAME[d];
+  const applyDept = () => { const d = DEPT(); const sb = document.querySelector('#mdt .sb-mid'); if (sb) sb.textContent = DEPT_NAME[d];   // the department's own name from Settings, e.g. New York Fire Department
     const u = me(); const id = u ? u.id : ''; for (const el of document.querySelectorAll('#mdt [data-unit]')) el.dataset.unit = id; dispatchEvent(new CustomEvent('rebind')); };
   const fmtAge = s => s < 60 ? 'now' : s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h ${Math.floor(s / 60) % 60}m`;
   const hhmm = t => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -1681,15 +1691,34 @@
   $('fdCallRows').addEventListener('click', e => { const r = e.target.closest('[data-key]'); if (!r) return; selected = r.dataset.key; renderCalls(); });
   $('fdCallRows').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const r = e.target.closest('[data-key]'); if (r) { e.preventDefault(); selected = r.dataset.key; renderCalls(); } } });
   const cur = () => CALLS().find(c => key(c) === selected);
+  // the call card is updated in place: rebuilding it on every live update restarted its slide-in, so it pulsed
+  let detKey = null, detTop = '', detBot = '', cmZoom = 1;
+  const CM_VIEW = 380;                                                       // map units across the mini map at normal zoom (the map is 2000 across)
+  const cmapHTML = () => `<div class="cmap" id="fdCmap"><img src="liberty-county-4k.jpg" alt="" draggable="false"><span class="cm-pin"><i></i></span>
+      <div class="cm-ctl"><button type="button" data-cmz="1" aria-label="Zoom in">+</button><button type="button" data-cmz="-1" aria-label="Zoom out">&minus;</button></div>
+      <button type="button" class="cm-open" data-act="showmap">Show on live map</button></div>`;
+  // the map image is laid out at its real on-screen size around the call, so it stays sharp
+  const layoutCmap = c => { const el = $('fdCmap'); if (!el) return; const ok = Number.isFinite(c.x) && Number.isFinite(c.y); el.hidden = !ok; if (!ok) return;
+    const w = el.clientWidth, h = el.clientHeight; if (!w) return; const sc = w / (CM_VIEW / cmZoom), img = el.firstElementChild;
+    img.style.width = img.style.height = (2000 * sc).toFixed(1) + 'px'; img.style.transform = `translate(${(w / 2 - c.x * sc).toFixed(1)}px,${(h / 2 - c.y * sc).toFixed(1)}px)`; };
   const renderDetail = () => { const c = cur(); const body = $('fdDetBody'), pri = $('fdDetPri');
-    if (!c) { $('fdDetTitle').textContent = 'Select a call'; pri.hidden = true; body.innerHTML = '<div class="empty">Pick a call from the queue to see details, respond, and write the report.</div>'; return; }
+    if (!c) { detKey = null; $('fdDetTitle').textContent = 'Select a call'; pri.hidden = true; body.innerHTML = '<div class="empty">Pick a call from the queue to see details, respond, and write the report.</div>'; return; }
     $('fdDetTitle').textContent = `${c.code} ${c.type}`; pri.hidden = false; pri.textContent = `P${c.pri}`; pri.className = `pill p${c.pri}`;
     const u = me(), mine = c.unit === u?.name;
-    body.innerHTML = `<div class="det"><div class="row2"><div><span>Location</span><b>${esc(c.where)}</b></div><div><span>Received</span><b>${hhmm(c.startedAt)} (${fmtAge((Date.now() - c.startedAt) / 1000)} ago)</b></div><div><span>Assigned</span><b>${c.unit ? esc(c.unit) : 'Unassigned'}</b></div><div><span>Call #</span><b>${c.num || '—'}</b></div></div>
-      <div class="tl">${STAGES.map((_, i) => `<i class="${c.unit && i <= c.stage ? 'on' : ''}"></i>`).join('')}<small>${c.unit ? STAGES[c.stage].toUpperCase() : 'PENDING'}</small></div>
+    const top = `<div class="row2"><div><span>Location</span><b>${esc(c.where)}</b></div><div><span>Received</span><b>${hhmm(c.startedAt)} (${fmtAge((Date.now() - c.startedAt) / 1000)} ago)</b></div><div><span>Assigned</span><b>${c.unit ? esc(c.unit) : 'Unassigned'}</b></div><div><span>Call #</span><b>${c.num || '—'}</b></div></div>`;
+    const bot = `<div class="tl">${STAGES.map((_, i) => `<i class="${c.unit && i <= c.stage ? 'on' : ''}"></i>`).join('')}<small>${c.unit ? STAGES[c.stage].toUpperCase() : 'PENDING'}</small></div>
       <div class="notes">${esc(c.notes || 'No additional notes from dispatch.')}</div>
-      <div class="acts">${!c.unit ? `<button class="btn" data-act="respond">Respond (${esc(u?.name || '')})</button>` : mine ? `<button class="btn ghost" data-act="enroute">En route</button><button class="btn ghost" data-act="onscene">On scene</button><button class="btn danger" data-act="clear">Clear call</button>` : `<button class="btn ghost" data-act="assist">Assist</button>`}<button class="btn ghost" data-act="report">Write report</button></div></div>`; };
-  $('fdDetail').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b) return; const c = cur(), u = me(); if (!c || !u) return;
+      <div class="acts">${!c.unit ? `<button class="btn" data-act="respond">Respond (${esc(u?.name || '')})</button>` : mine ? `<button class="btn ghost" data-act="enroute">En route</button><button class="btn ghost" data-act="onscene">On scene</button><button class="btn danger" data-act="clear">Clear call</button>` : `<button class="btn ghost" data-act="assist">Assist</button>`}<button class="btn ghost" data-act="report">Write report</button></div>`;
+    if (detKey !== key(c) || !body.querySelector('.det')) { detKey = key(c); detTop = top; detBot = bot; cmZoom = 1;
+      body.innerHTML = `<div class="det"><div class="det-top">${top}</div>${cmapHTML()}<div class="det-bot">${bot}</div></div>`; layoutCmap(c); return; }
+    if (top !== detTop) { detTop = top; body.querySelector('.det-top').innerHTML = top; }
+    if (bot !== detBot) { detBot = bot; body.querySelector('.det-bot').innerHTML = bot; }
+    layoutCmap(c); };
+  new ResizeObserver(() => { const c = cur(); if (c) layoutCmap(c); }).observe($('fdDetBody'));
+  $('fdDetail').addEventListener('click', e => { const z = e.target.closest('[data-cmz]'); if (z) { const c0 = cur(); cmZoom = Math.min(6, Math.max(0.5, cmZoom * (z.dataset.cmz === '1' ? 1.6 : 1 / 1.6))); if (c0) layoutCmap(c0); return; }
+    if (e.target.closest('[data-act="showmap"]')) { const c0 = cur(); if (!c0) return; window.focusCall = c0.startedAt; document.querySelector('.menu [data-view="dispatch"]')?.click();
+      dispatchEvent(new CustomEvent('focuscall', { detail: c0 })); setTimeout(() => dispatchEvent(new CustomEvent('showcall', { detail: c0 })), 60); return; }
+    const b = e.target.closest('[data-act]'); if (!b) return; const c = cur(), u = me(); if (!c || !u) return;
     const act = b.dataset.act;
     if (act === 'respond' || act === 'assist') { if (window.assignCall) window.assignCall(c, u.name, 'fd'); else { c.unit = u.name; c.dept = 'fd'; c.stage = 0; } myStatus = '10-76'; c.stage = 1; unitStatus[u.name] = myStatus; toast(`${u.name} responding to ${c.code}`); }
     if (act === 'enroute') { c.stage = 1; myStatus = '10-76'; }
@@ -1781,6 +1810,7 @@
   const track = () => { if (fly) { const k = Math.min(1, (performance.now() - fly.t0) / fly.ms), e = ease(k); tx = fly.x0 + (fly.x1 - fly.x0) * e; ty = fly.y0 + (fly.y1 - fly.y0) * e; s = fly.s0 + (fly.s1 - fly.s0) * e; if (k >= 1) fly = null; } apply(); requestAnimationFrame(track); }; requestAnimationFrame(track);
   const flyTo = (x, y, ns = 1.6) => { const r = stage.getBoundingClientRect(); const [cx, cy] = [r.left + r.width * .5, r.top + r.height * .45];
     fly = { x0: tx, y0: ty, s0: s, x1: cx - x * ns, y1: cy - y * ns, s1: ns, t0: performance.now(), ms: 700 }; };
+  addEventListener('showcall', e => { const c = e.detail; if (c && Number.isFinite(c.x)) flyTo(c.x, c.y, 2.2); });   // "Show on live map" from a call card
   const fit = () => {
     const r = stage.getBoundingClientRect();
     s = Math.max(window.innerWidth, window.innerHeight) / W * 1.05;
@@ -3344,6 +3374,7 @@ const flyTo = (x, z, dist = 520, az = 0.9, smooth = false) => { const y = height
   follow = false; flight = { t0: performance.now(), ms: 900, T0: controls.target.clone(), P0: camera.position.clone(), T, P }; };
 const rayc = new THREE.Raycaster(), ndc = new THREE.Vector2();
 const pick = (cx, cy) => { ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); rayc.setFromCamera(ndc, camera); const hit = rayc.intersectObject(ground, false)[0]; return hit ? [hit.point.x, hit.point.z] : null; };
+addEventListener('showcall', e => { const c = e.detail; if (c && Number.isFinite(c.x)) flyTo(c.x, c.y, 380); });   // "Show on live map" from a call card
 window.map3d = { zoomIn: () => dolly(0.78), zoomOut: () => dolly(1.28), toggleFollow, setTheme, setActive, reset, flyTo, pick,
   pose: () => [...camera.position.toArray(), ...controls.target.toArray()].map(n => +n.toFixed(2)), controls, info: () => ({ frames: renderer.info.render.frame, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, tex: renderer.info.memory.textures, pr, objects: (() => { let n = 0; scene.traverse(() => n++); return n; })() }) };
 window.map3dReady = true;
