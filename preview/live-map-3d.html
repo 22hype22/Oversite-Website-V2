@@ -135,6 +135,9 @@
     box-shadow:0 0 0 2px #1C1C1F}
   .avatar{width:30px;height:30px;border-radius:50%;margin-left:6px;
     background:radial-gradient(circle at 35% 30%,#7C7F86,#2A2B2F 70%);border:1px solid var(--hair2)}
+  a.avatar{display:grid;place-items:center;overflow:hidden;color:#E9EAEC;font-size:12px;font-weight:600;text-decoration:none;background:#2A2B2F;transition:box-shadow .15s}
+  a.avatar img{width:100%;height:100%;object-fit:cover}
+  a.avatar:hover,a.avatar:focus-visible{box-shadow:0 0 0 2px rgba(240,242,245,.35);outline:0}
 
   /* ───────── left rail ───────── */
   .rail{position:fixed;top:var(--barh);left:0;bottom:0;width:var(--rail);z-index:5;
@@ -1835,6 +1838,12 @@
   for (const d of ['pd', 'fd', 'dot']) { const n = D[d]; if (!n) continue;
     const tab = document.querySelector(`.menu [data-view="mdt"][data-dept="${d}"]`); if (tab) tab.textContent = n.name;
     const chip = document.querySelector(`[data-filter="${d}"]`); if (chip) { const b = chip.querySelector('b'); chip.textContent = ' ' + n.short; if (b) chip.prepend(b); } }
+  // the round avatar top right is the person's own account: their Roblox headshot, opening their account page
+  const avEl = document.querySelector('header .avatar');
+  if (avEl) { const a = document.createElement('a'); a.className = 'avatar'; a.href = '/account?from=' + encodeURIComponent('/c/' + O.slug); a.title = (O.me || O.user || 'Your account') + ' · account settings'; a.setAttribute('aria-label', 'Your account');
+    a.textContent = (O.me || O.user || '?').slice(0, 1).toUpperCase();
+    if (/^\d+$/.test(O.rid || '')) { const im = new Image(); im.alt = ''; im.onload = () => { a.textContent = ''; a.appendChild(im); }; im.src = '/rbx/avatar/' + O.rid; }
+    avEl.replaceWith(a); }
   const mark = document.querySelector('.bar .mark') || document.querySelector('.mark'); if (mark) { mark.style.cursor = 'pointer'; mark.title = O.name + ' · back to dashboard'; mark.addEventListener('click', () => { location.href = '/dashboard'; }); }
   dispatchEvent(new Event('resize')); })();
 </script>

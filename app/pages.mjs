@@ -11,7 +11,11 @@ a{color:inherit}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;letter-spacing:-.01em}
 .brand i{width:30px;height:30px;border-radius:9px;background:rgba(28,28,31,.8);border:1px solid var(--hair);display:grid;place-items:center}.brand img{width:17px;height:17px}
 .top .sp{flex:1}
-.who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim)}.who img,.who .av{width:26px;height:26px;border-radius:50%;object-fit:cover;background:#2a2d33;display:grid;place-items:center;font-size:11px;color:var(--ink)}
+.who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);text-decoration:none;padding:3px 10px 3px 3px;border-radius:999px;transition:background .15s,color .15s}.who:hover{background:rgba(255,255,255,.06);color:var(--ink)}
+.acct{max-width:980px}.prof{display:flex;align-items:center;gap:18px;margin:0 0 26px}.prof .pic{width:84px;height:84px;border-radius:50%;flex:none;background:#2a2d33 center/cover;border:1px solid var(--hair2);display:grid;place-items:center;font-size:30px;font-weight:600;overflow:hidden}.prof .pic{position:relative}.prof .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.prof h1{margin:0}.prof p{margin:4px 0 0;color:var(--dim);font-size:13.5px}
+.lrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--hair)}.lrow:first-of-type{border-top:0}.lrow .tx{flex:1;min-width:0}.lrow b{display:block;font-size:14px;font-weight:600}.lrow small{color:var(--dim);font-size:12.5px}
+.lrow .ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.06)}.who img,.who .av{width:26px;height:26px;border-radius:50%;object-fit:cover;background:#2a2d33;display:grid;place-items:center;font-size:11px;color:var(--ink)}
 main{max-width:1180px;margin:0 auto;padding:8px 24px 64px}
 h1{font-size:28px;font-weight:300;letter-spacing:-.02em;margin:18px 0 4px}h1 b{font-weight:600}
 h2{font-size:15px;font-weight:600;margin:0 0 4px;letter-spacing:-.005em}
@@ -129,7 +133,7 @@ export const layout = ({ title, logo, user, body, bg = true, top = true, script 
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>${INTRO_HEAD}</head><body>${bg ? '<div class="bg"></div>' : ''}
 ${top ? `<header class="top"><a class="brand" href="${user ? '/dashboard' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i>Oversite</a><span class="sp"></span>
-${user ? `<span class="who">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc(user.name.slice(0, 1).toUpperCase())}</span>`}${esc(user.roblox_name || user.name)}</span><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
+${user ? `<a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}${esc(user.roblox_name || user.name)}</a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
 ${body}<script>${JS}${script}</script></body></html>`;
 
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
@@ -225,6 +229,30 @@ const t=setInterval(()=>{if(w.closed){clearInterval(t);location.reload()}},800)}
 addEventListener('message',e=>{if(e.origin===location.origin&&e.data&&e.data.ov==='roblox-linked')location.reload()});
 const ul=document.getElementById('unlink');if(ul)ul.addEventListener('click',async()=>{if(!await ask({title:'Unlink your Roblox account?',text:'Your name on the CAD goes back to your sign-in name until you link again.',ok:'Unlink'}))return;await api('/api/roblox/unlink');location.reload()});
 ` }); };
+
+// the person's own account: who they are, what is linked, the servers they belong to
+export const account = ({ logo, user, comms, discord, back }) => layout({ title: 'Your account · Oversite', logo, user, body: `
+<main class="acct">${back ? `<div class="row" style="margin:0 0 18px"><a class="btn sm" href="${esc(back)}">&larr; Back to the CAD</a></div>` : ''}
+<div class="prof"><span class="pic">${esc((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase())}${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.remove()">` : ''}</span>
+<div><h1><b>${esc(user.roblox_name || user.name)}</b></h1><p>${comms.length ? `Member of ${comms.length} server${comms.length === 1 ? '' : 's'}` : 'Not in any server yet'}${user.discord_id ? ' · Signs in with Discord' : ''}</p></div></div>
+<div class="grid"><div>
+<section class="card"><h2>Your servers</h2>
+${comms.length ? comms.map(c => { const owner = c.role === 'owner';
+  return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}</span><div class="tx"><b>${esc(c.name)}</b><small>${esc(c.role[0].toUpperCase() + c.role.slice(1))}</small></div>
+<div class="go">${owner ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Server settings</a>` : `<button class="btn ghost" data-leave="${esc(c.slug)}" data-name="${esc(c.name)}">Leave</button>`}<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD</a></div></div>`; }).join('') : '<p class="note">Join a server with the code from its owner on the <a href="/dashboard">dashboard</a>.</p>'}
+<p class="msg" id="lmsg"></p></section>
+</div><div>
+<section class="card"><h2>Linked accounts</h2>
+<div class="lrow"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" transform="rotate(15 12 12)"/><rect x="10" y="10" width="4" height="4" transform="rotate(15 12 12)"/></svg></span><div class="tx"><b>Roblox</b><small>${user.roblox_name ? `${esc(user.roblox_name)}${user.roblox_via === 'oauth' ? ', confirmed by Roblox' : user.roblox_via === 'discord' ? ', from your Discord' : user.roblox_via === 'profile' ? ', verified on your profile' : ''}` : 'Not linked'}</small></div>
+${user.roblox_name ? `<button class="btn sm" id="switch">Switch</button>` : `<a class="btn sm pri" href="/dashboard#rbx">Link</a>`}</div>
+<div class="lrow"><span class="ico" style="color:#8E97FF"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg></span><div class="tx"><b>Discord</b><small>${user.discord_id ? `Connected as ${esc(user.name)}` : 'Not connected. Lets you sign in with Discord and get staff roles from your server\'s Discord.'}</small></div>
+${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a class="btn sm discord" href="/auth/discord?next=/account">Connect</a>` : ''}</div>
+</section>
+<section class="card"><h2>Sign out</h2><p class="note">Signs you out on this device. You'll need your sign-in again to get back in.</p><form method="post" action="/auth/logout" style="margin:0"><button class="btn danger">Sign out</button></form></section>
+</div></div></main>`, script: `
+const sw=document.getElementById('switch');if(sw)sw.addEventListener('click',async()=>{if(!await ask({title:'Switch Roblox account?',text:'This unlinks your current Roblox account. You will need to link one again before you can open a CAD.',ok:'Unlink and switch'}))return;await api('/api/roblox/unlink');location.href='/dashboard#rbx'});
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-leave]');if(!b)return;if(!await ask({title:'Leave '+b.dataset.name+'?',text:'You lose access to its CAD until someone gives you a code or invite again.',ok:'Leave',danger:true}))return;try{await api('/api/leave',{slug:b.dataset.leave});location.reload()}catch(x){say(document.getElementById('lmsg'),x.message)}});
+` });
 
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
 export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `

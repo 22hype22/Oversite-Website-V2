@@ -136,6 +136,9 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'roblox/verify' && req.method === 'POST') { const r = await auth.robloxVerify(user); if (r.error) return json(res, { error: r.error }, 400); return json(res, r, 200, r.mergedInto ? { 'set-cookie': auth.signIn(req, r.mergedInto) } : {}); }
   if (rest === 'roblox/cancel' && req.method === 'POST') { roblox.clear(user.id); return json(res, { ok: true }); }
   if (rest === 'roblox/unlink' && req.method === 'POST') { auth.robloxUnlink(user); return json(res, { ok: true }); }
+  if (rest === 'leave' && req.method === 'POST') { const c = communities.bySlug(String((await jsonBody(req)).slug || '')), role = c && members.role(c.id, user.id);
+    if (!role) return json(res, { error: 'You are not in that server.' }, 400); if (role === 'owner') return json(res, { error: 'Owners cannot leave their own server.' }, 400);
+    members.remove(c.id, user.id); return json(res, { ok: true }); }
   return json(res, { error: 'Not found.' }, 404); };
 
 // ── routes ──
@@ -146,6 +149,9 @@ const route = async (req, res) => {
   const stranded = user => user && !user.discord_id && !user.roblox_id && !communities.forUser(user.id).length;
   if (path === '/' || path === '/dashboard') { const user = auth.currentUser(req); if (stranded(user)) return redirect(res, '/', { 'set-cookie': auth.signOut(req) }); }
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
+  if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account');
+    const from = url.searchParams.get('from'), back = from && /^\/c\/[a-z0-9-]{3,32}$/.test(from) ? from : null;
+    return page(res, pages.account({ logo: LOGO, user, comms: communities.forUser(user.id), discord: auth.discordReady(), back })); }
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
     const p = roblox.pending(user.id), w = url.searchParams.get('welcome'), wc = w && communities.bySlug(w);
     // a Roblox link is required; once it is there, carry on to the CAD they were heading for
