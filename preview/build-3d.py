@@ -6,7 +6,7 @@ geo=open('preview/liberty-county-3d.json').read()
 landmarks=open('preview/newmap/landmarks.json').read()
 
 view3d='''<!-- ─────────── 3D map (shares the view with the 2D world) ─────────── -->
-<link id="mapsrc" rel="preload" as="image" href="liberty-county.jpg">
+<link id="mapsrc" rel="preload" as="image" href="liberty-county-4k.jpg">
 <link id="mapsrc-dark" rel="preload" as="image" href="liberty-county-darkmode.jpg">
 <link id="heightsrc" rel="preload" as="image" href="liberty-county-height.png">
 <link id="mapsrc-mini" rel="preload" as="image" href="liberty-county-mini.jpg">
@@ -81,7 +81,7 @@ sa=out.replace('{"imports":{"three":"./vendor/three.module.js","three/addons/":"
 b64d=base64.b64encode(open('preview/liberty-county-darkmode.jpg','rb').read()).decode()
 b64h=base64.b64encode(open('preview/liberty-county-height.png','rb').read()).decode()
 b64m=base64.b64encode(open('preview/liberty-county-mini.jpg','rb').read()).decode()
-sa=sa.replace('href="liberty-county.jpg"','href="data:image/jpeg;base64,'+b64+'"').replace('href="liberty-county-darkmode.jpg"','href="data:image/jpeg;base64,'+b64d+'"').replace('href="liberty-county-height.png"','href="data:image/png;base64,'+b64h+'"').replace('href="liberty-county-mini.jpg"','href="data:image/jpeg;base64,'+b64m+'"')
+sa=sa.replace('href="liberty-county-4k.jpg"','href="data:image/jpeg;base64,'+b64+'"').replace('href="liberty-county.jpg"','href="data:image/jpeg;base64,'+b64+'"').replace('href="liberty-county-darkmode.jpg"','href="data:image/jpeg;base64,'+b64d+'"').replace('href="liberty-county-height.png"','href="data:image/png;base64,'+b64h+'"').replace('href="liberty-county-mini.jpg"','href="data:image/jpeg;base64,'+b64m+'"')
 sa=sa.replace('href="live-map.html"','href="live-map-standalone.html"').replace('href="live-map-3d.html"','href="live-map-3d-standalone.html"')
 open('preview/live-map-3d-standalone.html','w').write(sa)
 print('built', len(out), len(sa))

@@ -11,7 +11,7 @@ a{color:inherit}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;letter-spacing:-.01em}
 .brand i{width:30px;height:30px;border-radius:9px;background:rgba(28,28,31,.8);border:1px solid var(--hair);display:grid;place-items:center}.brand img{width:17px;height:17px}
 .top .sp{flex:1}
-.who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim)}.who img,.who .av{width:26px;height:26px;border-radius:50%;background:#2a2d33;display:grid;place-items:center;font-size:11px;color:var(--ink)}
+.who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim)}.who img,.who .av{width:26px;height:26px;border-radius:50%;object-fit:cover;background:#2a2d33;display:grid;place-items:center;font-size:11px;color:var(--ink)}
 main{max-width:1180px;margin:0 auto;padding:8px 24px 64px}
 h1{font-size:28px;font-weight:300;letter-spacing:-.02em;margin:18px 0 4px}h1 b{font-weight:600}
 h2{font-size:15px;font-weight:600;margin:0 0 4px;letter-spacing:-.005em}
@@ -128,7 +128,7 @@ export const layout = ({ title, logo, user, body, bg = true, top = true, script 
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>${INTRO_HEAD}</head><body>${bg ? '<div class="bg"></div>' : ''}
 ${top ? `<header class="top"><a class="brand" href="${user ? '/dashboard' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i>Oversite</a><span class="sp"></span>
-${user ? `<span class="who">${user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc(user.name.slice(0, 1).toUpperCase())}</span>`}${esc(user.name)}</span><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
+${user ? `<span class="who">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc(user.name.slice(0, 1).toUpperCase())}</span>`}${esc(user.roblox_name || user.name)}</span><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
 ${body}<script>${JS}${script}</script></body></html>`;
 
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
@@ -167,7 +167,7 @@ export const privacy = ({ logo, user }) => layout({ title: 'Privacy · Oversite 
 <h2>Who we are</h2><p>Oversite CAD is a live dispatch system for Emergency Response: Liberty County (ER:LC) private servers, run by Oversite (Oversite Marketplace, Minnesota, United States). Questions go to <a href="mailto:support@oversite.shop">support@oversite.shop</a>. Use of the site is also covered by our <a href="https://www.oversite.shop/terms">Terms of Service</a>.</p>
 <h2>What we collect</h2>
 <ul>
-<li><b>Your account.</b> A display name, and the servers you belong to with your role in each (owner, admin or member).</li>
+<li><b>Your account.</b> A display name, and the servers you belong to with your role in each (owner, staff or member).</li>
 <li><b>Roblox, when you link it.</b> When you choose "Link with Roblox" you sign in on roblox.com and Roblox sends us your Roblox user ID, username, display name and avatar picture. We never see your Roblox password. We use this to show you on your server's map and open your department's MDT.</li>
 <li><b>Discord, if you use it.</b> Your Discord user ID, name and avatar, and the Roblox account you have verified in Discord's Connections.</li>
 <li><b>Server settings.</b> For server owners: the server name, address, departments, server codes (stored only as one-way hashes), invite links and the ER:LC server key, which is stored encrypted and never shown to members.</li>
@@ -185,7 +185,7 @@ export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome
 ${welcome && !user.roblox_name ? `<section class="card" style="margin-bottom:18px;border-color:rgba(76,141,255,.35)"><h2>You're in ${esc(welcome.name)}</h2><p class="note" style="margin-bottom:10px">Link your Roblox account on the right so the CAD knows which player you are and opens your department's MDT. Or skip it for now.</p><a class="btn sm" href="/c/${esc(welcome.slug)}">Skip and open the CAD</a></section>` : ''}
 <div class="grid"><div>
 ${comms.length ? `<section class="card"><h2>Your servers</h2>
-${comms.map(c => { const admin = c.role !== 'member', setup = !c.connected && admin, role = c.role[0].toUpperCase() + c.role.slice(1);
+${comms.map(c => { const admin = c.role === 'owner', setup = !c.connected && admin, role = c.role[0].toUpperCase() + c.role.slice(1);
   return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}</span><div class="tx"><b title="oversitescad.com/c/${esc(c.slug)}">${esc(c.name)}</b>
 <small><i class="st ${c.connected ? 'ok' : 'warn'}"></i>${c.connected ? 'Live data connected' : 'ER:LC not connected yet'}<span class="sep">·</span>${role}</small></div>
 <div class="go">${admin ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Settings</a>` : ''}${setup ? `<a class="btn ghost" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn pri" href="/c/${esc(c.slug)}/settings">Connect ER:LC</a>` : `<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>`}</div></div>`; }).join('')}
@@ -247,9 +247,9 @@ ${codes.owner !== null ? `<label style="margin-top:16px">Owner code</label><div 
 <div class="row"><button class="btn pri" id="newinv">Create invite link</button></div><p class="msg" id="imsg"></p>
 ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><div class="tx"><code title="${esc(origin)}/join/${esc(i.code)}">${esc(origin.replace(/^https?:\/\//, ''))}/join/${esc(i.code)}</code><small>${i.uses} ${i.uses === 1 ? 'use' : 'uses'}${i.expires ? ` · expires ${new Date(i.expires).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</small></div><div class="acts"><button class="btn sm" data-copy="${esc(origin)}/join/${esc(i.code)}">Copy</button><button class="btn sm danger" data-revoke="${esc(i.code)}">Revoke</button></div></div>`).join('')}</div>` : '<p class="empty">No active invite links.</p>'}
 </section>
-<section class="card"><h2>Members</h2><p class="note">Staff can use the Server Staff tab in the CAD: warn, kick, ban and message players and keep their records. Admins can also change settings.</p>
+<section class="card"><h2>Members</h2><p class="note">Three kinds of people: the <b>owner</b> runs these settings, <b>staff</b> also get the Server Staff tablet in the CAD (warn, kick, ban and message players, keep records), and <b>members</b> use the CAD. Which department MDT someone gets follows their team in game.</p>
 <table><tr><th>Member</th><th>Roblox</th><th>Role</th><th></th></tr>${members.map(m => `<tr><td>${esc(m.name)}</td><td>${m.roblox_name ? esc(m.roblox_name) : '<span style="color:var(--faint)">Not linked</span>'}</td>
-<td>${m.role === 'owner' || role !== 'owner' && m.role === 'admin' || m.id === user.id ? esc(m.role) : `<select data-role="${m.id}"><option value="member"${m.role === 'member' ? ' selected' : ''}>member</option><option value="staff"${m.role === 'staff' ? ' selected' : ''}>staff</option><option value="admin"${m.role === 'admin' ? ' selected' : ''}>admin</option></select>`}</td>
+<td>${m.role === 'owner' || m.id === user.id ? esc(m.role) : `<select data-role="${m.id}"><option value="member"${m.role === 'member' ? ' selected' : ''}>member</option><option value="staff"${m.role === 'staff' ? ' selected' : ''}>staff</option></select>`}</td>
 <td style="text-align:right">${m.role !== 'owner' && m.id !== user.id && (role === 'owner' || m.role === 'member') ? `<button class="btn sm danger" data-remove="${m.id}">Remove</button>` : ''}</td></tr>`).join('')}</table><p class="msg" id="mmsg"></p>
 </section>
 ${role === 'owner' ? `<section class="card" id="discord"><h2 class="hrow">Discord server<span class="tag" id="dgTag">…</span></h2><p class="note">Link your Discord server and choose which roles are staff. Anyone with one of those roles who signs in with Discord can open the Server Staff tab, and loses it when the role is taken away. Everything else in the CAD follows the team they are on in game.</p><div id="dgBody"><p class="empty">Loading…</p></div><p class="msg" id="dgMsg"></p></section>` : ''}

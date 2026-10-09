@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS staff_records (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, roblox_id TEXT, name TEXT NOT NULL,
   kind TEXT NOT NULL, reason TEXT NOT NULL DEFAULT '', by_user INTEGER, by_name TEXT NOT NULL DEFAULT '', result TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS staff_records_player ON staff_records (community_id, roblox_id);
+UPDATE members SET role = 'staff' WHERE role = 'admin';
 `);
 
 try { db.exec('ALTER TABLE users ADD COLUMN roblox_via TEXT'); } catch (e) {}   // how the Roblox link was proven: 'discord' or 'profile'
