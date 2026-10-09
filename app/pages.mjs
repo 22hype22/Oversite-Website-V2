@@ -12,6 +12,21 @@ a{color:inherit}
 .brand i{width:30px;height:30px;border-radius:9px;background:rgba(28,28,31,.8);border:1px solid var(--hair);display:grid;place-items:center}.brand img{width:17px;height:17px}
 .top .sp{flex:1}
 .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);text-decoration:none;padding:3px 10px 3px 3px;border-radius:999px;transition:background .15s,color .15s}.who:hover{background:rgba(255,255,255,.06);color:var(--ink)}
+.sp-head{display:flex;align-items:center;gap:16px;margin:4px 0 14px}
+.sp-icon{position:relative;width:76px;height:76px;flex:none;border-radius:18px;border:1px solid var(--hair2);background:linear-gradient(160deg,#2d3440,#1b1f26);color:var(--ink);font:600 28px/1 inherit;cursor:pointer;padding:0;overflow:hidden;display:grid;place-items:center}
+.sp-icon img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.sp-icon i{position:absolute;inset:auto 0 0;font:500 10.5px/1 inherit;font-style:normal;padding:5px 0;background:rgba(0,0,0,.62);opacity:0;transition:opacity .15s}
+.sp-icon:hover i,.sp-icon:focus-visible i{opacity:1}
+.sp-id{min-width:0}.sp-id b{display:block;font-size:16px;font-weight:600}.sp-id small{display:block;color:var(--dim);font-size:12.5px;margin-top:2px}
+.sp-erlc{border:1px solid var(--hair);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,.02);margin-bottom:4px}
+.sp-erlch{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.sp-erlch .lnk{background:none;border:0;color:var(--dim);font:inherit;font-size:11.5px;letter-spacing:0;text-transform:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
+.sp-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-top:10px}
+.sp-facts small{display:block;color:var(--faint);font-size:11px}.sp-facts b{display:block;font-size:13px;font-weight:500;margin-top:2px;overflow-wrap:anywhere}
+.sp-facts code{font-family:ui-monospace,"Geist Mono",monospace;font-size:12.5px}
+.sp-who{display:inline-flex;align-items:center;gap:6px}.sp-who img{width:18px;height:18px;border-radius:50%;background:#2a2d33}
+#spForm textarea{width:100%;resize:vertical;min-height:72px}
+label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--dim);cursor:pointer}label.chk input{width:auto;margin:0}
 .acct{max-width:980px}.prof{display:flex;align-items:center;gap:18px;margin:0 0 26px}.prof .pic{width:84px;height:84px;border-radius:50%;flex:none;background:#2a2d33 center/cover;border:1px solid var(--hair2);display:grid;place-items:center;font-size:30px;font-weight:600;overflow:hidden}.prof .pic{position:relative}.prof .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .prof h1{margin:0}.prof p{margin:4px 0 0;color:var(--dim);font-size:13.5px}
 .lrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--hair)}.lrow:first-of-type{border-top:0}.lrow .tx{flex:1;min-width:0}.lrow b{display:block;font-size:14px;font-weight:600}.lrow small{color:var(--dim);font-size:12.5px}
@@ -33,8 +48,8 @@ h2{font-size:15px;font-weight:600;margin:0 0 4px;letter-spacing:-.005em}
 .tag{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--hair2);color:var(--dim);white-space:nowrap}
 .tag.ok{color:var(--ok);border-color:rgba(70,208,124,.35)}.tag.warn{color:var(--warn);border-color:rgba(233,176,76,.35)}
 label{display:block;font-size:12px;color:var(--dim);margin:12px 0 6px}
-input,select{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--hair2);border-radius:10px;padding:10px 12px;outline:none;transition:border-color .15s}
-input:focus,select:focus{border-color:rgba(240,242,245,.45)}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--hair2);border-radius:10px;padding:10px 12px;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:rgba(240,242,245,.45)}
 select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
 .hint{font-size:12px;color:var(--faint);margin-top:6px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-weight:500;font-size:13.5px;padding:9px 16px;border-radius:999px;border:1px solid var(--hair2);background:rgba(255,255,255,.06);color:var(--ink);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background .15s,transform .1s}
@@ -80,7 +95,8 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .foot{display:flex;gap:16px;justify-content:center;margin-top:26px;font-size:12px}.foot a{color:var(--faint);text-decoration:none}.foot a:hover{color:var(--dim)}
 .srv{display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--hair);background:rgba(255,255,255,.025)}
 .srv+.srv{margin-top:10px}
-.srv .ic{width:44px;height:44px;border-radius:12px;background:linear-gradient(160deg,#2d3440,#1b1f26);display:grid;place-items:center;font-weight:600;font-size:17px;flex:none}
+.srv .ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.srv .ic{position:relative;overflow:hidden;width:44px;height:44px;border-radius:12px;background:linear-gradient(160deg,#2d3440,#1b1f26);display:grid;place-items:center;font-weight:600;font-size:17px;flex:none}
 .srv .tx{flex:1;min-width:0}.srv b{display:block;font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .srv small{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:12.5px;margin-top:2px;white-space:nowrap}.srv .sep{color:var(--faint)}
 .st{width:7px;height:7px;border-radius:50%;flex:none}.st.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(70,208,124,.15)}.st.warn{background:var(--warn);box-shadow:0 0 0 3px rgba(233,176,76,.15)}
@@ -197,7 +213,7 @@ ${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>$
 <div class="grid"><div>
 ${comms.length ? `<section class="card"><h2>Your servers</h2>
 ${comms.map(c => { const admin = c.role === 'owner', setup = !c.connected && admin, role = c.role[0].toUpperCase() + c.role.slice(1);
-  return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}</span><div class="tx"><b title="oversitescad.com/c/${esc(c.slug)}">${esc(c.name)}</b>
+  return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(c.slug)}/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b title="oversitescad.com/c/${esc(c.slug)}">${esc(c.name)}</b>
 <small><i class="st ${c.connected ? 'ok' : 'warn'}"></i>${c.connected ? 'Live data connected' : 'ER:LC not connected yet'}<span class="sep">·</span>${role}</small></div>
 <div class="go">${admin ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Settings</a>` : ''}${setup ? `<a class="btn ghost" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn pri" href="/c/${esc(c.slug)}/settings">Connect ER:LC</a>` : `<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>`}</div></div>`; }).join('')}
 </section>` : ''}
@@ -237,7 +253,7 @@ export const account = ({ logo, user, comms, discord, back }) => layout({ title:
 <div><h1><b>${esc(user.roblox_name || user.name)}</b></h1><p>${comms.length ? `Member of ${comms.length} server${comms.length === 1 ? '' : 's'}` : 'Not in any server yet'}${user.discord_id ? ' · Signs in with Discord' : ''}</p></div></div>
 <div class="grid"><div>
 ${(() => { const row = c => { const owner = c.role === 'owner';
-  return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}</span><div class="tx"><b>${esc(c.name)}</b><small>${esc(c.role[0].toUpperCase() + c.role.slice(1))}</small></div>
+  return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(c.slug)}/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>${esc(c.name)}</b><small>${esc(c.role[0].toUpperCase() + c.role.slice(1))}</small></div>
 <div class="go">${owner ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Server settings</a>` : `<button class="btn ghost" data-leave="${esc(c.slug)}" data-name="${esc(c.name)}">Leave</button>`}<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD</a></div></div>`; };
   const mine = comms.filter(c => c.role === 'owner'), joined = comms.filter(c => c.role !== 'owner');
   return `<section class="card"><h2>Your servers</h2>${mine.length ? mine.map(row).join('') : '<p class="note">You don\'t own a server yet.</p>'}
@@ -270,7 +286,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-leav
 ` });
 
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
-export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
+export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes, iconKind }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main><h1><b>${esc(c.name)}</b> settings</h1><p class="lead">${isNew ? 'Your server is ready. Connect it to ER:LC, then give your members the member code.' : 'Manage your server connection, codes, departments and members.'}</p>
 <div class="row" style="margin:-8px 0 20px"><a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn sm" href="/dashboard">All servers</a></div>
 <div class="grid"><div>
@@ -278,6 +294,20 @@ export const settings = ({ logo, user, c, role, keyStatus, invites, members, ori
 <p class="note" id="kstat">${keyStatus.connected ? `Connected${keyStatus.name ? ` to <b>${esc(keyStatus.name)}</b>` : ''}. The key is stored encrypted and is never sent to anyone's browser.` : 'Not connected. In ER:LC open your private server settings, find the API section, and copy the server key.'}</p>
 <form id="key" autocomplete="off"><label for="kin">Server key</label><input id="kin" type="password" placeholder="${keyStatus.connected ? 'Paste a new key to replace it' : 'Paste your server key'}" required>
 <div class="row" style="margin-top:12px"><button class="btn pri">${keyStatus.connected ? 'Replace key' : 'Connect server'}</button>${keyStatus.connected && role === 'owner' ? '<button type="button" class="btn sm danger" id="kdel">Disconnect</button>' : ''}</div><p class="msg" id="kmsg"></p></form></section>
+${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.name.slice(0, 1).toUpperCase());
+  const fact = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
+  const facts = E.at ? [fact('In-game name', esc(E.name || 'Unknown')), fact('Join code', E.join_key ? `<code>${esc(E.join_key)}</code>` : 'None'), fact('Players', E.max ? `${E.players ?? 0} / ${E.max}` : 'Unknown'),
+    fact('Owner', E.owner_id ? `<span class="sp-who"><img src="/rbx/avatar/${esc(E.owner_id)}" alt="" onerror="this.remove()">${esc(E.owner_name || 'ID ' + E.owner_id)}</span>` : 'Unknown'),
+    fact('Co-owners', E.co_owners?.length ? E.co_owners.map(o => esc(o.name || 'ID ' + o.id)).join(', ') : 'None'), fact('Account verification', esc(E.verified || 'Not required')), fact('Team balance', E.team_balance ? 'On' : 'Off')].join('') : '';
+  return `<section class="card" id="profile"><h2>Server profile</h2><p class="note">How your server shows up on Oversite, and in the server browser when it launches. The details in the box below come from ER:LC and stay up to date by themselves.</p>
+<div class="sp-head"><button type="button" class="sp-icon" id="spPick" title="Change icon" aria-label="Change server icon"><span>${letter}</span><img id="spImg" src="/c/${esc(c.slug)}/icon?v=${Date.now()}" alt="" onerror="this.remove()"><i>Change</i></button>
+<div class="sp-id"><b>${esc(c.name)}</b><small id="spIconNote">${iconKind === 'custom' ? 'Using the icon you uploaded.' : iconKind === 'discord' ? 'Using your Discord server\'s icon. Upload one to replace it.' : iconKind === 'owner' ? 'Using the server owner\'s Roblox avatar. Upload an icon to replace it.' : 'No icon yet. Upload one.'}</small>
+<div class="row" style="margin-top:8px"><button type="button" class="btn sm" id="spUp">Upload icon</button>${iconKind === 'custom' ? '<button type="button" class="btn sm" id="spDefault">Use default</button>' : ''}<input type="file" id="spFile" accept="image/png,image/jpeg,image/webp" hidden></div></div></div>
+<div class="sp-erlc"><div class="sp-erlch"><span>From ER:LC</span><button type="button" class="lnk" id="spRefresh">${E.at ? 'Refresh' : 'Load from ER:LC'}</button></div>${E.at ? `<div class="sp-facts">${facts}</div>` : `<p class="hint" style="margin:6px 0 0">${keyStatus.connected ? 'Loading your server details…' : 'Connect your ER:LC server above to fill this in.'}</p>`}</div>
+<form id="spForm"><label for="spBio">Bio</label><textarea id="spBio" maxlength="300" rows="3" placeholder="What your server is about: the vibe, the rules, what makes it different.">${esc(P.bio || '')}</textarea><p class="hint" style="text-align:right;margin:4px 0 0"><span id="spCount">${(P.bio || '').length}</span> / 300</p>
+<label for="spInv">Discord invite</label><input id="spInv" maxlength="60" placeholder="https://discord.gg/yourserver" value="${esc(P.invite || '')}" spellcheck="false">
+<label class="chk"><input type="checkbox" id="spList"${P.listed ? ' checked' : ''}> List this server in the server browser when it launches</label>
+<div class="row" style="margin-top:14px"><button class="btn pri">Save profile</button></div><p class="msg" id="spMsg"></p></form></section>`; })()}
 <section class="card"><h2>Departments</h2><p class="note">Rename the departments for your server, and choose which in-game team belongs to each.</p>
 <form id="depts"><div class="cols">${['pd', 'fd', 'dot'].map(d => `<div class="dept"><h3><i style="background:${COL[d]}"></i>${{ pd: 'Law enforcement', fd: 'Fire and EMS', dot: 'Transportation' }[d]}</h3>
 <label>Name</label><input name="${d}-name" maxlength="40" value="${esc(c.settings.depts[d]?.name || '')}" required><label>Short name</label><input name="${d}-short" maxlength="6" value="${esc(c.settings.depts[d]?.short || '')}" required></div>`).join('')}</div>
@@ -303,6 +333,19 @@ ${role === 'owner' ? `<section class="card" id="discord"><h2 class="hrow">Discor
 ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p class="note">Removes the server from Oversite with its settings, codes and member list. This cannot be undone.</p><button class="btn danger" id="del">Delete ${esc(c.name)}</button></section>` : ''}
 </div></div></main>`, script: `
 const A='/c/${esc(c.slug)}/api';
+// ── server profile ──
+(()=>{const P=document.getElementById('profile');if(!P)return;const m=document.getElementById('spMsg'),f=document.getElementById('spFile');
+const bio=document.getElementById('spBio');bio.addEventListener('input',()=>{document.getElementById('spCount').textContent=bio.value.length});
+document.getElementById('spForm').addEventListener('submit',async e=>{e.preventDefault();try{await api(A+'/profile/save',{bio:bio.value,invite:document.getElementById('spInv').value,listed:document.getElementById('spList').checked});say(m,'Profile saved.',true)}catch(x){say(m,x.message)}});
+const pick=()=>f.click();document.getElementById('spPick').addEventListener('click',pick);document.getElementById('spUp').addEventListener('click',pick);
+// crop to a square and shrink to 256 px in the browser, so only a small image is uploaded
+f.addEventListener('change',async()=>{const file=f.files[0];f.value='';if(!file)return;if(!/^image\\/(png|jpeg|webp)$/.test(file.type))return say(m,'Use a PNG, JPG or WebP image.');
+  try{const bm=await createImageBitmap(file),s=Math.min(bm.width,bm.height),cv=document.createElement('canvas');cv.width=cv.height=256;cv.getContext('2d').drawImage(bm,(bm.width-s)/2,(bm.height-s)/2,s,s,0,0,256,256);
+  let data=cv.toDataURL('image/webp',.9);if(!data.startsWith('data:image/webp'))data=cv.toDataURL('image/png');say(m,'Uploading…',true);await api(A+'/profile/icon',{data});location.reload()}catch(x){say(m,x.message||'Could not read that image.')}});
+const d=document.getElementById('spDefault');if(d)d.addEventListener('click',async()=>{await api(A+'/profile/icon/remove');location.reload()});
+const r=document.getElementById('spRefresh');const refresh=async(auto)=>{r.textContent='Loading…';try{await api(A+'/profile/refresh');location.reload()}catch(x){r.textContent='Refresh';if(!auto)say(m,x.message)}};
+r.addEventListener('click',()=>refresh(false));
+const at=${JSON.stringify((c.settings.profile && c.settings.profile.erlc && c.settings.profile.erlc.at) || 0)};if(${keyStatus.connected ? 'true' : 'false'}&&Date.now()-at>600000)refresh(true);})();
 const dgB=document.getElementById('dgBody');if(dgB){const tag=document.getElementById('dgTag'),dm=document.getElementById('dgMsg'),connect='/c/${esc(c.slug)}/discord/connect';
 const LV=[['staff','Staff roles','Can open the Server Staff tab in the CAD: warn, kick, ban and message players.']];
 const e2=t=>String(t??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));

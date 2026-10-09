@@ -11,6 +11,7 @@ import { Feed, testKey, NOKEY } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
 import * as staff from './app/staff.mjs';
+import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'preview');
@@ -92,6 +93,10 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'records' && M === 'GET') return json(res, { records: staff.records(c, Object.fromEntries(new URL(req.url, 'http://x').searchParams)) });
     return json(res, { error: 'Not found.' }, 404); }
   if (!can(role, 'owner')) return json(res, { error: 'Only the owner can do that.' }, 403);
+  if (rest === 'profile/refresh' && M === 'POST') { const r = await profile.refresh(c); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'profile/save' && M === 'POST') { const r = profile.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'profile/icon' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 5e5) || '{}'); } catch (e) {} const r = profile.setIcon(c, j.data); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'profile/icon/remove' && M === 'POST') return json(res, profile.clearIcon(c));
   if (rest === 'settings' && M === 'POST') { const j = await jsonBody(req), s = c.settings;
     const name = String(j.name || '').trim(); if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400);
     for (const d of ['pd', 'fd', 'dot']) { const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); s.depts[d] = { name: n, short: sh }; }
@@ -160,6 +165,11 @@ const route = async (req, res) => {
     return page(res, pages.dashboard({ logo: LOGO, user, comms: communities.forUser(user.id), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()) })); }
   let m0, m0r;
   // a player's Roblox headshot, by Roblox user id: looked up once, then cached; the page shows initials if it fails
+  // a server's icon, for server cards now and the server browser later
+  if ((m0r = path.match(/^\/c\/([a-z0-9-]{3,32})\/icon$/))) { const c = communities.bySlug(m0r[1]), src = c && profile.iconSource(c);
+    if (!src) { res.writeHead(404, { 'cache-control': 'public, max-age=300' }); return res.end(); }
+    if (src.kind === 'custom') { res.writeHead(200, { 'content-type': src.mime, 'cache-control': 'public, max-age=300', 'content-length': src.data.length }); return res.end(src.data); }
+    return redirect(res, src.url); }
   if ((m0r = path.match(/^\/rbx\/avatar\/(\d{1,20})$/))) { const url = await headshot(m0r[1]); if (!url) { res.writeHead(404, { 'cache-control': 'public, max-age=600' }); return res.end(); }
     res.writeHead(302, { location: url, 'cache-control': 'public, max-age=3600' }); return res.end(); }
   if (path === '/privacy') return page(res, pages.privacy({ logo: LOGO, user: auth.currentUser(req) }));
@@ -217,7 +227,7 @@ const route = async (req, res) => {
     if (sub === '/') return html(res, mapPage(c, user, role));
     if (sub === '/settings') { if (!can(role, 'owner')) return msg(res, user, 'Owner only', 'Only the server owner can change its settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), codes: can(role, 'owner') ? { owner: codes.show(c.id, 'owner'), member: codes.show(c.id, 'member') } : (can(role, 'admin') ? { owner: null, member: codes.show(c.id, 'member') } : null) })); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), iconKind: profile.iconSource(c)?.kind || null, codes: can(role, 'owner') ? { owner: codes.show(c.id, 'owner'), member: codes.show(c.id, 'member') } : (can(role, 'admin') ? { owner: null, member: codes.show(c.id, 'member') } : null) })); }
     return msg(res, user, 'Not found', 'That page does not exist.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
   return serve(req, res, path); };

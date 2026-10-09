@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS staff_sent (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, command TEXT NOT NULL,
   by_user INTEGER, by_name TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS staff_sent_time ON staff_sent (community_id, created);
+CREATE TABLE IF NOT EXISTS community_icons (
+  community_id INTEGER PRIMARY KEY REFERENCES communities(id) ON DELETE CASCADE, mime TEXT NOT NULL, data BLOB NOT NULL, updated INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS command_log (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, player TEXT NOT NULL, player_id TEXT NOT NULL DEFAULT '',
   command TEXT NOT NULL, at INTEGER NOT NULL, UNIQUE (community_id, at, player, command));
@@ -131,6 +133,12 @@ export const staffSent = {
   first: cid => q('SELECT MIN(created) AS t FROM staff_sent WHERE community_id = ?').get(cid)?.t || null,
   actors: cid => q('SELECT by_user, by_name, COUNT(*) AS n FROM staff_sent WHERE community_id = ? GROUP BY by_user, lower(by_name)').all(cid),
   byActors: (cid, ids, name) => q(`SELECT command, by_user, by_name, created FROM staff_sent WHERE community_id = ? AND (by_user IN (${ids.map(() => '?').join(', ') || 'NULL'}) OR (by_user IS NULL AND lower(by_name) = lower(?))) ORDER BY id DESC LIMIT 1000`).all(cid, ...ids, name),
+};
+// a server's own icon, uploaded by its owner
+export const communityIcons = {
+  get: cid => q('SELECT mime, data, updated FROM community_icons WHERE community_id = ?').get(cid),
+  set: (cid, mime, data) => q('INSERT INTO community_icons (community_id, mime, data, updated) VALUES (?, ?, ?, ?) ON CONFLICT (community_id) DO UPDATE SET mime = excluded.mime, data = excluded.data, updated = excluded.updated').run(cid, mime, data, now()),
+  remove: cid => q('DELETE FROM community_icons WHERE community_id = ?').run(cid),
 };
 // every command ER:LC has reported for a community, kept for good (ER:LC itself only returns the latest few); nothing deletes from it
 export const commandLog = {
