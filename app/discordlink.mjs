@@ -23,6 +23,8 @@ export const finishInstall = async (req, code) => {
   return { guild_id: String(g.id), guild_name: String(g.name || 'Discord server'), icon: g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=64` : null }; };
 
 // the server's roles for the picker: highest first, without @everyone and roles that belong to bots
+// how many people are in a server's Discord (for the server browser), or null
+export const counts = async gid => { if (!ready() || !gid) return null; try { const g = await bot(`/guilds/${gid}?with_counts=true`); return g ? { members: g.approximate_member_count ?? null, online: g.approximate_presence_count ?? null } : null; } catch (e) { return null; } };
 export const roles = async gid => { const list = await bot(`/guilds/${gid}/roles`); if (!list) return null;
   return list.filter(r => r.id !== gid && !r.managed).sort((a, b) => b.position - a.position).map(r => ({ id: r.id, name: r.name, color: r.color ? '#' + r.color.toString(16).padStart(6, '0') : null })); };
 

@@ -1,6 +1,12 @@
 // A server's public profile: what ER:LC knows about it (name, join code, owner, size, rules), kept fresh from the API,
 // plus what only the owner can say (bio, icon, Discord invite). Saved now so the server browser can list servers later.
-import { communities, communityIcons, users, members } from './db.mjs';
+import { communities, communityIcons, users, members, votes } from './db.mjs';
+import * as discordlink from './discordlink.mjs';
+
+// where a server is and what it speaks, shown as chips in the server browser (code: [label, flag])
+export const REGIONS = { us: ['United States', '🇺🇸'], ca: ['Canada', '🇨🇦'], uk: ['United Kingdom', '🇬🇧'], eu: ['Europe', '🇪🇺'], de: ['Germany', '🇩🇪'], nl: ['Netherlands', '🇳🇱'], fr: ['France', '🇫🇷'], cz: ['Czechia', '🇨🇿'], pl: ['Poland', '🇵🇱'], au: ['Australia', '🇦🇺'], nz: ['New Zealand', '🇳🇿'], br: ['Brazil', '🇧🇷'], mx: ['Mexico', '🇲🇽'], ph: ['Philippines', '🇵🇭'], in: ['India', '🇮🇳'], global: ['Worldwide', '🌍'] };
+export const LANGS = { en: ['English', '🇬🇧'], es: ['Spanish', '🇪🇸'], pt: ['Portuguese', '🇵🇹'], fr: ['French', '🇫🇷'], de: ['German', '🇩🇪'], nl: ['Dutch', '🇳🇱'], cs: ['Czech', '🇨🇿'], pl: ['Polish', '🇵🇱'], it: ['Italian', '🇮🇹'], tl: ['Filipino', '🇵🇭'] };
+const VOTE_GAP = 12 * 3600000;
 
 const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg';
 const RUSERS = process.env.ROBLOX_USERS_API || 'https://users.roblox.com';
@@ -28,7 +34,8 @@ export const save = (c, b) => { const bio = String(b.bio || '').replace(/\r/g, '
   if (bio.length > BIO_MAX) return { error: `Keep the bio to ${BIO_MAX} characters.` };
   const raw = String(b.invite || '').trim(), code = raw ? inviteCode(raw) : ''; if (code === null) return { error: 'That doesn\'t look like a Discord invite. Type the code after discord.gg/, like "libertyrp".' };
   const invite = code ? 'https://discord.gg/' + code : '';
-  const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), bio, invite, listed: !!b.listed }; communities.saveSettings(c.id, s); return { ok: true }; };
+  const region = REGIONS[b.region] ? b.region : '', lang = LANGS[b.lang] ? b.lang : '';
+  const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), bio, invite, listed: !!b.listed, region, lang }; communities.saveSettings(c.id, s); return { ok: true }; };
 
 // a custom icon arrives as a small data URL the browser already cropped and resized
 export const setIcon = (c, dataUrl) => { const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
@@ -47,13 +54,26 @@ export const iconSource = c => { const own = communityIcons.get(c.id); if (own) 
 // listed servers' player counts are re-read every two minutes (one small request per listed server), so the browser stays live
 export const startDirectory = () => { let busy = false;
   const pass = async () => { if (busy) return; busy = true;
-    try { for (const c of communities.all()) { if (!c.settings.profile?.listed || !communities.key(c.id)) continue; await refresh(c).catch(() => {}); } } finally { busy = false; } };
+    try { for (const c of communities.all()) { if (!c.settings.profile?.listed) continue;
+      if (communities.key(c.id)) await refresh(c).catch(() => {});
+      const P = communities.byId(c.id).settings.profile || {}, gid = c.settings.discord?.guild_id;   // Discord member count: every half hour is plenty
+      if (gid && Date.now() - (P.dc_at || 0) > 30 * 60000) { const n = await discordlink.counts(gid); if (n) { const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), dc_members: n.members, dc_online: n.online, dc_at: Date.now() }; communities.saveSettings(c.id, s); } } } }
+    finally { busy = false; } };
   setTimeout(pass, 8000); setInterval(pass, 120000); };
 
 // what anyone browsing may see about a listed server; `me` marks the ones this person already belongs to
 export const directory = me => { const mine = new Map((me ? communities.forUser(me.id) : []).map(m => [m.id, m.role]));
+  const total = votes.totals(), week = votes.since(Date.now() - 7 * 86400000), voted = me ? votes.mine(me.id) : {};
   return communities.all().filter(c => c.settings.profile?.listed).map(c => { const P = c.settings.profile, E = P.erlc || {};
     return { slug: c.slug, name: c.name, bio: P.bio || '', invite: P.invite || '', players: E.players ?? null, max: E.max ?? null, join_key: E.join_key || '', ingame: E.name || '',
       owner_id: E.owner_id || '', owner_name: E.owner_name || '', co_owners: (E.co_owners || []).map(o => o.name).filter(Boolean), verified: E.verified || '', team_balance: !!E.team_balance,
       depts: ['pd', 'fd', 'dot'].map(d => c.settings.depts?.[d]?.name).filter(Boolean), discord: c.settings.discord?.guild_name || '', at: E.at || 0, created: c.created || 0,
-      role: mine.get(c.id) || null, live: !!E.at && Date.now() - E.at < 10 * 60000 }; }); };
+      role: mine.get(c.id) || null, live: !!E.at && Date.now() - E.at < 10 * 60000,
+      votes: total[c.id] || 0, week: week[c.id] || 0, next_vote: voted[c.id] ? Math.max(0, voted[c.id] + VOTE_GAP - Date.now()) : 0,
+      region: REGIONS[P.region] ? { code: P.region, name: REGIONS[P.region][0], flag: REGIONS[P.region][1] } : null, lang: LANGS[P.lang] ? { code: P.lang, name: LANGS[P.lang][0], flag: LANGS[P.lang][1] } : null,
+      dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null }; }); };
+
+// one vote per person per server every 12 hours
+export const vote = (me, slug) => { const c = communities.bySlug(String(slug || '')); if (!c || !c.settings.profile?.listed) return { error: 'That server is not listed.' };
+  const wait = votes.last(c.id, me.id) + VOTE_GAP - Date.now(); if (wait > 0) return { error: `You can vote for ${c.name} again in ${Math.ceil(wait / 3600000)} h.`, next_vote: wait };
+  votes.add(c.id, me.id); return { ok: true, votes: votes.totals()[c.id] || 0, next_vote: VOTE_GAP }; };

@@ -142,6 +142,7 @@ const globalApi = async (req, res, rest) => {
   const user = auth.currentUser(req); if (!user) return json(res, { error: 'Sign in first.' }, 401);
   if (rest === 'explore' && req.method === 'GET') return json(res, { servers: profile.directory(user) });   // read-only: the server browser's live refresh
   if (req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
+  if (rest === 'explore/vote' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to vote.' }, 403); const r = profile.vote(user, (await jsonBody(req)).slug); return json(res, r, r.error ? 429 : 200); }
   if (rest === 'communities' && req.method === 'POST') { const j = await jsonBody(req), name = String(j.name || '').trim(), slug = String(j.slug || '').trim().toLowerCase();
     if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400);
     if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(slug) || slug.includes('--')) return json(res, { error: 'The address must be 3 to 32 lowercase letters, numbers or single dashes.' }, 400);
@@ -243,7 +244,7 @@ const route = async (req, res) => {
     if (sub === '/') return html(res, mapPage(c, user, role));
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, codes: can(role, 'owner') ? { owner: codes.show(c.id, 'owner'), member: codes.show(c.id, 'member') } : (can(role, 'admin') ? { owner: null, member: codes.show(c.id, 'member') } : null) })); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'owner') ? { owner: codes.show(c.id, 'owner'), member: codes.show(c.id, 'member') } : (can(role, 'admin') ? { owner: null, member: codes.show(c.id, 'member') } : null) })); }
     return msg(res, user, 'Not found', 'That page does not exist.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
   return serve(req, res, path); };

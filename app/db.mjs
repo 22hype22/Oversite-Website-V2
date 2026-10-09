@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS staff_sent (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, command TEXT NOT NULL,
   by_user INTEGER, by_name TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS staff_sent_time ON staff_sent (community_id, created);
+CREATE TABLE IF NOT EXISTS server_votes (
+  id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, created INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS server_votes_c ON server_votes (community_id, created);
+CREATE INDEX IF NOT EXISTS server_votes_u ON server_votes (user_id, community_id, created);
 CREATE TABLE IF NOT EXISTS community_icons (
   community_id INTEGER PRIMARY KEY REFERENCES communities(id) ON DELETE CASCADE, mime TEXT NOT NULL, data BLOB NOT NULL, updated INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS command_log (
@@ -134,6 +138,14 @@ export const staffSent = {
   first: cid => q('SELECT MIN(created) AS t FROM staff_sent WHERE community_id = ?').get(cid)?.t || null,
   actors: cid => q('SELECT by_user, by_name, COUNT(*) AS n FROM staff_sent WHERE community_id = ? GROUP BY by_user, lower(by_name)').all(cid),
   byActors: (cid, ids, name) => q(`SELECT command, by_user, by_name, created FROM staff_sent WHERE community_id = ? AND (by_user IN (${ids.map(() => '?').join(', ') || 'NULL'}) OR (by_user IS NULL AND lower(by_name) = lower(?))) ORDER BY id DESC LIMIT 1000`).all(cid, ...ids, name),
+};
+// votes in the server browser: anyone signed in can vote for a server once every 12 hours
+export const votes = {
+  add: (cid, uid) => q('INSERT INTO server_votes (community_id, user_id, created) VALUES (?, ?, ?)').run(cid, uid, now()),
+  last: (cid, uid) => q('SELECT MAX(created) AS t FROM server_votes WHERE community_id = ? AND user_id = ?').get(cid, uid)?.t || 0,
+  totals: () => Object.fromEntries(q('SELECT community_id, COUNT(*) AS n FROM server_votes GROUP BY community_id').all().map(r => [r.community_id, r.n])),
+  since: t => Object.fromEntries(q('SELECT community_id, COUNT(*) AS n FROM server_votes WHERE created > ? GROUP BY community_id').all(t).map(r => [r.community_id, r.n])),
+  mine: uid => Object.fromEntries(q('SELECT community_id, MAX(created) AS t FROM server_votes WHERE user_id = ? GROUP BY community_id').all(uid).map(r => [r.community_id, r.t])),
 };
 // a server's own icon, uploaded by its owner
 export const communityIcons = {

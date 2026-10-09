@@ -29,40 +29,50 @@ a{color:inherit}
 .sp-inv span{padding:0 0 0 12px;color:var(--faint);white-space:nowrap}.sp-inv input{border:0;background:none;padding-left:1px}
 .sp-who{display:inline-flex;align-items:center;gap:6px}.sp-who img{width:18px;height:18px;border-radius:50%;background:#2a2d33}
 #spForm textarea{width:100%;resize:vertical;min-height:72px}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}@media (max-width:560px){.cols2{grid-template-columns:1fr}}
 label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--dim);cursor:pointer}label.chk input{width:auto;margin:0}
 .setup-dg{display:flex;align-items:center;gap:18px;margin:0 0 18px;border-color:rgba(88,101,242,.5);background:linear-gradient(120deg,rgba(88,101,242,.16),var(--panel) 60%)}.setup-dg h2{margin-bottom:4px}.setup-dg .note{margin:0}.setup-dg .btn{flex:none}
 @media (max-width:700px){.setup-dg{flex-direction:column;align-items:stretch}}
-.xp{max-width:1180px}.xp-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:20px}.xp-head .lead{margin:0}
-.xp-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.xp-tools select{width:auto;min-width:150px}.xp-tools .dd{display:inline-flex!important;width:170px!important;flex:none!important;margin:0!important}.xp-open{margin:0!important}
-.xp-search{display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;background:var(--field);border:1px solid var(--hair2);color:var(--faint);min-width:240px}.xp-search:focus-within{border-color:rgba(240,242,245,.45)}
+.xp{max-width:1180px}.xp-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}.xp-head .lead{margin:0}
+.xp-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.xp-open{margin:0!important}
+.xp-search{display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;background:var(--field);border:1px solid var(--hair2);color:var(--faint);min-width:260px}.xp-search:focus-within{border-color:rgba(240,242,245,.45)}
 .xp-search input{border:0;background:none;padding:10px 0;outline:0}
-.xp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
-.xc{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:16px;background:var(--panel);border:1px solid var(--hair);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);cursor:pointer;transition:border-color .15s,transform .2s cubic-bezier(.23,1,.32,1)}
-.xc:hover{border-color:rgba(240,242,245,.18)}.xc:active{transform:scale(.99)}.xc:focus-visible{outline:2px solid rgba(240,242,245,.5);outline-offset:2px}
-.xc-top{display:flex;align-items:center;gap:12px}.xc-id{flex:1;min-width:0}.xc-id b{display:block;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.xc-ic,.xd-ic{position:relative;overflow:hidden;flex:none;display:grid;place-items:center;font-weight:600;background:linear-gradient(160deg,#2d3440,#1b1f26);border:1px solid var(--hair)}
-.xc-ic{width:48px;height:48px;border-radius:13px;font-size:18px}.xd-ic{width:64px;height:64px;border-radius:16px;font-size:24px}
-.xc-ic img,.xd-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.xc-who{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:12.5px;margin-top:2px}.xc-who img{width:16px;height:16px;border-radius:50%;background:#2a2d33}
-.xc-bio{margin:0;color:#C9CDD3;font-size:13.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:3em}.xc-bio.none{color:var(--faint)}
-.xc-pl{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;font-size:12.5px;color:var(--dim)}.xc-pl b{color:var(--ink);font-weight:600}
-.xc-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(70,208,124,.15)}.xc-pl.off .xc-dot{background:var(--faint);box-shadow:none}.xc-pl.full .xc-dot{background:var(--warn);box-shadow:0 0 0 3px rgba(233,176,76,.15)}
-.xc-bar{flex-basis:100%;height:4px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}.xc-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#46D07C,#8be0a8)}.xc-pl.full .xc-bar i{background:var(--warn)}
-.xc-tags{display:flex;flex-wrap:wrap;gap:6px}.xc-tags span{font-size:11.5px;color:var(--dim);padding:3px 9px;border-radius:999px;border:1px solid var(--hair2)}
-.xc-act{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}.xc-act .btn{gap:7px}.xc-code code{font-family:ui-monospace,"Geist Mono",monospace;color:var(--ink)}
+.xp-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:5px;margin-bottom:16px;border-radius:14px;background:rgba(16,16,18,.7);border:1px solid var(--hair);backdrop-filter:blur(14px)}
+.xp-tabs button{white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-size:13.5px;font-weight:500;color:var(--dim);background:none;border:0;border-radius:10px;padding:10px 8px;cursor:pointer;transition:background .15s,color .15s}
+.xp-tabs button svg{width:16px;height:16px}.xp-tabs button:hover{color:var(--ink)}.xp-tabs button[aria-selected="true"]{color:var(--ink);background:rgba(240,242,245,.08);box-shadow:inset 0 0 0 1px rgba(240,242,245,.1)}
+.xp-list{display:flex;flex-direction:column;gap:12px}
+.xr{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:start;padding:20px 22px;border-radius:18px;background:var(--panel);border:1px solid var(--hair);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);cursor:pointer;transition:border-color .2s,background-color .2s,transform .2s cubic-bezier(.23,1,.32,1)}
+.xr:hover{border-color:rgba(240,242,245,.2);background:rgba(22,23,27,.85)}.xr:active{transform:scale(.995)}.xr:focus-visible{outline:2px solid rgba(240,242,245,.5);outline-offset:2px}
+.xr.top{border-color:rgba(232,69,122,.55);background:linear-gradient(115deg,rgba(232,69,122,.13),rgba(16,16,18,.82) 55%);box-shadow:0 0 0 1px rgba(232,69,122,.15),0 18px 40px -22px rgba(232,69,122,.45)}
+.xr-ic{position:relative;overflow:hidden;width:76px;height:76px;border-radius:20px;display:grid;place-items:center;font-size:28px;font-weight:700;background:linear-gradient(160deg,#2d3440,#1b1f26);border:1px solid var(--hair2)}
+.xr-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.xr-b{min-width:0}.xr-t{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.xr h3{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.rk{font-size:13px;font-weight:700;color:var(--dim);padding:2px 8px;border-radius:8px;background:rgba(240,242,245,.07)}.xr.top .rk{color:#fff;background:#E8457A}
+.ch{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:rgba(240,242,245,.08);color:var(--dim)}
+.ch.green{background:rgba(70,208,124,.14);color:#7BE3A1}.ch.green i{width:6px;height:6px;border-radius:50%;background:#46D07C;animation:xping 2s infinite}.ch.amber{background:rgba(233,176,76,.16);color:#F2C46E}.ch.mine{text-decoration:none;color:var(--ink);background:rgba(240,242,245,.1)}.ch.mine:hover{background:rgba(240,242,245,.18)}
+@keyframes xping{0%{box-shadow:0 0 0 0 rgba(70,208,124,.6)}70%{box-shadow:0 0 0 6px rgba(70,208,124,0)}100%{box-shadow:0 0 0 0 rgba(70,208,124,0)}}
+.xr-m{display:flex;align-items:center;flex-wrap:wrap;gap:6px 16px;margin-top:6px;color:var(--dim);font-size:13.5px}.xr-m span{display:inline-flex;align-items:center;gap:6px}.xr-m .by img{width:18px;height:18px;border-radius:50%;background:#2a2d33}
+.xr-b p{margin:10px 0 0;color:#D0D3D8;font-size:14.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.xr-b p.none{color:var(--faint)}
+.xr-g{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.xr-g span{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:rgba(232,69,122,.12);color:#F4A3BF}
+.xr-a{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.xb{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:15px;font-weight:600;padding:11px 18px;border-radius:12px;border:0;background:rgba(240,242,245,.08);color:var(--ink);text-decoration:none;white-space:nowrap;cursor:pointer;transition:background .15s,transform .15s cubic-bezier(.23,1,.32,1),filter .15s}
+.xb:hover{background:rgba(240,242,245,.14)}.xb:active{transform:scale(.97)}
+.xb.vote{background:#2FBF71;color:#fff}.xb.vote:hover{filter:brightness(1.08)}.xb.vote.hot{background:#E8457A}
+.xb.voted{background:rgba(47,191,113,.14);color:#7BE3A1}.xb.voted small{font-weight:500;opacity:.8}.xb[disabled]{opacity:.6}
 .xp-empty{text-align:center;padding:60px 20px;border:1px dashed var(--hair2);border-radius:16px;color:var(--dim)}.xp-empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:6px}.xp-empty p{margin:0 0 16px}
-.xp-dlg{border:0;padding:0;background:none;max-width:min(560px,calc(100vw - 32px));width:100%;color:var(--ink)}
+.xp-toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,12px);z-index:50;max-width:calc(100vw - 32px);padding:11px 16px;border-radius:12px;background:#1A1B1F;border:1px solid var(--hair2);box-shadow:0 18px 40px -14px rgba(0,0,0,.7);font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .2s,transform .25s cubic-bezier(.23,1,.32,1)}.xp-toast.on{opacity:1;transform:translate(-50%,0)}
+.xp-dlg{border:0;padding:0;background:none;max-width:min(600px,calc(100vw - 32px));width:100%;color:var(--ink)}
 .xp-dlg::backdrop{background:rgba(5,6,8,.6);backdrop-filter:blur(4px);opacity:0;transition:opacity .2s}.xp-dlg.in::backdrop{opacity:1}
-.xp-dlgin{position:relative;display:flex;flex-direction:column;gap:14px;padding:22px;border-radius:18px;background:#141518;border:1px solid var(--hair2);box-shadow:0 30px 60px -20px rgba(0,0,0,.7);opacity:0;transform:translateY(6px) scale(.985);transition:opacity .2s,transform .25s cubic-bezier(.23,1,.32,1)}
-.xp-dlg.in .xp-dlgin{opacity:1;transform:none}
+.xp-dlgin{position:relative;display:flex;flex-direction:column;gap:14px;padding:24px;border-radius:20px;background:#141518;border:1px solid var(--hair2);box-shadow:0 30px 60px -20px rgba(0,0,0,.7);opacity:0;transform:translateY(6px) scale(.985);transition:opacity .2s,transform .25s cubic-bezier(.23,1,.32,1)}
+.xp-dlg.in .xp-dlgin{opacity:1;transform:none}.xp-dlgin .xr-a{justify-content:flex-start}
 .xp-x{position:absolute;right:14px;top:12px;width:32px;height:32px;border-radius:9px;border:1px solid var(--hair2);background:none;color:var(--dim);font-size:18px;cursor:pointer}.xp-x:hover{color:var(--ink)}
-.xd-top{display:flex;align-items:center;gap:14px;padding-right:36px}.xd-top h2{margin:0 0 3px;font-size:20px}
+.xd-top{display:flex;align-items:center;gap:16px;padding-right:36px}.xd-top h2{margin:0;font-size:22px}
 .xd-bio{margin:0;color:#C9CDD3;line-height:1.55;white-space:pre-line}
 .xd-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;padding:14px;border-radius:12px;border:1px solid var(--hair);background:rgba(255,255,255,.02)}
 .xd-facts small{display:block;color:var(--faint);font-size:11px}.xd-facts b{display:block;font-size:13px;font-weight:500;margin-top:2px;overflow-wrap:anywhere}.xd-facts code{font-family:ui-monospace,"Geist Mono",monospace}
-@media (max-width:640px){.xp-search{min-width:0;flex:1 1 100%}.xp-tools .dd{flex:1!important;width:auto!important}.xd-facts{grid-template-columns:1fr}}
-@media (max-width:560px){.top form{display:none}.top{gap:6px;padding:14px 16px}.nav{padding:7px 9px}}
-@media (prefers-reduced-motion:reduce){.xp-dlgin,.xp-dlg::backdrop,.xc{transition:none}}
+@media (max-width:900px){.xr{grid-template-columns:auto 1fr}.xr-a{grid-column:1/-1;justify-content:flex-start}.xp-tabs{grid-template-columns:repeat(5,auto);overflow-x:auto}}
+@media (max-width:640px){.xp-search{min-width:0;flex:1 1 100%}.xr{padding:16px;gap:12px}.xr-ic{width:56px;height:56px;border-radius:15px;font-size:22px}.xr h3{font-size:18px}.xb{font-size:14px;padding:10px 14px}.xd-facts{grid-template-columns:1fr}.xp-tabs button{padding:9px 12px}}
+@media (prefers-reduced-motion:reduce){.xp-dlgin,.xp-dlg::backdrop,.xr,.xb,.xp-toast{transition:none}.ch.green i{animation:none}}
 .acct{max-width:980px}.prof{display:flex;align-items:center;gap:18px;margin:0 0 26px}.prof .pic{width:84px;height:84px;border-radius:50%;flex:none;background:#2a2d33 center/cover;border:1px solid var(--hair2);display:grid;place-items:center;font-size:30px;font-weight:600;overflow:hidden}.prof .pic{position:relative}.prof .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .prof h1{margin:0}.prof p{margin:4px 0 0;color:var(--dim);font-size:13.5px}
 .lrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--hair)}.lrow:first-of-type{border-top:0}.lrow .tx{flex:1;min-width:0}.lrow b{display:block;font-size:14px;font-weight:600}.lrow small{color:var(--dim);font-size:12.5px}
@@ -324,55 +334,76 @@ const sw=document.getElementById('switch');if(sw)sw.addEventListener('click',asy
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-leave]');if(!b)return;if(!await ask({title:'Leave '+b.dataset.name+'?',text:'You lose access to its CAD until someone gives you a code or invite again.',ok:'Leave',danger:true}))return;try{await api('/api/leave',{slug:b.dataset.leave});location.reload()}catch(x){say(document.getElementById('lmsg'),x.message)}});
 ` });
 
-// the server browser: every server whose owner listed it (Settings, Server profile), with live player counts
+// the server browser: every server whose owner listed it (Settings, Server profile), with live player counts, votes and Discord size
 export const explore = ({ logo, user, servers, owned }) => layout({ title: 'Explore servers · Oversite CAD', logo, user, body: `
-<main class="xp"><div class="xp-head"><div><h1><span style="font-weight:400">Explore</span> <b>servers</b></h1><p class="lead">ER:LC servers running Oversite CAD. Join one in game with its code, or through its Discord.</p></div>
+<main class="xp"><div class="xp-head"><div><h1><span style="font-weight:400">Explore</span> <b>servers</b></h1><p class="lead">ER:LC servers running Oversite CAD. Vote for your favourites, jump in game, or join their Discord.</p></div>
 <div class="xp-tools"><label class="xp-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="xq" placeholder="Search servers" autocomplete="off" spellcheck="false" aria-label="Search servers"></label>
-<select id="xs" aria-label="Sort"><option value="players">Most players</option><option value="new">Newest</option><option value="name">A to Z</option></select>
 <label class="chk xp-open"><input type="checkbox" id="xo"> Has open slots</label></div></div>
-<div class="xp-grid" id="xg"></div>
+<nav class="xp-tabs" id="xt" role="tablist" aria-label="Sort servers">
+<button role="tab" data-t="trending" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Trending</button>
+<button role="tab" data-t="active" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 4v16l13-8z"/></svg>Active now</button>
+<button role="tab" data-t="popular" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2"/></svg>Popular</button>
+<button role="tab" data-t="voted" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>Most voted</button>
+<button role="tab" data-t="new" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg>New</button>
+</nav>
+<div class="xp-list" id="xg"></div>
 <div class="xp-empty" id="xe" hidden></div>
 </main>
+<div class="xp-toast" id="xtoast" role="status" aria-live="polite"></div>
 <dialog class="xp-dlg" id="xd" aria-labelledby="xdT"><div class="xp-dlgin" id="xdB"></div></dialog>`, script: `
-let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};
-const g=document.getElementById('xg'),q=document.getElementById('xq'),so=document.getElementById('xs'),op=document.getElementById('xo'),em=document.getElementById('xe'),dlg=document.getElementById('xd');
+let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};let TAB='trending';
+const ERLC='https://www.roblox.com/games/2534724415/Emergency-Response-Liberty-County';
+const g=document.getElementById('xg'),q=document.getElementById('xq'),op=document.getElementById('xo'),em=document.getElementById('xe'),dlg=document.getElementById('xd'),tabs=document.getElementById('xt');
 const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const DC='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg>';
+const n=v=>Number(v||0).toLocaleString();
+const DC='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg>';
+const STAR='<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2.8 2.9 5.9 6.5.9-4.7 4.6 1.1 6.4L12 17.5l-5.8 3.1 1.1-6.4L2.6 9.6l6.5-.9z"/></svg>';
+const PLAY='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg>';
+const PPL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.6 3 5.2"/></svg>';
+const STO='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>';
 const RN={owner:'Owner',co_owner:'Co-Owner',admin:'Admin',mod:'Mod',member:'Member'};
-const ic=(x,cls)=>'<span class="'+cls+'">'+e(x.name.slice(0,1).toUpperCase())+'<img src="/c/'+e(x.slug)+'/icon" alt="" loading="lazy" onerror="this.remove()"></span>';
-const who=x=>x.owner_name?'<span class="xc-who">'+(x.owner_id?'<img src="/rbx/avatar/'+e(x.owner_id)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'Owned by '+e(x.owner_name)+'</span>':'';
-const ver=x=>x.verified&&!/^disabled$/i.test(x.verified)?'Verified accounts: '+x.verified:'';
-const tags=x=>[ver(x),x.team_balance?'Team balance':'',x.depts.length?x.depts.length+' departments':''].filter(Boolean).map(t=>'<span>'+e(t)+'</span>').join('');
-const pl=x=>{ if(!x.live||x.players==null) return '<div class="xc-pl off"><span class="xc-dot"></span><span>Player count unavailable</span></div>';
-  const full=x.max&&x.players>=x.max, pct=x.max?Math.min(100,Math.round(x.players/x.max*100)):0;
-  return '<div class="xc-pl'+(full?' full':'')+'"><span class="xc-dot"></span><span><b>'+x.players+'</b>'+(x.max?' / '+x.max:'')+' playing'+(full?' · Full':'')+'</span><div class="xc-bar"><i style="width:'+pct+'%"></i></div></div>'; };
-const acts=x=>(x.join_key?'<button class="btn sm xc-code" data-copy="'+e(x.join_key)+'" title="Copy the join code">Code <code>'+e(x.join_key)+'</code></button>':'')
-  +(x.invite?'<a class="btn sm discord" href="'+e(x.invite)+'" target="_blank" rel="noopener">'+DC+'Discord</a>':'')+(x.role?'<a class="btn sm pri" href="/c/'+e(x.slug)+'">Open CAD</a>':'');
-const card=x=>'<article class="xc" tabindex="0" role="button" data-slug="'+e(x.slug)+'" aria-label="'+e(x.name)+'"><div class="xc-top">'+ic(x,'xc-ic')+'<div class="xc-id"><b>'+e(x.name)+'</b>'+who(x)+'</div>'+(x.role?'<span class="tag ok">'+e(RN[x.role]||'Member')+'</span>':'')+'</div>'
-  +'<p class="xc-bio'+(x.bio?'':' none')+'">'+e(x.bio||'No description yet.')+'</p>'+pl(x)+(tags(x)?'<div class="xc-tags">'+tags(x)+'</div>':'')+'<div class="xc-act">'+acts(x)+'</div></article>';
-const render=()=>{ const t=q.value.trim().toLowerCase();
-  let L=S.filter(x=>!t||[x.name,x.bio,x.owner_name,x.ingame,x.discord,...x.depts].join(' ').toLowerCase().includes(t)).filter(x=>!op.checked||(x.live&&x.max&&x.players<x.max));
-  L.sort(so.value==='name'?(a,b)=>a.name.localeCompare(b.name):so.value==='new'?(a,b)=>b.created-a.created:(a,b)=>((b.live?b.players:-1)??-1)-((a.live?a.players:-1)??-1)||a.name.localeCompare(b.name));
-  g.innerHTML=L.map(card).join('');
-  em.hidden=!!L.length; if(!L.length) em.innerHTML=S.length?'<b>No servers match that.</b><p>Try a different search, or turn off "Has open slots".</p>'
+const playing=x=>x.live&&x.players!=null?x.players:-1, full=x=>x.live&&x.max&&x.players>=x.max;
+const SORT={trending:x=>x.week*3+Math.max(0,playing(x))*2+x.votes*.2,active:x=>playing(x),popular:x=>x.dc_members??-1,voted:x=>x.votes,new:x=>x.created};
+const hrs=ms=>Math.max(1,Math.ceil(ms/3600000))+'h';
+const ic=x=>'<span class="xr-ic">'+e(x.name.slice(0,1).toUpperCase())+'<img src="/c/'+e(x.slug)+'/icon" alt="" loading="lazy" onerror="this.remove()"></span>';
+const chips=x=>(x.live&&x.players!=null?(full(x)?'<span class="ch amber">Full · '+x.players+'/'+x.max+'</span>':'<span class="ch green"><i></i>'+x.players+' players active</span>'):'')+(x.role?'<a class="ch mine" href="/c/'+e(x.slug)+'">'+e(RN[x.role]||'Member')+' · Open CAD ›</a>':'');
+const meta=x=>'<span title="Votes">'+STO+n(x.votes)+'</span>'+(x.dc_members!=null?'<span title="Discord members">'+PPL+n(x.dc_members)+'</span>':'')+(x.owner_name?'<span class="by">'+(x.owner_id?'<img src="/rbx/avatar/'+e(x.owner_id)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'by '+e(x.owner_name)+'</span>':'');
+const tags=x=>[x.region?x.region.flag+' '+x.region.name:'',x.lang?x.lang.flag+' '+x.lang.name:'',x.depts.length?x.depts.length+' departments':'',x.verified&&!/^disabled$/i.test(x.verified)?'Verified: '+x.verified:''].filter(Boolean).map(t=>'<span>'+e(t)+'</span>').join('');
+const voteBtn=(x,top)=>x.next_vote>0?'<button class="xb voted" data-vote="'+e(x.slug)+'" title="You can vote again in '+hrs(x.next_vote)+'">'+STAR+'Voted <small>'+hrs(x.next_vote)+'</small></button>'
+  :'<button class="xb vote'+(top?' hot':'')+'" data-vote="'+e(x.slug)+'">'+STAR+'Vote'+(x.votes?' ('+n(x.votes)+')':'')+'</button>';
+const acts=(x,top)=>voteBtn(x,top)+(x.join_key?'<a class="xb" href="'+ERLC+'" target="_blank" rel="noopener" data-play="'+e(x.join_key)+'">'+PLAY+'Play</a>':'')
+  +(x.invite?'<a class="xb" href="'+e(x.invite)+'" target="_blank" rel="noopener">'+DC+'Join Discord</a>':'');
+const row=(x,i)=>'<article class="xr'+(i===0?' top':'')+'" tabindex="0" data-slug="'+e(x.slug)+'" aria-label="'+e(x.name)+'">'+ic(x)
+  +'<div class="xr-b"><div class="xr-t"><h3>'+(i<3?'<span class="rk">#'+(i+1)+'</span>':'')+e(x.name)+'</h3>'+chips(x)+'</div><div class="xr-m">'+meta(x)+'</div>'
+  +'<p class="'+(x.bio?'':'none')+'">'+e(x.bio||'No description yet.')+'</p>'+(tags(x)?'<div class="xr-g">'+tags(x)+'</div>':'')+'</div><div class="xr-a">'+acts(x,i===0)+'</div></article>';
+const render=()=>{ const t=q.value.trim().toLowerCase(), k=SORT[TAB];
+  const L=S.filter(x=>!t||[x.name,x.bio,x.owner_name,x.ingame,x.discord,x.region&&x.region.name,x.lang&&x.lang.name,...x.depts].join(' ').toLowerCase().includes(t)).filter(x=>!op.checked||(x.live&&x.max&&x.players<x.max))
+    .sort((a,b)=>k(b)-k(a)||b.votes-a.votes||a.name.localeCompare(b.name));
+  g.innerHTML=L.map(row).join(''); em.hidden=!!L.length;
+  if(!L.length) em.innerHTML=S.length?'<b>No servers match that.</b><p>Try a different search, or turn off "Has open slots".</p>'
     :'<b>No servers are listed yet.</b><p>Owners can add theirs in their server\\'s Settings, under Server profile.</p>'+(OWNED.length?'<a class="btn pri" href="/c/'+e(OWNED[0])+'/settings#profile">List your server</a>':''); };
-const open=slug=>{ const x=S.find(s=>s.slug===slug); if(!x) return;
-  const fact=(k,v)=>v?'<div><small>'+k+'</small><b>'+v+'</b></div>':'';
-  document.getElementById('xdB').innerHTML='<button class="xp-x" type="button" aria-label="Close" data-close>&times;</button><div class="xd-top">'+ic(x,'xd-ic')+'<div><h2 id="xdT">'+e(x.name)+'</h2>'+who(x)+'</div></div>'
-    +(x.bio?'<p class="xd-bio">'+e(x.bio)+'</p>':'')+pl(x)
+const toast=m=>{ const t=document.getElementById('xtoast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),3200); };
+tabs.addEventListener('click',ev=>{ const b=ev.target.closest('[data-t]'); if(!b) return; TAB=b.dataset.t; tabs.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x===b)); render(); });
+const open=slug=>{ const x=S.find(s=>s.slug===slug); if(!x) return; const fact=(k,v)=>v?'<div><small>'+k+'</small><b>'+v+'</b></div>':'';
+  document.getElementById('xdB').innerHTML='<button class="xp-x" type="button" aria-label="Close" data-close>&times;</button><div class="xd-top">'+ic(x)+'<div><h2 id="xdT">'+e(x.name)+'</h2><div class="xr-m">'+meta(x)+'</div></div></div>'
+    +'<div class="xr-t">'+chips(x)+'</div>'+(x.bio?'<p class="xd-bio">'+e(x.bio)+'</p>':'')+(tags(x)?'<div class="xr-g">'+tags(x)+'</div>':'')
     +'<div class="xd-facts">'+fact('In-game name',e(x.ingame))+fact('Join code',x.join_key?'<code>'+e(x.join_key)+'</code>':'')+fact('Co-owners',e(x.co_owners.join(', ')))+fact('Account verification',e(x.verified||''))
-    +fact('Team balance',x.team_balance?'On':'Off')+fact('Departments',e(x.depts.join(', ')))+fact('Discord server',e(x.discord))+'</div><div class="xc-act">'+acts(x)+'</div>';
+    +fact('Team balance',x.team_balance?'On':'Off')+fact('Departments',e(x.depts.join(', ')))+fact('Discord server',e([x.discord,x.dc_members!=null?n(x.dc_members)+' members':'',x.dc_online!=null?n(x.dc_online)+' online':''].filter(Boolean).join(' · ')))+'</div><div class="xr-a">'+acts(x)+'</div>';
   dlg.showModal(); requestAnimationFrame(()=>dlg.classList.add('in')); };
-g.addEventListener('click',ev=>{ if(ev.target.closest('a,[data-copy]')) return; const c=ev.target.closest('.xc'); if(c) open(c.dataset.slug); });
-g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xc')){ ev.preventDefault(); open(ev.target.dataset.slug); } });
+document.addEventListener('click',async ev=>{
+  const v=ev.target.closest('[data-vote]'); if(v){ ev.preventDefault(); ev.stopPropagation(); const x=S.find(s=>s.slug===v.dataset.vote); if(!x) return;
+    if(x.next_vote>0) return toast('You can vote for '+x.name+' again in '+hrs(x.next_vote)+'.');
+    v.disabled=true; try{ const j=await api('/api/explore/vote',{slug:x.slug}); x.votes=j.votes; x.next_vote=j.next_vote; x.week++; toast('Thanks for voting for '+x.name+'!'); }catch(err){ toast(err.message); } render(); if(dlg.open) open(x.slug); return; }
+  const pl=ev.target.closest('[data-play]'); if(pl){ navigator.clipboard?.writeText(pl.dataset.play).catch(()=>{}); toast('Join code '+pl.dataset.play+' copied. In ER:LC open Servers, then paste it to join.'); return; }
+  if(ev.target.closest('a,button')) return; const c=ev.target.closest('.xr'); if(c&&g.contains(c)) open(c.dataset.slug); });
+g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xr')){ ev.preventDefault(); open(ev.target.dataset.slug); } });
 dlg.addEventListener('click',ev=>{ if(ev.target===dlg||ev.target.closest('[data-close]')) dlg.close(); }); dlg.addEventListener('close',()=>dlg.classList.remove('in'));
-document.addEventListener('click',async ev=>{ const b=ev.target.closest('[data-copy]'); if(!b) return; ev.preventDefault(); await navigator.clipboard?.writeText(b.dataset.copy).catch(()=>{}); const h=b.innerHTML; b.textContent='Copied'; setTimeout(()=>b.innerHTML=h,1200); },true);
-[q,so,op].forEach(i=>i.addEventListener(i===q?'input':'change',render)); render();
-setInterval(async()=>{ if(document.hidden) return; try{ const r=await fetch('/api/explore'); if(r.ok){ S=(await r.json()).servers; render(); } }catch(x){} },60000);   // live player counts
+[q,op].forEach(i=>i.addEventListener(i===q?'input':'change',render)); render();
+setInterval(async()=>{ if(document.hidden||dlg.open) return; try{ const r=await fetch('/api/explore'); if(r.ok){ S=(await r.json()).servers; render(); } }catch(x){} },60000);   // live player counts
 ` });
 
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
-export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
+export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {} }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main><h1><b>${esc(c.name)}</b> settings</h1><p class="lead">${isNew ? 'Your server is ready. Connect it to ER:LC, then give your members the member code.' : 'Manage your server connection, codes, departments and members.'}</p>
 <div class="row" style="margin:-8px 0 20px"><a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a></div>
 ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord server to finish</h2><p class="note">Every Oversite server is tied to its Discord. Members can't open the CAD until it's connected, and it's where you pick which Discord roles are Admin and Mod.</p></div><a class="btn discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord server</a></section>` : ''}
@@ -393,7 +424,9 @@ ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.
 <div class="sp-erlc"><div class="sp-erlch"><span>From ER:LC</span><button type="button" class="lnk" id="spRefresh">${E.at ? 'Refresh' : 'Load from ER:LC'}</button></div>${E.at ? `<div class="sp-facts">${facts}</div>` : `<p class="hint" style="margin:6px 0 0">${keyStatus.connected ? 'Loading your server details…' : 'Connect your ER:LC server above to fill this in.'}</p>`}</div>
 <form id="spForm"><label for="spBio">Bio</label><textarea id="spBio" maxlength="300" rows="3" placeholder="What your server is about: the vibe, the rules, what makes it different.">${esc(P.bio || '')}</textarea><p class="hint" style="text-align:right;margin:4px 0 0"><span id="spCount">${(P.bio || '').length}</span> / 300</p>
 <label for="spInv">Discord invite</label><div class="sp-inv"><span>discord.gg/</span><input id="spInv" maxlength="80" placeholder="yourserver" value="${esc((P.invite || '').replace(/^https:\/\/discord\.gg\//, ''))}" spellcheck="false" autocomplete="off"></div><p class="hint" style="margin:4px 0 0">Just the code is enough. Pasting a full invite link works too.</p>
-<label class="chk"><input type="checkbox" id="spList"${P.listed ? ' checked' : ''}> List this server in the server browser when it launches</label>
+<div class="cols2"><div><label for="spRegion">Region</label><select id="spRegion"><option value="">Not set</option>${Object.entries(regions).map(([k, [n, f]]) => `<option value="${k}"${P.region === k ? ' selected' : ''}>${f} ${esc(n)}</option>`).join('')}</select></div>
+<div><label for="spLang">Language</label><select id="spLang"><option value="">Not set</option>${Object.entries(langs).map(([k, [n, f]]) => `<option value="${k}"${P.lang === k ? ' selected' : ''}>${f} ${esc(n)}</option>`).join('')}</select></div></div>
+<label class="chk"><input type="checkbox" id="spList"${P.listed ? ' checked' : ''}> List this server on the <a href="/explore">Explore</a> page</label>
 <div class="row" style="margin-top:14px"><button class="btn pri">Save profile</button></div><p class="msg" id="spMsg"></p></form></section>`; })()}
 <section class="card"><h2>Departments</h2><p class="note">Rename the departments for your server, and choose which in-game team belongs to each.</p>
 <form id="depts"><div class="cols">${['pd', 'fd', 'dot'].map(d => `<div class="dept"><h3><i style="background:${COL[d]}"></i>${{ pd: 'Law enforcement', fd: 'Fire and EMS', dot: 'Transportation' }[d]}</h3>
@@ -427,7 +460,7 @@ const A='/c/${esc(c.slug)}/api';
 const inv=document.getElementById('spInv'),code=v=>{const m=/(?:discord\\.gg|discord(?:app)?\\.com\\/invite)\\/([A-Za-z0-9-]{2,32})/i.exec(v);return m?m[1]:v.trim()};
 inv.addEventListener('input',()=>{if(/discord/i.test(inv.value))inv.value=code(inv.value)});
 const bio=document.getElementById('spBio');bio.addEventListener('input',()=>{document.getElementById('spCount').textContent=bio.value.length});
-document.getElementById('spForm').addEventListener('submit',async e=>{e.preventDefault();try{await api(A+'/profile/save',{bio:bio.value,invite:document.getElementById('spInv').value,listed:document.getElementById('spList').checked});say(m,'Profile saved.',true)}catch(x){say(m,x.message)}});
+document.getElementById('spForm').addEventListener('submit',async e=>{e.preventDefault();try{await api(A+'/profile/save',{bio:bio.value,invite:document.getElementById('spInv').value,listed:document.getElementById('spList').checked,region:document.getElementById('spRegion').value,lang:document.getElementById('spLang').value});say(m,'Profile saved.',true)}catch(x){say(m,x.message)}});
 const pick=()=>f.click();document.getElementById('spPick').addEventListener('click',pick);document.getElementById('spUp').addEventListener('click',pick);
 // crop to a square and shrink to 256 px in the browser, so only a small image is uploaded
 f.addEventListener('change',async()=>{const file=f.files[0];f.value='';if(!file)return;if(!/^image\\/(png|jpeg|webp)$/.test(file.type))return say(m,'Use a PNG, JPG or WebP image.');
