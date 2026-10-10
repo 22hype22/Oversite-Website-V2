@@ -79,6 +79,8 @@ export const startDirectory = (feedPeek) => { let busy = false; if (feedPeek) pe
       const P = communities.byId(c.id).settings.profile || {}, gid = c.settings.discord?.guild_id;   // Discord member count: every half hour is plenty
       if (gid && Date.now() - (P.dc_at || 0) > 30 * 60000) { const n = await discordlink.counts(gid); if (n) { const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), dc_members: n.members, dc_online: n.online, dc_at: Date.now() }; communities.saveSettings(c.id, s); } } } }
     finally { busy = false; stats.prune(); } };
+  const blind = communities.all().filter(c => c.settings.profile?.listed && !c.erlc_key).map(c => c.slug);
+  if (blind.length) console.log(`directory: listed without an ER:LC key (no live status): ${blind.join(', ')}`);
   setTimeout(pass, 8000); setInterval(pass, 120000); };
 
 // what anyone browsing may see about a listed server; `me` marks the ones this person already belongs to
@@ -92,7 +94,7 @@ export const directory = me => { const mine = new Map((me ? communities.forUser(
       role: mine.get(c.id) || null, live: !!E.at && Date.now() - E.at < 10 * 60000,
       votes: total[c.id] || 0, week: week[c.id] || 0, next_vote: voted[c.id] ? Math.max(0, voted[c.id] + VOTE_GAP - Date.now()) : 0,
       region: REGIONS[P.region] ? { code: P.region, name: REGIONS[P.region][0], flag: REGIONS[P.region][1] } : null, lang: LANGS[P.lang] ? { code: P.lang, name: LANGS[P.lang][0], flag: LANGS[P.lang][1] } : null,
-      dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, badge: !!c.verified, owner_badge: !!(E.owner_id || ownerOf(c).roblox_id) && vr.has(String(E.owner_id || ownerOf(c).roblox_id)), rating: rv[c.id] ? Math.round(rv[c.id].avg * 10) / 10 : null, reviews: rv[c.id]?.n || 0, id: c.id }; }); };
+      dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, connected: !!c.erlc_key, badge: !!c.verified, owner_badge: !!(E.owner_id || ownerOf(c).roblox_id) && vr.has(String(E.owner_id || ownerOf(c).roblox_id)), rating: rv[c.id] ? Math.round(rv[c.id].avg * 10) / 10 : null, reviews: rv[c.id]?.n || 0, id: c.id }; }); };
 
 // one vote per person per server every 12 hours
 export const vote = (me, slug) => { const c = communities.bySlug(String(slug || '')); if (!c || !c.settings.profile?.listed || c.hidden || c.suspended) return { error: 'That server is not listed.' };

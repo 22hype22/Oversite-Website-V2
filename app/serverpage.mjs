@@ -93,7 +93,7 @@ const medal = (place, label) => `<span class="md p${place}" title="#${place} ${l
 
 export const serverPage = ({ logo, user, x, medals = [], players, voteTimes, list, me }) => {
   const live = x.live && x.players != null, full = live && x.max && x.players >= x.max;
-  const status = !live ? '<span class="xs off">Offline</span>' : `<span class="xs ${full ? 'full' : 'open'}"><b>${x.players}</b>${x.max ? ' / ' + x.max : ''} in game${full ? ' · Full' : ''}</span>`;
+  const status = !x.connected ? '' : !live ? '<span class="xs off">Offline</span>' : `<span class="xs ${full ? 'full' : 'open'}"><b>${x.players}</b>${x.max ? ' / ' + x.max : ''} in game${full ? ' · Full' : ''}</span>`;
   const peak = players.reduce((m, p) => Math.max(m, p[1] ?? 0), 0);
   const lang = x.lang ? (x.region && x.lang.name.endsWith('(' + x.region.name + ')') ? x.lang.name.split(' (')[0] : x.lang.name) : '';
   const fact = (k, v) => v ? `<div><small>${k}</small><b>${v}</b></div>` : '';
@@ -110,7 +110,7 @@ ${me ? `<button class="xb" id="vote"${x.next_vote > 0 ? ' data-wait="' + x.next_
 ${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopener">${I.dc}Discord</a>` : ''}${x.role ? `<a class="xb" href="/c/${esc(x.slug)}">Open CAD</a>` : ''}</div></div>
 
 <div class="sv-stats">
-<div class="sv-st"><small>In game now</small><b>${live ? x.players : '–'}${live && x.max ? `<span>/ ${x.max}</span>` : ''}</b>${live && x.max ? `<div class="bar"><i style="width:${Math.min(100, Math.round(x.players / x.max * 100))}%"></i></div>` : `<p>${live ? 'Live' : 'Server is offline'}</p>`}</div>
+<div class="sv-st"><small>In game now</small><b>${live ? x.players : '–'}${live && x.max ? `<span>/ ${x.max}</span>` : ''}</b>${live && x.max ? `<div class="bar"><i style="width:${Math.min(100, Math.round(x.players / x.max * 100))}%"></i></div>` : `<p>${live ? 'Live' : x.connected ? 'Server is offline' : 'Not linked to ER:LC'}</p>`}</div>
 <div class="sv-st"><small>Peak, 24 hours</small><b>${players.length ? peak : '–'}</b><p>${players.length ? 'Most players at once' : 'No data yet'}</p></div>
 <div class="sv-st"><small>Votes</small><b id="vN">${n(x.votes)}</b><p>+${n(x.week)} this week</p></div>
 <div class="sv-st"><small>Discord</small><b>${x.dc_members != null ? n(x.dc_members) : '–'}</b><p>${x.dc_online != null ? n(x.dc_online) + ' online' : x.discord ? 'Members' : 'Not connected'}</p></div>
