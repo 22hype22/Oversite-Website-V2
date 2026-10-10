@@ -152,6 +152,11 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'admin/verify' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), id = Number(j.id);
     const n = j.kind === 'server' ? communities.setVerified(id, !!j.on) : j.kind === 'user' ? users.setVerified(id, !!j.on) : 0;
     if (!n) return json(res, { error: 'Not found.' }, 404); console.log(`verify: ${user.discord_id} set ${j.kind} ${id} ${j.on ? 'on' : 'off'}`); return json(res, { ok: true }); }
+  // join a server's CAD straight from Explore, when its owner allows open joining
+  if (rest === 'explore/join' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to join a server.' }, 403);
+    const c = visible((await jsonBody(req)).slug); if (!c) return json(res, { error: 'That server is not listed.' }, 404);
+    if (!members.role(c.id, user.id)) { if (!c.settings.profile?.open_join) return json(res, { error: 'This server takes new members with its invite code. Ask them for it, or join their Discord.' }, 403); members.add(c.id, user.id, 'member'); }
+    return json(res, { ok: true, next: `/c/${c.slug}` }); }
   if (rest === 'reviews' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to write a review.' }, 403);
     const j = await jsonBody(req), c = visible(j.slug); if (!c) return json(res, { error: 'That server is not listed.' }, 404);
     if (runsServer(c.id, user.id)) return json(res, { error: 'You can\'t review a server you run.' }, 403);

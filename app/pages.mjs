@@ -484,6 +484,7 @@ const STO='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="c
 const VB=${JSON.stringify(vbadge(16))},VBS=${JSON.stringify(vbadge(13))};
 const PIN='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
 const LNG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+const CADI='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13M15 6.5v13"/></svg>';
 const RN={owner:'Owner',co_owner:'Co-Owner',admin:'Admin',mod:'Mod',member:'Member'};
 const playing=x=>x.live&&x.players!=null?x.players:-1, full=x=>x.live&&x.max&&x.players>=x.max;
 const SORT={trending:x=>x.week*3+Math.max(0,playing(x))*2+x.votes*.2,active:x=>playing(x),popular:x=>x.dc_members??-1,voted:x=>x.votes,new:x=>x.created};
@@ -498,7 +499,7 @@ const meta=x=>(x.rating!=null?'<span class="xr-rt" title="'+x.reviews+' review'+
 const by=x=>x.owner_name?'<span class="by">by '+e(x.owner_name)+(x.owner_badge?VBS:'')+'</span>':'';
 const voteBtn=x=>x.next_vote>0?'<button class="xb ghost voted" data-vote="'+e(x.slug)+'" title="You can vote again in '+hrs(x.next_vote)+'">'+STAR+'Voted · '+hrs(x.next_vote)+'</button>'
   :'<button class="xb ghost" data-vote="'+e(x.slug)+'">'+STO+'Vote'+(x.votes?' <small>'+n(x.votes)+'</small>':'')+'</button>';
-const acts=x=>(x.join_key?'<a class="xb pri" href="'+ERLC+'" target="_blank" rel="noopener" data-play="'+e(x.join_key)+'">'+PLAY+'Play</a>':'')+voteBtn(x)
+const acts=x=>(x.join_key?'<a class="xb pri" href="'+ERLC+'" target="_blank" rel="noopener" data-play="'+e(x.join_key)+'" title="Copy the join code and open ER:LC">'+PLAY+'Join</a>':'')+(x.open_join&&!x.role?'<button class="xb" data-joincad="'+e(x.slug)+'" title="Join this server on Oversite">'+CADI+'Join CAD</button>':'')+voteBtn(x)
   +(x.invite?'<a class="xb ghost" href="'+e(x.invite)+'" target="_blank" rel="noopener" title="Join their Discord">'+DC+'Discord</a>':'');
 const pct=x=>x.live&&x.max?Math.min(100,Math.round(x.players/x.max*100)):0;
 const card=(x,i)=>'<article class="xr st-'+state(x)+(i===0?' is-top':'')+'" tabindex="0" data-slug="'+e(x.slug)+'" aria-label="'+e(x.name)+'">'
@@ -540,6 +541,7 @@ document.addEventListener('click',async ev=>{
     if(x.next_vote>0) return toast('You can vote for '+x.name+' again in '+hrs(x.next_vote)+'.');
     v.disabled=true; try{ const j=await api('/api/explore/vote',{slug:x.slug}); x.votes=j.votes; x.next_vote=j.next_vote; x.week++; toast('Thanks for voting for '+x.name+'!'); }catch(err){ toast(err.message); } render(); if(dlg.open) open(x.slug); return; }
   const rp=ev.target.closest('[data-report]'); if(rp){ const x=S.find(s=>s.slug===rp.dataset.report); if(x){ dlg.close(); report(x); } return; }
+  const jc=ev.target.closest('[data-joincad]'); if(jc){ ev.preventDefault(); ev.stopPropagation(); jc.disabled=true; try{ const j=await api('/api/explore/join',{slug:jc.dataset.joincad}); location.href=j.next; }catch(err){ toast(err.message); jc.disabled=false; } return; }
   const pl=ev.target.closest('[data-play]'); if(pl){ navigator.clipboard?.writeText(pl.dataset.play).catch(()=>{}); toast('Join code '+pl.dataset.play+' copied. In ER:LC open Servers, then paste it to join.'); return; }
   if(ev.target.closest('a,button')) return; const c=ev.target.closest('.xr'); if(c&&g.contains(c)) location.href='/s/'+encodeURIComponent(c.dataset.slug); });
 g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xr')){ ev.preventDefault(); location.href='/s/'+encodeURIComponent(ev.target.dataset.slug); } });
@@ -572,7 +574,9 @@ ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.
 <label for="spInv">Discord invite</label><div class="sp-inv"><span>discord.gg/</span><input id="spInv" maxlength="80" placeholder="yourserver" value="${esc((P.invite || '').replace(/^https:\/\/discord\.gg\//, ''))}" spellcheck="false" autocomplete="off"></div><p class="hint" style="margin:4px 0 0">Just the code is enough. Pasting a full invite link works too.</p>
 <div class="cols2"><div><label for="spRegion">Region</label><select id="spRegion"><option value="">Not set</option>${Object.entries(regions).map(([k, [n, f]]) => `<option value="${k}"${P.region === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
 <div><label for="spLang">Language</label><select id="spLang"><option value="">Not set</option>${Object.entries(langs).map(([k, [n, f]]) => `<option value="${k}"${P.lang === k ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div></div>
-<label class="chk"><input type="checkbox" id="spList"${P.listed ? ' checked' : ''}> List this server on the <a href="/explore">Explore</a> page</label>${keyStatus && !keyStatus.connected ? '<p class="hint" style="margin:4px 0 0">Connect your ER:LC server above so Explore can show when you\'re online and how many are playing.</p>' : ''}${c.hidden ? '<p class="hint" style="margin:4px 0 0;color:var(--warn)">Oversite has hidden this server from Explore. Email support@oversite.shop if you think this is a mistake.</p>' : ''}
+${E.join_key ? '' : `<label for="spJoin">ER:LC join code</label><input id="spJoin" maxlength="12" placeholder="LCRPx" value="${esc(P.join_code || '')}" spellcheck="false" autocomplete="off"><p class="hint" style="margin:4px 0 0">The code players type in ER:LC to find your server. It fills in by itself once ER:LC is connected.</p>`}
+<label class="chk"><input type="checkbox" id="spList"${P.listed ? ' checked' : ''}> List this server on the <a href="/explore">Explore</a> page</label>${keyStatus && !keyStatus.connected ? '<p class="hint" style="margin:4px 0 0">Connect your ER:LC server above so Explore can show when you\'re online and how many are playing.</p>' : ''}
+<label class="chk"><input type="checkbox" id="spOpen"${P.open_join ? ' checked' : ''}> Anyone can join this server's CAD from Explore, without the invite code</label>${c.hidden ? '<p class="hint" style="margin:4px 0 0;color:var(--warn)">Oversite has hidden this server from Explore. Email support@oversite.shop if you think this is a mistake.</p>' : ''}
 <div class="row" style="margin-top:14px"><button class="btn pri">Save profile</button></div><p class="msg" id="spMsg"></p></form></section>`; })()}
 <section class="card"><h2>Departments</h2><p class="note">Rename the departments for your server, and choose which in-game team belongs to each.</p>
 <form id="depts"><div class="cols">${['pd', 'fd', 'dot'].map(d => `<div class="dept"><h3><i style="background:${COL[d]}"></i>${{ pd: 'Law enforcement', fd: 'Fire and EMS', dot: 'Transportation' }[d]}</h3>
@@ -605,7 +609,7 @@ const A='/c/${esc(c.slug)}/api';
 const inv=document.getElementById('spInv'),code=v=>{const m=/(?:discord\\.gg|discord(?:app)?\\.com\\/invite)\\/([A-Za-z0-9-]{2,32})/i.exec(v);return m?m[1]:v.trim()};
 inv.addEventListener('input',()=>{if(/discord/i.test(inv.value))inv.value=code(inv.value)});
 const bio=document.getElementById('spBio');bio.addEventListener('input',()=>{document.getElementById('spCount').textContent=bio.value.length});
-document.getElementById('spForm').addEventListener('submit',async e=>{e.preventDefault();try{await api(A+'/profile/save',{bio:bio.value,invite:document.getElementById('spInv').value,listed:document.getElementById('spList').checked,region:document.getElementById('spRegion').value,lang:document.getElementById('spLang').value});say(m,'Profile saved.',true)}catch(x){say(m,x.message)}});
+document.getElementById('spForm').addEventListener('submit',async e=>{e.preventDefault();try{await api(A+'/profile/save',{bio:bio.value,invite:document.getElementById('spInv').value,listed:document.getElementById('spList').checked,open_join:document.getElementById('spOpen').checked,join_code:document.getElementById('spJoin')?document.getElementById('spJoin').value:undefined,region:document.getElementById('spRegion').value,lang:document.getElementById('spLang').value});say(m,'Profile saved.',true)}catch(x){say(m,x.message)}});
 const pick=()=>f.click();document.getElementById('spPick').addEventListener('click',pick);document.getElementById('spUp').addEventListener('click',pick);
 // crop to a square and shrink to 256 px in the browser, so only a small image is uploaded
 f.addEventListener('change',async()=>{const file=f.files[0];f.value='';if(!file)return;if(!/^image\\/(png|jpeg|webp)$/.test(file.type))return say(m,'Use a PNG, JPG or WebP image.');

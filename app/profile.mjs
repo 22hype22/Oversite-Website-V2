@@ -43,7 +43,12 @@ export const save = (c, b) => { const bio = String(b.bio || '').replace(/\r/g, '
   if (code && rude(code)) return { error: RUDE_MSG };
   const invite = code ? 'https://discord.gg/' + code : '';
   const region = REGIONS[b.region] ? b.region : '', lang = LANGS[b.lang] ? b.lang : '';
-  const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), bio, invite, listed: !!b.listed, region, lang }; communities.saveSettings(c.id, s); return { ok: true }; };
+  // the ER:LC join code, typed by owners whose server isn't linked to ER:LC (a linked server's code comes from ER:LC itself)
+  const s = communities.byId(c.id).settings, old = s.profile || {};
+  let join_code = old.join_code || ''; if (b.join_code !== undefined) { join_code = String(b.join_code || '').trim();
+    if (join_code && !/^[A-Za-z0-9]{3,12}$/.test(join_code)) return { error: 'The ER:LC join code is 3 to 12 letters or numbers, like the code in your ER:LC server settings.' };
+    if (join_code && rude(join_code)) return { error: RUDE_MSG }; }
+  s.profile = { ...old, bio, invite, listed: !!b.listed, region, lang, join_code, open_join: !!b.open_join }; communities.saveSettings(c.id, s); return { ok: true }; };
 
 // a custom icon arrives as a small data URL the browser already cropped and resized
 export const setIcon = (c, dataUrl) => { const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
@@ -88,7 +93,7 @@ export const directory = me => { const mine = new Map((me ? communities.forUser(
   const total = votes.totals(), week = votes.since(Date.now() - 7 * 86400000), voted = me ? votes.mine(me.id) : {};
   const vr = users.verifiedRoblox(), rv = reviews.summary(), owners = new Map(), ownerOf = c => { if (!owners.has(c.owner_id)) owners.set(c.owner_id, users.byId(c.owner_id) || {}); return owners.get(c.owner_id); };
   return communities.all().filter(c => c.settings.profile?.listed && !c.hidden && !c.suspended).map(c => { const P = c.settings.profile, E = P.erlc || {};
-    return { slug: c.slug, name: c.name, bio: P.bio || '', invite: P.invite || '', players: E.players ?? null, max: E.max ?? null, join_key: E.join_key || '', ingame: E.name || '',
+    return { slug: c.slug, name: c.name, bio: P.bio || '', invite: P.invite || '', players: E.players ?? null, max: E.max ?? null, join_key: E.join_key || P.join_code || '', open_join: !!P.open_join, ingame: E.name || '',
       owner_id: E.owner_id || ownerOf(c).roblox_id || '', owner_name: E.owner_name || ownerOf(c).roblox_name || ownerOf(c).name || '', co_owners: (E.co_owners || []).map(o => o.name).filter(Boolean), verified: E.verified || '', team_balance: !!E.team_balance,
       depts: ['pd', 'fd', 'dot'].map(d => c.settings.depts?.[d] && { k: d, name: c.settings.depts[d].name, short: c.settings.depts[d].short }).filter(Boolean), discord: c.settings.discord?.guild_name || '', at: E.at || 0, created: c.created || 0,
       role: mine.get(c.id) || null, live: !!E.at && Date.now() - E.at < 10 * 60000,
