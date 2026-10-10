@@ -149,6 +149,16 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
 /* a call's units: c.unit leads it, c.more lists the units sent to help (a big fire can need several) */
 window.onIt = (c, n) => !!n && !!c && (c.unit === n || (c.more || []).some(m => m.name === n));
 window.callUnits = c => c && c.unit ? [c.unit, ...(c.more || []).map(m => m.name)] : [];
+/* a unit's map tag: callsign, players, the unit they picked (or their department) and whether they are free */
+window.UNIT_OF = (window.OVERSITE && window.OVERSITE.unitOf) || {};
+window.unitOf = u => (u && u.uid && window.UNIT_OF[String(u.uid)]) || '';
+window.tagHTML = u => { if (!u) return ''; const e = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const unit = window.unitOf(u), dn = (window.OVERSITE && window.OVERSITE.depts && window.OVERSITE.depts[u.dept] && window.OVERSITE.depts[u.dept].name) || ({ pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' })[u.dept] || '';
+  const call = (window.CALLS || []).find(k => onIt(k, u.name));
+  return `<div class="k">${e(u.name)}</div><div class="s">${e((u.crew || []).join(', '))}</div><div class="v un${unit ? '' : ' none'}">${e(unit || dn)}</div><div class="av${call ? ' busy' : ''}">${call ? 'On call · ' + e(call.code) : 'Available'}</div>`; };
+if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(window.OVERSITE.api + '/units', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; window.UNIT_OF = j.of || {};
+    for (const d of ['pd', 'fd', 'dot']) if (window.OVERSITE.depts && window.OVERSITE.depts[d]) window.OVERSITE.depts[d].units = (j.units || {})[d] || []; dispatchEvent(new CustomEvent('unitassign')); }).catch(() => {});
+  setInterval(pullUnits, 30000); }
 /* ── shared unit simulation: positions for cards, 2D pins and the 3D scene ── */
 (() => {
   const ROUTES = __ROUTES__;   // patrol routes along real roads, preview/newmap/routes.json

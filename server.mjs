@@ -6,7 +6,7 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, members, invites, roblox, codes, reports, reviews, stats, voteDays, RESERVED, token } from './app/db.mjs';
+import { users, communities, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, RESERVED, token } from './app/db.mjs';
 import { serverPage } from './app/serverpage.mjs';
 import { Feed, testKey, NOKEY } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
@@ -45,7 +45,7 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // ── the CAD page, with this community's settings injected ──
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
+  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};</script>`;
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
@@ -109,9 +109,18 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'profile/save' && M === 'POST') { const r = profile.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 5e5) || '{}'); } catch (e) {} const r = profile.setIcon(c, j.data); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon/remove' && M === 'POST') return json(res, profile.clearIcon(c));
+  // department units (Engine 1, K-9, ...) and who is in which, for the unit tags on the map; players set their own from the MDT
+  if (rest === 'units' && M === 'GET') return json(res, { of: unitMembers.all(c.id), units: Object.fromEntries(['pd', 'fd', 'dot'].map(d => [d, c.settings.depts?.[d]?.units || []])) });
+  if (rest === 'units/me' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
+    const unit = String((await jsonBody(req)).unit || '').trim(), all = ['pd', 'fd', 'dot'].flatMap(d => c.settings.depts?.[d]?.units || []);
+    if (unit && !all.includes(unit)) return json(res, { error: 'That unit no longer exists. Pick another one.' }, 400);
+    unitMembers.set(c.id, String(user.roblox_id), unit); return json(res, { ok: true, of: unitMembers.all(c.id) }); }
   if (rest === 'settings' && M === 'POST') { const j = await jsonBody(req), s = c.settings;
     const name = String(j.name || '').trim(); if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400); if (rude(name)) return json(res, { error: RUDE_MSG }, 400);
-    for (const d of ['pd', 'fd', 'dot']) { const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); if (rude(n) || rude(sh)) return json(res, { error: RUDE_MSG }, 400); s.depts[d] = { name: n, short: sh }; }
+    for (const d of ['pd', 'fd', 'dot']) { const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); if (rude(n) || rude(sh)) return json(res, { error: RUDE_MSG }, 400);
+      const raw = j.depts?.[d]?.units, units = [...new Set((Array.isArray(raw) ? raw : String(raw || '').split(',')).map(x => String(x).replace(/\s+/g, ' ').trim()).filter(Boolean))].slice(0, 20);
+      if (units.some(x => x.length > 24)) return json(res, { error: 'Keep each unit name to 24 characters.' }, 400); if (units.some(x => rude(x))) return json(res, { error: RUDE_MSG }, 400);
+      s.depts[d] = { name: n, short: sh, units }; }
     for (const [t, d] of Object.entries(j.teams || {})) if (t in s.teams && ['pd', 'fd', 'dot', ''].includes(d)) s.teams[t] = d;
     communities.rename(c.id, name); communities.saveSettings(c.id, s); return json(res, { ok: true }); }
   if (rest === 'codes' && M === 'POST') { const j = await jsonBody(req);

@@ -72,7 +72,10 @@ CREATE TABLE IF NOT EXISTS reviews (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   rating INTEGER NOT NULL, body TEXT NOT NULL, created INTEGER NOT NULL, updated INTEGER, reply TEXT, reply_at INTEGER, UNIQUE (community_id, user_id));
 CREATE INDEX IF NOT EXISTS reviews_user ON reviews (user_id, created);`);
-try { db.exec('ALTER TABLE reports ADD COLUMN review_id INTEGER'); } catch (e) {}   // set when the report is about a review rather than the listing   // how the Roblox link was proven: 'discord' or 'profile'
+try { db.exec('ALTER TABLE reports ADD COLUMN review_id INTEGER'); } catch (e) {}
+// the unit (Engine 1, K-9, ...) each player picked in their MDT, by Roblox id; the unit names themselves live in the server's department settings
+db.exec(`CREATE TABLE IF NOT EXISTS unit_members (
+  community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, roblox_id TEXT NOT NULL, unit TEXT NOT NULL, updated INTEGER NOT NULL, PRIMARY KEY (community_id, roblox_id));`);   // set when the report is about a review rather than the listing   // how the Roblox link was proven: 'discord' or 'profile'
 // server keys are encrypted at rest with a secret that lives in the environment or, failing that, next to the database
 const SECRET_FILE = join(DATA, 'app.secret');
 let secret = process.env.APP_SECRET ? createHash('sha256').update(process.env.APP_SECRET).digest() : null;
@@ -257,4 +260,9 @@ export const reviews = {
     else q('INSERT INTO reviews (community_id, user_id, rating, body, created) VALUES (?, ?, ?, ?, ?)').run(cid, uid, rating, body, now()); },
   reply: (id, text) => q('UPDATE reviews SET reply = ?, reply_at = ? WHERE id = ?').run(text || null, text ? now() : null, id),
   remove: id => q('DELETE FROM reviews WHERE id = ?').run(id).changes,
+};
+
+export const unitMembers = {
+  all: cid => Object.fromEntries(q('SELECT roblox_id, unit FROM unit_members WHERE community_id = ?').all(cid).map(r => [r.roblox_id, r.unit])),
+  set: (cid, rid, unit) => unit ? q('INSERT OR REPLACE INTO unit_members (community_id, roblox_id, unit, updated) VALUES (?, ?, ?, ?)').run(cid, rid, unit, now()) : q('DELETE FROM unit_members WHERE community_id = ? AND roblox_id = ?').run(cid, rid),
 };
