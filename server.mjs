@@ -222,7 +222,7 @@ const REVIEW_REASON = 'Review';
 const visible = slug => { const c = communities.bySlug(String(slug || '')); return c && c.settings.profile?.listed && !c.hidden && !c.suspended ? c : null; };
 const reviewList = cid => reviews.forServer(cid).map(r => ({ id: r.id, user_id: r.user_id, rating: r.rating, body: r.body, created: r.created, updated: r.updated, reply: r.reply, roblox_name: r.roblox_name, roblox_id: r.roblox_id, verified: !!r.verified }));
 const runsServer = (cid, uid) => ['owner', 'co_owner'].includes(members.role(cid, uid));
-const SUSPENDED_OK = /^\/(privacy|terms|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.png|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/avatar\/\d+)$/;
+const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.png|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/avatar\/\d+)$/;
 // ── routes ──
 const route = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = decodeURIComponent(url.pathname); let m0, m0r;
@@ -240,10 +240,17 @@ const route = async (req, res) => {
   if ((m0r = path.match(/^\/s\/([a-z0-9-]{3,32})$/))) { const user = auth.currentUser(req), c = communities.bySlug(m0r[1]);
     const all = profile.directory(user), x = c && all.find(y => y.id === c.id);
     if (!x) return msg(res, user, 'Server not found', 'It may have been taken off Explore, or the address is wrong.', { href: '/explore', label: 'Explore servers' }, 404);
-    const score = y => y.week * 3 + Math.max(0, y.live && y.players != null ? y.players : -1) * 2 + y.votes * .2, rank = [...all].sort((a, b) => score(b) - score(a)).findIndex(y => y.id === x.id) + 1;
+    // medals: where this server places on each Explore tab (top 3 earns one; a tab with nothing to count doesn't)
+    const playing = y => y.live && y.players != null ? y.players : -1, NEW_DAYS = 14;
+    const BOARDS = [['trending', 'Trending', y => y.week * 3 + Math.max(0, playing(y)) * 2 + y.votes * .2, y => y.week > 0 || playing(y) > 0 || y.votes > 0],
+      ['active', 'Most active', playing, y => playing(y) > 0], ['popular', 'Most popular', y => y.dc_members ?? -1, y => (y.dc_members ?? 0) > 0],
+      ['voted', 'Most voted', y => y.votes, y => y.votes > 0], ['new', 'Newest', y => y.created, y => Date.now() - y.created < NEW_DAYS * 864e5]];
+    const medals = BOARDS.map(([k, label, f, counts]) => { if (!counts(x)) return null;
+      const place = [...all].sort((a, b) => f(b) - f(a) || b.votes - a.votes || a.name.localeCompare(b.name)).findIndex(y => y.id === x.id) + 1;
+      return place && place <= 3 ? { k, label, place } : null; }).filter(Boolean).sort((a, b) => a.place - b.place);
     const own = user && runsServer(c.id, user.id);
     const me = user ? { id: user.id, owner: own, admin: isSiteAdmin(user), can: !!user.roblox_name && !own, why: !user.roblox_name ? 'Link your Roblox account to write a review.' : own ? 'Reviews are from players. You can reply to any review below.' : '' } : null;
-    return page(res, serverPage({ logo: LOGO, user, x, rank: all.length > 1 && rank <= 10 ? rank : 0, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me })); }
+    return page(res, serverPage({ logo: LOGO, user, x, medals, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me })); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
     return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON } })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
@@ -264,7 +271,7 @@ const route = async (req, res) => {
     return redirect(res, src.url); }
   if ((m0r = path.match(/^\/rbx\/avatar\/(\d{1,20})$/))) { const url = await headshot(m0r[1]); if (!url) { res.writeHead(404, { 'cache-control': 'public, max-age=600' }); return res.end(); }
     res.writeHead(302, { location: url, 'cache-control': 'public, max-age=3600' }); return res.end(); }
-  if (path === '/privacy' || path === '/terms') return page(res, pages.legal({ logo: LOGO, user: auth.currentUser(req), doc: path.slice(1) }));
+  if (path === '/privacy' || path === '/terms' || path === '/refunds') return page(res, pages.legal({ logo: LOGO, user: auth.currentUser(req), doc: path.slice(1) }));
   if ((m0 = path.match(/^\/c\/([a-z0-9-]+)\/discord\/connect$/))) { const { c, user, role } = await access(req, m0[1]);
     if (!c || !user || !can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner or a co-owner can connect a Discord server.', { href: '/dashboard', label: 'Back' }, 403);
     if (!discordlink.ready()) return msg(res, user, 'Discord is not set up yet', 'Oversite needs its Discord bot keys before servers can be linked.', { href: `/c/${c.slug}/settings`, label: 'Back' });
@@ -380,7 +387,7 @@ const unlock = (req, res, code, next = '/') => { const ip = ipOf(req), a = attem
   a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } attempts.set(ip, a); return html(res, lockPage('That code is not right.'), 401); };
 const gate = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = url.pathname;
-  if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js' || /^\/(apple-touch-icon(-precomposed)?\.png|icon-(192|512|maskable-512)\.png|manifest\.webmanifest|favicon\.ico)$/.test(path) || path === '/privacy' || path === '/terms') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
+  if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js' || /^\/(apple-touch-icon(-precomposed)?\.png|icon-(192|512|maskable-512)\.png|manifest\.webmanifest|favicon\.ico)$/.test(path) || path === '/privacy' || path === '/terms' || path === '/refunds') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
   if (path === '/unlock' && req.method === 'POST') { const f = await formBody(req); return unlock(req, res, String(f.get('code') || '').trim()); }
   if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });
   const q = url.searchParams.get('code'); if (q && CODE && !hasAccess(req)) { url.searchParams.delete('code'); return unlock(req, res, q.trim(), url.pathname + (url.search || '')); }

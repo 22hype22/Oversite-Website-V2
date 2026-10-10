@@ -8,7 +8,13 @@ const CSS = `
 .sv-hero{position:relative;height:210px;border-radius:22px;overflow:hidden;border:1px solid var(--hair);background:#3E6973 url(/liberty-county.jpg) var(--pos)/620% no-repeat}
 .sv-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,12,.05),rgba(8,10,12,.3) 55%,rgba(11,12,14,.92))}
 .sv-ht{position:absolute;left:18px;right:18px;top:16px;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.sv-rank{font-size:12px;font-weight:600;letter-spacing:.02em;padding:5px 11px;border-radius:999px;background:rgba(8,9,11,.72);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(8px)}
+.sv-ht{align-items:flex-start}
+.sv-md{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:70%}
+.md{--c:#F2C46E;display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 5px;border-radius:999px;background:rgba(8,9,11,.74);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-size:12.5px;font-weight:600;color:#F0F2F5;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.md svg{flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}.md b{color:var(--c);font-weight:700}
+.md.p2{--c:#CBD2DC}.md.p3{--c:#D99A64}
+.sv-md2{display:none}
+@media (max-width:620px){.sv-ht .sv-md{display:none}.sv-md2{display:flex;justify-content:flex-start;max-width:none;margin-top:10px}.md{font-size:11.5px;padding:3px 10px 3px 4px}.md svg{width:18px;height:18px}}
 .sv-head{position:relative;display:flex;align-items:flex-start;gap:18px;margin:-52px 0 0;padding:0 22px;z-index:2;flex-wrap:wrap}
 .sv-ic{position:relative;overflow:hidden;flex:none;width:104px;height:104px;border-radius:26px;display:grid;place-items:center;font-size:38px;font-weight:700;background:linear-gradient(160deg,#2d3440,#1b1f26);border:4px solid #0f1113;box-shadow:0 16px 34px rgba(0,0,0,.5)}
 .sv-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -82,7 +88,11 @@ const n = v => Number(v || 0).toLocaleString('en-US');
 const spot = slug => { let h = 0; for (const c of slug) h = (h * 31 + c.charCodeAt(0)) >>> 0; return `${12 + h % 76}% ${14 + (h >>> 8) % 72}%`; };
 const starsText = r => '★★★★★'.slice(0, Math.round(r)) + '☆☆☆☆☆'.slice(0, 5 - Math.round(r));
 
-export const serverPage = ({ logo, user, x, rank, players, voteTimes, list, me }) => {
+// a medal: ribbon plus a disc in gold, silver or bronze, with the place number on it
+const MEDAL = { 1: ['#F7D27A', '#C99A35'], 2: ['#E3E8EF', '#9CA6B4'], 3: ['#E7AE7C', '#A7653A'] };
+const medal = (place, label) => { const [hi, lo] = MEDAL[place]; return `<span class="md p${place}" title="#${place} ${label} on Explore"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h4l2 5-3 3z" fill="#4C8DFF"/><path d="M17 2h-4l-2 5 3 3z" fill="#2F64C8"/><circle cx="12" cy="15" r="7" fill="${lo}"/><circle cx="12" cy="15" r="5.6" fill="${hi}"/><text x="12" y="18.2" text-anchor="middle" font-size="8.5" font-weight="800" font-family="system-ui,sans-serif" fill="${lo}">${place}</text></svg><b>#${place}</b>${label}</span>`; };
+
+export const serverPage = ({ logo, user, x, medals = [], players, voteTimes, list, me }) => {
   const live = x.live && x.players != null, full = live && x.max && x.players >= x.max;
   const status = !live ? '<span class="xs off">Offline</span>' : `<span class="xs ${full ? 'full' : 'open'}"><b>${x.players}</b>${x.max ? ' / ' + x.max : ''} in game${full ? ' · Full' : ''}</span>`;
   const peak = players.reduce((m, p) => Math.max(m, p[1] ?? 0), 0);
@@ -92,10 +102,10 @@ export const serverPage = ({ logo, user, x, rank, players, voteTimes, list, me }
   return layout({ title: `${x.name} · Oversite`, logo, user, body: `<style>${CSS}</style>
 <main class="sv">
 <a class="sv-back" href="/explore">${I.back}Explore</a>
-<section class="sv-hero" style="--pos:${spot(x.slug)}"><div class="sv-ht">${status}${rank ? `<span class="sv-rank">#${rank} trending</span>` : ''}</div></section>
+<section class="sv-hero" style="--pos:${spot(x.slug)}"><div class="sv-ht">${status}${medals.length ? `<div class="sv-md">${medals.map(m => medal(m.place, m.label)).join('')}</div>` : ''}</div></section>
 <div class="sv-head"><span class="sv-ic">${esc(x.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(x.slug)}/icon" alt="" onerror="this.remove()"></span>
 <div class="sv-id"><h1>${esc(x.name)}${x.badge ? vbadge(24) : ''}</h1>${x.owner_name ? `<div class="sv-by">by ${esc(x.owner_name)}${x.owner_badge ? vbadge(14) : ''}</div>` : ''}
-<div class="sv-tags">${x.region ? `<span class="sv-tag">${I.pin}${esc(x.region.name)}</span>` : ''}${lang ? `<span class="sv-tag">${I.lang}${esc(lang)}</span>` : ''}${x.discord ? `<span class="sv-tag">${I.dc}${esc(x.discord)}</span>` : ''}</div></div>
+<div class="sv-tags">${x.region ? `<span class="sv-tag">${I.pin}${esc(x.region.name)}</span>` : ''}${lang ? `<span class="sv-tag">${I.lang}${esc(lang)}</span>` : ''}${x.discord ? `<span class="sv-tag">${I.dc}${esc(x.discord)}</span>` : ''}</div>${medals.length ? `<div class="sv-md sv-md2">${medals.map(m => medal(m.place, m.label)).join('')}</div>` : ''}</div>
 <div class="sv-acts">${x.join_key ? `<a class="xb pri" href="${ERLC}" target="_blank" rel="noopener" data-play="${esc(x.join_key)}">${I.play}Play</a>` : ''}
 ${me ? `<button class="xb" id="vote"${x.next_vote > 0 ? ' data-wait="' + x.next_vote + '"' : ''}>${I.star}<span>${x.next_vote > 0 ? 'Voted' : 'Vote'}</span></button>` : `<a class="xb" href="/?next=${encodeURIComponent('/s/' + x.slug)}">${I.star}Sign in to vote</a>`}
 ${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopener">${I.dc}Discord</a>` : ''}${x.role ? `<a class="xb" href="/c/${esc(x.slug)}">Open CAD</a>` : ''}</div></div>

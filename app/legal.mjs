@@ -1,6 +1,6 @@
-// Oversite CAD's Terms of Use and Privacy Policy. Every section opens with a plain-language "In short" so people can see
+// Oversite CAD's Terms of Use, Privacy Policy and Sales and Refunds policy. Every section opens with a plain-language "In short" so people can see
 // what they are agreeing to without reading legal text; the full wording follows. Edit the text here; pages.mjs only lays it out.
-export const UPDATED = 'October 9, 2026';
+export const UPDATED = 'October 10, 2026';
 const CONTACT = '<a href="mailto:support@oversite.shop">support@oversite.shop</a>';
 
 export const DOCS = {
@@ -103,4 +103,31 @@ export const DOCS = {
         body: `<p>Oversite (Oversite Marketplace, Minnesota, United States). Email ${CONTACT} for anything about your data or this policy.</p>` },
     ],
   },
+  refunds: {
+    title: 'Sales and Refunds', path: '/refunds',
+    intro: 'How paying for Oversite CAD works, and how to get your money back if something goes wrong. Oversite CAD is free today; this page is here so the rules are clear before anything is ever sold.',
+    sections: [
+      { id: 'summary', h: 'The short version', short: 'The CAD is free right now. If you ever pay for something and it isn\'t right, ask within 14 days and a person will fix it or refund you.',
+        body: `<p>Everything on Oversite CAD (the live map, the CAD and MDTs, staff tools and Explore) is free to use today. If we add paid extras later, the price is always shown before you pay, you can cancel any time, and every refund request is read by a real person, not an automatic system.</p>` },
+      { id: 'what', h: 'What we sell', short: 'Nothing yet. Any future paid feature is optional and clearly priced.',
+        body: `<p>We may offer optional paid features in the future, for example extras for server owners. The free CAD will keep working without them. A paid feature is labeled as paid, shows its price and what it includes before checkout, and is described on this page when it launches.</p><p>Purchases from the Oversite Customs store at oversite.shop follow that store's own Sales and Refunds policy.</p>` },
+      { id: 'paying', h: 'Paying', short: 'Payments go through a secure payment provider. We never see your full card number.',
+        body: `<p>Payments are handled by our payment provider (Stripe). Your card details go straight to them; Oversite only receives a confirmation and the last few digits for receipts. Prices are in US dollars unless shown otherwise. Depending on where you live, sales tax or VAT may be added at checkout, and the total is always shown before you confirm.</p>` },
+      { id: 'subscriptions', h: 'Subscriptions and cancelling', short: 'Subscriptions renew until you cancel. Cancel any time and keep what you paid for until the period ends.',
+        body: `<p>If a feature is a subscription, it renews automatically at the end of each period and we email a receipt each time. You can cancel any time from your account or by emailing us. After cancelling, you keep the feature until the end of the period you already paid for, and you are not charged again.</p>` },
+      { id: 'refunds', h: 'Refunds', short: 'Ask within 14 days of paying. If something is wrong, we fix it or refund you where it is fair.',
+        body: `<p>If a paid feature doesn't work as described, or you were charged by mistake, email ${CONTACT} within 14 days of the payment with the email or account you paid with. A person reviews every request. We will either fix the problem or refund you where it is fair to, and we answer within 5 business days.</p><p>Approved refunds go back to the original payment method. Your bank usually shows them within 5 to 10 business days.</p>` },
+      { id: 'not', h: 'When we can\'t refund', short: 'After 14 days, after a suspension for breaking the rules, or for things bought somewhere else.',
+        body: `<ul><li>Requests made more than 14 days after the payment, unless the law where you live says otherwise.</li><li>The remaining time on a subscription after you cancel (you keep access instead).</li><li>Accounts or servers suspended for breaking the <a href="/terms">Terms of Use</a>.</li><li>Anything bought on Roblox (Robux, game passes) or on Discord. Those are handled by Roblox, Discord or the server that sold them, not by Oversite.</li></ul>` },
+      { id: 'outages', h: 'If Oversite is down', short: 'Short outages happen. A long outage caused by us earns a credit or refund for the time lost.',
+        body: `<p>Oversite CAD depends on Roblox, the ER:LC API and Discord, which can go down without warning. Short interruptions are not refunded. If a paid feature is unavailable for more than 72 hours in a row because of a problem on our side, ask us and we will credit or refund the time you lost.</p>` },
+      { id: 'disputes', h: 'Disputes and chargebacks', short: 'Talk to us first. We can usually sort it out faster than your bank.',
+        body: `<p>If you see a charge you don't recognize, email ${CONTACT} before opening a dispute with your bank. While a chargeback is open, the paid feature it covers may be paused. Opening a chargeback for a payment you made and used may lead to the paid feature being removed.</p>` },
+      { id: 'rights', h: 'Your legal rights', short: 'Nothing here takes away rights you have under consumer law where you live.',
+        body: `<p>Some places, such as the EU and the UK, give you extra rights for digital purchases, including a right to cancel within 14 days. If the law where you live gives you more than this page does, the law wins.</p>` },
+      { id: 'contact', h: 'Contact', short: `Billing questions and refund requests: ${CONTACT}.`,
+        body: `<p>Oversite (Oversite Marketplace, Minnesota, United States). Email ${CONTACT} about any payment, receipt or refund.</p>` },
+    ],
+  },
+
 };
