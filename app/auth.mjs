@@ -109,22 +109,26 @@ export const codeSignIn = (req, user, code) => {
   const c = communities.byId(hit.community_id); if (!c) return { error: 'That server no longer exists.' };
   let u = user; if (!u) u = users.byId(users.create({ name: hit.role === 'owner' ? 'Owner' : 'Member' }));
   members.raise(c.id, u.id, hit.role); return { user: u, community: c, role: hit.role, fresh: !user }; };
-export const createServer = (req, user, { name, slug, ownerCode }, RESERVED) => {
+// a new server gets the invite code its creator picks (or a random one); owners sign in with Roblox or Discord, so there is no owner code any more
+export const createServer = (req, user, { name, slug, inviteCode }, RESERVED) => {
   name = String(name || '').trim(); slug = String(slug || '').trim().toLowerCase();
   if (name.length < 2 || name.length > 48) return { error: 'The server name must be 2 to 48 characters.' };
   if (rude(name) || rude(slug.replace(/-/g, ' ')) || rude(slug.replace(/-/g, ''))) return { error: RUDE_MSG };
   if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(slug) || slug.includes('--')) return { error: 'The address must be 3 to 32 lowercase letters, numbers or single dashes.' };
   if (RESERVED.has(slug) || communities.bySlug(slug)) return { error: 'That address is taken. Try another.' };
-  if (!codeOk(ownerCode)) return { error: 'The owner code must be 2 to 24 letters or numbers.' };
-  if (codes.find(ownerCode)) return { error: 'That owner code is already used by another server. Pick a different one.' };
+  const invite = String(inviteCode || '').trim();
+  if (invite && !codeOk(invite)) return { error: 'The invite code must be 2 to 24 letters or numbers.' };
+  if (invite && rude(invite)) return { error: RUDE_MSG };
+  if (invite && codes.find(invite)) return { error: 'Another server already uses that invite code. Pick a different one.' };
   if (user && communities.forUser(user.id).filter(c => c.role === 'owner').length >= 10) return { error: 'You can own up to 10 servers.' };
   if (limited(req, 'create', 5, 3600000)) return { error: 'Too many servers created from here. Try again later.' };
   let u = user; if (!u) u = users.byId(users.create({ name: 'Owner' }));
-  const id = communities.create(u.id, slug, name); codes.set(id, 'owner', String(ownerCode).trim().toUpperCase());
-  let mc = newCode(); while (codes.find(mc)) mc = newCode(); codes.set(id, 'member', mc);
+  const id = communities.create(u.id, slug, name);
+  let mc = invite.toUpperCase(); if (!mc) { mc = newCode(); while (codes.find(mc)) mc = newCode(); } codes.set(id, 'member', mc);
   return { user: u, id, slug, memberCode: mc }; };
 export const setCode = (cid, role, code) => { if (!codeOk(code)) return { error: 'Codes must be 2 to 24 letters or numbers.' };
-  if (normCode(code) === normCode(codes.show(cid, role === 'owner' ? 'member' : 'owner'))) return { error: 'The owner code and the member code must be different.' };
+  if (rude(code)) return { error: RUDE_MSG };
+  if (normCode(code) === normCode(codes.show(cid, role === 'owner' ? 'member' : 'owner'))) return { error: role === 'owner' ? 'The owner code can\'t match the invite code.' : 'The invite code can\'t match the old owner code.' };
   if (codes.taken(code, cid, role)) return { error: 'Another server already uses that code. Pick a different one.' };
   codes.set(cid, role, String(code).trim().toUpperCase()); return { code: codes.show(cid, role) }; };
 export const newMemberCode = cid => { let mc = newCode(); while (codes.find(mc)) mc = newCode(); codes.set(cid, 'member', mc); return { code: mc }; };

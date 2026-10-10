@@ -206,7 +206,7 @@ const globalApi = async (req, res, rest) => {
     if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(slug) || slug.includes('--')) return json(res, { error: 'The address must be 3 to 32 lowercase letters, numbers or single dashes.' }, 400);
     if (RESERVED.has(slug) || communities.bySlug(slug)) return json(res, { error: 'That address is taken. Try another.' }, 409);
     if (communities.forUser(user.id).filter(c => c.role === 'owner').length >= 10) return json(res, { error: 'You can own up to 10 communities.' }, 400);
-    const r = auth.createServer(req, user, { name, slug, ownerCode: j.ownerCode }, RESERVED); if (r.error) return json(res, { error: r.error }, 400); legacyKey(r.id); requireDiscord(r.id); return json(res, { slug, next: nextAfterCreate(slug) }); }
+    const r = auth.createServer(req, user, { name, slug, inviteCode: j.inviteCode ?? j.ownerCode }, RESERVED); if (r.error) return json(res, { error: r.error }, 400); legacyKey(r.id); requireDiscord(r.id); return json(res, { slug, next: nextAfterCreate(slug) }); }
   if (rest === 'roblox/start' && req.method === 'POST') { const r = await auth.robloxStart(user, (await jsonBody(req)).username); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
   if (rest === 'roblox/verify' && req.method === 'POST') { const r = await auth.robloxVerify(user); if (r.error) return json(res, { error: r.error }, 400); return json(res, r, 200, r.mergedInto ? { 'set-cookie': auth.signIn(req, r.mergedInto) } : {}); }
   if (rest === 'roblox/cancel' && req.method === 'POST') { roblox.clear(user.id); return json(res, { ok: true }); }
@@ -300,7 +300,7 @@ const route = async (req, res) => {
     return redirect(res, auth.safeNext(f.get('next')), { 'set-cookie': auth.signIn(req, r.user.id) }); }
   if ((path === '/auth/create' || path === '/auth/code') && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
     const user = auth.currentUser(req), j = await jsonBody(req);
-    const r = path === '/auth/create' ? auth.createServer(req, user, { name: j.name, slug: j.slug, ownerCode: j.ownerCode }, RESERVED) : auth.codeSignIn(req, user, j.code);
+    const r = path === '/auth/create' ? auth.createServer(req, user, { name: j.name, slug: j.slug, inviteCode: j.inviteCode ?? j.ownerCode }, RESERVED) : auth.codeSignIn(req, user, j.code);
     if (r.error) return json(res, { error: r.error }, 400);
     if (path === '/auth/create') { legacyKey(r.id); requireDiscord(r.id); }
     const slug = r.slug || r.community.slug, u = users.byId(r.user.id);
