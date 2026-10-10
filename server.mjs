@@ -227,7 +227,7 @@ const REVIEW_REASON = 'Review';
 const visible = slug => { const c = communities.bySlug(String(slug || '')); return c && c.settings.profile?.listed && !c.hidden && !c.suspended ? c : null; };
 const reviewList = cid => reviews.forServer(cid).map(r => ({ id: r.id, user_id: r.user_id, rating: r.rating, body: r.body, created: r.created, updated: r.updated, reply: r.reply, roblox_name: r.roblox_name, roblox_id: r.roblox_id, verified: !!r.verified }));
 const runsServer = (cid, uid) => ['owner', 'co_owner'].includes(members.role(cid, uid));
-const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.png|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/avatar\/\d+)$/;
+const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.(png|svg)|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/avatar\/\d+)$/;
 // ── routes ──
 const route = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = decodeURIComponent(url.pathname); let m0, m0r;
@@ -351,7 +351,7 @@ const hasAccess = req => { if (!CODE) return true; const m = /(?:^|;\s*)ov_acces
 const attempts = new Map();
 const ipOf = req => (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
 const lockPage = (m = '') => { const n = Math.min(8, Math.max(4, CODE.length || 4)); return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oversite</title>
-<link rel="icon" href="/favicon.ico?v=4" sizes="any"><link rel="icon" type="image/png" href="/icon-192.png?v=4"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416">
+<link rel="icon" href="/favicon.ico?v=5" sizes="32x32"><link rel="icon" type="image/svg+xml" href="/icon-tab.svg?v=5"><link rel="icon" type="image/png" href="/icon-tab.png?v=5"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:dark;--ink:#F0F2F5;--dim:#8C9098;--faint:#5B5F66;--hair2:rgba(240,242,245,.14)}*{box-sizing:border-box}html,body{height:100%;margin:0}
@@ -392,7 +392,7 @@ const unlock = (req, res, code, next = '/') => { const ip = ipOf(req), a = attem
   a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } attempts.set(ip, a); return html(res, lockPage('That code is not right.'), 401); };
 const gate = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = url.pathname;
-  if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js' || /^\/(apple-touch-icon(-precomposed)?\.png|icon-(192|512|maskable-512)\.png|manifest\.webmanifest|favicon\.ico)$/.test(path) || path === '/privacy' || path === '/terms' || path === '/refunds') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
+  if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js' || /^\/(apple-touch-icon(-precomposed)?\.png|icon-(192|512|maskable-512|tab)\.png|icon-tab\.svg|manifest\.webmanifest|favicon\.ico)$/.test(path) || path === '/privacy' || path === '/terms' || path === '/refunds') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
   if (path === '/unlock' && req.method === 'POST') { const f = await formBody(req); return unlock(req, res, String(f.get('code') || '').trim()); }
   if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });
   const q = url.searchParams.get('code'); if (q && CODE && !hasAccess(req)) { url.searchParams.delete('code'); return unlock(req, res, q.trim(), url.pathname + (url.search || '')); }
