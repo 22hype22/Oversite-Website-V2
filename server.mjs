@@ -57,7 +57,7 @@ const headshot = async id => { const hit = heads.get(id); if (hit && Date.now() 
   if (heads.size > 5000) heads.clear(); heads.set(id, { url, at: Date.now() }); return url; };
 
 // ── community access ──
-// owner > co-owner > admin > mod > member. Co-owners run Settings (not deleting the server or the owner code); admins and mods get the Staff MDT
+// owner > co-owner > admin > mod > member. Co-owners run Settings (not deleting the server); admins and mods get the Staff MDT
 const ROLE_RANK = { member: 1, mod: 2, admin: 3, co_owner: 4, owner: 5 };
 // access = the stored membership, raised by the person's roles in the community's linked Discord server (checked live)
 const access = async (req, slug) => { const user = auth.currentUser(req), c = communities.bySlug(slug); if (!c) return { c: null, user };
@@ -114,8 +114,8 @@ const communityApi = async (req, res, slug, rest) => {
     for (const d of ['pd', 'fd', 'dot']) { const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); if (rude(n) || rude(sh)) return json(res, { error: RUDE_MSG }, 400); s.depts[d] = { name: n, short: sh }; }
     for (const [t, d] of Object.entries(j.teams || {})) if (t in s.teams && ['pd', 'fd', 'dot', ''].includes(d)) s.teams[t] = d;
     communities.rename(c.id, name); communities.saveSettings(c.id, s); return json(res, { ok: true }); }
-  if (rest === 'codes' && M === 'POST') { const j = await jsonBody(req); if (j.role === 'owner' && !can(role, 'owner')) return json(res, { error: 'Only owners can change the owner code.' }, 403);
-    if (!['owner', 'member'].includes(j.role)) return json(res, { error: 'Unknown code.' }, 400);
+  if (rest === 'codes' && M === 'POST') { const j = await jsonBody(req);
+    if (j.role !== 'member') return json(res, { error: 'Servers only have an invite code now.' }, 400);
     const r = j.generate && j.role === 'member' ? auth.newMemberCode(c.id) : auth.setCode(c.id, j.role, j.code); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
   if (rest === 'invites' && M === 'POST') { const code = invites.create(c.id, user.id); return json(res, { code, url: `${origin(req)}/join/${code}` }); }
   if (rest === 'invites/revoke' && M === 'POST') { invites.revoke(c.id, String((await jsonBody(req)).code || '')); return json(res, { ok: true }); }
@@ -327,7 +327,7 @@ const route = async (req, res) => {
     if (sub === '/') return html(res, mapPage(c, user, role));
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'owner') ? { owner: codes.show(c.id, 'owner'), member: codes.show(c.id, 'member') } : (can(role, 'admin') ? { owner: null, member: codes.show(c.id, 'member') } : null) })); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null })); }
     return msg(res, user, 'Not found', 'That page does not exist.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
   return serve(req, res, path); };

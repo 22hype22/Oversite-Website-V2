@@ -51,6 +51,8 @@ UPDATE members SET role = 'admin' WHERE role = 'staff';
 `);
 
 try { db.exec('ALTER TABLE users ADD COLUMN roblox_via TEXT'); } catch (e) {}
+// servers only have an invite code (role 'member'); the old owner codes are gone. Owners keep their rank: it lives on the membership, not the code
+db.exec("DELETE FROM codes WHERE role <> 'member'");
 // a blue check Oversite gives by hand (site admins only), on people and on servers
 try { db.exec('ALTER TABLE users ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
 try { db.exec('ALTER TABLE communities ADD COLUMN verified INTEGER NOT NULL DEFAULT 0'); } catch (e) {}

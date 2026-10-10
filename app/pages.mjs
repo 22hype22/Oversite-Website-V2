@@ -583,13 +583,12 @@ ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.
 ${codes ? `<section class="card"${isNew ? ' style="border-color:rgba(76,141,255,.35)"' : ''}><h2>Invite code</h2><p class="note">Members type this on the front page to join. Anyone with it can join, so change it if it gets passed around.</p>
 <label>Invite code</label><div class="row" style="flex-wrap:nowrap"><input id="mcode" value="${esc(codes.member)}" spellcheck="false" maxlength="24"><button class="btn sm" data-copy="${esc(codes.member)}">Copy</button></div>
 <div class="row" style="margin-top:8px"><button class="btn sm" id="savem">Save invite code</button><button class="btn sm" id="genm">New random code</button></div>
-${codes.owner ? `<label style="margin-top:16px">Old owner code</label><p class="hint" style="margin:0 0 6px">Servers made before invite codes still have this. You sign in with Roblox or Discord now, so you won't need it.</p><div class="row" style="flex-wrap:nowrap"><input id="ocode" type="password" value="${esc(codes.owner)}" spellcheck="false" maxlength="24"><button class="btn sm" id="showo">Show</button></div>
-<div class="row" style="margin-top:8px"><button class="btn sm" id="saveo">Save owner code</button></div>` : ''}<p class="msg" id="codemsg"></p></section>` : ''}
+<p class="msg" id="codemsg"></p></section>` : ''}
 <section class="card"><h2>Invite links</h2><p class="note">An alternative to the invite code. Anyone with the link can join. Links last 7 days.</p>
 <div class="row"><button class="btn pri" id="newinv">Create invite link</button></div><p class="msg" id="imsg"></p>
 ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><div class="tx"><code title="${esc(origin)}/join/${esc(i.code)}">${esc(origin.replace(/^https?:\/\//, ''))}/join/${esc(i.code)}</code><small>${i.uses} ${i.uses === 1 ? 'use' : 'uses'}${i.expires ? ` · expires ${new Date(i.expires).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</small></div><div class="acts"><button class="btn sm" data-copy="${esc(origin)}/join/${esc(i.code)}">Copy</button><button class="btn sm danger" data-revoke="${esc(i.code)}">Revoke</button></div></div>`).join('')}</div>` : '<p class="empty">No active invite links.</p>'}
 </section>
-<section class="card"><h2>Members</h2><p class="note"><b>Owner</b> and <b>Co-Owners</b> run these settings (only the owner can delete the server or change the owner code). <b>Admins</b> get the Server Staff tablet with everything: warn, kick, ban, unban, announce. <b>Mods</b> get the tablet to warn, message, kick and add notes. <b>Members</b> use the CAD. Which department MDT someone gets follows their team in game.</p>
+<section class="card"><h2>Members</h2><p class="note"><b>Owner</b> and <b>Co-Owners</b> run these settings (only the owner can delete the server). <b>Admins</b> get the Server Staff tablet with everything: warn, kick, ban, unban, announce. <b>Mods</b> get the tablet to warn, message, kick and add notes. <b>Members</b> use the CAD. Which department MDT someone gets follows their team in game.</p>
 <table><tr><th>Member</th><th>Roblox</th><th>Role</th><th></th></tr>${members.map(m => `<tr><td>${esc(m.name)}${m.verified ? vbadge(14) : ''}</td><td>${m.roblox_name ? esc(m.roblox_name) : '<span style="color:var(--faint)">Not linked</span>'}</td>
 <td>${(() => { const R = { owner: 5, co_owner: 4, admin: 3, mod: 2, member: 1, staff: 3 }, mine = R[role] || 0, can = m.id !== user.id && (R[m.role] || 0) < mine;
   if (!can) return esc(RANK_LABEL[m.role] || m.role);
@@ -640,8 +639,7 @@ document.addEventListener('change',async e=>{const s=e.target.closest('[data-rol
 const cm=document.getElementById('codemsg'),setc=async(body)=>{try{const j=await api(A+'/codes',body);say(cm,'Saved: '+j.code,true);return j.code}catch(x){say(cm,x.message)}};
 const sm=document.getElementById('savem');if(sm){sm.addEventListener('click',()=>setc({role:'member',code:document.getElementById('mcode').value}));
 document.getElementById('genm').addEventListener('click',async()=>{const c=await setc({role:'member',generate:true});if(c){document.getElementById('mcode').value=c;document.querySelector('[data-copy]').dataset.copy=c}});
-const so=document.getElementById('saveo');if(so){so.addEventListener('click',()=>setc({role:'owner',code:document.getElementById('ocode').value}));
-document.getElementById('showo').addEventListener('click',e=>{const o=document.getElementById('ocode');o.type=o.type==='password'?'text':'password';e.target.textContent=o.type==='password'?'Show':'Hide'})}}
+}
 const del=document.getElementById('del');if(del)del.addEventListener('click',async()=>{if(!await ask({title:${JSON.stringify('Delete ' + c.name + '?').replace(/</g, '\\u003c')},text:'This removes the server from Oversite with its settings, codes and member list. It cannot be undone.',ok:'Delete server',danger:true,typed:'${esc(c.slug)}'}))return;await api(A+'/delete',{confirm:'${esc(c.slug)}'});location.href='/dashboard'});
 ` });
 

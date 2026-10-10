@@ -105,7 +105,7 @@ const limits = new Map();
 const limited = (req, kind, max, windowMs) => { const k = kind + ipOf(req), now = Date.now(), a = (limits.get(k) || []).filter(t => now - t < windowMs); if (a.length >= max) return true; a.push(now); limits.set(k, a); return false; };
 export const codeSignIn = (req, user, code) => {
   if (limited(req, 'code', 8, 60000)) return { error: 'Too many tries. Wait a minute and try again.' };
-  const hit = codes.find(code); if (!hit) return { error: 'No server uses that code. Check it with your server owner.' };
+  const hit = codes.find(code); if (!hit) return { error: 'No server uses that invite code. Check it with your server.' };
   const c = communities.byId(hit.community_id); if (!c) return { error: 'That server no longer exists.' };
   let u = user; if (!u) u = users.byId(users.create({ name: hit.role === 'owner' ? 'Owner' : 'Member' }));
   members.raise(c.id, u.id, hit.role); return { user: u, community: c, role: hit.role, fresh: !user }; };
@@ -128,7 +128,6 @@ export const createServer = (req, user, { name, slug, inviteCode }, RESERVED) =>
   return { user: u, id, slug, memberCode: mc }; };
 export const setCode = (cid, role, code) => { if (!codeOk(code)) return { error: 'Codes must be 2 to 24 letters or numbers.' };
   if (rude(code)) return { error: RUDE_MSG };
-  if (normCode(code) === normCode(codes.show(cid, role === 'owner' ? 'member' : 'owner'))) return { error: role === 'owner' ? 'The owner code can\'t match the invite code.' : 'The invite code can\'t match the old owner code.' };
   if (codes.taken(code, cid, role)) return { error: 'Another server already uses that code. Pick a different one.' };
   codes.set(cid, role, String(code).trim().toUpperCase()); return { code: codes.show(cid, role) }; };
 export const newMemberCode = cid => { let mc = newCode(); while (codes.find(mc)) mc = newCode(); codes.set(cid, 'member', mc); return { code: mc }; };
