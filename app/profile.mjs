@@ -61,11 +61,20 @@ export const iconSource = c => { const own = communityIcons.get(c.id); if (own) 
 
 // ── the server browser ──
 // listed servers' player counts are re-read every two minutes (one small request per listed server), so the browser stays live
-export const startDirectory = () => { let busy = false;
+// when someone has a server's CAD open, its live feed already reads ER:LC every few seconds: Explore reuses that instead of asking again
+let peek = () => null; const failedAt = new Map();
+const fromFeed = c => { const snap = peek(c.id); if (!snap || snap.status !== 200 || Date.now() - snap.t > 60000) return false;
+  let j; try { j = JSON.parse(snap.body); } catch (e) { return false; } if (j.CurrentPlayers == null && !Array.isArray(j.Players)) return false;
+  const s = communities.byId(c.id).settings, E = s.profile?.erlc || {};
+  s.profile = { ...(s.profile || {}), erlc: { ...E, name: j.Name || E.name || '', join_key: j.JoinKey || E.join_key || '', players: j.CurrentPlayers ?? j.Players.length, max: j.MaxPlayers ?? E.max ?? null, at: Date.now() } };
+  communities.saveSettings(c.id, s); return true; };
+export const startDirectory = (feedPeek) => { let busy = false; if (feedPeek) peek = feedPeek;
   for (const c of communities.all()) { const P = c.settings.profile; if (P && OLD_LANG[P.lang]) { const s = c.settings; s.profile = { ...P, lang: OLD_LANG[P.lang] }; communities.saveSettings(c.id, s); } }
   const pass = async () => { if (busy) return; busy = true;
     try { for (const c of communities.all()) { if (!c.settings.profile?.listed) continue;
-      if (communities.key(c.id)) await refresh(c).catch(() => {});
+      if (communities.key(c.id) && !fromFeed(c)) { const r = await refresh(c).catch(e => ({ error: e.message }));
+        // say why a listed server couldn't be read, at most every half hour per server, so an "Offline" that should be online can be traced
+        if (r?.error && Date.now() - (failedAt.get(c.id) || 0) > 30 * 60000) { failedAt.set(c.id, Date.now()); console.log(`directory: ${c.slug} not refreshed: ${r.error}`); } }
       { const E = communities.byId(c.id).settings.profile?.erlc; if (E?.at && Date.now() - E.at < 5 * 60000 && E.players != null) stats.add(c.id, E.players, E.max ?? null); }
       const P = communities.byId(c.id).settings.profile || {}, gid = c.settings.discord?.guild_id;   // Discord member count: every half hour is plenty
       if (gid && Date.now() - (P.dc_at || 0) > 30 * 60000) { const n = await discordlink.counts(gid); if (n) { const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), dc_members: n.members, dc_online: n.online, dc_at: Date.now() }; communities.saveSettings(c.id, s); } } } }

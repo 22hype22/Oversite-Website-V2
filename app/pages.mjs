@@ -175,6 +175,7 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .lg-tw{overflow-x:auto}
 @media (max-width:820px){.lg-body{grid-template-columns:1fr;gap:16px}.lg-toc{position:static}.lg-toc nav{display:grid;grid-template-columns:1fr 1fr}.lg-s{padding:18px 16px}}
 @media (max-width:520px){.lg-toc nav{grid-template-columns:1fr}.lg-short{flex-direction:column;gap:4px}}
+.xr-ic:has(img),.sv-ic:has(img),.adm-r .pic:has(img),.rv-av:has(img),.prof .pic:has(img),.sp-icon:has(img){color:transparent}.sp-icon:has(img) i{color:var(--ink)}
 .vb{display:inline-block;vertical-align:-2px;margin-left:6px;flex:none}
 .adm{max-width:1080px}.adm h1{margin:0 0 4px}.adm .lead{margin:0 0 22px}
 .adm-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}.adm-cols .card+.card{margin-top:0}
