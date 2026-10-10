@@ -65,7 +65,9 @@ const remember = () => { try { localStorage.setItem('ov.mapstyle', JSON.stringif
 const L = document.getElementById('mapsrc').getAttribute('href'), D = document.getElementById('mapsrc-dark').getAttribute('href');
 const img2d = document.querySelector('.view img'); img2d.dataset.light = L; img2d.dataset.dark = D;
 
-for (const t of picker.querySelectorAll('.thumb i')) t.style.backgroundImage = `url("${t.parentElement.classList.contains('dark') ? D : L}")`;
+// 2D thumbnails are the map itself; 3D ones are real renders of downtown in each theme
+const T3 = { light: '__T3L__', dark: '__T3D__' };
+for (const t of picker.querySelectorAll('.thumb i')) { const p = t.parentElement, k = p.classList.contains('dark') ? 'dark' : 'light'; t.style.backgroundImage = `url("${p.classList.contains('t3d') ? T3[k] : k === 'dark' ? D : L}")`; }
 const apply = () => {
   body.classList.toggle('mode-3d', state.dim === '3d'); body.classList.toggle('mode-2d', state.dim === '2d');
   body.classList.toggle('theme-dark', state.theme === 'dark'); body.classList.toggle('theme-light', state.theme === 'light');
@@ -90,6 +92,8 @@ if (!saved && state.dim === '3d') { let n = 0, bad = 0; const ping = () => { if 
     setTimeout(() => { n++; if (performance.now() - t0 > 120) bad++; if (n < 12) setTimeout(ping, 250); else if (bad >= 6) { lowgpu(); state.dim = '2d'; apply(); note(); } }, 0); };
   setTimeout(ping, 3500); }
 </script>'''
+import base64 as _b64
+ctl=ctl.replace('__T3L__','data:image/jpeg;base64,'+_b64.b64encode(open('preview/thumb-3d.jpg','rb').read()).decode()).replace('__T3D__','data:image/jpeg;base64,'+_b64.b64encode(open('preview/thumb-3d-dark.jpg','rb').read()).decode())
 j=out.index('</script>\n</body>')
 out=out[:j+len('</script>')]+'\n<script id="geo" type="application/json">'+geo+'</script>\n<script id="landmarks" type="application/json">'+landmarks+'</script>\n<script type="module">\n'+js+'</script>\n'+ctl+out[j+len('</script>'):]
 open('preview/live-map-3d.html','w').write(out)

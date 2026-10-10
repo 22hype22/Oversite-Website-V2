@@ -426,6 +426,7 @@
   .overall.deg i{background:var(--amber);box-shadow:0 0 0 4px rgba(233,162,76,.18),0 0 14px rgba(233,162,76,.6)}
   .overall.down i{background:var(--red);box-shadow:0 0 0 4px rgba(226,75,75,.18),0 0 14px rgba(226,75,75,.6)}
   .overall b{display:block;font-size:15px;font-weight:500}
+  .overall.deg b{color:var(--amber)}.overall.down b{color:var(--red)}
   .overall small{display:block;font-size:10.5px;color:var(--dim);margin-top:2px}
   .comp{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--hair)}
   .comp:last-child{border-bottom:0}
@@ -603,8 +604,9 @@
   .rpt .tag.sub{color:#5FCF80}
   .screen .empty{font-size:13px;color:var(--mute);padding:8px 0 12px}
   .homebar{position:absolute;left:50%;bottom:6px;width:100px;height:4px;margin-left:-50px;border-radius:2px;background:rgba(255,255,255,.3)}
-  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;padding:9px 14px;border-radius:10px;background:rgba(20,20,23,.92);border:1px solid var(--hair2);font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
-  .toast.on{opacity:1}
+  .toast{position:fixed;left:50%;bottom:72px;transform:translate(-50%,28px);z-index:50;max-width:calc(100vw - 32px);padding:11px 16px;border-radius:12px;background:rgba(20,20,23,.94);border:1px solid var(--hair2);box-shadow:0 12px 32px rgba(0,0,0,.45);font-size:12.5px;line-height:1.45;text-align:center;opacity:0;transition:opacity .2s ease,transform .38s cubic-bezier(.22,1,.36,1);pointer-events:none}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  @media (prefers-reduced-motion:reduce){.toast{transition:opacity .2s;transform:translate(-50%,0)}}
   @media (max-width:1180px){.hgrid{grid-template-columns:1fr}.tscreen .stats{grid-template-columns:repeat(2,1fr)}.tside{width:120px}}
   @media (prefers-reduced-motion:reduce){.mdt-dock,.stage{transition:none}}
   .pin .hd-ptr{position:absolute;left:50%;top:50%;width:0;height:0;margin:0;pointer-events:none;transform-origin:0 0}
@@ -951,7 +953,7 @@
 <section class="page" id="pageStatus" hidden aria-label="Status and updates">
   <div class="card panel status">
     <div class="ph">
-      <div class="overall" id="overall"><i></i><div><b>All systems operational</b><small id="checked">Checked just now</small></div></div>
+      <div class="overall" id="overall"><div><b>All systems operational</b><small id="checked">Checked just now</small></div></div>
       <span class="cnt" id="compCount">0</span>
     </div>
     <div class="scroll">
@@ -1480,21 +1482,21 @@
   const DEPT_NAME = { pd: window.OVERSITE?.depts?.pd?.name || 'Law Enforcement', fd: window.OVERSITE?.depts?.fd?.name || 'Fire Department', dot: window.OVERSITE?.depts?.dot?.name || 'Department of Transportation' };
   const myDept = () => (window.ME && window.ME.dept) || null;                 // from the live roster (admin panel username); null = not identified
   const gated = () => !!window.HOSTED;                                        // the hosted site gates each MDT to its own team; the demo page lets you look at all of them
-  const toastMsg = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); };
+  const toastMsg = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 4200); };
   const openMdt = (on, dept) => { if (on) { window.mdtDept = dept || window.mdtDept || myDept() || 'fd'; mdt.dataset.dept = window.mdtDept; }
     document.body.classList.toggle('mdt-open', on); mdt.setAttribute('aria-hidden', !on); mdtBtn.setAttribute('aria-pressed', on);
     tabs.forEach(t => { if (t.dataset.view === 'mdt') t.setAttribute('aria-selected', on && t.dataset.dept === window.mdtDept); if (t.dataset.view === 'dispatch') t.setAttribute('aria-selected', !on && document.body.dataset.view === 'dispatch'); });
     dispatchEvent(new CustomEvent('mdt', { detail: on })); };
   window.openMdt = openMdt;
   const canOpen = dept => { if (!gated()) return true; const mine = myDept();
-    if (!mine) { toastMsg('Set your Roblox username in the admin panel (gear icon) so the site knows your team.'); return false; }
-    if (mine !== dept) { toastMsg(`You are on the ${DEPT_NAME[mine] || mine} team. The ${DEPT_NAME[dept]} MDT is for its own members.`); return false; } return true; };
+    if (!mine) { toastMsg(`You're not on the ${DEPT_NAME[dept]} team in game right now. Join it in ER:LC and its MDT opens here.`); return false; }
+    if (mine !== dept) { toastMsg(`You're on the ${DEPT_NAME[mine] || mine} team in game. The ${DEPT_NAME[dept]} MDT is only for its members.`); return false; } return true; };
   const setView = (v, dept) => { const real = v === 'mdt' ? 'dispatch' : v; document.body.dataset.view = real;
     for (const [k, id] of Object.entries(PAGES)) { const el = document.getElementById(id); if (el) el.hidden = real !== k; }
     tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.view === v && (v !== 'mdt' || t.dataset.dept === dept)));
     if (real !== 'dispatch') openMdt(false); else openMdt(v === 'mdt', dept);
     dispatchEvent(new CustomEvent('viewchange', { detail: real })); };
-  const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const ok = !gated() || myDept() === t.dataset.dept; t.classList.toggle('locked', !ok); t.title = ok ? '' : (myDept() ? 'Only for the ' + DEPT_NAME[t.dataset.dept] : 'Set your username in the admin panel'); }); };
+  const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const ok = !gated() || myDept() === t.dataset.dept; t.classList.toggle('locked', !ok); t.title = ok ? '' : 'For players on the ' + DEPT_NAME[t.dataset.dept] + ' team in game'; }); };
   updateLocks(); addEventListener('me', updateLocks);
   mdtBtn.addEventListener('click', () => { const d = myDept() || (gated() ? null : 'fd'); if (!d) return canOpen('fd'); if (document.body.dataset.view !== 'dispatch') setView('dispatch'); if (document.body.classList.contains('mdt-open')) openMdt(false); else setView('mdt', d); });
   document.getElementById('mdtClose').addEventListener('click', () => setView('dispatch'));
@@ -1518,16 +1520,16 @@
       log: [['14m', 'Investigating: response times from the game API rose above 800 ms.'], ['9m', 'Identified: Roblox-side rate limiting on our poller. Backing off to a 4 s interval.']] },
   ];
   const UPDATES = [
-    { v: 'v2.5.0', date: 'Sep 15, 2026', tag: 'new', title: 'Dispatch live map', by: '22hype22',
+    { v: 'v1.5', date: 'Sep 15, 2026', tag: 'new', title: 'Dispatch live map', by: '22hype22',
       body: 'The dispatch board is live: real-time unit positions, incoming call feed with one-click dispatch, and the 3D map with light and dark styles.',
       items: ['Unit cards show crew, vehicle, status, speed and an overhead live feed', 'Warning panel lists new calls with nearest units and a recommendation', 'Map styles: 3D, 3D Dark, 2D, 2D Dark'] },
-    { v: 'v2.4.2', date: 'Sep 11, 2026', tag: 'fix', title: 'Rank sync fixes', by: 'sppoklex',
+    { v: 'v1.4', date: 'Sep 11, 2026', tag: 'fix', title: 'Rank sync fixes', by: 'sppoklex',
       body: 'Discord rank changes now reach the roster within a minute instead of waiting for the hourly sync.', items: ['Fixed Battalion Chief showing as Firefighter after promotion', 'Removed duplicate roster entries for renamed accounts'] },
-    { v: 'v2.4.0', date: 'Sep 6, 2026', tag: 'change', title: 'Callsign format', by: '22hype22',
+    { v: 'v1.3', date: 'Sep 6, 2026', tag: 'change', title: 'Callsign format', by: '22hype22',
       body: 'Callsigns are now department plus unit number, for example PD 6023, FD 4120, DOT 2209. Old callsigns are mapped automatically.', items: [] },
-    { v: 'v2.3.1', date: 'Aug 30, 2026', tag: 'notice', title: 'Scheduled maintenance: radio comms', by: 'relukt',
+    { v: 'v1.2', date: 'Aug 30, 2026', tag: 'notice', title: 'Scheduled maintenance: radio comms', by: 'relukt',
       body: 'Radio comms will be offline Saturday 02:00 to 04:00 while we move to the new voice server. Dispatch and the live map are not affected.', items: [] },
-    { v: 'v2.3.0', date: 'Aug 24, 2026', tag: 'new', title: 'Active calls board', by: '22hype22',
+    { v: 'v1.1', date: 'Aug 24, 2026', tag: 'new', title: 'Active calls board', by: '22hype22',
       body: 'Every open call in one list with priority, assigned unit and stage. Calls older than 10 minutes drop off the warning panel but stay on the board.', items: ['Priorities P1 to P3 with colour coding', 'Call stages: Dispatched, En route, On scene'] },
   ];
 
