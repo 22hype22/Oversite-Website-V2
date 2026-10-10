@@ -10,11 +10,11 @@ const CSS = `
 .sv-ht{position:absolute;left:18px;right:18px;top:16px;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sv-ht{align-items:flex-start}
 .sv-md{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:70%}
-.md{--c:#F2C46E;display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 5px;border-radius:999px;background:rgba(8,9,11,.74);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-size:12.5px;font-weight:600;color:#F0F2F5;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.35)}
-.md svg{flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}.md b{color:var(--c);font-weight:700}
+.md{--c:#F2C46E;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:rgba(8,9,11,.74);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-size:12.5px;font-weight:600;color:#F0F2F5;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.md b{color:var(--c);font-weight:700}
 .md.p2{--c:#CBD2DC}.md.p3{--c:#D99A64}
 .sv-md2{display:none}
-@media (max-width:620px){.sv-ht .sv-md{display:none}.sv-md2{display:flex;justify-content:flex-start;max-width:none;margin-top:10px}.md{font-size:11.5px;padding:3px 10px 3px 4px}.md svg{width:18px;height:18px}}
+@media (max-width:620px){.sv-ht .sv-md{display:none}.sv-md2{display:flex;justify-content:flex-start;max-width:none;margin-top:10px}.md{font-size:11.5px;padding:4px 10px}}
 .sv-head{position:relative;display:flex;align-items:flex-start;gap:18px;margin:-52px 0 0;padding:0 22px;z-index:2;flex-wrap:wrap}
 .sv-ic{position:relative;overflow:hidden;flex:none;width:104px;height:104px;border-radius:26px;display:grid;place-items:center;font-size:38px;font-weight:700;background:linear-gradient(160deg,#2d3440,#1b1f26);border:4px solid #0f1113;box-shadow:0 16px 34px rgba(0,0,0,.5)}
 .sv-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -88,9 +88,8 @@ const n = v => Number(v || 0).toLocaleString('en-US');
 const spot = slug => { let h = 0; for (const c of slug) h = (h * 31 + c.charCodeAt(0)) >>> 0; return `${12 + h % 76}% ${14 + (h >>> 8) % 72}%`; };
 const starsText = r => '★★★★★'.slice(0, Math.round(r)) + '☆☆☆☆☆'.slice(0, 5 - Math.round(r));
 
-// a medal: ribbon plus a disc in gold, silver or bronze, with the place number on it
-const MEDAL = { 1: ['#F7D27A', '#C99A35'], 2: ['#E3E8EF', '#9CA6B4'], 3: ['#E7AE7C', '#A7653A'] };
-const medal = (place, label) => { const [hi, lo] = MEDAL[place]; return `<span class="md p${place}" title="#${place} ${label} on Explore"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h4l2 5-3 3z" fill="#4C8DFF"/><path d="M17 2h-4l-2 5 3 3z" fill="#2F64C8"/><circle cx="12" cy="15" r="7" fill="${lo}"/><circle cx="12" cy="15" r="5.6" fill="${hi}"/><text x="12" y="18.2" text-anchor="middle" font-size="8.5" font-weight="800" font-family="system-ui,sans-serif" fill="${lo}">${place}</text></svg><b>#${place}</b>${label}</span>`; };
+// a medal: the place and the Explore tab, tinted gold, silver or bronze
+const medal = (place, label) => `<span class="md p${place}" title="#${place} ${label} on Explore"><b>#${place}</b>${label}</span>`;
 
 export const serverPage = ({ logo, user, x, medals = [], players, voteTimes, list, me }) => {
   const live = x.live && x.players != null, full = live && x.max && x.players >= x.max;
