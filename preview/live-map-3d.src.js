@@ -330,9 +330,10 @@ const frame = () => {
   UN.forEach((u, i) => { const c = cars[i]; if (!c) return; const ch = Math.cos(u.heading), sh = Math.sin(u.heading), f = CAR_L * 0.45, w = CAR_W * 0.45;
     const hc = heightAt(u.x, u.y), hf = heightAt(u.x + ch * f, u.y + sh * f), hb = heightAt(u.x - ch * f, u.y - sh * f), hl = heightAt(u.x + sh * w, u.y - ch * w), hr = heightAt(u.x - sh * w, u.y + ch * w);
     const k = 1 - Math.exp(-dt * 8); c.userData.pitch += (Math.atan2(hf - hb, 2 * f) - c.userData.pitch) * k; c.userData.roll += (Math.atan2(hl - hr, 2 * w) - c.userData.roll) * k;   // sit on the slope
-    c.position.set(u.x, Math.max(hc, (hf + hb) / 2), u.y); c.rotation.set(c.userData.roll * 0.6, -u.heading, c.userData.pitch); c.scale.setScalar(grow); });
+    c.position.set(u.x, Math.max(hc, (hf + hb) / 2), u.y); c.rotation.set(c.userData.roll * 0.6, -u.heading, c.userData.pitch); c.scale.setScalar(grow);
+    c.visible = !window.DEPT_FILTER || u.dept === window.DEPT_FILTER; });   // the LE / FD / DOT chips filter the 3D map too
   const hp = UN[0] ? { x: UN[0].x, z: UN[0].y } : { x: FOCUS.x, z: FOCUS.z }; const hy = heightAt(hp.x, hp.z);
-  glow.visible = pulse.visible = !!UN[0]; tip.style.display = UN[0] ? '' : 'none';
+  const lead = !!UN[0] && (!window.DEPT_FILTER || UN[0].dept === window.DEPT_FILTER); glow.visible = pulse.visible = lead; tip.style.display = lead ? '' : 'none';
   if (UN[0]) { const u = UN[0], key = u.name + '|' + u.crew.join(',') + '|' + (u.postal || '') + '|' + (u.model || ''); if (tip.dataset.key !== key) { tip.dataset.key = key;
     tip.querySelector('.k').textContent = u.name; tip.querySelector('.s').textContent = u.crew.join(', '); const v = tip.querySelector('.v'); v.textContent = u.postal || '10-8'; const sm = document.createElement('small'); sm.textContent = u.postal ? 'postal' : ''; v.appendChild(sm);
     const md = document.createElement('div'); md.className = 's'; md.textContent = u.live ? (u.model || '') : 'available'; v.appendChild(md); } }

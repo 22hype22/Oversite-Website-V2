@@ -146,6 +146,9 @@ units_css = """  /* live unit cards, coloured by department */
 if 'live unit cards, coloured by department' not in s: s=s.replace('</style>',units_css+'</style>')
 units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS,separators=(',',':')) + r"""</script>
 <script>
+/* a call's units: c.unit leads it, c.more lists the units sent to help (a big fire can need several) */
+window.onIt = (c, n) => !!n && !!c && (c.unit === n || (c.more || []).some(m => m.name === n));
+window.callUnits = c => c && c.unit ? [c.unit, ...(c.more || []).map(m => m.name)] : [];
 /* ── shared unit simulation: positions for cards, 2D pins and the 3D scene ── */
 (() => {
   const ROUTES = __ROUTES__;   // patrol routes along real roads, preview/newmap/routes.json
@@ -191,6 +194,8 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   chips.forEach(c => c.addEventListener('click', () => {
     chips.forEach(x => x.setAttribute('aria-pressed', x === c));
     const f = c.dataset.filter;
+    // one page-wide filter: the cards, the 2D pins and the 3D map all follow it, so a live redraw can't bring other teams back
+    window.DEPT_FILTER = f === 'all' ? null : f; if (f === 'all') delete document.body.dataset.filter; else document.body.dataset.filter = f; dispatchEvent(new CustomEvent('deptfilter'));
     for (const card of document.querySelectorAll('.veh[data-unit]')) card.hidden = f !== 'all' && !card.classList.contains('dept-' + f);
   }));
 
@@ -239,7 +244,7 @@ units_js = r"""<script id="units" type="application/json">""" + json.dumps(UNITS
   const CRUISE_MPS = { pd: 22, fd: 16, dot: 14 };                              // response speed, world units per second
   const onCalls = () => { const CALLS = window.CALLS || [];
     for (const u of units) { if (u.live) continue;
-      const c = CALLS.find(c => c.unit === u.name);
+      const c = CALLS.find(c => onIt(c, u.name));
       if (c && (!u.task || u.task.call !== c)) { u.task = { path: roadRoute(u.x, u.y, c.x, c.y), i: 0, mps: CRUISE_MPS[u.dept] || 18, call: c }; if (c.stage < 1) c.stage = 1; }
       else if (!c && u.task && u.task.call) { const home = at(u.route, u.t); u.task = { path: roadRoute(u.x, u.y, home.x, home.y), i: 0, mps: CRUISE_MPS[u.dept] || 18, call: null }; } } };
   addEventListener('calls', onCalls); setTimeout(onCalls, 0);
@@ -318,7 +323,7 @@ js_add = r"""<script>
   // live data: the current half-hour reflects the real roster (units on duty, minus those on a call)
   const liveSample = () => { const U = window.UNITS || []; if (!window.HOSTED && !(U.length && U[0].live)) return; if (U.length && !U[0].live) return; const C = window.CALLS || [];
     const now = new Date(), hh = now.getHours() + (now.getMinutes() >= 30 ? 0.5 : 0), idx = Math.max(0, Math.min(data.length - 1, Math.round((hh - START) / STEP)));
-    const slot = data[idx]; slot.onduty = U.length; slot.avail = U.filter(u => !C.some(c => c.unit === u.name)).length; const last = data[data.length - 1]; if (slot !== last) { last.onduty = slot.onduty; last.avail = slot.avail; } render(); };
+    const slot = data[idx]; slot.onduty = U.length; slot.avail = U.filter(u => !C.some(c => onIt(c, u.name))).length; const last = data[data.length - 1]; if (slot !== last) { last.onduty = slot.onduty; last.avail = slot.avail; } render(); };
   addEventListener('units', liveSample); addEventListener('calls', liveSample); if (window.HOSTED) { render(); sub.textContent = 'No units on duty'; }
   let ki = data.length - 1;
   plot.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') ki = Math.max(0, ki - 1); else if (e.key === 'ArrowRight') ki = Math.min(data.length - 1, ki + 1); else return; e.preventDefault(); show(ki); });
