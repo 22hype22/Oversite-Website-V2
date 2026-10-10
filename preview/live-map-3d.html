@@ -89,6 +89,7 @@
     background:var(--glass2);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
     border:1px solid var(--hair2);border-radius:10px;padding:10px 12px;min-width:132px;
     box-shadow:0 14px 40px rgba(0,0,0,.45)}
+  .pins .tip,#tip,#tip *{pointer-events:none}   /* the unit tag never blocks zooming or dragging the map under it */
   .tip .k{font-size:12px;color:var(--ink)}
   .tip .s{font-size:10.5px;color:var(--dim);margin-top:1px}
   .tip .v{font-size:22px;font-weight:300;letter-spacing:-.02em;margin-top:6px}
@@ -3374,7 +3375,8 @@ const frame = () => {
   if (fps && t - lastDrawn < 1000 / fps - 3) return;
   lastDrawn = t;
   const dt = Math.min(clock.getDelta(), 0.1), now = clock.elapsedTime; if (!fps) adapt(dt); else acc = n = 0;   // only judge speed at full rate
-  const camD = camera.position.distanceTo(controls.target), grow = Math.min(6, Math.max(1, camD / 160));
+  // units grow a little as the camera pulls back so they stay findable, but stop at 2.5x so a busy map doesn't turn into a pile of markers
+  const camD = camera.position.distanceTo(controls.target), grow = Math.min(2.5, Math.max(1, camD / 160));
   UN.forEach((u, i) => { const c = cars[i]; if (!c) return; const ch = Math.cos(u.heading), sh = Math.sin(u.heading), f = CAR_L * 0.45, w = CAR_W * 0.45;
     const hc = heightAt(u.x, u.y), hf = heightAt(u.x + ch * f, u.y + sh * f), hb = heightAt(u.x - ch * f, u.y - sh * f), hl = heightAt(u.x + sh * w, u.y - ch * w), hr = heightAt(u.x - sh * w, u.y + ch * w);
     const k = 1 - Math.exp(-dt * 8); c.userData.pitch += (Math.atan2(hf - hb, 2 * f) - c.userData.pitch) * k; c.userData.roll += (Math.atan2(hl - hr, 2 * w) - c.userData.roll) * k;   // sit on the slope
@@ -3387,7 +3389,7 @@ const frame = () => {
     const md = document.createElement('div'); md.className = 's'; md.textContent = u.live ? (u.model || '') : 'available'; v.appendChild(md); } }
   glow.position.y = hy + 1.8; pulse.position.y = hy + 1.8;
   glow.position.x = pulse.position.x = hp.x; glow.position.z = pulse.position.z = hp.z;
-  const k = (now % 2.4) / 2.4; pulse.scale.setScalar(1 + k * 1.6); pulse.material.opacity = 0.5 * (1 - k);
+  const k = (now % 2.4) / 2.4; glow.scale.setScalar(grow); pulse.scale.setScalar((1 + k * 1.6) * grow); pulse.material.opacity = 0.5 * (1 - k);
   if (incRing.visible) { const q = (now % 1.6) / 1.6; incRing.scale.setScalar(0.5 + q * 1.4); incRing.material.opacity = 0.8 * (1 - q); }
   if (flight) { const k = Math.min(1, (performance.now() - flight.t0) / flight.ms), e = 1 - Math.pow(1 - k, 3); controls.target.lerpVectors(flight.T0, flight.T, e); camera.position.lerpVectors(flight.P0, flight.P, e); if (k >= 1) flight = null; }
   else if (follow) controls.target.lerp(new THREE.Vector3(hp.x, 0, hp.z), 0.06);
