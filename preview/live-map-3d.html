@@ -604,7 +604,12 @@
   .det .notes{font-size:13px;color:#C9CCD3;line-height:1.5;padding:10px 12px;border-radius:var(--r);background:rgba(255,255,255,.04);margin-bottom:12px}
   .screen .btn{font-size:13px;font-weight:600;padding:9px 14px;border-radius:var(--r);background:#E9EAEC;color:#0C0D0F;border:1px solid transparent}
   .screen .btn:active{transform:translateY(1px)} .screen .btn:hover{background:#fff}
-  .screen .btn.ghost{background:none;color:#E9EAEC;border-color:rgba(255,255,255,.18)} .screen .btn.ghost:hover{background:rgba(255,255,255,.06)}
+  .screen .btn.ghost{background:none;color:#E9EAEC;border-color:rgba(255,255,255,.18)}
+  #rptDel{color:#F3A3A3;border-color:rgba(226,75,75,.35)}#rptDel:hover{background:rgba(226,75,75,.14)}#rptDel.sure{background:rgba(226,75,75,.85);color:#fff;border-color:transparent}
+  /* time and date pickers: a light grey clock instead of the browser's black one */
+  input[type=time],input[type=date],input[type=datetime-local]{color-scheme:dark}
+  input[type=time]::-webkit-calendar-picker-indicator,input[type=date]::-webkit-calendar-picker-indicator,input[type=datetime-local]::-webkit-calendar-picker-indicator{opacity:.7;cursor:pointer}
+  input[type=time]::-webkit-calendar-picker-indicator:hover,input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9} .screen .btn.ghost:hover{background:rgba(255,255,255,.06)}
   .screen .btn.danger{background:var(--fd);color:#fff}
   #rptForm label{display:block;font-size:12px;font-weight:500;color:var(--mute);margin-bottom:12px}
   #rptForm input,#rptForm select,#rptForm textarea{display:block;width:100%;margin-top:5px;font:inherit;font-size:14px;color:#E9EAEC;background:#141518;border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;outline:0;resize:vertical}
@@ -1225,7 +1230,7 @@
             <div class="tcard"><div class="rows" id="rptRows"></div></div>
           </section>
           <section class="tscreen" data-pane="report">
-            <header class="thead"><div><button class="back" id="rptBack" type="button">‹ Reports</button><h2>Incident Report</h2></div><button class="btn" id="rptSave" type="button">Save</button></header>
+            <header class="thead"><div><button class="back" id="rptBack" type="button">‹ Reports</button><h2>Incident Report</h2></div><div style="display:flex;gap:8px"><button class="btn ghost" id="rptDel" type="button" hidden>Delete</button><button class="btn" id="rptSave" type="button">Save</button></div></header>
             <form id="rptForm" autocomplete="off">
               <div class="grid2">
                 <label>Report #<input name="num" readonly></label>
@@ -1244,7 +1249,7 @@
               <label>Actions taken<textarea name="actions" rows="3" placeholder="Size-up, attack line, ventilation, overhaul…"></textarea></label>
               <label>Narrative<textarea name="narr" rows="7" placeholder="What you found on arrival, what you did, outcome."></textarea></label>
               <div class="grid2">
-                <label>Officer in charge<input name="oic" placeholder="Username"></label>
+                <label><span id="rptOicL">Incident commander</span><input name="oic" placeholder="Username"></label>
                 <label>Status<select name="status"><option>Draft</option><option>Submitted</option></select></label>
               </div>
             </form>
@@ -1852,17 +1857,23 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const store = r => { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch {} };
   let reports = load(), editing = null;
   const form = $('rptForm');
-  const nextNum = () => { const d = new Date(); const n = reports.filter(r => r.num.startsWith(`FD-${d.getFullYear()}`)).length + 1; return `FD-${d.getFullYear()}-${String(n).padStart(4, '0')}`; };
+  const nextNum = () => { const d = new Date(), pre = `FD-${d.getFullYear()}-`; const n = Math.max(0, ...reports.filter(r => r.num.startsWith(pre)).map(r => parseInt(r.num.slice(pre.length), 10) || 0)) + 1; /* one past the highest, so a deleted report's number is never reused */ return `FD-${d.getFullYear()}-${String(n).padStart(4, '0')}`; };
   const fill = r => { for (const el of form.elements) if (el.name && r[el.name] != null) el.value = r[el.name]; };
   const read = () => { const r = {}; for (const el of form.elements) if (el.name) r[el.name] = el.value; return r; };
-  const newReport = () => { form.reset(); editing = null; fill({ num: nextNum(), oic: me()?.crew[0] || '', units: me()?.name || '', status: 'Draft', t_disp: hhmm(Date.now()) }); };
+  const OIC = { fd: 'Incident commander', pd: 'Officer in charge', dot: 'Crew lead' };
+  const delBtn = $('rptDel'); let delArm = 0;
+  const editMode = () => { $('rptOicL').textContent = OIC[window.mdtDept] || OIC.fd; delBtn.hidden = !editing || !reports.some(x => x.num === editing); delBtn.classList.remove('sure'); delBtn.textContent = 'Delete'; clearTimeout(delArm); };
+  const newReport = () => { form.reset(); editing = null; fill({ num: nextNum(), oic: me()?.crew[0] || '', units: me()?.name || '', status: 'Draft', t_disp: hhmm(Date.now()) }); editMode(); };
   const newReportFrom = (c, cleared) => { newReport(); const map = { '10-70': 'Structure fire', '10-50': 'MVA / extrication', '10-52': 'Medical', '10-45': 'Vehicle fire', '10-53': 'Public assist' };
     fill({ call: `${c.code} ${c.where}`, type: map[c.code] || 'Other', pri: `P${c.pri}`, addr: c.where, units: c.unit || me()?.name || '', t_disp: hhmm(c.startedAt), t_scene: c.stage >= 2 ? hhmm(Date.now()) : '', t_clear: cleared ? hhmm(Date.now()) : '', narr: `Dispatched to ${c.type.toLowerCase()} at ${c.where}. ` }); form.narr.focus(); };
   reportsCount = () => reports.length;
   const renderReports = () => { $('rptRows').innerHTML = reports.slice().reverse().map(r => `<div class="rpt" role="button" tabindex="0" data-num="${esc(r.num)}"><b>${esc(r.num)} ${esc(r.type)}</b><span class="tag ${r.status === 'Submitted' ? 'sub' : ''}">${esc(r.status)}</span><small>${esc(r.addr || r.call || '')}, ${esc(r.saved || '')}</small></div>`).join('') || '<div class="empty">No reports yet.</div>'; $('rptCount').textContent = reports.length; };
-  $('rptRows').addEventListener('click', e => { const r = e.target.closest('[data-num]'); if (!r) return; const rec = reports.find(x => x.num === r.dataset.num); if (rec) { editing = rec.num; form.reset(); fill(rec); window.mdtShow && window.mdtShow('report'); toast(`Opened ${rec.num}`); } });
+  $('rptRows').addEventListener('click', e => { const r = e.target.closest('[data-num]'); if (!r) return; const rec = reports.find(x => x.num === r.dataset.num); if (rec) { editing = rec.num; form.reset(); fill(rec); editMode(); window.mdtShow && window.mdtShow('report'); toast(`Opened ${rec.num}`); } });
   $('rptSave').addEventListener('click', () => { const r = read(); if (!r.narr.trim() && !r.addr.trim()) { toast('Add an address or narrative first'); return; }
-    r.saved = new Date().toLocaleString(); const i = reports.findIndex(x => x.num === (editing || r.num)); if (i >= 0) reports[i] = r; else reports.push(r); editing = r.num; store(reports); renderReports(); toast(`${r.num} ${r.status === 'Submitted' ? 'submitted' : 'saved'}`); });
+    r.saved = new Date().toLocaleString(); const i = reports.findIndex(x => x.num === (editing || r.num)); if (i >= 0) reports[i] = r; else reports.push(r); editing = r.num; store(reports); renderReports(); editMode(); toast(`${r.num} ${r.status === 'Submitted' ? 'submitted' : 'saved'}`); });
+  delBtn.addEventListener('click', () => { if (!editing) return;
+    if (!delBtn.classList.contains('sure')) { delBtn.classList.add('sure'); delBtn.textContent = 'Tap again to delete'; clearTimeout(delArm); delArm = setTimeout(() => { delBtn.classList.remove('sure'); delBtn.textContent = 'Delete'; }, 3000); return; }
+    const num = editing; reports = reports.filter(x => x.num !== num); store(reports); editing = null; renderReports(); editMode(); window.mdtShow && window.mdtShow('reports'); toast(`${num} deleted`); });
   $('rptNew').addEventListener('click', () => { newReport(); window.mdtShow && window.mdtShow('report'); toast('New report'); });
 
   // ── live ──
