@@ -28,7 +28,7 @@ out=out.replace('<img src="liberty-county-dark.jpg" data-light="liberty-county.j
 assert '<img alt="" data-hd' in out
 b=out.index('<!-- ─────────── top bar ─────────── -->'); out=out[:b]+view3d+out[b:]
 out=out.replace('<title>Oversite Live Map</title>','<title>Oversite Live Map 3D</title>')
-out=out.replace('</style>',css+'</style>')
+out=out.replace('</style>',css+'</style>',1)
 out=out.replace('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap">',
  '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap">\n<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/"}}</script>')
 # view switch chip

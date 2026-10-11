@@ -833,6 +833,78 @@
   /* staff:end */
 </style>
 <script src="/dropdown.js?v=1" defer></script>
+<style id="phone">
+  /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
+  .mtabs{display:none}
+  @media (max-width:760px){
+    :root{--barh:92px;--gap:10px}
+    body{--sheet:44dvh}
+    body[data-msz="peek"]{--sheet:0px}
+    body[data-msz="full"]{--sheet:calc(100dvh - var(--barh) - 54px)}
+    .bar{height:auto;min-height:var(--barh);flex-wrap:wrap;align-content:flex-start;gap:6px 10px;padding:8px 10px 0;
+      background:linear-gradient(180deg,rgba(9,10,12,.88) 0%,rgba(9,10,12,.7) 70%,rgba(9,10,12,0));pointer-events:auto}
+    .bar .mark img{height:24px}.bar .mark{height:34px}
+    .bar .icons{margin-left:auto;gap:2px}
+    .bar .menu{order:3;flex:1 1 100%;gap:4px;padding:2px 0 6px;-webkit-overflow-scrolling:touch}
+    .bar .menu button{flex:none;font-size:13px;padding:7px 12px}
+    .title{display:none}
+    .stage{left:0;padding:0}
+    /* the four panels share the sheet; only the open tab shows */
+    .rail,.warn,.foot .card{display:none!important}
+    body[data-view="dispatch"]:not(.mdt-open) .mtabs{display:flex}
+    body[data-view="dispatch"][data-ms="units"]:not([data-msz="peek"]):not(.mdt-open) .rail{display:block!important}
+    body[data-view="dispatch"][data-ms="alerts"]:not([data-msz="peek"]):not(.mdt-open) .warn{display:block!important}
+    body[data-view="dispatch"][data-ms="duty"]:not([data-msz="peek"]):not(.mdt-open) #dutyCard,
+    body[data-view="dispatch"][data-ms="calls"]:not([data-msz="peek"]):not(.mdt-open) #callsCard{display:flex!important}
+    .rail{top:auto!important;left:0!important;right:0;bottom:0!important;width:auto!important;height:var(--sheet);border-radius:0!important;border-left:0;border-right:0;border-bottom:0;padding:12px 12px calc(12px + env(safe-area-inset-bottom));transform:none!important}
+    .rail .fleet{grid-template-columns:1fr 1fr}
+    .warn{left:0;right:0;top:auto;bottom:0;width:auto;height:var(--sheet);max-height:none;border-radius:0;border-left:0;border-right:0;border-bottom:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom))}
+    .foot{left:0;right:0;bottom:0;height:var(--sheet);display:block}
+    .foot .card{height:100%;border-radius:0;border-left:0;border-right:0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom)}
+    .mapctl{left:10px;bottom:calc(var(--sheet) + 66px)}
+    .mapctl button{width:40px;height:40px;border-radius:11px}
+    /* the tab strip sits on top of the sheet; drag it (or tap the grip) to resize */
+    .mtabs{position:fixed;left:0;right:0;bottom:var(--sheet);z-index:8;height:54px;padding:10px 8px 6px;gap:4px;align-items:stretch;
+      background:#0e0f11;border-top:1px solid var(--hair2);border-radius:16px 16px 0 0;
+      box-shadow:0 -12px 30px rgba(0,0,0,.35);touch-action:none;transition:bottom .28s cubic-bezier(.32,.72,0,1)}
+    body[data-msz="peek"] .mtabs{padding-bottom:calc(6px + env(safe-area-inset-bottom));height:calc(54px + env(safe-area-inset-bottom))}
+    .mtabs .grip{position:absolute;left:50%;top:4px;width:38px;height:4px;margin-left:-19px;border-radius:4px;background:rgba(240,242,245,.25)}
+    .mtabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:500;color:var(--dim);background:none;border:0}
+    .mtabs button[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.09)}
+    .mtabs button b{font-size:10.5px;font-weight:600;min-width:18px;padding:1px 6px;border-radius:999px;background:rgba(240,242,245,.1);color:var(--ink)}
+    .mtabs button b.hot{background:var(--red);color:#fff}
+    .mtabs button b:empty{display:none}
+    .rail,.warn,.foot{transition:height .28s cubic-bezier(.32,.72,0,1)}
+    body.msheet-drag .mtabs,body.msheet-drag .rail,body.msheet-drag .warn,body.msheet-drag .foot,body.msheet-drag .mapctl{transition:none}
+    /* department MDT, staff tablet and status pages take the whole screen under the bar */
+    .mdt-dock,.sdock{left:0;top:var(--barh);bottom:0;width:100vw;transform:translateX(100vw)}
+    body.mdt-open .mdt-dock,body[data-view="staff"] .sdock{transform:none}
+    .mdt-dock .tablet,.sdock .tablet{aspect-ratio:auto;height:100%;max-height:none;border-radius:0;padding:0;box-shadow:none}
+    .tablet .screen{border-radius:0}
+    .tablet .cam,.sbar{display:none}
+    .mdt-close{top:auto;bottom:calc(14px + env(safe-area-inset-bottom));left:auto;right:14px;width:44px;height:44px;z-index:5}
+    .tbody{flex-direction:column}
+    .tside{width:auto;flex-direction:row;align-items:center;overflow-x:auto;scrollbar-width:none;border-right:0;border-bottom:1px solid var(--line);padding:6px 8px;gap:4px}
+    .tside::-webkit-scrollbar{display:none}
+    .tside .crest,.tside .tuser{display:none}
+    .tside button{flex:none;padding:8px 12px}
+    .tscreen{padding:10px 14px calc(70px + env(safe-area-inset-bottom))}
+    .hgrid{grid-template-columns:1fr!important}
+    .hgrid{flex:none;min-height:auto;gap:16px}.hero,.hcol{min-height:auto}.ulog{flex:none;max-height:280px}.hcol .tmap.small{flex:none;min-height:220px}
+    .statgrid button{padding:10px 4px}
+    /* the lead unit's tag sits centred under its marker so it never hangs off the edge */
+    #pins .tip,#tip .tip{transform:translate(-50%,22px)!important;min-width:0;max-width:62vw;padding:8px 10px}
+    .tip .v.un{font-size:15px}
+    .tip .av{white-space:nowrap}
+    .rail,.warn,.foot .card{background:#0e0f11!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+    .sdock .tscreen.split.on{display:block;overflow-y:auto}
+    .sdock .split .col{overflow:visible}
+    .sdock .split .col:first-child{border-right:0;padding-right:0;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px}
+    .page{left:0;right:0;top:var(--barh);bottom:0;border-radius:0}
+    .gpu-note{left:10px!important;right:10px;top:calc(var(--barh) + 6px);bottom:auto!important;transform:none!important;max-width:none!important;flex-wrap:wrap;font-size:12.5px;line-height:1.45}
+    .toast{bottom:calc(var(--sheet) + 70px)}
+  }
+</style>
 </head>
 <body>
 
@@ -1864,6 +1936,31 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   dispatchEvent(new Event('resize')); })();
 </script>
 <script>if (window.OVERSITE && window.OVERSITE.voice) { const v = document.getElementById('voiceBtn'); v.href = '/c/' + window.OVERSITE.slug + '/voice'; v.hidden = false; }</script>
+<script>
+/* phones: tabs for the bottom sheet (Units, Calls, Alerts, On duty); tap a tab to open it, tap it again or drag the strip down to tuck it away */
+(() => { const mq = matchMedia('(max-width:760px)'), B = document.body;
+  const nav = document.createElement('nav'); nav.className = 'mtabs'; nav.setAttribute('aria-label', 'Panels');
+  nav.innerHTML = '<span class="grip" aria-hidden="true"></span>' + [['units', 'Units'], ['calls', 'Calls'], ['alerts', 'Alerts'], ['duty', 'On duty']].map(([k, t]) => `<button type="button" data-ms="${k}" aria-pressed="false">${t}<b data-mcount="${k}"></b></button>`).join('');
+  B.appendChild(nav);
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem('ov.msheet') || '{}'); } catch (e) {}
+  const set = (ms, sz) => { B.dataset.ms = ms; B.dataset.msz = sz; for (const b of nav.querySelectorAll('[data-ms]')) b.setAttribute('aria-pressed', b.dataset.ms === ms && sz !== 'peek');
+    try { localStorage.setItem('ov.msheet', JSON.stringify({ ms, sz })); } catch (e) {} dispatchEvent(new Event('resize')); };
+  set(saved.ms || 'calls', saved.sz || 'half');
+  nav.addEventListener('click', e => { const b = e.target.closest('[data-ms]'); if (!b || moved) return; const same = B.dataset.ms === b.dataset.ms && B.dataset.msz !== 'peek'; set(b.dataset.ms, same ? 'peek' : (B.dataset.msz === 'peek' ? 'half' : B.dataset.msz)); });
+  // drag the strip to resize; it snaps to tucked away, half or full when you let go
+  let y0 = 0, h0 = 0, moved = false, drag = false;
+  nav.addEventListener('pointerdown', e => { if (!mq.matches) return; drag = true; moved = false; y0 = e.clientY; h0 = innerHeight - nav.getBoundingClientRect().bottom; nav.setPointerCapture(e.pointerId); });
+  nav.addEventListener('pointermove', e => { if (!drag) return; const dy = y0 - e.clientY; if (Math.abs(dy) > 6) { moved = true; B.classList.add('msheet-drag'); }
+    if (moved) B.style.setProperty('--sheet', Math.max(0, Math.min(innerHeight - 160, h0 + dy)) + 'px'); });
+  const end = () => { if (!drag) return; drag = false; if (!moved) return; const h = innerHeight - nav.getBoundingClientRect().bottom; B.classList.remove('msheet-drag'); B.style.removeProperty('--sheet');
+    set(B.dataset.ms, h < innerHeight * .18 ? 'peek' : h > innerHeight * .62 ? 'full' : 'half'); setTimeout(() => moved = false, 0); };
+  nav.addEventListener('pointerup', end); nav.addEventListener('pointercancel', end);
+  // counts on the tabs
+  const count = () => { const n = { units: (window.UNITS || []).length, calls: (window.CALLS || []).length, alerts: document.querySelectorAll('#warnList .alert').length, duty: document.querySelectorAll('#dutyCard .row, #dutyCard [data-name], #dutyCard li').length };
+    for (const k in n) { const el = nav.querySelector(`[data-mcount="${k}"]`); if (el) { el.textContent = n[k] ? n[k] : ''; el.classList.toggle('hot', k === 'alerts' && n[k] > 0); } } };
+  count(); setInterval(count, 1500); addEventListener('units', count); addEventListener('calls', count);
+})();
+</script>
 <aside class="admin" id="admin" aria-label="Admin panel" aria-hidden="true">
   <header><h2>Admin</h2><button type="button" id="adminClose">Close</button></header>
   <section>
