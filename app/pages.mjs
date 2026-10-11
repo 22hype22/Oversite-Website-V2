@@ -58,10 +58,10 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xr-code{position:absolute;right:14px;bottom:12px;z-index:1;font:600 11.5px/1 ui-monospace,"Geist Mono",Menlo,monospace;letter-spacing:.06em;color:#E9EAEC;padding:5px 8px;border-radius:7px;background:rgba(8,9,11,.6);border:1px solid rgba(255,255,255,.12)}
 .xr-bar{position:absolute;left:0;right:0;bottom:0;z-index:1;height:2px;background:rgba(255,255,255,.06)}.xr-bar i{display:block;height:100%;background:var(--sc,#46D07C);box-shadow:0 0 10px var(--sc,#46D07C)}
 .xr-b{display:flex;flex-direction:column;gap:12px;padding:0 18px 18px;flex:1}
-.xr-h{display:flex;align-items:flex-end;gap:14px;margin-top:-30px;position:relative;z-index:1}
+.xr-h{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px;margin-top:-30px;position:relative;z-index:1}
 .xr-ic{position:relative;overflow:hidden;flex:none;width:64px;height:64px;border-radius:17px;display:grid;place-items:center;font-size:24px;font-weight:700;background:linear-gradient(160deg,#2d3440,#1b1f26);border:3px solid #141517;box-shadow:0 10px 22px rgba(0,0,0,.45)}
 .xr-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.xr-n{flex:1;min-width:0;padding-top:34px}.xr h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xr-n{flex:1 1 150px;min-width:0;padding-top:34px}.xr h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .by{display:inline-flex;align-items:center;gap:0;color:var(--dim);font-size:12.5px;margin-top:2px}.by .vb{margin-left:5px;vertical-align:-1px}.by img{width:16px;height:16px;border-radius:50%;background:#2a2d33}
 .xr-mine{flex:none;align-self:flex-end;margin-top:34px;font-size:12px;font-weight:500;color:var(--ink);text-decoration:none;padding:6px 11px;border-radius:999px;border:1px solid var(--hair2);background:rgba(240,242,245,.06)}.xr-mine:hover{background:rgba(240,242,245,.12)}
 .xr-m{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;color:var(--dim);font-size:12.5px}.xr-m span{display:inline-flex;align-items:center;gap:6px}.xr-m .xr-rt{color:#F2C46E;font-weight:600}.xr-m .xr-tag{gap:5px;padding:3px 10px 3px 8px;border-radius:999px;background:rgba(240,242,245,.07);border:1px solid var(--hair2);color:#E2E5E9;font-weight:500}.xr-m .xr-tag svg{color:#8DB6FF}
@@ -90,7 +90,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xd-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;padding:14px;border-radius:12px;border:1px solid var(--hair);background:rgba(255,255,255,.02)}
 .xd-facts small{display:block;color:var(--faint);font-size:11px}.xd-facts b{display:block;font-size:13px;font-weight:500;margin-top:2px;overflow-wrap:anywhere}.xd-facts code{font-family:ui-monospace,"Geist Mono",monospace}
 @media (max-width:900px){.xp-list{grid-template-columns:1fr}.xp-tabs button{flex:none}}
-@media (max-width:640px){.xp-search{min-width:0;flex:1 1 100%}.xd-facts{grid-template-columns:1fr}.xp-tabs button{padding:8px 13px}.xr-h{flex-wrap:wrap}.xr-mine{margin:0 0 0 78px;align-self:auto}.xr h3{white-space:normal}}
+@media (max-width:640px){.xp-search{min-width:0;flex:1 1 100%}.xd-facts{grid-template-columns:1fr}.xp-tabs button{padding:8px 13px}.xr-n{flex-basis:calc(100% - 78px)}.xr-mine{margin:0 0 0 78px;align-self:auto}.xr h3{white-space:normal;overflow-wrap:anywhere}}
 @media (prefers-reduced-motion:reduce){.xp-dlgin,.xp-dlg::backdrop,.xr,.xb,.xp-toast,.xr-map{transition:none}}
 .acct{max-width:980px}.prof{display:flex;align-items:center;gap:18px;margin:0 0 26px}.prof .pic{width:84px;height:84px;border-radius:50%;flex:none;background:#2a2d33 center/cover;border:1px solid var(--hair2);display:grid;place-items:center;font-size:30px;font-weight:600;overflow:hidden}.prof .pic{position:relative}.prof .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .prof h1{margin:0}.prof p{margin:4px 0 0;color:var(--dim);font-size:13.5px}
