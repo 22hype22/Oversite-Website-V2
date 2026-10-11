@@ -169,24 +169,28 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const road = (cx, cy) => cx >= 0 && cy >= 0 && cx < GN && cy < GN && (GB[(cy * GN + cx) >> 3] >> (7 - ((cy * GN + cx) & 7))) & 1;
   window.roadAt = (x, y) => { const cx = Math.round(x / CELL - 0.5), cy = Math.round(y / CELL - 0.5); if (road(cx, cy)) return 1; return (road(cx + 1, cy) || road(cx - 1, cy) || road(cx, cy + 1) || road(cx, cy - 1)) ? 0.5 : 0; };
   const snap = (x, y) => { const cx = Math.round(x / CELL - 0.5), cy = Math.round(y / CELL - 0.5); if (road(cx, cy)) return [cx, cy];
-    for (let r = 1; r < 24; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if ((Math.abs(dx) === r || Math.abs(dy) === r) && road(cx + dx, cy + dy)) return [cx + dx, cy + dy]; return null; };
+    for (let r = 1; r < 70; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if ((Math.abs(dx) === r || Math.abs(dy) === r) && road(cx + dx, cy + dy)) return [cx + dx, cy + dy]; return null; };
   // Like a satnav: grow the search outward from the start and from the destination at the same time, one road cell at a
   // time, always extending whichever side is cheaper so far. When the two meet, the cheapest meeting cell joins them into
   // the quickest route; once neither side can beat it the search stops (bidirectional Dijkstra on the road grid).
   const N = GN * GN, D8 = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414]];
   const hpush = (h, d, k) => { h.push([d, k]); let i = h.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; const t = h[p]; h[p] = h[i]; h[i] = t; i = p; } };
   const hpop = h => { const top = h[0], last = h.pop(); if (h.length) { h[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < h.length && h[l][0] < h[m][0]) m = l; if (r < h.length && h[r][0] < h[m][0]) m = r; if (m === i) break; const t = h[m]; h[m] = h[i]; h[i] = t; i = m; } } return top; };
-  const meetRoute = (a, b) => { const g = [new Float32Array(N).fill(Infinity), new Float32Array(N).fill(Infinity)], prev = [new Int32Array(N).fill(-1), new Int32Array(N).fill(-1)], done = [new Uint8Array(N), new Uint8Array(N)], heap = [[], []];
-    g[0][a] = 0; g[1][b] = 0; hpush(heap[0], 0, a); hpush(heap[1], 0, b); let best = a === b ? 0 : Infinity, meet = a === b ? a : -1, steps = 0;
+  let RT = null, gen = 0;   // search arrays are made once and reused; a cell counts only if it was touched in this search (gen)
+  const meetRoute = (a, b) => { if (!RT) RT = { g: [new Float32Array(N), new Float32Array(N)], p: [new Int32Array(N), new Int32Array(N)], seen: [new Uint32Array(N), new Uint32Array(N)], fin: [new Uint32Array(N), new Uint32Array(N)] };
+    gen++; const { seen, fin } = RT, heap = [[], []];
+    const g = [0, 1].map(s => ({ get: k => seen[s][k] === gen ? RT.g[s][k] : Infinity })), prev = [0, 1].map(s => ({ get: k => seen[s][k] === gen ? RT.p[s][k] : -1 }));
+    const set = (s, k, d, p) => { seen[s][k] = gen; RT.g[s][k] = d; RT.p[s][k] = p; };
+    set(0, a, 0, -1); set(1, b, 0, -1); hpush(heap[0], 0, a); hpush(heap[1], 0, b); let best = a === b ? 0 : Infinity, meet = a === b ? a : -1, steps = 0;
     while (heap[0].length && heap[1].length && steps++ < 300000) {
       if (heap[0][0][0] + heap[1][0][0] >= best) break;                       // neither side can find a shorter join any more
-      const s = heap[0][0][0] <= heap[1][0][0] ? 0 : 1, o = 1 - s, [d, k] = hpop(heap[s]); if (done[s][k]) continue; done[s][k] = 1;
+      const s = heap[0][0][0] <= heap[1][0][0] ? 0 : 1, o = 1 - s, [d, k] = hpop(heap[s]); if (fin[s][k] === gen) continue; fin[s][k] = gen;
       const x = k % GN, y = (k - x) / GN;
       for (const [dx, dy, w] of D8) { const nx = x + dx, ny = y + dy; if (!road(nx, ny)) continue; const nk = ny * GN + nx, nd = d + w;
-        if (nd < g[s][nk]) { g[s][nk] = nd; prev[s][nk] = k; hpush(heap[s], nd, nk); }
-        if (g[o][nk] < Infinity && g[s][nk] + g[o][nk] < best) { best = g[s][nk] + g[o][nk]; meet = nk; } } }
+        if (nd < g[s].get(nk)) { set(s, nk, nd, k); hpush(heap[s], nd, nk); }
+        const go = g[o].get(nk); if (go < Infinity && g[s].get(nk) + go < best) { best = g[s].get(nk) + go; meet = nk; } } }
     if (meet < 0) return null;
-    const out = []; for (let k = meet; k >= 0; k = prev[0][k]) out.push(k); out.reverse(); for (let k = prev[1][meet]; k >= 0; k = prev[1][k]) out.push(k); return out; };
+    const out = []; for (let k = meet; k >= 0; k = prev[0].get(k)) out.push(k); out.reverse(); for (let k = prev[1].get(meet); k >= 0; k = prev[1].get(k)) out.push(k); return out; };
   const roadRoute = (ax, ay, bx, by) => { const A = snap(ax, ay), B = snap(bx, by); if (!A || !B) return [[ax, ay], [bx, by]];
     const path = meetRoute(A[1] * GN + A[0], B[1] * GN + B[0]); if (!path) return [[ax, ay], [bx, by]];
     const cells = path.map(k => [(k % GN + 0.5) * CELL, (Math.floor(k / GN) + 0.5) * CELL]);
