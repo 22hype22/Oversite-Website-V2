@@ -618,6 +618,7 @@
   .homebar{position:absolute;left:50%;bottom:6px;width:100px;height:4px;margin-left:-50px;border-radius:2px;background:rgba(255,255,255,.3)}
   .toast{position:fixed;left:50%;bottom:72px;transform:translate(-50%,28px);z-index:50;max-width:calc(100vw - 32px);padding:11px 16px;border-radius:12px;background:rgba(20,20,23,.94);border:1px solid var(--hair2);box-shadow:0 12px 32px rgba(0,0,0,.45);font-size:12.5px;line-height:1.45;text-align:center;opacity:0;transition:opacity .2s ease,transform .38s cubic-bezier(.22,1,.36,1);pointer-events:none}
   .toast.on{opacity:1;transform:translate(-50%,0)}
+  a.mdt-btn{display:grid;place-items:center;color:inherit;text-decoration:none}a.mdt-btn[hidden]{display:none}
   body[data-filter="pd"] .veh[data-unit]:not(.dept-pd),body[data-filter="pd"] #pins .pin[data-dept]:not([data-dept="pd"]){display:none!important}body[data-filter="fd"] .veh[data-unit]:not(.dept-fd),body[data-filter="fd"] #pins .pin[data-dept]:not([data-dept="fd"]){display:none!important}body[data-filter="dot"] .veh[data-unit]:not(.dept-dot),body[data-filter="dot"] #pins .pin[data-dept]:not([data-dept="dot"]){display:none!important}
   @media (prefers-reduced-motion:reduce){.toast{transition:opacity .2s;transform:translate(-50%,0)}}
   @media (max-width:1180px){.hgrid{grid-template-columns:1fr}.tscreen .stats{grid-template-columns:repeat(2,1fr)}.tside{width:120px}}
@@ -868,6 +869,7 @@
     <span>Search</span><kbd>Ctrl+Shift+F</kbd>
   </div>
   <div class="icons">
+    <a id="voiceBtn" class="mdt-btn" aria-label="Proximity voice" title="Proximity voice" target="_blank" rel="noopener" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></svg></a>
     <button id="mdtToggle" class="mdt-btn" aria-label="Open MDT" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><path d="M10 18.5h4" stroke-linecap="round"/></svg></button>
     <button aria-label="Notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><i class="dot"></i></button>
     <button aria-label="Settings" id="adminToggle" aria-pressed="false" title="Admin"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -1861,6 +1863,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const mark = document.querySelector('.bar .mark') || document.querySelector('.mark'); if (mark) { mark.style.cursor = 'pointer'; mark.title = O.name + ' · your account'; mark.addEventListener('click', () => { location.href = '/account'; }); }
   dispatchEvent(new Event('resize')); })();
 </script>
+<script>if (window.OVERSITE && window.OVERSITE.voice) { const v = document.getElementById('voiceBtn'); v.href = '/c/' + window.OVERSITE.slug + '/voice'; v.hidden = false; }</script>
 <aside class="admin" id="admin" aria-label="Admin panel" aria-hidden="true">
   <header><h2>Admin</h2><button type="button" id="adminClose">Close</button></header>
   <section>

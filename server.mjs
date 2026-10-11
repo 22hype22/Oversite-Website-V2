@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { users, communities, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, RESERVED, token } from './app/db.mjs';
 import { serverPage } from './app/serverpage.mjs';
+import * as voice from './app/voice.mjs';
+import { voicePage } from './app/voicepage.mjs';
 import { Feed, testKey, NOKEY } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
@@ -45,7 +47,7 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // ── the CAD page, with this community's settings injected ──
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
+  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), voice: voice.voiceSettings(c).on, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};</script>`;
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
@@ -104,17 +106,25 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can delete records.' }, 403); staff.removeRecord(c, (await jsonBody(req)).id); return json(res, { ok: true }); }   // records can go; the command log never can
     if (sub === 'records' && M === 'GET') return json(res, { records: staff.records(c, Object.fromEntries(new URL(req.url, 'http://x').searchParams)) });
     return json(res, { error: 'Not found.' }, 404); }
+  // proximity voice: the live stream of who is near you, connection setup between two players, mute, and the owner's settings
+  if (rest === 'voice/stream' && M === 'GET') { if (!voice.voiceSettings(c).on) return json(res, { error: 'Proximity voice is off for this server.' }, 403);
+    if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403); return voice.join(req, res, c, user, f); }
+  if (rest === 'voice/signal' && M === 'POST') { const j = await jsonBody(req), r = voice.signal(c, user, j.to, j.data); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'voice/mute' && M === 'POST') return json(res, voice.setMuted(c, user, (await jsonBody(req)).muted));
+  if (rest === 'voice/settings' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change this.' }, 403);
+    const j = await jsonBody(req), s = communities.byId(c.id).settings; s.voice = { on: !!j.on, range: ['short', 'normal', 'long'].includes(j.range) ? j.range : 'normal', muffle: j.muffle !== false };
+    communities.saveSettings(c.id, s); return json(res, { ok: true }); }
+  if (rest === 'units' && M === 'GET') return json(res, { of: unitMembers.all(c.id), units: Object.fromEntries(['pd', 'fd', 'dot'].map(d => [d, c.settings.depts?.[d]?.units || []])) });
+  if (rest === 'units/me' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
+    const unit = String((await jsonBody(req)).unit || '').trim(), all = ['pd', 'fd', 'dot'].flatMap(d => c.settings.depts?.[d]?.units || []);
+    if (unit && !all.includes(unit)) return json(res, { error: 'That unit no longer exists. Pick another one.' }, 400);
+    unitMembers.set(c.id, String(user.roblox_id), unit); return json(res, { ok: true, of: unitMembers.all(c.id) }); }
   if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can do that.' }, 403);
   if (rest === 'profile/refresh' && M === 'POST') { const r = await profile.refresh(c); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/save' && M === 'POST') { const r = profile.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 5e5) || '{}'); } catch (e) {} const r = profile.setIcon(c, j.data); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon/remove' && M === 'POST') return json(res, profile.clearIcon(c));
   // department units (Engine 1, K-9, ...) and who is in which, for the unit tags on the map; players set their own from the MDT
-  if (rest === 'units' && M === 'GET') return json(res, { of: unitMembers.all(c.id), units: Object.fromEntries(['pd', 'fd', 'dot'].map(d => [d, c.settings.depts?.[d]?.units || []])) });
-  if (rest === 'units/me' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
-    const unit = String((await jsonBody(req)).unit || '').trim(), all = ['pd', 'fd', 'dot'].flatMap(d => c.settings.depts?.[d]?.units || []);
-    if (unit && !all.includes(unit)) return json(res, { error: 'That unit no longer exists. Pick another one.' }, 400);
-    unitMembers.set(c.id, String(user.roblox_id), unit); return json(res, { ok: true, of: unitMembers.all(c.id) }); }
   if (rest === 'settings' && M === 'POST') { const j = await jsonBody(req), s = c.settings;
     const name = String(j.name || '').trim(); if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400); if (rude(name)) return json(res, { error: RUDE_MSG }, 400);
     for (const d of ['pd', 'fd', 'dot']) { const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); if (rude(n) || rude(sh)) return json(res, { error: RUDE_MSG }, 400);
@@ -339,6 +349,7 @@ const route = async (req, res) => {
     if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(path + url.search)}`);   // no CAD without a linked Roblox account
     if (needsDiscord(c) && sub === '/') return can(role, 'co_owner') ? redirect(res, `/c/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
     if (sub === '/') return html(res, mapPage(c, user, role));
+    if (sub === '/voice') return page(res, voicePage({ logo: LOGO, user, c, settings: voice.voiceSettings(c), keyOk: !!communities.key(c.id) }));
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
       return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null })); }
