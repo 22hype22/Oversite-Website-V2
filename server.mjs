@@ -197,7 +197,7 @@ const globalApi = async (req, res, rest) => {
     if (!runsServer(r.community_id, user.id)) return json(res, { error: 'Only the owner and co-owners can reply.' }, 403);
     const text = String(j.reply || '').replace(/\r/g, '').trim(); if (text.length > 400) return json(res, { error: 'Keep the reply to 400 characters.' }, 400);
     if (rude(text)) return json(res, { error: RUDE_MSG }, 400);
-    reviews.reply(r.id, text); return json(res, { ok: true, list: reviewList(r.community_id) }); }
+    reviews.reply(r.id, text, user.id); return json(res, { ok: true, list: reviewList(r.community_id) }); }
   if (rest === 'reviews/report' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to report a review.' }, 403);
     const r = reviews.byId(Number((await jsonBody(req)).id)); if (!r) return json(res, { error: 'That review is gone.' }, 404); if (r.user_id === user.id) return json(res, { error: 'That is your own review.' }, 400);
     if (reports.sameReview(user.id, r.id)) return json(res, { error: 'You already reported this review. Thanks, we have it.' }, 429);
@@ -248,7 +248,7 @@ export const REPORT_REASONS = { name: 'Inappropriate name', icon: 'Inappropriate
 const REVIEW_REASON = 'Review';
 // a listed, visible server and its reviews, as the server page shows them
 const visible = slug => { const c = communities.bySlug(String(slug || '')); return c && c.settings.profile?.listed && !c.hidden && !c.suspended ? c : null; };
-const reviewList = cid => reviews.forServer(cid).map(r => ({ id: r.id, user_id: r.user_id, rating: r.rating, body: r.body, created: r.created, updated: r.updated, reply: r.reply, roblox_name: r.roblox_name, roblox_id: r.roblox_id, verified: !!r.verified }));
+const reviewList = cid => reviews.forServer(cid).map(r => ({ id: r.id, user_id: r.user_id, rating: r.rating, body: r.body, created: r.created, updated: r.updated, reply: r.reply, reply_name: r.reply_name || '', reply_verified: !!r.reply_verified, roblox_name: r.roblox_name, roblox_id: r.roblox_id, verified: !!r.verified }));
 const runsServer = (cid, uid) => ['owner', 'co_owner'].includes(members.role(cid, uid));
 const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.(png|svg)|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/avatar\/\d+)$/;
 // ── routes ──

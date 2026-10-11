@@ -62,6 +62,7 @@ try { db.exec('ALTER TABLE communities ADD COLUMN verified INTEGER NOT NULL DEFA
 // moderation by Oversite itself: a suspended person can't use the site; a hidden server is off Explore; a suspended server's CAD is closed
 try { db.exec('ALTER TABLE users ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
 try { db.exec('ALTER TABLE communities ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+try { db.exec('ALTER TABLE reviews ADD COLUMN reply_by INTEGER'); } catch (e) {}   // who answered a review (the owner or a co-owner)
 try { db.exec('ALTER TABLE communities ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
 db.exec(`CREATE TABLE IF NOT EXISTS reports (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -264,8 +265,9 @@ export const voteDays = (cid, since) => q('SELECT created FROM server_votes WHER
 
 // one review per person per server; the owner can answer each one
 export const reviews = {
-  forServer: cid => q(`SELECT r.id, r.user_id, r.rating, r.body, r.created, r.updated, r.reply, r.reply_at, u.roblox_name, u.roblox_id, u.verified
-    FROM reviews r JOIN users u ON u.id = r.user_id WHERE r.community_id = ? AND u.suspended = 0 ORDER BY r.created DESC LIMIT 300`).all(cid),
+  forServer: cid => q(`SELECT r.id, r.user_id, r.rating, r.body, r.created, r.updated, r.reply, r.reply_at, u.roblox_name, u.roblox_id, u.verified,
+    coalesce(ru.roblox_name, ru.name) AS reply_name, ru.verified AS reply_verified
+    FROM reviews r JOIN users u ON u.id = r.user_id JOIN communities c ON c.id = r.community_id LEFT JOIN users ru ON ru.id = coalesce(r.reply_by, c.owner_id) WHERE r.community_id = ? AND u.suspended = 0 ORDER BY r.created DESC LIMIT 300`).all(cid),
   summary: () => Object.fromEntries(q('SELECT r.community_id, AVG(r.rating) AS avg, COUNT(*) AS n FROM reviews r JOIN users u ON u.id = r.user_id WHERE u.suspended = 0 GROUP BY r.community_id').all().map(r => [r.community_id, { avg: r.avg, n: r.n }])),
   byId: id => q('SELECT * FROM reviews WHERE id = ?').get(id),
   mine: (cid, uid) => q('SELECT * FROM reviews WHERE community_id = ? AND user_id = ?').get(cid, uid),
@@ -273,7 +275,7 @@ export const reviews = {
   save: (cid, uid, rating, body) => { const old = reviews.mine(cid, uid);
     if (old) q('UPDATE reviews SET rating = ?, body = ?, updated = ? WHERE id = ?').run(rating, body, now(), old.id);
     else q('INSERT INTO reviews (community_id, user_id, rating, body, created) VALUES (?, ?, ?, ?, ?)').run(cid, uid, rating, body, now()); },
-  reply: (id, text) => q('UPDATE reviews SET reply = ?, reply_at = ? WHERE id = ?').run(text || null, text ? now() : null, id),
+  reply: (id, text, by) => q('UPDATE reviews SET reply = ?, reply_at = ?, reply_by = ? WHERE id = ?').run(text || null, text ? now() : null, text ? by : null, id),
   remove: id => q('DELETE FROM reviews WHERE id = ?').run(id).changes,
 };
 

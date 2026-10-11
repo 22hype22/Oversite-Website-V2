@@ -76,7 +76,7 @@ const CSS = `
 .rv-s{color:#F2C46E;font-size:13px;letter-spacing:1px;flex:none}
 .rv p{margin:10px 0 0;color:#D3D6DB;font-size:14px;line-height:1.6;white-space:pre-line;overflow-wrap:anywhere}
 .rv-rep{margin:12px 0 0 14px;padding:10px 12px;border-left:2px solid rgba(76,141,255,.5);background:rgba(76,141,255,.06);border-radius:0 10px 10px 0}
-.rv-rep small{display:block;color:#8DB6FF;font-size:11.5px;font-weight:600;margin-bottom:3px}.rv-rep p{margin:0;font-size:13.5px}
+.rv-rep small{display:block;color:#8DB6FF;font-size:11.5px;font-weight:600;margin-bottom:3px}.rv-rep small b{font-weight:600}.rv-rep small svg{margin-left:4px;vertical-align:-2px}.rv-rep p{margin:0;font-size:13.5px}
 .rv-a{display:flex;gap:14px;margin-top:10px}.rv-a button{background:none;border:0;padding:0;color:var(--faint);font:inherit;font-size:12.5px;cursor:pointer}.rv-a button:hover{color:var(--ink)}.rv-a button.dz:hover{color:#F3A3A3}
 .rv-rf{margin-top:10px}.rv-rf textarea{width:100%;min-height:64px;resize:vertical}.rv-rf .row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
 .rv-e{color:var(--faint);font-size:13px;padding:6px 0}
@@ -217,7 +217,7 @@ const drawForm=()=>{const f=document.getElementById('rvForm'),m=mine();
 const rv=r=>{const own=D.me&&r.user_id===D.me.id;
   return '<article class="rv" data-id="'+r.id+'"><div class="rv-h"><span class="rv-av">'+e((r.roblox_name||'?').slice(0,1).toUpperCase())+(r.roblox_id?'<img src="/rbx/avatar/'+e(r.roblox_id)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'</span>'
     +'<div class="rv-n"><b>'+e(r.roblox_name||'Player')+(r.verified?VB:'')+'</b><small>'+ago(r.created)+(r.updated?' · edited':'')+(own?' · your review':'')+'</small></div><span class="rv-s" aria-label="'+r.rating+' out of 5 stars">'+stars(r.rating)+'</span></div>'
-    +'<p>'+e(r.body)+'</p>'+(r.reply&&replying!==r.id?'<div class="rv-rep"><small>Reply from the owner</small><p>'+e(r.reply)+'</p></div>':'')
+    +'<p>'+e(r.body)+'</p>'+(r.reply&&replying!==r.id?'<div class="rv-rep"><small>Reply from '+(r.reply_name?'<b>'+e(r.reply_name)+'</b>'+(r.reply_verified?VB:''):'the owner')+'</small><p>'+e(r.reply)+'</p></div>':'')
     +(replying===r.id?'<form class="rv-rf" data-rf="'+r.id+'"><textarea maxlength="400" placeholder="Reply as the server owner">'+e(r.reply||'')+'</textarea><div class="row"><button type="button" class="btn sm" data-cancel>Cancel</button><button class="btn sm pri">Post reply</button></div></form>':'')
     +'<div class="rv-a">'+(own?'<button data-edit>Edit</button><button class="dz" data-del>Delete</button>':'')+(D.me&&D.me.owner&&!own&&replying!==r.id?'<button data-reply>'+(r.reply?'Edit reply':'Reply')+'</button>':'')
     +(D.me&&D.me.admin&&!own?'<button class="dz" data-del>Remove</button>':'')+(D.me&&!own?'<button data-rep>Report</button>':'')+'</div></article>'};
