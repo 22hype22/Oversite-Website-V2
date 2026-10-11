@@ -5,7 +5,7 @@ import re
 CSS = r"""  /* staff:start  Staff MDT (Server Staff tab) */
   .sdock{position:fixed;top:calc(var(--barh) + var(--gap));bottom:var(--gap);left:50%;z-index:7;
     width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * 1.6));
-    transform:translateX(calc(-50% + 100vw));transition:transform .6s cubic-bezier(.32,.72,0,1);pointer-events:none;display:flex;align-items:center;justify-content:center}
+    transform:translateX(calc(-50% + 100vw));transition:transform .34s cubic-bezier(.32,.72,0,1);pointer-events:none;display:flex;align-items:center;justify-content:center}
   body[data-view="staff"] .sdock{transform:translateX(-50%);pointer-events:auto}
   body[data-view="staff"] .rail,body[data-view="staff"] .stage{transform:translateX(calc(-100% - 60px));opacity:0;pointer-events:none}
   body[data-view="staff"] .pins{display:none}

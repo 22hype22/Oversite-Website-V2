@@ -614,6 +614,7 @@
   .st-mapctl button{display:grid;place-items:center}
   #dmDots .st-dot.me i{width:16px;height:16px;margin:-8px 0 0 -8px;box-shadow:0 0 0 3px rgba(255,255,255,.9),0 0 14px rgba(255,255,255,.5)}
   #dmDots .st-dot.dim{opacity:.35}
+  #dmRoute{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}#dmRoute path{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}#dmRoute .r2{stroke:rgba(6,18,40,.75);stroke-width:8px}#dmRoute .r1{stroke:#4C8DFF;stroke-width:4.5px}
   #dmIn .st-dot{transition:transform .25s linear}#dmIn.nz .st-dot{transition:none}
   .dm-call{position:absolute;left:0;top:0;transform:translate(calc(var(--ux,0) * var(--k) * 1px),calc(var(--uy,0) * var(--k) * 1px))}
   .dm-call i{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:2px solid #E24B4B;background:rgba(226,75,75,.25);animation:dmring 1.8s ease-out infinite}
@@ -623,6 +624,14 @@
   .dm-empty{position:absolute;left:12px;right:12px;bottom:12px;padding:9px 12px;border-radius:10px;background:rgba(12,13,15,.86);border:1px solid rgba(255,255,255,.1);font-size:12px;color:#C9CDD3;pointer-events:none}
   .dm-me{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 14px}.dm-me .kv{flex-direction:column;align-items:flex-start;gap:2px}
   @media (max-width:760px){#dmWrap{height:52vh}.dm-me{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  /* GPS route on the MDT map: a blue line along the roads to the call, with the call marked in red */
+  .mini svg.gps{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
+  .mini svg.gps path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .mini svg.gps .r2{stroke:rgba(6,18,40,.75);stroke-width:calc(var(--sw) * 9)}
+  .mini svg.gps .r1{stroke:#4C8DFF;stroke-width:calc(var(--sw) * 5)}
+  .mini svg.gps .dst{fill:#E24B4B;stroke:#fff;stroke-width:calc(var(--sw) * 2.5)}
+  /* labels sit clear of their dot on the department map */
+  #dmDots .st-dot b{transform:translate(12px,-50%)}#dmDots .st-dot.me b{transform:translate(17px,-50%)}
   /* time and date pickers: a light grey clock instead of the browser's black one */
   input[type=time],input[type=date],input[type=datetime-local]{color-scheme:dark}
   input[type=time]::-webkit-calendar-picker-indicator,input[type=date]::-webkit-calendar-picker-indicator,input[type=datetime-local]::-webkit-calendar-picker-indicator{opacity:.7;cursor:pointer}
@@ -1183,7 +1192,7 @@
           </section>
           <section class="tscreen" data-pane="map">
             <header class="thead"><h2>Map</h2><div class="dm-f" id="dmF" role="group" aria-label="Show"><button type="button" data-f="dept" aria-pressed="true">My department</button><button type="button" data-f="all" aria-pressed="false">Everyone</button></div></header>
-            <div class="st-mapwrap" id="dmWrap"><div class="st-mapin" id="dmIn"><img alt="" draggable="false" id="dmImg"><div id="dmCalls"></div><div id="dmDots"></div></div>
+            <div class="st-mapwrap" id="dmWrap"><div class="st-mapin" id="dmIn"><img alt="" draggable="false" id="dmImg"><svg id="dmRoute" viewBox="0 0 2000 2000" preserveAspectRatio="none" aria-hidden="true"><path class="r2"/><path class="r1"/></svg><div id="dmCalls"></div><div id="dmDots"></div></div>
               <div class="st-mapctl"><button type="button" id="dmMe" title="Center on my unit" aria-label="Center on my unit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg></button><button type="button" id="dmZin" aria-label="Zoom in"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button type="button" id="dmZout" aria-label="Zoom out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><button type="button" id="dmFit" title="Whole county" aria-label="Show the whole county"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
               <div class="dm-empty" id="dmEmpty" hidden></div></div>
             <div class="tcard dm-me"><div class="kv"><span>My unit</span><b id="dmUnit">Not on duty</b></div><div class="kv"><span>Postal</span><b id="fdPostal">Liberty County</b></div><div class="kv"><span>Speed</span><b><span class="spd" data-unit="fd-4120">0</span> mph</b></div><div class="kv"><span>Heading</span><b id="fdHeading">—</b></div></div>
@@ -1290,16 +1299,26 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   window.roadAt = (x, y) => { const cx = Math.round(x / CELL - 0.5), cy = Math.round(y / CELL - 0.5); if (road(cx, cy)) return 1; return (road(cx + 1, cy) || road(cx - 1, cy) || road(cx, cy + 1) || road(cx, cy - 1)) ? 0.5 : 0; };
   const snap = (x, y) => { const cx = Math.round(x / CELL - 0.5), cy = Math.round(y / CELL - 0.5); if (road(cx, cy)) return [cx, cy];
     for (let r = 1; r < 24; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if ((Math.abs(dx) === r || Math.abs(dy) === r) && road(cx + dx, cy + dy)) return [cx + dx, cy + dy]; return null; };
+  // Like a satnav: grow the search outward from the start and from the destination at the same time, one road cell at a
+  // time, always extending whichever side is cheaper so far. When the two meet, the cheapest meeting cell joins them into
+  // the quickest route; once neither side can beat it the search stops (bidirectional Dijkstra on the road grid).
+  const N = GN * GN, D8 = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414]];
+  const hpush = (h, d, k) => { h.push([d, k]); let i = h.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; const t = h[p]; h[p] = h[i]; h[i] = t; i = p; } };
+  const hpop = h => { const top = h[0], last = h.pop(); if (h.length) { h[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < h.length && h[l][0] < h[m][0]) m = l; if (r < h.length && h[r][0] < h[m][0]) m = r; if (m === i) break; const t = h[m]; h[m] = h[i]; h[i] = t; i = m; } } return top; };
+  const meetRoute = (a, b) => { const g = [new Float32Array(N).fill(Infinity), new Float32Array(N).fill(Infinity)], prev = [new Int32Array(N).fill(-1), new Int32Array(N).fill(-1)], done = [new Uint8Array(N), new Uint8Array(N)], heap = [[], []];
+    g[0][a] = 0; g[1][b] = 0; hpush(heap[0], 0, a); hpush(heap[1], 0, b); let best = a === b ? 0 : Infinity, meet = a === b ? a : -1, steps = 0;
+    while (heap[0].length && heap[1].length && steps++ < 300000) {
+      if (heap[0][0][0] + heap[1][0][0] >= best) break;                       // neither side can find a shorter join any more
+      const s = heap[0][0][0] <= heap[1][0][0] ? 0 : 1, o = 1 - s, [d, k] = hpop(heap[s]); if (done[s][k]) continue; done[s][k] = 1;
+      const x = k % GN, y = (k - x) / GN;
+      for (const [dx, dy, w] of D8) { const nx = x + dx, ny = y + dy; if (!road(nx, ny)) continue; const nk = ny * GN + nx, nd = d + w;
+        if (nd < g[s][nk]) { g[s][nk] = nd; prev[s][nk] = k; hpush(heap[s], nd, nk); }
+        if (g[o][nk] < Infinity && g[s][nk] + g[o][nk] < best) { best = g[s][nk] + g[o][nk]; meet = nk; } } }
+    if (meet < 0) return null;
+    const out = []; for (let k = meet; k >= 0; k = prev[0][k]) out.push(k); out.reverse(); for (let k = prev[1][meet]; k >= 0; k = prev[1][k]) out.push(k); return out; };
   const roadRoute = (ax, ay, bx, by) => { const A = snap(ax, ay), B = snap(bx, by); if (!A || !B) return [[ax, ay], [bx, by]];
-    const key = (x, y) => y * GN + x, g = new Map(), came = new Map(), open = [[0, A[0], A[1]]], closed = new Set(); g.set(key(A[0], A[1]), 0);
-    const h = (x, y) => Math.hypot(x - B[0], y - B[1]);
-    while (open.length) { let bi = 0; for (let i = 1; i < open.length; i++) if (open[i][0] < open[bi][0]) bi = i; const [, x, y] = open.splice(bi, 1)[0]; const k = key(x, y); if (closed.has(k)) continue; closed.add(k);
-      if (x === B[0] && y === B[1]) break;
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const nx = x + dx, ny = y + dy; if (!road(nx, ny)) continue; const nk = key(nx, ny); if (closed.has(nk)) continue;
-        const ng = g.get(k) + (dx && dy ? 1.414 : 1); if (ng < (g.get(nk) ?? Infinity)) { g.set(nk, ng); came.set(nk, k); open.push([ng + h(nx, ny), nx, ny]); } }
-      if (closed.size > 40000) break; }
-    let k = key(B[0], B[1]); if (!came.has(k) && k !== key(A[0], A[1])) return [[ax, ay], [bx, by]];
-    const cells = []; while (k !== undefined) { cells.push([(k % GN + 0.5) * CELL, (Math.floor(k / GN) + 0.5) * CELL]); k = came.get(k); } cells.reverse();
+    const path = meetRoute(A[1] * GN + A[0], B[1] * GN + B[0]); if (!path) return [[ax, ay], [bx, by]];
+    const cells = path.map(k => [(k % GN + 0.5) * CELL, (Math.floor(k / GN) + 0.5) * CELL]);
     const pts = [[ax, ay]]; for (let i = 1; i < cells.length - 1; i++) { const [px, py] = cells[i - 1], [cx, cy] = cells[i], [qx, qy] = cells[i + 1]; if ((cx - px) * (qy - cy) !== (cy - py) * (qx - cx)) pts.push(cells[i]); } pts.push([bx, by]);
     const sm = [pts[0]]; for (let i = 1; i < pts.length - 1; i++) { const [a, b, c] = [pts[i - 1], pts[i], pts[i + 1]]; sm.push([b[0] * 0.5 + (a[0] + c[0]) * 0.25, b[1] * 0.5 + (a[1] + c[1]) * 0.25]); } sm.push(pts[pts.length - 1]);
     return sm; };
@@ -1336,16 +1355,29 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     spds = [...document.querySelectorAll('.spd[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: find(el) })).filter(m => m.u); };
-  bind(); addEventListener('rebind', () => { bind(); measure(); });
+  bind(); addEventListener('rebind', () => { bind(); if (curMap) setMini(curMap); measure(); });
   setTimeout(() => addEventListener('units', () => { units = window.UNITS || []; countUnits(); bind(); if (MAP) setMini(MAP); measure(); const f = document.querySelector('.chips [aria-pressed="true"]')?.dataset.filter || 'all';
     for (const card of document.querySelectorAll('.veh[data-unit]')) card.hidden = f !== 'all' && !card.classList.contains('dept-' + f); }), 0);
   const VIEW = 300;                                   // world units visible across a mini map
-  const setMini = url => { for (const m of minis) m.el.style.backgroundImage = `url("${url}")`; };
+  let curMap = MAP; const setMini = url => { curMap = url; for (const m of minis) m.el.style.backgroundImage = `url("${url}")`; };
   if (MAP) setMini(MAP);
   addEventListener('maptheme', e => { const l = document.getElementById('mapsrc-mini')?.getAttribute('href') || document.getElementById('mapsrc')?.getAttribute('href'), d = document.getElementById('mapsrc-dark')?.getAttribute('href') || document.querySelector('.view img')?.dataset.dark; setMini(e.detail.theme === 'dark' ? (d || l) : (l || d)); });
-  let w = 0, h = 0; const measure = () => { for (const m of minis) { const r = m.el.getBoundingClientRect(); m.w = r.width; m.h = r.height; m.view = m.el.classList.contains('tmap') ? 520 : VIEW; } w = minis[0]?.w || 0; h = minis[0]?.h || 0; };
+  let w = 0, h = 0; const measure = () => { for (const m of minis) { const r = m.el.getBoundingClientRect(); m.w = r.width; m.h = r.height; m.view = m.el.classList.contains('tmap') ? 520 : VIEW; m.base = m.view; } w = minis[0]?.w || 0; h = minis[0]?.h || 0; };
   measure(); addEventListener('resize', measure); addEventListener('mdt', () => setTimeout(measure, 650)); addEventListener('viewchange', () => setTimeout(measure, 50));
 
+  // GPS on the MDT maps: the road route from your unit to the call you're on, redrawn as you drive, zoomed so both fit
+  const gps = (m, ts) => { const { el, u } = m, c = (window.CALLS || []).find(k => window.onIt ? window.onIt(k, u.name) : k.unit === u.name);
+    let svg = el.querySelector('svg.gps');
+    if (!c || !Number.isFinite(c.x)) { if (svg) svg.remove(); m.view = m.base; m.route = null; return; }
+    if (!svg) { svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'gps'); svg.innerHTML = '<path class="r2"/><path class="r1"/><circle class="dst" r="0"/>'; el.insertBefore(svg, el.querySelector('.pin')); }
+    const moved = m.route && Math.hypot(u.x - m.route[0][0], u.y - m.route[0][1]);
+    if (!m.route || m.routeFor !== c.startedAt || (moved > 25 && ts - m.routeAt > 1500)) { m.route = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; m.routeFor = c.startedAt; m.routeAt = ts; }
+    const pts = [[u.x, u.y], ...m.route.slice(1)], d = 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
+    const far = Math.max(...pts.map(p => Math.max(Math.abs(p[0] - u.x) / (m.w / m.h || 1), Math.abs(p[1] - u.y))));
+    m.view = Math.min(2600, Math.max(m.base * 0.6, far * 2.9 * (m.w / m.h || 1)));     // fit the route around your unit
+    const vw = m.view, vh = vw * m.h / m.w; svg.setAttribute('viewBox', `${(u.x - vw / 2).toFixed(1)} ${(u.y - vh / 2).toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
+    const sw = (vw / m.w).toFixed(3); svg.querySelector('.r1').setAttribute('d', d); svg.querySelector('.r2').setAttribute('d', d); svg.style.setProperty('--sw', sw);
+    const dst = svg.querySelector('.dst'); dst.setAttribute('cx', c.x); dst.setAttribute('cy', c.y); dst.setAttribute('r', (7 * sw).toFixed(2)); };
   let last = performance.now(), tick = 0, miniT = 0;   // tick = last timer refresh (ms)
   const loop = (ts) => {
     const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
@@ -1358,7 +1390,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
       const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
     if (w && ts - miniT >= 33 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
-      for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; const s2 = m.w / m.view, size2 = 2000 * s2;
+      for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; if (m.base && el.classList.contains('tmap')) gps(m, ts); const s2 = m.w / m.view, size2 = 2000 * s2;
         el.style.backgroundSize = `${size2}px ${size2}px`; el.style.backgroundPosition = `${m.w/2 - u.x*s2}px ${m.h/2 - u.y*s2}px`;
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; const nh = !!u.live && !u.headingKnown; if (el.classList.contains('nohead') !== nh) el.classList.toggle('nohead', nh); } }
     if (ts - tick >= 1000) { tick = ts; const now = Date.now();
@@ -2054,6 +2086,58 @@ body.voice-snap .stage{transition:none!important}
   count(); setInterval(count, 1500); addEventListener('units', count); addEventListener('calls', count);
 })();
 </script>
+<script>
+/* ── Department MDT map: the county with every unit (yours ringed) and every open call; drag to pan, wheel or buttons to zoom ── */
+(() => {
+  const $ = id => document.getElementById(id), wrap = $('dmWrap'); if (!wrap) return;
+  const inner = $('dmIn'), dots = $('dmDots'), calls = $('dmCalls'), img = $('dmImg'), MS = 1000, W = 2000;   // units and calls are in 2000-unit world space
+  const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' }, esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let V = { k: 1, x: 0, y: 0 }, fitted = false, f = 'dept', followed = false;
+  const src = () => document.querySelector('.view img')?.getAttribute('src') || document.getElementById('mapsrc')?.getAttribute('href') || 'liberty-county.jpg';
+  let nzT = 0;
+  const place = () => { inner.classList.add('nz'); clearTimeout(nzT); nzT = setTimeout(() => inner.classList.remove('nz'), 150);   // dots jump with a zoom or pan, and glide again between position updates
+    inner.style.transform = `translate(${V.x.toFixed(1)}px,${V.y.toFixed(1)}px)`; inner.style.width = inner.style.height = (MS * V.k).toFixed(1) + 'px'; inner.style.setProperty('--k', V.k.toFixed(5)); wrap.classList.toggle('near', V.k / fitK() > 2.2); };
+  const fitK = () => Math.min(wrap.clientWidth, wrap.clientHeight) / MS;
+  const fit = () => { const k = fitK(); if (!k) return; V = { k, x: (wrap.clientWidth - MS * k) / 2, y: (wrap.clientHeight - MS * k) / 2 }; fitted = true; place(); };
+  const zoomAt = (z, cx, cy) => { const k0 = fitK(), k = Math.min(k0 * 14, Math.max(k0, V.k * z)); V.x = cx - (cx - V.x) * k / V.k; V.y = cy - (cy - V.y) * k / V.k; V.k = k; place(); };
+  const centerOn = (u, zoom) => { const k0 = fitK(); if (!k0) return; V.k = Math.max(V.k, k0 * (zoom || 4)); V.x = wrap.clientWidth / 2 - u.x / W * MS * V.k; V.y = wrap.clientHeight / 2 - u.y / W * MS * V.k; place(); };
+  wrap.addEventListener('wheel', e => { e.preventDefault(); const r = wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  let drag = null; wrap.addEventListener('pointerdown', e => { if (e.target.closest('.st-mapctl')) return; drag = { x: e.clientX, y: e.clientY, vx: V.x, vy: V.y }; wrap.classList.add('drag'); wrap.setPointerCapture(e.pointerId); });
+  wrap.addEventListener('pointermove', e => { if (!drag) return; V.x = drag.vx + e.clientX - drag.x; V.y = drag.vy + e.clientY - drag.y; place(); });
+  const end = () => { drag = null; wrap.classList.remove('drag'); }; wrap.addEventListener('pointerup', end); wrap.addEventListener('pointercancel', end);
+  wrap.addEventListener('dblclick', e => { const r = wrap.getBoundingClientRect(); zoomAt(2, e.clientX - r.left, e.clientY - r.top); });
+  const mid = () => [wrap.clientWidth / 2, wrap.clientHeight / 2];
+  $('dmZin').onclick = () => zoomAt(1.6, ...mid()); $('dmZout').onclick = () => zoomAt(1 / 1.6, ...mid()); $('dmFit').onclick = fit;
+  $('dmF').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; f = b.dataset.f; $('dmF').querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', x === b)); draw(); });
+  const dept = () => window.mdtDept || 'fd';
+  const myUnit = () => { const n = (window.ME && window.ME.name || '').toLowerCase(); const U = window.UNITS || [], mine = n && U.find(u => u.dept === dept() && (u.crew || []).some(c => c.toLowerCase() === n));
+    return mine || (window.HOSTED ? null : U.find(u => u.dept === dept()) || null); };   // the demo page has no signed-in player, so it follows the first unit
+  $('dmMe').onclick = () => { const u = myUnit(); if (u) centerOn(u); else fit(); };
+  const draw = () => { if (!wrap.offsetParent) return; if (!fitted) fit(); if (img.getAttribute('src') !== src()) img.src = src();
+    const me = myUnit(), d = dept(), us = (window.UNITS || []).filter(u => Number.isFinite(u.x) && Number.isFinite(u.y)), seen = new Set();
+    for (const u of us) { seen.add(u.id); let el = dots.querySelector(`[data-key="${CSS.escape(u.id)}"]`);
+      if (!el) { el = document.createElement('div'); el.className = 'st-dot'; el.dataset.key = u.id; el.innerHTML = '<i></i><b></b>'; dots.appendChild(el); }
+      el.style.setProperty('--c', COL[u.dept] || '#C9CDD3'); el.querySelector('b').textContent = u.name; el.title = `${u.name}${(u.crew || []).length ? ' · ' + u.crew.join(', ') : ''}`;
+      el.style.setProperty('--ux', (u.x / W * MS).toFixed(2)); el.style.setProperty('--uy', (u.y / W * MS).toFixed(2));
+      el.classList.toggle('me', u === me); el.classList.toggle('dim', f === 'dept' && u.dept !== d); el.hidden = false; }
+    dots.querySelectorAll('.st-dot').forEach(el => { if (!seen.has(el.dataset.key)) el.remove(); });
+    calls.innerHTML = (window.CALLS || []).filter(c => Number.isFinite(c.x) && Number.isFinite(c.y) && (f === 'all' || c.dept === d || !c.unit))
+      .map(c => `<div class="dm-call" style="--ux:${(c.x / W * MS).toFixed(2)};--uy:${(c.y / W * MS).toFixed(2)}" title="${esc(c.code + ' ' + c.type + ', ' + c.where)}"><i></i><b>${esc(c.code)}</b></div>`).join('');
+    // your route to the call you're on, along the roads (same search as the home map)
+    const mc = me && (window.CALLS || []).find(k => window.onIt ? window.onIt(k, me.name) : k.unit === me.name), rp = $('dmRoute');
+    if (mc && Number.isFinite(mc.x) && window.roadRoute) { if (!draw.r || draw.rFor !== mc.startedAt || (Math.hypot(me.x - draw.r[0][0], me.y - draw.r[0][1]) > 25 && Date.now() - draw.rAt > 1500)) { draw.r = window.roadRoute(me.x, me.y, mc.x, mc.y); draw.rFor = mc.startedAt; draw.rAt = Date.now(); }
+      const d = 'M' + [[me.x, me.y], ...draw.r.slice(1)].map(q => q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join('L'); rp.querySelectorAll('path').forEach(x => x.setAttribute('d', d)); }
+    else { draw.r = null; rp.querySelectorAll('path').forEach(x => x.removeAttribute('d')); }
+    $('dmUnit').textContent = me ? me.name : 'Not on duty';
+    const em = $('dmEmpty'); em.hidden = !!me; if (!me) em.textContent = us.length ? `You aren't on a ${({ pd: 'law enforcement', fd: 'fire', dot: 'DOT' })[d] || ''} team in ER:LC right now, so your unit isn't shown.` : 'No units on duty right now. Units show up here as soon as players join a department team in ER:LC.';
+    if (me && !followed) { followed = true; centerOn(me, 3); } };
+  // redraw a few times a second while the Map tab is showing; open it centred on your unit
+  setInterval(() => { if (wrap.offsetParent && document.body.classList.contains('mdt-open')) draw(); }, 250);
+  document.querySelectorAll('.tside [data-pane="map"]').forEach(b => b.addEventListener('click', () => requestAnimationFrame(() => { fitted = false; followed = false; draw(); })));
+  addEventListener('resize', () => { if (wrap.offsetParent) { fitted = false; followed = false; draw(); } });
+  addEventListener('units', draw); addEventListener('calls', draw);
+})();
+</script>
 <aside class="admin" id="admin" aria-label="Admin panel" aria-hidden="true">
   <header><h2>Admin</h2><button type="button" id="adminClose">Close</button></header>
   <section>
@@ -2639,53 +2723,6 @@ body.voice-snap .stage{transition:none!important}
   const _show = show; show = p => { _show(p); if (p === 'map') { requestAnimationFrame(() => { fitted = false; drawMap(); }); } };
   const _render = render; render = () => { _render(); drawMap(); };
   show('player');
-})();
-</script>
-<script>
-/* ── Department MDT map: the county with every unit (yours ringed) and every open call; drag to pan, wheel or buttons to zoom ── */
-(() => {
-  const $ = id => document.getElementById(id), wrap = $('dmWrap'); if (!wrap) return;
-  const inner = $('dmIn'), dots = $('dmDots'), calls = $('dmCalls'), img = $('dmImg'), MS = 1000, W = 2000;   // units and calls are in 2000-unit world space
-  const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' }, esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  let V = { k: 1, x: 0, y: 0 }, fitted = false, f = 'dept', followed = false;
-  const src = () => document.querySelector('.view img')?.getAttribute('src') || document.getElementById('mapsrc')?.getAttribute('href') || 'liberty-county.jpg';
-  let nzT = 0;
-  const place = () => { inner.classList.add('nz'); clearTimeout(nzT); nzT = setTimeout(() => inner.classList.remove('nz'), 150);   // dots jump with a zoom or pan, and glide again between position updates
-    inner.style.transform = `translate(${V.x.toFixed(1)}px,${V.y.toFixed(1)}px)`; inner.style.width = inner.style.height = (MS * V.k).toFixed(1) + 'px'; inner.style.setProperty('--k', V.k.toFixed(5)); wrap.classList.toggle('near', V.k / fitK() > 2.2); };
-  const fitK = () => Math.min(wrap.clientWidth, wrap.clientHeight) / MS;
-  const fit = () => { const k = fitK(); if (!k) return; V = { k, x: (wrap.clientWidth - MS * k) / 2, y: (wrap.clientHeight - MS * k) / 2 }; fitted = true; place(); };
-  const zoomAt = (z, cx, cy) => { const k0 = fitK(), k = Math.min(k0 * 14, Math.max(k0, V.k * z)); V.x = cx - (cx - V.x) * k / V.k; V.y = cy - (cy - V.y) * k / V.k; V.k = k; place(); };
-  const centerOn = (u, zoom) => { const k0 = fitK(); if (!k0) return; V.k = Math.max(V.k, k0 * (zoom || 4)); V.x = wrap.clientWidth / 2 - u.x / W * MS * V.k; V.y = wrap.clientHeight / 2 - u.y / W * MS * V.k; place(); };
-  wrap.addEventListener('wheel', e => { e.preventDefault(); const r = wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
-  let drag = null; wrap.addEventListener('pointerdown', e => { if (e.target.closest('.st-mapctl')) return; drag = { x: e.clientX, y: e.clientY, vx: V.x, vy: V.y }; wrap.classList.add('drag'); wrap.setPointerCapture(e.pointerId); });
-  wrap.addEventListener('pointermove', e => { if (!drag) return; V.x = drag.vx + e.clientX - drag.x; V.y = drag.vy + e.clientY - drag.y; place(); });
-  const end = () => { drag = null; wrap.classList.remove('drag'); }; wrap.addEventListener('pointerup', end); wrap.addEventListener('pointercancel', end);
-  wrap.addEventListener('dblclick', e => { const r = wrap.getBoundingClientRect(); zoomAt(2, e.clientX - r.left, e.clientY - r.top); });
-  const mid = () => [wrap.clientWidth / 2, wrap.clientHeight / 2];
-  $('dmZin').onclick = () => zoomAt(1.6, ...mid()); $('dmZout').onclick = () => zoomAt(1 / 1.6, ...mid()); $('dmFit').onclick = fit;
-  $('dmF').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; f = b.dataset.f; $('dmF').querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', x === b)); draw(); });
-  const dept = () => window.mdtDept || 'fd';
-  const myUnit = () => { const n = (window.ME && window.ME.name || '').toLowerCase(); const U = window.UNITS || [], mine = n && U.find(u => u.dept === dept() && (u.crew || []).some(c => c.toLowerCase() === n));
-    return mine || (window.HOSTED ? null : U.find(u => u.dept === dept()) || null); };   // the demo page has no signed-in player, so it follows the first unit
-  $('dmMe').onclick = () => { const u = myUnit(); if (u) centerOn(u); else fit(); };
-  const draw = () => { if (!wrap.offsetParent) return; if (!fitted) fit(); if (img.getAttribute('src') !== src()) img.src = src();
-    const me = myUnit(), d = dept(), us = (window.UNITS || []).filter(u => Number.isFinite(u.x) && Number.isFinite(u.y)), seen = new Set();
-    for (const u of us) { seen.add(u.id); let el = dots.querySelector(`[data-key="${CSS.escape(u.id)}"]`);
-      if (!el) { el = document.createElement('div'); el.className = 'st-dot'; el.dataset.key = u.id; el.innerHTML = '<i></i><b></b>'; dots.appendChild(el); }
-      el.style.setProperty('--c', COL[u.dept] || '#C9CDD3'); el.querySelector('b').textContent = u.name; el.title = `${u.name}${(u.crew || []).length ? ' · ' + u.crew.join(', ') : ''}`;
-      el.style.setProperty('--ux', (u.x / W * MS).toFixed(2)); el.style.setProperty('--uy', (u.y / W * MS).toFixed(2));
-      el.classList.toggle('me', u === me); el.classList.toggle('dim', f === 'dept' && u.dept !== d); el.hidden = false; }
-    dots.querySelectorAll('.st-dot').forEach(el => { if (!seen.has(el.dataset.key)) el.remove(); });
-    calls.innerHTML = (window.CALLS || []).filter(c => Number.isFinite(c.x) && Number.isFinite(c.y) && (f === 'all' || c.dept === d || !c.unit))
-      .map(c => `<div class="dm-call" style="--ux:${(c.x / W * MS).toFixed(2)};--uy:${(c.y / W * MS).toFixed(2)}" title="${esc(c.code + ' ' + c.type + ', ' + c.where)}"><i></i><b>${esc(c.code)}</b></div>`).join('');
-    $('dmUnit').textContent = me ? me.name : 'Not on duty';
-    const em = $('dmEmpty'); em.hidden = !!me; if (!me) em.textContent = us.length ? `You aren't on a ${({ pd: 'law enforcement', fd: 'fire', dot: 'DOT' })[d] || ''} team in ER:LC right now, so your unit isn't shown.` : 'No units on duty right now. Units show up here as soon as players join a department team in ER:LC.';
-    if (me && !followed) { followed = true; centerOn(me, 3); } };
-  // redraw a few times a second while the Map tab is showing; open it centred on your unit
-  setInterval(() => { if (wrap.offsetParent && document.body.classList.contains('mdt-open')) draw(); }, 250);
-  document.querySelectorAll('.tside [data-pane="map"]').forEach(b => b.addEventListener('click', () => requestAnimationFrame(() => { fitted = false; followed = false; draw(); })));
-  addEventListener('resize', () => { if (wrap.offsetParent) { fitted = false; followed = false; draw(); } });
-  addEventListener('units', draw); addEventListener('calls', draw);
 })();
 </script>
 </body>

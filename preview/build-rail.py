@@ -170,16 +170,26 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   window.roadAt = (x, y) => { const cx = Math.round(x / CELL - 0.5), cy = Math.round(y / CELL - 0.5); if (road(cx, cy)) return 1; return (road(cx + 1, cy) || road(cx - 1, cy) || road(cx, cy + 1) || road(cx, cy - 1)) ? 0.5 : 0; };
   const snap = (x, y) => { const cx = Math.round(x / CELL - 0.5), cy = Math.round(y / CELL - 0.5); if (road(cx, cy)) return [cx, cy];
     for (let r = 1; r < 24; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if ((Math.abs(dx) === r || Math.abs(dy) === r) && road(cx + dx, cy + dy)) return [cx + dx, cy + dy]; return null; };
+  // Like a satnav: grow the search outward from the start and from the destination at the same time, one road cell at a
+  // time, always extending whichever side is cheaper so far. When the two meet, the cheapest meeting cell joins them into
+  // the quickest route; once neither side can beat it the search stops (bidirectional Dijkstra on the road grid).
+  const N = GN * GN, D8 = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414]];
+  const hpush = (h, d, k) => { h.push([d, k]); let i = h.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; const t = h[p]; h[p] = h[i]; h[i] = t; i = p; } };
+  const hpop = h => { const top = h[0], last = h.pop(); if (h.length) { h[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < h.length && h[l][0] < h[m][0]) m = l; if (r < h.length && h[r][0] < h[m][0]) m = r; if (m === i) break; const t = h[m]; h[m] = h[i]; h[i] = t; i = m; } } return top; };
+  const meetRoute = (a, b) => { const g = [new Float32Array(N).fill(Infinity), new Float32Array(N).fill(Infinity)], prev = [new Int32Array(N).fill(-1), new Int32Array(N).fill(-1)], done = [new Uint8Array(N), new Uint8Array(N)], heap = [[], []];
+    g[0][a] = 0; g[1][b] = 0; hpush(heap[0], 0, a); hpush(heap[1], 0, b); let best = a === b ? 0 : Infinity, meet = a === b ? a : -1, steps = 0;
+    while (heap[0].length && heap[1].length && steps++ < 300000) {
+      if (heap[0][0][0] + heap[1][0][0] >= best) break;                       // neither side can find a shorter join any more
+      const s = heap[0][0][0] <= heap[1][0][0] ? 0 : 1, o = 1 - s, [d, k] = hpop(heap[s]); if (done[s][k]) continue; done[s][k] = 1;
+      const x = k % GN, y = (k - x) / GN;
+      for (const [dx, dy, w] of D8) { const nx = x + dx, ny = y + dy; if (!road(nx, ny)) continue; const nk = ny * GN + nx, nd = d + w;
+        if (nd < g[s][nk]) { g[s][nk] = nd; prev[s][nk] = k; hpush(heap[s], nd, nk); }
+        if (g[o][nk] < Infinity && g[s][nk] + g[o][nk] < best) { best = g[s][nk] + g[o][nk]; meet = nk; } } }
+    if (meet < 0) return null;
+    const out = []; for (let k = meet; k >= 0; k = prev[0][k]) out.push(k); out.reverse(); for (let k = prev[1][meet]; k >= 0; k = prev[1][k]) out.push(k); return out; };
   const roadRoute = (ax, ay, bx, by) => { const A = snap(ax, ay), B = snap(bx, by); if (!A || !B) return [[ax, ay], [bx, by]];
-    const key = (x, y) => y * GN + x, g = new Map(), came = new Map(), open = [[0, A[0], A[1]]], closed = new Set(); g.set(key(A[0], A[1]), 0);
-    const h = (x, y) => Math.hypot(x - B[0], y - B[1]);
-    while (open.length) { let bi = 0; for (let i = 1; i < open.length; i++) if (open[i][0] < open[bi][0]) bi = i; const [, x, y] = open.splice(bi, 1)[0]; const k = key(x, y); if (closed.has(k)) continue; closed.add(k);
-      if (x === B[0] && y === B[1]) break;
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const nx = x + dx, ny = y + dy; if (!road(nx, ny)) continue; const nk = key(nx, ny); if (closed.has(nk)) continue;
-        const ng = g.get(k) + (dx && dy ? 1.414 : 1); if (ng < (g.get(nk) ?? Infinity)) { g.set(nk, ng); came.set(nk, k); open.push([ng + h(nx, ny), nx, ny]); } }
-      if (closed.size > 40000) break; }
-    let k = key(B[0], B[1]); if (!came.has(k) && k !== key(A[0], A[1])) return [[ax, ay], [bx, by]];
-    const cells = []; while (k !== undefined) { cells.push([(k % GN + 0.5) * CELL, (Math.floor(k / GN) + 0.5) * CELL]); k = came.get(k); } cells.reverse();
+    const path = meetRoute(A[1] * GN + A[0], B[1] * GN + B[0]); if (!path) return [[ax, ay], [bx, by]];
+    const cells = path.map(k => [(k % GN + 0.5) * CELL, (Math.floor(k / GN) + 0.5) * CELL]);
     const pts = [[ax, ay]]; for (let i = 1; i < cells.length - 1; i++) { const [px, py] = cells[i - 1], [cx, cy] = cells[i], [qx, qy] = cells[i + 1]; if ((cx - px) * (qy - cy) !== (cy - py) * (qx - cx)) pts.push(cells[i]); } pts.push([bx, by]);
     const sm = [pts[0]]; for (let i = 1; i < pts.length - 1; i++) { const [a, b, c] = [pts[i - 1], pts[i], pts[i + 1]]; sm.push([b[0] * 0.5 + (a[0] + c[0]) * 0.25, b[1] * 0.5 + (a[1] + c[1]) * 0.25]); } sm.push(pts[pts.length - 1]);
     return sm; };
@@ -216,16 +226,29 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     spds = [...document.querySelectorAll('.spd[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: find(el) })).filter(m => m.u); };
-  bind(); addEventListener('rebind', () => { bind(); measure(); });
+  bind(); addEventListener('rebind', () => { bind(); if (curMap) setMini(curMap); measure(); });
   setTimeout(() => addEventListener('units', () => { units = window.UNITS || []; countUnits(); bind(); if (MAP) setMini(MAP); measure(); const f = document.querySelector('.chips [aria-pressed="true"]')?.dataset.filter || 'all';
     for (const card of document.querySelectorAll('.veh[data-unit]')) card.hidden = f !== 'all' && !card.classList.contains('dept-' + f); }), 0);
   const VIEW = 300;                                   // world units visible across a mini map
-  const setMini = url => { for (const m of minis) m.el.style.backgroundImage = `url("${url}")`; };
+  let curMap = MAP; const setMini = url => { curMap = url; for (const m of minis) m.el.style.backgroundImage = `url("${url}")`; };
   if (MAP) setMini(MAP);
   addEventListener('maptheme', e => { const l = document.getElementById('mapsrc-mini')?.getAttribute('href') || document.getElementById('mapsrc')?.getAttribute('href'), d = document.getElementById('mapsrc-dark')?.getAttribute('href') || document.querySelector('.view img')?.dataset.dark; setMini(e.detail.theme === 'dark' ? (d || l) : (l || d)); });
-  let w = 0, h = 0; const measure = () => { for (const m of minis) { const r = m.el.getBoundingClientRect(); m.w = r.width; m.h = r.height; m.view = m.el.classList.contains('tmap') ? 520 : VIEW; } w = minis[0]?.w || 0; h = minis[0]?.h || 0; };
+  let w = 0, h = 0; const measure = () => { for (const m of minis) { const r = m.el.getBoundingClientRect(); m.w = r.width; m.h = r.height; m.view = m.el.classList.contains('tmap') ? 520 : VIEW; m.base = m.view; } w = minis[0]?.w || 0; h = minis[0]?.h || 0; };
   measure(); addEventListener('resize', measure); addEventListener('mdt', () => setTimeout(measure, 650)); addEventListener('viewchange', () => setTimeout(measure, 50));
 
+  // GPS on the MDT maps: the road route from your unit to the call you're on, redrawn as you drive, zoomed so both fit
+  const gps = (m, ts) => { const { el, u } = m, c = (window.CALLS || []).find(k => window.onIt ? window.onIt(k, u.name) : k.unit === u.name);
+    let svg = el.querySelector('svg.gps');
+    if (!c || !Number.isFinite(c.x)) { if (svg) svg.remove(); m.view = m.base; m.route = null; return; }
+    if (!svg) { svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'gps'); svg.innerHTML = '<path class="r2"/><path class="r1"/><circle class="dst" r="0"/>'; el.insertBefore(svg, el.querySelector('.pin')); }
+    const moved = m.route && Math.hypot(u.x - m.route[0][0], u.y - m.route[0][1]);
+    if (!m.route || m.routeFor !== c.startedAt || (moved > 25 && ts - m.routeAt > 1500)) { m.route = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; m.routeFor = c.startedAt; m.routeAt = ts; }
+    const pts = [[u.x, u.y], ...m.route.slice(1)], d = 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
+    const far = Math.max(...pts.map(p => Math.max(Math.abs(p[0] - u.x) / (m.w / m.h || 1), Math.abs(p[1] - u.y))));
+    m.view = Math.min(2600, Math.max(m.base * 0.6, far * 2.9 * (m.w / m.h || 1)));     // fit the route around your unit
+    const vw = m.view, vh = vw * m.h / m.w; svg.setAttribute('viewBox', `${(u.x - vw / 2).toFixed(1)} ${(u.y - vh / 2).toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
+    const sw = (vw / m.w).toFixed(3); svg.querySelector('.r1').setAttribute('d', d); svg.querySelector('.r2').setAttribute('d', d); svg.style.setProperty('--sw', sw);
+    const dst = svg.querySelector('.dst'); dst.setAttribute('cx', c.x); dst.setAttribute('cy', c.y); dst.setAttribute('r', (7 * sw).toFixed(2)); };
   let last = performance.now(), tick = 0, miniT = 0;   // tick = last timer refresh (ms)
   const loop = (ts) => {
     const dt = Math.min((ts - last) / 1000, 0.05); last = ts;
@@ -238,7 +261,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       u.t += u.dir * u.speed * dt; if (u.t > 1) { u.t = 1; u.dir = -1; } if (u.t < 0) { u.t = 0; u.dir = 1; }
       const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
     if (w && ts - miniT >= 33 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
-      for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; const s2 = m.w / m.view, size2 = 2000 * s2;
+      for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; if (m.base && el.classList.contains('tmap')) gps(m, ts); const s2 = m.w / m.view, size2 = 2000 * s2;
         el.style.backgroundSize = `${size2}px ${size2}px`; el.style.backgroundPosition = `${m.w/2 - u.x*s2}px ${m.h/2 - u.y*s2}px`;
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; const nh = !!u.live && !u.headingKnown; if (el.classList.contains('nohead') !== nh) el.classList.toggle('nohead', nh); } }
     if (ts - tick >= 1000) { tick = ts; const now = Date.now();
