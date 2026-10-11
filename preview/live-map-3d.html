@@ -2006,10 +2006,11 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
 (() => { const O = window.OVERSITE; if (!O || !O.voice) return;
   const v = document.getElementById('voiceBtn'), url = '/' + O.slug + '/prox'; v.href = url; v.removeAttribute('target'); v.removeAttribute('rel'); v.hidden = false;
   const css = document.createElement('style');
-  css.textContent = `#voicePanel{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--adminw);z-index:9;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;background:rgba(13,13,15,.94);border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 40px rgba(0,0,0,.28);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .24s cubic-bezier(.32,.72,0,1),opacity .16s,visibility 0s}
+  css.textContent = `#voicePanel{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--adminw);z-index:9;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;background:#0f1012;border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 40px rgba(0,0,0,.28);will-change:transform;transform:translate3d(0,0,0);transition:transform .2s cubic-bezier(.23,1,.32,1),visibility 0s}
 body.voice-open .stage{right:calc(var(--adminw) + var(--gap))}
 #voiceBtn[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.12)!important;border-color:rgba(240,242,245,.22)!important}
-#voicePanel.off{visibility:hidden;pointer-events:none;opacity:0;transform:translateX(calc(100% + 24px));transition:transform .24s cubic-bezier(.32,.72,0,1),opacity .16s,visibility 0s .24s}
+#voicePanel.off{visibility:hidden;pointer-events:none;transform:translate3d(calc(100% + 24px),0,0);transition:transform .2s cubic-bezier(.23,1,.32,1),visibility 0s .2s}
+body.voice-snap .stage{transition:none!important}
 @media (prefers-reduced-motion:reduce){#voicePanel,#voicePanel.off{transition:none}}
 #voicePanel .vp-h{display:flex;align-items:center;gap:6px;padding:10px 10px 10px 14px;border-bottom:1px solid rgba(255,255,255,.08);font:600 13px Geist,system-ui,sans-serif;color:#F0F2F5}#voicePanel .vp-h span{flex:1}
 #voicePanel .vp-h a,#voicePanel .vp-h button{background:none;border:0;color:#9aa0a6;cursor:pointer;font:500 12px Geist,system-ui,sans-serif;text-decoration:none;padding:5px 8px;border-radius:7px}
@@ -2019,16 +2020,32 @@ body.voice-open .stage{right:calc(var(--adminw) + var(--gap))}
 @media (max-width:560px){#voicePanel{top:calc(var(--barh) + 6px);right:8px;left:8px;bottom:8px;width:auto}}`;
   document.head.appendChild(css);
   let panel = null;
-  const toggle = () => {
-    if (!panel) { panel = document.createElement('div'); panel.id = 'voicePanel'; panel.className = 'off'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Proximity voice');
-      panel.innerHTML = '<div class="vp-h"><span>Proximity voice</span><a href="' + url + '" target="_blank" rel="noopener" title="Open in its own tab">Pop out</a><button type="button" data-hide>Hide</button></div><iframe title="Proximity voice" allow="microphone; autoplay; speaker-selection"></iframe>';
-      document.body.appendChild(panel); panel.querySelector('iframe').src = url + '?embed=1'; panel.querySelector('[data-hide]').onclick = () => show(false);
-      requestAnimationFrame(() => requestAnimationFrame(() => show(true))); return; }
-    show(panel.classList.contains('off')); };
+  // built ahead of time while the CAD is idle, so opening it never has to load the voice page mid-slide (it only joins when you press Join)
+  const build = () => { if (panel) return panel; panel = document.createElement('div'); panel.id = 'voicePanel'; panel.className = 'off'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Proximity voice');
+    panel.innerHTML = '<div class="vp-h"><span>Proximity voice</span><a href="' + url + '" target="_blank" rel="noopener" title="Open in its own tab">Pop out</a><button type="button" data-hide>Hide</button></div><iframe title="Proximity voice" allow="microphone; autoplay; speaker-selection"></iframe>';
+    document.body.appendChild(panel); panel.querySelector('iframe').src = url + '?embed=1'; panel.querySelector('[data-hide]').onclick = () => show(false); return panel; };
+  setTimeout(() => (window.requestIdleCallback || (f => setTimeout(f, 1)))(build), 2500);
+  const toggle = () => { if (!panel) { build(); requestAnimationFrame(() => requestAnimationFrame(() => show(true))); return; } show(panel.classList.contains('off')); };
+  // The map's cards move over to make room. Resizing them every frame (with their heavy glass blur) is what lagged, so only the
+  // warning card slides, by transform, and the cards' real width changes in one step while the panel covers that edge.
+  const B = document.body, EASE = 'transform .2s cubic-bezier(.23,1,.32,1)', phone = matchMedia('(max-width:760px)');
+  let tmr = 0;
+  const show = on => { build(); clearTimeout(tmr); const warn = document.querySelector('.stage .warn'), was = B.classList.contains('voice-open');
+    panel.classList.toggle('off', !on); v.setAttribute('aria-pressed', on);
+    if (on && B.classList.contains('admin-open')) document.getElementById('adminToggle')?.click();
+    if (!on && !was && warn && warn.style.transform) { warn.style.transition = EASE; warn.style.transform = '';   // closed again before it finished opening
+      tmr = setTimeout(() => { warn.style.transition = ''; B.classList.remove('voice-snap'); }, 220); return; }
+    if (on === was) return;
+    const shift = -(panel.getBoundingClientRect().width + (parseFloat(getComputedStyle(B).getPropertyValue('--gap')) || 14));
+    if (phone.matches || !warn) { B.classList.toggle('voice-open', on); return; }
+    B.classList.add('voice-snap');
+    if (on) { warn.style.transition = EASE; warn.style.transform = `translate3d(${shift}px,0,0)`;
+      tmr = setTimeout(() => { warn.style.transition = 'none'; warn.style.transform = ''; B.classList.add('voice-open'); requestAnimationFrame(() => B.classList.remove('voice-snap')); }, 210); }
+    else { B.classList.remove('voice-open'); warn.style.transition = 'none'; warn.style.transform = `translate3d(${shift}px,0,0)`; void warn.offsetWidth;
+      warn.style.transition = EASE; warn.style.transform = '';
+      tmr = setTimeout(() => { warn.style.transition = ''; B.classList.remove('voice-snap'); }, 220); } };
   // one side panel at a time: opening voice tucks the admin panel away, and opening the admin panel tucks voice away
-  const show = on => { panel.classList.toggle('off', !on); document.body.classList.toggle('voice-open', on); v.setAttribute('aria-pressed', on);
-    if (on && document.body.classList.contains('admin-open')) document.getElementById('adminToggle')?.click(); dispatchEvent(new Event('resize')); };
-  document.getElementById('adminToggle')?.addEventListener('click', () => setTimeout(() => { if (panel && !panel.classList.contains('off') && document.body.classList.contains('admin-open')) show(false); }));
+  document.getElementById('adminToggle')?.addEventListener('click', () => setTimeout(() => { if (panel && !panel.classList.contains('off') && B.classList.contains('admin-open')) show(false); }));
   addEventListener('keydown', e => { if (e.key === 'Escape' && panel && !panel.classList.contains('off')) show(false); });
   v.addEventListener('click', ev => { if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return; ev.preventDefault(); toggle(); });
   addEventListener('message', ev => { if (ev.origin !== location.origin || !ev.data || ev.data.type !== 'ov-voice') return;
