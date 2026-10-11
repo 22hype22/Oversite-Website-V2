@@ -59,7 +59,7 @@ ${!settings.on ? `<section class="card vc-off">Proximity voice is turned off for
 <div class="vc-tst"><button class="btn sm" id="sTest" type="button">Test microphone</button><small id="sTestNote">Hear yourself the way others will. Wear headphones.</small></div>
 <p id="sNames" class="vc-e" style="padding:8px 0 0" hidden>Device names show once you allow the microphone (press Join voice or Test microphone).</p></section>
 <section class="card vc-near"><h2>Nearby <span id="vCount"></span></h2><div class="vc-l" id="vL"><p class="vc-e">Nobody yet. People show up here when they're in voice and close to you in game.</p></div></section>
-<section class="card"><ul class="vc-tips"><li>Wear headphones, or other players hear themselves through your speakers.</li><li>Voices get quieter with distance and stop at about ${settings.range === 'short' ? '25' : settings.range === 'long' ? '60' : '40'} m.${settings.muffle ? ' Inside a vehicle, people outside sound muffled, and so do you to them.' : ''}</li><li>Your position comes from ER:LC every few seconds, so volume follows you with a short delay.</li></ul></section></div>`}
+<section class="card"><ul class="vc-tips"><li>Wear headphones, or other players hear themselves through your speakers.</li><li>Voices get quieter with distance and stop at about ${settings.range === 'short' ? '25' : settings.range === 'long' ? '60' : '40'} m.${settings.muffle ? ' Inside a vehicle, people outside sound muffled, and so do you to them.' : ''}</li><li>Your position comes from ER:LC about once a second, so volume follows you with a short delay.</li></ul></section></div>`}
 </main>`, script: !settings.on || !keyOk ? '' : `
 const API=${JSON.stringify(`/c/${c.slug}/api`)};
 const $=id=>document.getElementById(id),vc=$('vc'),S=$('vS'),SUB=$('vSub'),L=$('vL');
@@ -114,7 +114,7 @@ const status=(t,s)=>{S.textContent=t;SUB.textContent=s};
 // how loud someone is: full volume up close, fading to silence at the edge of the range; through a vehicle, quieter and muffled
 const level=p=>{const R=near.range,full=R*.25;let g=p.d<=full?1:Math.max(0,1-(p.d-full)/(R-full));const through=near.muffle&&(near.veh!==p.veh||(near.veh&&p.veh&&p.d>8));return{g:through?g*.45:g,muff:through}};
 const tune=()=>{for(const p of near.peers){const x=peers.get(p.rid);if(!x||!x.gain)continue;const{g,muff}=level(p),t=ac.currentTime;
-  x.gain.gain.setTargetAtTime(p.muted?0:g,t,.25);x.filter.frequency.setTargetAtTime(muff?650:20000,t,.2)}};
+  x.gain.gain.setTargetAtTime(p.muted?0:g,t,.08);x.filter.frequency.setTargetAtTime(muff?650:20000,t,.08)}};
 
 const ensure=rid=>{let x=peers.get(rid);if(x)return x;
   const pc=new RTCPeerConnection({iceServers:ice});x={pc,queue:[],seen:Date.now()};peers.set(rid,x);
@@ -156,7 +156,7 @@ const join=async()=>{$('vJoin').disabled=true;status('Starting…','Allow microp
     else if(!near.found)status('Not in the server','Join the ER:LC server with your Roblox account and you\\'ll hear people near you.');
     else status(muted?'Muted':'Connected'+(near.veh?' · in a vehicle':''),near.peers.length?'You can hear '+near.peers.filter(p=>level(p).g>0).length+' of '+near.peers.length+' nearby.':near.inVoice>1?near.inVoice-1+' other'+(near.inVoice>2?'s':'')+' in voice, none close to you.':'You\\'re the only one in voice right now.');
     const want=new Set(near.peers.map(p=>p.rid));for(const p of near.peers)ensure(p.rid).seen=Date.now();
-    for(const [rid,x] of peers)if(!want.has(rid)&&Date.now()-x.seen>5000)drop(rid);   // a short grace period so walking along the edge doesn't keep reconnecting
+    for(const [rid,x] of peers)if(!want.has(rid)&&Date.now()-x.seen>15000)drop(rid);   // a grace period so walking along the edge doesn't keep reconnecting
     tune();draw()});
   es.addEventListener('signal',ev=>onSignal(JSON.parse(ev.data)));
   es.addEventListener('gone',ev=>drop(JSON.parse(ev.data).rid));
