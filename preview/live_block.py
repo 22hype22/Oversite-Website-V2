@@ -4,12 +4,12 @@ import json, re
 
 ADMIN_CSS = r"""  /* admin panel: server link, departments, map calibration */
   :root{--adminw:min(400px,calc(100vw - 2*var(--gap)))}
-  .stage{transition:transform .6s cubic-bezier(.32,.72,0,1),opacity .4s,right .36s cubic-bezier(.32,.72,0,1)}
+  .stage{transition:transform .34s cubic-bezier(.32,.72,0,1),opacity .2s,right .24s cubic-bezier(.32,.72,0,1)}
   body.admin-open .stage{right:calc(var(--adminw) + var(--gap))}
-  body.admin-open .zoomctl,body.admin-open .layers{transition:transform .36s cubic-bezier(.32,.72,0,1)}
+  body.admin-open .zoomctl,body.admin-open .layers{transition:transform .24s cubic-bezier(.32,.72,0,1)}
   .admin{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--adminw);z-index:9;
     background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.28);
-    transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.32,.72,0,1),opacity .2s;overflow-y:auto;scrollbar-width:none;
+    transform:translateX(calc(100% + 24px));opacity:0;pointer-events:none;transition:transform .24s cubic-bezier(.32,.72,0,1),opacity .16s;overflow-y:auto;scrollbar-width:none;
     padding:16px 20px 24px;color:var(--ink);font-size:13px;line-height:1.45}
   .admin::-webkit-scrollbar{display:none}
   /* clipping the scroller to its own rounded box stops Chrome from blanking the map in a band above the panel */
