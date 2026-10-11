@@ -605,6 +605,23 @@
   .screen .btn:active{transform:translateY(1px)} .screen .btn:hover{background:#fff}
   .screen .btn.ghost{background:none;color:#E9EAEC;border-color:rgba(255,255,255,.18)}
   #rptDel{color:#F3A3A3;border-color:rgba(226,75,75,.35)}#rptDel:hover{background:rgba(226,75,75,.14)}#rptDel.sure{background:rgba(226,75,75,.85);color:#fff;border-color:transparent}
+  /* department MDT map: every unit and open call, pan and zoom, your own unit ringed */
+  #dmWrap{flex:none;height:min(58vh,600px);margin-bottom:12px}
+  .dm-f{display:flex;gap:4px;padding:3px;border-radius:10px;background:rgba(255,255,255,.05)}
+  .dm-f button{font:inherit;font-size:12px;font-weight:500;padding:6px 11px;border-radius:8px;border:0;background:none;color:var(--dim,#9aa0a6);cursor:pointer}
+  .dm-f button[aria-pressed="true"]{background:rgba(255,255,255,.1);color:#F0F2F5}
+  .st-mapctl button{display:grid;place-items:center}
+  #dmDots .st-dot.me i{width:16px;height:16px;margin:-8px 0 0 -8px;box-shadow:0 0 0 3px rgba(255,255,255,.9),0 0 14px rgba(255,255,255,.5)}
+  #dmDots .st-dot.dim{opacity:.35}
+  #dmIn .st-dot{transition:transform .25s linear}#dmIn.nz .st-dot{transition:none}
+  .dm-call{position:absolute;left:0;top:0;transform:translate(calc(var(--ux,0) * var(--k) * 1px),calc(var(--uy,0) * var(--k) * 1px))}
+  .dm-call i{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:2px solid #E24B4B;background:rgba(226,75,75,.25);animation:dmring 1.8s ease-out infinite}
+  .dm-call b{position:absolute;white-space:nowrap;transform:translate(12px,-50%);font-size:10.5px;font-weight:700;color:#FFD2D2;text-shadow:0 1px 3px #000,0 0 2px #000;pointer-events:none}
+  @keyframes dmring{0%{box-shadow:0 0 0 0 rgba(226,75,75,.5)}100%{box-shadow:0 0 0 12px rgba(226,75,75,0)}}
+  @media (prefers-reduced-motion:reduce){.dm-call i{animation:none}}
+  .dm-empty{position:absolute;left:12px;right:12px;bottom:12px;padding:9px 12px;border-radius:10px;background:rgba(12,13,15,.86);border:1px solid rgba(255,255,255,.1);font-size:12px;color:#C9CDD3;pointer-events:none}
+  .dm-me{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 14px}.dm-me .kv{flex-direction:column;align-items:flex-start;gap:2px}
+  @media (max-width:760px){#dmWrap{height:52vh}.dm-me{grid-template-columns:repeat(2,minmax(0,1fr))}}
   /* time and date pickers: a light grey clock instead of the browser's black one */
   input[type=time],input[type=date],input[type=datetime-local]{color-scheme:dark}
   input[type=time]::-webkit-calendar-picker-indicator,input[type=date]::-webkit-calendar-picker-indicator,input[type=datetime-local]::-webkit-calendar-picker-indicator{opacity:.7;cursor:pointer}
@@ -1164,9 +1181,11 @@
             <div class="tcard"><div class="rows" id="fdAppRows"></div></div>
           </section>
           <section class="tscreen" data-pane="map">
-            <header class="thead"><h2>Position</h2><span class="cnt" id="fdPostal">Liberty County</span></header>
-            <div class="mini live tmap" data-unit="fd-4120"><span class="ring"></span><span class="pin"></span></div>
-            <div class="tcard"><div class="kv"><span>Speed</span><b><span class="spd" data-unit="fd-4120">0</span> mph</b></div><div class="kv"><span>Heading</span><b id="fdHeading">—</b></div></div>
+            <header class="thead"><h2>Map</h2><div class="dm-f" id="dmF" role="group" aria-label="Show"><button type="button" data-f="dept" aria-pressed="true">My department</button><button type="button" data-f="all" aria-pressed="false">Everyone</button></div></header>
+            <div class="st-mapwrap" id="dmWrap"><div class="st-mapin" id="dmIn"><img alt="" draggable="false" id="dmImg"><div id="dmCalls"></div><div id="dmDots"></div></div>
+              <div class="st-mapctl"><button type="button" id="dmMe" title="Center on my unit" aria-label="Center on my unit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg></button><button type="button" id="dmZin" aria-label="Zoom in"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button type="button" id="dmZout" aria-label="Zoom out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><button type="button" id="dmFit" title="Whole county" aria-label="Show the whole county"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+              <div class="dm-empty" id="dmEmpty" hidden></div></div>
+            <div class="tcard dm-me"><div class="kv"><span>My unit</span><b id="dmUnit">Not on duty</b></div><div class="kv"><span>Postal</span><b id="fdPostal">Liberty County</b></div><div class="kv"><span>Speed</span><b><span class="spd" data-unit="fd-4120">0</span> mph</b></div><div class="kv"><span>Heading</span><b id="fdHeading">—</b></div></div>
           </section>
           <section class="tscreen" data-pane="reports">
             <header class="thead"><h2>Reports</h2><button class="btn" id="rptNew" type="button">New report</button></header>
@@ -2609,6 +2628,53 @@ body.voice-snap .stage{transition:none!important}
   const _show = show; show = p => { _show(p); if (p === 'map') { requestAnimationFrame(() => { fitted = false; drawMap(); }); } };
   const _render = render; render = () => { _render(); drawMap(); };
   show('player');
+})();
+</script>
+<script>
+/* ── Department MDT map: the county with every unit (yours ringed) and every open call; drag to pan, wheel or buttons to zoom ── */
+(() => {
+  const $ = id => document.getElementById(id), wrap = $('dmWrap'); if (!wrap) return;
+  const inner = $('dmIn'), dots = $('dmDots'), calls = $('dmCalls'), img = $('dmImg'), MS = 1000, W = 2000;   // units and calls are in 2000-unit world space
+  const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' }, esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let V = { k: 1, x: 0, y: 0 }, fitted = false, f = 'dept', followed = false;
+  const src = () => document.querySelector('.view img')?.getAttribute('src') || document.getElementById('mapsrc')?.getAttribute('href') || 'liberty-county.jpg';
+  let nzT = 0;
+  const place = () => { inner.classList.add('nz'); clearTimeout(nzT); nzT = setTimeout(() => inner.classList.remove('nz'), 150);   // dots jump with a zoom or pan, and glide again between position updates
+    inner.style.transform = `translate(${V.x.toFixed(1)}px,${V.y.toFixed(1)}px)`; inner.style.width = inner.style.height = (MS * V.k).toFixed(1) + 'px'; inner.style.setProperty('--k', V.k.toFixed(5)); wrap.classList.toggle('near', V.k / fitK() > 2.2); };
+  const fitK = () => Math.min(wrap.clientWidth, wrap.clientHeight) / MS;
+  const fit = () => { const k = fitK(); if (!k) return; V = { k, x: (wrap.clientWidth - MS * k) / 2, y: (wrap.clientHeight - MS * k) / 2 }; fitted = true; place(); };
+  const zoomAt = (z, cx, cy) => { const k0 = fitK(), k = Math.min(k0 * 14, Math.max(k0, V.k * z)); V.x = cx - (cx - V.x) * k / V.k; V.y = cy - (cy - V.y) * k / V.k; V.k = k; place(); };
+  const centerOn = (u, zoom) => { const k0 = fitK(); if (!k0) return; V.k = Math.max(V.k, k0 * (zoom || 4)); V.x = wrap.clientWidth / 2 - u.x / W * MS * V.k; V.y = wrap.clientHeight / 2 - u.y / W * MS * V.k; place(); };
+  wrap.addEventListener('wheel', e => { e.preventDefault(); const r = wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  let drag = null; wrap.addEventListener('pointerdown', e => { if (e.target.closest('.st-mapctl')) return; drag = { x: e.clientX, y: e.clientY, vx: V.x, vy: V.y }; wrap.classList.add('drag'); wrap.setPointerCapture(e.pointerId); });
+  wrap.addEventListener('pointermove', e => { if (!drag) return; V.x = drag.vx + e.clientX - drag.x; V.y = drag.vy + e.clientY - drag.y; place(); });
+  const end = () => { drag = null; wrap.classList.remove('drag'); }; wrap.addEventListener('pointerup', end); wrap.addEventListener('pointercancel', end);
+  wrap.addEventListener('dblclick', e => { const r = wrap.getBoundingClientRect(); zoomAt(2, e.clientX - r.left, e.clientY - r.top); });
+  const mid = () => [wrap.clientWidth / 2, wrap.clientHeight / 2];
+  $('dmZin').onclick = () => zoomAt(1.6, ...mid()); $('dmZout').onclick = () => zoomAt(1 / 1.6, ...mid()); $('dmFit').onclick = fit;
+  $('dmF').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; f = b.dataset.f; $('dmF').querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', x === b)); draw(); });
+  const dept = () => window.mdtDept || 'fd';
+  const myUnit = () => { const n = (window.ME && window.ME.name || '').toLowerCase(); const U = window.UNITS || [], mine = n && U.find(u => u.dept === dept() && (u.crew || []).some(c => c.toLowerCase() === n));
+    return mine || (window.HOSTED ? null : U.find(u => u.dept === dept()) || null); };   // the demo page has no signed-in player, so it follows the first unit
+  $('dmMe').onclick = () => { const u = myUnit(); if (u) centerOn(u); else fit(); };
+  const draw = () => { if (!wrap.offsetParent) return; if (!fitted) fit(); if (img.getAttribute('src') !== src()) img.src = src();
+    const me = myUnit(), d = dept(), us = (window.UNITS || []).filter(u => Number.isFinite(u.x) && Number.isFinite(u.y)), seen = new Set();
+    for (const u of us) { seen.add(u.id); let el = dots.querySelector(`[data-key="${CSS.escape(u.id)}"]`);
+      if (!el) { el = document.createElement('div'); el.className = 'st-dot'; el.dataset.key = u.id; el.innerHTML = '<i></i><b></b>'; dots.appendChild(el); }
+      el.style.setProperty('--c', COL[u.dept] || '#C9CDD3'); el.querySelector('b').textContent = u.name; el.title = `${u.name}${(u.crew || []).length ? ' · ' + u.crew.join(', ') : ''}`;
+      el.style.setProperty('--ux', (u.x / W * MS).toFixed(2)); el.style.setProperty('--uy', (u.y / W * MS).toFixed(2));
+      el.classList.toggle('me', u === me); el.classList.toggle('dim', f === 'dept' && u.dept !== d); el.hidden = false; }
+    dots.querySelectorAll('.st-dot').forEach(el => { if (!seen.has(el.dataset.key)) el.remove(); });
+    calls.innerHTML = (window.CALLS || []).filter(c => Number.isFinite(c.x) && Number.isFinite(c.y) && (f === 'all' || c.dept === d || !c.unit))
+      .map(c => `<div class="dm-call" style="--ux:${(c.x / W * MS).toFixed(2)};--uy:${(c.y / W * MS).toFixed(2)}" title="${esc(c.code + ' ' + c.type + ', ' + c.where)}"><i></i><b>${esc(c.code)}</b></div>`).join('');
+    $('dmUnit').textContent = me ? me.name : 'Not on duty';
+    const em = $('dmEmpty'); em.hidden = !!me; if (!me) em.textContent = us.length ? `You aren't on a ${({ pd: 'law enforcement', fd: 'fire', dot: 'DOT' })[d] || ''} team in ER:LC right now, so your unit isn't shown.` : 'No units on duty right now. Units show up here as soon as players join a department team in ER:LC.';
+    if (me && !followed) { followed = true; centerOn(me, 3); } };
+  // redraw a few times a second while the Map tab is showing; open it centred on your unit
+  setInterval(() => { if (wrap.offsetParent && document.body.classList.contains('mdt-open')) draw(); }, 250);
+  document.querySelectorAll('.tside [data-pane="map"]').forEach(b => b.addEventListener('click', () => requestAnimationFrame(() => { fitted = false; followed = false; draw(); })));
+  addEventListener('resize', () => { if (wrap.offsetParent) { fitted = false; followed = false; draw(); } });
+  addEventListener('units', draw); addEventListener('calls', draw);
 })();
 </script>
 </body>
