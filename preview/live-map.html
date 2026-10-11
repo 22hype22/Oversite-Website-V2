@@ -1935,7 +1935,34 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const mark = document.querySelector('.bar .mark') || document.querySelector('.mark'); if (mark) { mark.style.cursor = 'pointer'; mark.title = O.name + ' · your account'; mark.addEventListener('click', () => { location.href = '/account'; }); }
   dispatchEvent(new Event('resize')); })();
 </script>
-<script>if (window.OVERSITE && window.OVERSITE.voice) { const v = document.getElementById('voiceBtn'); v.href = '/' + window.OVERSITE.slug + '/voice'; v.hidden = false; }</script>
+<script>
+// Proximity voice runs in a panel on the CAD itself, so the CAD stays usable and voice keeps going when the panel is hidden.
+// Ctrl-click (or middle-click) still opens it in its own tab.
+(() => { const O = window.OVERSITE; if (!O || !O.voice) return;
+  const v = document.getElementById('voiceBtn'), url = '/' + O.slug + '/prox'; v.href = url; v.removeAttribute('target'); v.removeAttribute('rel'); v.hidden = false;
+  const css = document.createElement('style');
+  css.textContent = `#voicePanel{position:fixed;top:72px;right:16px;width:min(420px,calc(100vw - 32px));height:min(760px,calc(100vh - 96px));z-index:2147483000;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;background:rgba(13,13,15,.94);border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 60px rgba(0,0,0,.5);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:opacity .15s,transform .15s}
+#voicePanel.off{visibility:hidden;pointer-events:none;opacity:0;transform:translateX(12px)}
+#voicePanel .vp-h{display:flex;align-items:center;gap:6px;padding:10px 10px 10px 14px;border-bottom:1px solid rgba(255,255,255,.08);font:600 13px Geist,system-ui,sans-serif;color:#F0F2F5}#voicePanel .vp-h span{flex:1}
+#voicePanel .vp-h a,#voicePanel .vp-h button{background:none;border:0;color:#9aa0a6;cursor:pointer;font:500 12px Geist,system-ui,sans-serif;text-decoration:none;padding:5px 8px;border-radius:7px}
+#voicePanel .vp-h a:hover,#voicePanel .vp-h button:hover{color:#fff;background:rgba(255,255,255,.07)}
+#voicePanel iframe{flex:1;width:100%;border:0;background:transparent}
+#voiceBtn{position:relative}#voiceBtn.live::after{content:'';position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#46D07C;box-shadow:0 0 0 2px rgba(13,13,15,.9)}#voiceBtn.live.muted::after{background:#E24B4B}
+@media (max-width:560px){#voicePanel{top:64px;right:8px;width:calc(100vw - 16px);height:calc(100vh - 80px)}}`;
+  document.head.appendChild(css);
+  let panel = null;
+  const toggle = () => {
+    if (!panel) { panel = document.createElement('div'); panel.id = 'voicePanel'; panel.className = 'off'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Proximity voice');
+      panel.innerHTML = '<div class="vp-h"><span>Proximity voice</span><a href="' + url + '" target="_blank" rel="noopener" title="Open in its own tab">Pop out</a><button type="button" data-hide>Hide</button></div><iframe title="Proximity voice" allow="microphone; autoplay; speaker-selection"></iframe>';
+      document.body.appendChild(panel); panel.querySelector('iframe').src = url + '?embed=1'; panel.querySelector('[data-hide]').onclick = () => panel.classList.add('off');
+      requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.remove('off'))); return; }
+    panel.classList.toggle('off'); };
+  v.addEventListener('click', ev => { if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return; ev.preventDefault(); toggle(); });
+  addEventListener('message', ev => { if (ev.origin !== location.origin || !ev.data || ev.data.type !== 'ov-voice') return;
+    v.classList.toggle('live', !!ev.data.on); v.classList.toggle('muted', !!ev.data.muted);
+    v.title = ev.data.on ? (ev.data.muted ? 'Proximity voice: muted' : 'Proximity voice: connected') : 'Proximity voice'; });
+})();
+</script>
 <script>
 /* phones: tabs for the bottom sheet (Units, Calls, Alerts, On duty); tap a tab to open it, tap it again or drag the strip down to tuck it away */
 (() => { const mq = matchMedia('(max-width:760px)'), B = document.body;

@@ -255,13 +255,14 @@ const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-coun
 const route = async (req, res) => {
   const url = new URL(req.url, 'http://x'); let path = decodeURIComponent(url.pathname), m0, m0r, aboutPage = false;
   // short addresses: oversitescad.com/<server> is the CAD for its members and the server's page for everyone else;
-  // /<server>/about is always the server page, /<server>/settings and /<server>/voice are what they say.
+  // /<server>/about is always the server page, /<server>/settings is its settings and /<server>/prox its proximity voice.
   // The old /c/<server> and /s/<server> addresses still work and move to the short ones.
   const old = req.method === 'GET' && path.match(/^\/(c|s)\/([a-z0-9-]{3,32})(\/(?:settings|voice))?\/?$/);
-  if (old && !RESERVED.has(old[2])) return redirect(res, `/${old[2]}${old[1] === 's' ? '' : old[3] || ''}${url.search}`, { 'cache-control': 'no-store' }, 301);
-  const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|voice|about))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
+  if (old && !RESERVED.has(old[2])) return redirect(res, `/${old[2]}${old[1] === 's' ? '' : old[3] === '/voice' ? '/prox' : old[3] || ''}${url.search}`, { 'cache-control': 'no-store' }, 301);
+  const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|prox|about))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
   if (sc) { const sub = short[2] || '', u = auth.currentUser(req);
     if (sub === '/about' || (!sub && !(u && members.role(sc.id, u.id)) && visible(sc.slug))) { path = `/s/${sc.slug}`; aboutPage = true; }
+    else if (sub === '/prox') { path = `/c/${sc.slug}/voice`; req.prox = true; }
     else path = `/c/${sc.slug}${sub}`; }
   const me0 = auth.currentUser(req);
   if (me0?.suspended && !isSiteAdmin(me0) && !SUSPENDED_OK.test(path)) { if (path.startsWith('/api/') || /^\/c\/[^/]+\/api\//.test(path)) return json(res, { error: 'Your account is suspended.' }, 403);
@@ -366,7 +367,8 @@ const route = async (req, res) => {
     if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname + url.search)}`);   // no CAD without a linked Roblox account
     if (needsDiscord(c) && sub === '/') return can(role, 'co_owner') ? redirect(res, `/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
     if (sub === '/') return html(res, mapPage(c, user, role));
-    if (sub === '/voice') return page(res, voicePage({ logo: LOGO, user, c, settings: voice.voiceSettings(c), keyOk: !!communities.key(c.id) }));
+    if (sub === '/voice' && !req.prox) return redirect(res, `/${c.slug}/prox${url.search}`);   // the old address
+    if (sub === '/voice') return page(res, voicePage({ logo: LOGO, user, c, settings: voice.voiceSettings(c), keyOk: !!communities.key(c.id), embed: url.searchParams.has('embed') }));
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
       return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null })); }

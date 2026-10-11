@@ -24,15 +24,17 @@ const positions = room => { const snap = room.feed.snap; if (!snap || snap.statu
     room.moves.set(id, { x, z, t: now, veh, vehAt }); pos.set(id, { x, z, veh, name: String(p.Player).split(':')[0] }); }
   room.last = { t: snap.t, pos }; return pos; };
 
-const tick = room => { const range = rangePx(room.c), pos = positions(room), peers = [...room.peers.values()];
+const tick = room => { room.at = Date.now(); const range = rangePx(room.c), pos = positions(room), peers = [...room.peers.values()];
   for (const me of peers) { const mp = pos.get(me.rid);
     const near = !mp ? [] : peers.filter(o => o !== me && pos.has(o.rid)).map(o => { const op = pos.get(o.rid); return { rid: o.rid, name: o.name, d: Math.round(Math.hypot(op.x - mp.x, op.z - mp.z)), veh: op.veh, muted: o.muted }; })
-      .filter(o => o.d <= range * 1.4).sort((a, b) => a.d - b.d).slice(0, 16);   // a little past the range so connections are ready before you can hear them
+      .filter(o => o.d <= range * 2.5).sort((a, b) => a.d - b.d).slice(0, 16);   // well past the range, so the call is already connected when they come within earshot
     send(me.res, 'near', { found: !!mp, veh: !!mp?.veh, range, muffle: voiceSettings(room.c).muffle, live: !!room.feed.snap && Date.now() - room.feed.snap.t < 15000, inVoice: peers.length, peers: near }); } };
 
 export const join = (req, res, c, user, feed) => {
   let room = rooms.get(c.id);
-  if (!room) { room = { peers: new Map(), feed, c, last: null, moves: new Map(), keep: { write() {} } }; rooms.set(c.id, room);
+  if (!room) { room = { peers: new Map(), feed, c, last: null, moves: new Map(), at: 0 };
+    // every new ER:LC reading goes out to everyone in voice the moment it lands, not on the next tick of a clock
+    room.keep = { write(msg) { if (msg.startsWith('event: server') && Date.now() - room.at > 100) tick(room); } }; rooms.set(c.id, room);
     feed.clients.add(room.keep); feed.lastClient = Date.now(); feed.wake();   // keep ER:LC positions coming while anyone is in voice
     room.timer = setInterval(() => tick(room), 1000); }
   room.c = c; const rid = String(user.roblox_id), old = room.peers.get(rid); if (old) { send(old.res, 'replaced', {}); try { old.res.end(); } catch (e) {} }
