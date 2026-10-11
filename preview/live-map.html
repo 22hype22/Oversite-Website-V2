@@ -633,6 +633,29 @@
   .mini svg.gps .dst{fill:#E24B4B;stroke:#fff;stroke-width:calc(var(--sw) * 2.5)}
   /* labels sit clear of their dot on the department map */
   #dmDots .st-dot b{transform:translate(12px,-50%)}#dmDots .st-dot.me b{transform:translate(17px,-50%)}
+  /* MDT maps: no dark edge or vignette, and your dot sits where you are when the map frames a whole trip */
+  .tmap.mini.live::after{display:none}
+  .mini .pin,.mini .ring{translate:var(--ox,0px) var(--oy,0px)}
+  /* turn-by-turn navigation inside the MDT */
+  .nav{position:absolute;inset:0;z-index:30;background:#3E6972;overflow:hidden;font-family:inherit}
+  .nav[hidden]{display:none}
+  .nav canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .nav-top{position:absolute;left:14px;right:14px;top:14px;display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:18px;background:#1C1D21;color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+  .nav-ic{flex:none;width:58px;height:58px;display:grid;place-items:center;border-radius:14px;background:rgba(255,255,255,.08)}
+  .nav-ic svg{width:42px;height:42px}
+  .nav-top b{display:block;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.05}
+  .nav-top span{display:block;font-size:17px;font-weight:500;color:#D7DBE0;margin-top:3px}
+  .nav-then{position:absolute;left:28px;top:118px;padding:7px 12px;border-radius:0 0 12px 12px;background:#141518;color:#C9CDD3;font-size:13px;font-weight:500;box-shadow:0 8px 18px rgba(0,0,0,.3)}
+  .nav-then[hidden]{display:none}
+  .nav-bot{position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;gap:6px;padding:12px 12px 12px 20px;border-radius:18px;background:#1C1D21;color:#fff;box-shadow:0 -6px 24px rgba(0,0,0,.35)}
+  .nav-bot>div{flex:1;min-width:0}.nav-bot>div b{display:block;font-size:22px;font-weight:700;line-height:1.1}.nav-bot>div small{display:block;color:#9AA0A6;font-size:12px;margin-top:2px}
+  .nav-bot>div.eta b{color:#46D07C}
+  .nav-btn{flex:none;height:44px;padding:0 18px;border-radius:12px;border:0;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+  .nav-end{background:#E24B4B;color:#fff}.nav-end:hover{background:#ef5a5a}
+  .nav-arr{background:#46D07C;color:#06210f}.nav-arr[hidden]{display:none}
+  .nav-snd{position:absolute;right:16px;top:132px;width:44px;height:44px;border-radius:50%;border:0;background:#1C1D21;color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.35)}
+  .nav-snd[aria-pressed="false"]{color:#9AA0A6}
+  .btn.navgo{background:#2F7BF6;color:#fff;border-color:transparent}.btn.navgo:hover{background:#4C8DFF}
   /* time and date pickers: a light grey clock instead of the browser's black one */
   input[type=time],input[type=date],input[type=datetime-local]{color-scheme:dark}
   input[type=time]::-webkit-calendar-picker-indicator,input[type=date]::-webkit-calendar-picker-indicator,input[type=datetime-local]::-webkit-calendar-picker-indicator{opacity:.7;cursor:pointer}
@@ -1196,6 +1219,7 @@
             <div class="st-mapwrap" id="dmWrap"><div class="st-mapin" id="dmIn"><img alt="" draggable="false" id="dmImg"><svg id="dmRoute" viewBox="0 0 2000 2000" preserveAspectRatio="none" aria-hidden="true"><path class="r2"/><path class="r1"/></svg><div id="dmCalls"></div><div id="dmDots"></div></div>
               <div class="st-mapctl"><button type="button" id="dmMe" title="Center on my unit" aria-label="Center on my unit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg></button><button type="button" id="dmZin" aria-label="Zoom in"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button type="button" id="dmZout" aria-label="Zoom out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><button type="button" id="dmFit" title="Whole county" aria-label="Show the whole county"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
               <div class="dm-empty" id="dmEmpty" hidden></div></div>
+            <button class="btn navgo" type="button" id="dmNav" data-nav="" hidden style="margin:0 0 12px">Directions to my call</button>
             <div class="tcard dm-me"><div class="kv"><span>My unit</span><b id="dmUnit">Not on duty</b></div><div class="kv"><span>Postal</span><b id="fdPostal">Liberty County</b></div><div class="kv"><span>Speed</span><b><span class="spd" data-unit="fd-4120">0</span> mph</b></div><div class="kv"><span>Heading</span><b id="fdHeading">—</b></div></div>
           </section>
           <section class="tscreen" data-pane="reports">
@@ -1369,7 +1393,9 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   setTimeout(() => addEventListener('units', () => { units = window.UNITS || []; countUnits(); bind(); if (MAP) setMini(MAP); measure(); const f = document.querySelector('.chips [aria-pressed="true"]')?.dataset.filter || 'all';
     for (const card of document.querySelectorAll('.veh[data-unit]')) card.hidden = f !== 'all' && !card.classList.contains('dept-' + f); }), 0);
   const VIEW = 300;                                   // world units visible across a mini map
-  let curMap = MAP; const setMini = url => { curMap = url; for (const m of minis) m.el.style.backgroundImage = `url("${url}")`; };
+  // past the edge of the map picture is open water, in the same colour as the picture's own sea
+  const seaOf = url => /darkmode/.test(url) ? '#111113' : /-dark\./.test(url) ? '#04070E' : '#3E6972';
+  let curMap = MAP; const setMini = url => { curMap = url; for (const m of minis) { m.el.style.backgroundImage = `url("${url}")`; m.el.style.backgroundColor = seaOf(url); } };
   if (MAP) setMini(MAP);
   addEventListener('maptheme', e => { const l = document.getElementById('mapsrc-mini')?.getAttribute('href') || document.getElementById('mapsrc')?.getAttribute('href'), d = document.getElementById('mapsrc-dark')?.getAttribute('href') || document.querySelector('.view img')?.dataset.dark; setMini(e.detail.theme === 'dark' ? (d || l) : (l || d)); });
   let w = 0, h = 0; const measure = () => { for (const m of minis) { const r = m.el.getBoundingClientRect(); m.w = r.width; m.h = r.height; m.view = m.el.classList.contains('tmap') ? 520 : VIEW; m.base = m.view; } w = minis[0]?.w || 0; h = minis[0]?.h || 0; };
@@ -1378,14 +1404,15 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   // GPS on the MDT maps: the road route from your unit to the call you're on, redrawn as you drive, zoomed so both fit
   const gps = (m, ts) => { const { el, u } = m, c = (window.CALLS || []).find(k => window.onIt ? window.onIt(k, u.name) : k.unit === u.name);
     let svg = el.querySelector('svg.gps');
-    if (!c || !Number.isFinite(c.x)) { if (svg) svg.remove(); m.view = m.base; m.route = null; return; }
+    if (!c || !Number.isFinite(c.x)) { if (svg) svg.remove(); m.view = m.base; m.route = null; m.cx = m.cy = null; return; }
     if (!svg) { svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'gps'); svg.innerHTML = '<path class="r2"/><path class="r1"/><circle class="dst" r="0"/>'; el.insertBefore(svg, el.querySelector('.pin')); }
     const moved = m.route && Math.hypot(u.x - m.route[0][0], u.y - m.route[0][1]);
     if (!m.route || m.routeFor !== c.startedAt || (moved > 25 && ts - m.routeAt > 1500)) { m.route = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; m.routeFor = c.startedAt; m.routeAt = ts; }
     const pts = [[u.x, u.y], ...m.route.slice(1)], d = 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
-    const far = Math.max(...pts.map(p => Math.max(Math.abs(p[0] - u.x) / (m.w / m.h || 1), Math.abs(p[1] - u.y))));
-    m.view = Math.min(2600, Math.max(m.base * 0.6, far * 2.9 * (m.w / m.h || 1)));     // fit the route around your unit
-    const vw = m.view, vh = vw * m.h / m.w; svg.setAttribute('viewBox', `${(u.x - vw / 2).toFixed(1)} ${(u.y - vh / 2).toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
+    // frame the whole trip: centre between you and the call, zoomed in until both (and the road between) just fit
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), ar = m.w / m.h || 1;
+    m.cx = (x0 + x1) / 2; m.cy = (y0 + y1) / 2; m.view = Math.min(2600, Math.max(140, (x1 - x0) * 1.35 + 40, ((y1 - y0) * 1.35 + 40) * ar));
+    const vw = m.view, vh = vw * m.h / m.w; svg.setAttribute('viewBox', `${(m.cx - vw / 2).toFixed(1)} ${(m.cy - vh / 2).toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
     const sw = (vw / m.w).toFixed(3); svg.querySelector('.r1').setAttribute('d', d); svg.querySelector('.r2').setAttribute('d', d); svg.style.setProperty('--sw', sw);
     const dst = svg.querySelector('.dst'); dst.setAttribute('cx', c.x); dst.setAttribute('cy', c.y); dst.setAttribute('r', (7 * sw).toFixed(2)); };
   let last = performance.now(), tick = 0, miniT = 0;   // tick = last timer refresh (ms)
@@ -1401,7 +1428,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
     if (w && ts - miniT >= 33 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
       for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; if (m.base && el.classList.contains('tmap')) gps(m, ts); const s2 = m.w / m.view, size2 = 2000 * s2;
-        el.style.backgroundSize = `${size2}px ${size2}px`; el.style.backgroundPosition = `${m.w/2 - u.x*s2}px ${m.h/2 - u.y*s2}px`;
+        el.style.backgroundSize = `${size2}px ${size2}px`; const fx = m.cx ?? u.x, fy = m.cy ?? u.y; el.style.backgroundPosition = `${m.w/2 - fx*s2}px ${m.h/2 - fy*s2}px`; el.style.setProperty('--ox', ((u.x - fx) * s2).toFixed(1) + 'px'); el.style.setProperty('--oy', ((u.y - fy) * s2).toFixed(1) + 'px');
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; const nh = !!u.live && !u.headingKnown; if (el.classList.contains('nohead') !== nh) el.classList.toggle('nohead', nh); } }
     if (ts - tick >= 1000) { tick = ts; const now = Date.now();
       for (const { el, u } of spds) el.textContent = u.live ? u.mph : (u.task ? (u.task.i >= u.task.path.length - 1 ? 0 : Math.round(u.task.mps * 2.237)) : Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9)))));
@@ -1777,7 +1804,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const mk = mine ? key(mine) : null; if (mk !== lastAssigned) { if (mine) { logIt(`Assigned ${mine.code}, ${mine.where}`); if (myStatus === '10-8') { myStatus = mine.stage >= 2 ? '10-23' : '10-76'; unitStatus[u.name] = myStatus; pill.textContent = myStatus; pill.className = 'pill st ' + stClass(myStatus); for (const b of $('fdStatus').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.st === myStatus); } } lastAssigned = mk; }
     const hb = $('fdHomeCallBody'), hp = $('fdHomePri');
     if (mine) { hp.hidden = false; hp.textContent = `P${mine.pri}`; hp.className = `pill p${mine.pri}`;
-      hb.innerHTML = `<div class="cc"><span>${esc(mine.code)}</span><b>${esc(mine.type)}</b><span>${esc(mine.where)}, ${fmtAge((Date.now() - mine.startedAt) / 1000)}</span></div><div class="tl">${STAGES.map((_, i) => `<i class="${i <= mine.stage ? 'on' : ''}"></i>`).join('')}<small>${STAGES[mine.stage].toUpperCase()}</small></div><div class="acts">${mine.stage < 1 ? '<button class="btn" data-home="enroute">En route</button>' : mine.stage < 2 ? '<button class="btn" data-home="onscene">On scene</button>' : '<button class="btn danger" data-home="clear">Clear call</button>'}<button class="btn ghost" data-home="open">Open</button></div>`; }
+      hb.innerHTML = `<div class="cc"><span>${esc(mine.code)}</span><b>${esc(mine.type)}</b><span>${esc(mine.where)}, ${fmtAge((Date.now() - mine.startedAt) / 1000)}</span></div><div class="tl">${STAGES.map((_, i) => `<i class="${i <= mine.stage ? 'on' : ''}"></i>`).join('')}<small>${STAGES[mine.stage].toUpperCase()}</small></div><div class="acts"><button class="btn navgo" type="button" data-nav="${mine.startedAt}">Directions</button>${mine.stage < 1 ? '<button class="btn" data-home="enroute">En route</button>' : mine.stage < 2 ? '<button class="btn" data-home="onscene">On scene</button>' : '<button class="btn danger" data-home="clear">Clear call</button>'}<button class="btn ghost" data-home="open">Open</button></div>`; }
     else { hp.hidden = true; hb.innerHTML = '<div class="empty">No call assigned. You are available.</div>'; }
     const pend = CALLS().filter(c => fdCall(c) && !c.unit).length; $('fdPending').textContent = pend; $('fdCallsToday').textContent = CALLS().filter(c => onIt(c, u.name)).length + (reportsCount ? reportsCount() : 0);
     $('fdHomePostal').textContent = u.postal ? 'Postal ' + u.postal : 'Liberty County'; const fp = $('fdPostal'); if (fp) fp.textContent = u.postal ? 'Postal ' + u.postal : 'Liberty County';
@@ -2137,6 +2164,7 @@ body.voice-snap .stage{transition:none!important}
     if (mc && Number.isFinite(mc.x) && window.roadRoute) { if (!draw.r || draw.rFor !== mc.startedAt || (Math.hypot(me.x - draw.r[0][0], me.y - draw.r[0][1]) > 25 && Date.now() - draw.rAt > 1500)) { draw.r = window.roadRoute(me.x, me.y, mc.x, mc.y); draw.rFor = mc.startedAt; draw.rAt = Date.now(); }
       const d = 'M' + [[me.x, me.y], ...draw.r.slice(1)].map(q => q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join('L'); rp.querySelectorAll('path').forEach(x => x.setAttribute('d', d)); }
     else { draw.r = null; rp.querySelectorAll('path').forEach(x => x.removeAttribute('d')); }
+    const nb = $('dmNav'); nb.hidden = !mc; if (mc) nb.dataset.nav = mc.startedAt;
     $('dmUnit').textContent = me ? me.name : 'Not on duty';
     const em = $('dmEmpty'); em.hidden = !!me; if (!me) em.textContent = us.length ? `You aren't on a ${({ pd: 'law enforcement', fd: 'fire', dot: 'DOT' })[d] || ''} team in ER:LC right now, so your unit isn't shown.` : 'No units on duty right now. Units show up here as soon as players join a department team in ER:LC.';
     if (me && !followed) { followed = true; centerOn(me, 3); } };
@@ -2152,6 +2180,96 @@ body.voice-snap .stage{transition:none!important}
       const sx = Math.max(60, maxx - minx) / W * MS, sy = Math.max(60, maxy - miny) / W * MS;
       V.k = Math.min(k0 * 8, Math.max(k0, Math.min(wrap.clientWidth / (sx * 1.8), wrap.clientHeight / (sy * 1.8))));
       V.x = wrap.clientWidth / 2 - (minx + maxx) / 2 / W * MS * V.k; V.y = wrap.clientHeight / 2 - (miny + maxy) / 2 / W * MS * V.k; place(); draw(); })); });
+})();
+</script>
+<script>
+/* ── Turn-by-turn directions in the MDT, like a phone satnav: heading-up map that follows you, the next turn and how far,
+      time and distance left, re-routing when you leave the route, spoken turns, and Arrived when you get there ── */
+(() => {
+  const host = document.querySelector('#mdt .screen'); if (!host) return;
+  const ICONS = {"straight": "<path d=\"M12 21V4M6 10l6-6 6 6\"/>", "left": "<path d=\"M17 21v-8a4 4 0 0 0-4-4H5M9 5L5 9l4 4\"/>", "right": "<path d=\"M7 21v-8a4 4 0 0 1 4-4h8M15 5l4 4-4 4\"/>", "slight-left": "<path d=\"M15 21v-7L8 7M8 13V7h6\"/>", "slight-right": "<path d=\"M9 21v-7l7-7M16 13V7h-6\"/>", "uturn": "<path d=\"M8 21V9a4 4 0 0 1 8 0v6M12 12l4 4 4-4\"/>", "arrive": "<path d=\"M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z\"/><circle cx=\"12\" cy=\"9.5\" r=\"2.5\"/>"}, svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ICONS.straight}</svg>`;
+  const el = document.createElement('div'); el.className = 'nav'; el.id = 'navView'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Directions');
+  el.innerHTML = '<canvas></canvas><div class="nav-top"><div class="nav-ic"></div><div><b></b><span></span></div></div><div class="nav-then" hidden></div>'
+    + '<button type="button" class="nav-snd" aria-pressed="true" title="Spoken directions"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="w" d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg></button>'
+    + '<div class="nav-bot"><div class="eta"><b>--:--</b><small>arrival</small></div><div><b>0</b><small>min</small></div><div><b>0</b><small>mi</small></div><button type="button" class="nav-btn nav-arr" hidden>Mark on scene</button><button type="button" class="nav-btn nav-end">End</button></div>';
+  host.appendChild(el);
+  const cv = el.querySelector('canvas'), ctx = cv.getContext('2d'), Q = c => el.querySelector(c), snd = Q('.nav-snd');
+  const img = new Image(); let imgSrc = '';
+  const W2M = 1.2, FT = 3.281;                                    // map units to metres, as the rest of the CAD counts distance
+  const fmt = d => { const ft = d * W2M * FT; return ft < 1000 ? `${Math.max(50, Math.round(ft / 50) * 50)} ft` : `${(ft / 5280).toFixed(ft < 5280 * 10 ? 1 : 0)} mi`; };
+  const myUnit = () => { const n = (window.ME && window.ME.name || '').toLowerCase(), d = window.mdtDept || 'fd', U = window.UNITS || [];
+    return (n && U.find(u => u.dept === d && (u.crew || []).some(c => c.toLowerCase() === n))) || (window.HOSTED ? null : U.find(u => u.dept === d)) || null; };
+  let on = false, callT = 0, R = null, cum = null, man = [], rAt = 0, rot = null, spoke = {}, arrived = false, raf = 0;
+  // resample the route every 4 units, then find turns: where the direction 16 units behind and 16 units ahead differ a lot
+  const build = pts => { const P = [pts[0]]; for (let i = 1; i < pts.length; i++) { const [ax, ay] = P[P.length - 1], [bx, by] = pts[i], d = Math.hypot(bx - ax, by - ay); const n = Math.floor(d / 4);
+      for (let k = 1; k <= n; k++) P.push([ax + (bx - ax) * k / n, ay + (by - ay) * k / n]); if (!n) P.push([bx, by]); }
+    const C = [0]; for (let i = 1; i < P.length; i++) C.push(C[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+    const ang = (a, b) => Math.atan2(b[1] - a[1], b[0] - a[0]), K = 4, T = [];
+    for (let i = K; i < P.length - K; i++) { let d = ang(P[i], P[i + K]) - ang(P[i - K], P[i]); d = Math.atan2(Math.sin(d), Math.cos(d)); T.push([i, d]); }
+    const M = [], keep = r => { if (!M.length || C[r[0]] - M[M.length - 1].at > 30) M.push({ at: C[r[0]], d: r[1] }); }; let run = null;   // one turn per bend: its sharpest point
+    for (const [i, d] of T) { if (Math.abs(d) > 0.6) { if (!run || Math.abs(d) > Math.abs(run[1])) run = [i, d]; } else if (run) { keep(run); run = null; } }
+    if (run) keep(run);
+    for (const m of M) { const a = Math.abs(m.d) * 180 / Math.PI, r = m.d > 0; m.k = a > 150 ? 'uturn' : a > 62 ? (r ? 'right' : 'left') : (r ? 'slight-right' : 'slight-left');
+      m.t = a > 150 ? 'Make a U-turn' : a > 62 ? (r ? 'Turn right' : 'Turn left') : (r ? 'Bear right' : 'Bear left'); }
+    M.push({ at: C[C.length - 1], k: 'arrive', t: 'Arrive at the call' }); return { P, C, M }; };
+  const route = (u, c) => { const pts = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; const b = build(pts); R = b.P; cum = b.C; man = b.M; rAt = performance.now(); spoke = {}; };
+  // where you are along the route: the nearest point on it, and how far along that is
+  const along = (x, y) => { let best = Infinity, at = 0, px = R[0][0], py = R[0][1];
+    for (let i = 0; i < R.length - 1; i++) { const [ax, ay] = R[i], [bx, by] = R[i + 1], dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L)), qx = ax + dx * t, qy = ay + dy * t, d = Math.hypot(x - qx, y - qy);
+      if (d < best) { best = d; at = cum[i] + Math.sqrt(L) * t; px = qx; py = qy; } } return { off: best, at, px, py }; };
+  const pointAt = s => { let i = 0; while (i < cum.length - 2 && cum[i + 1] < s) i++; const t = (s - cum[i]) / ((cum[i + 1] - cum[i]) || 1); return [R[i][0] + (R[i + 1][0] - R[i][0]) * t, R[i][1] + (R[i + 1][1] - R[i][1]) * t]; };
+  const say = t => { if (snd.getAttribute('aria-pressed') !== 'true' || !window.speechSynthesis) return; try { speechSynthesis.cancel(); speechSynthesis.speak(Object.assign(new SpeechSynthesisUtterance(t), { rate: 1.05 })); } catch (e) {} };
+  const frame = () => { if (!on) return; raf = requestAnimationFrame(frame);
+    const u = myUnit(), c = (window.CALLS || []).find(k => k.startedAt === callT);
+    if (!c) { Q('.nav-ic').innerHTML = svg('arrive'); Q('.nav-top b').textContent = 'Call closed'; Q('.nav-top span').textContent = 'This call was cleared.'; return; }
+    if (!u) { Q('.nav-top b').textContent = 'Not on duty'; Q('.nav-top span').textContent = 'Join your team in ER:LC to get directions.'; return; }
+    const src = document.querySelector('#world img')?.currentSrc || document.querySelector('#world img')?.src || 'liberty-county.jpg'; if (src !== imgSrc) { imgSrc = src; img.src = src; }
+    if (!R) route(u, c);
+    let pos = along(u.x, u.y);
+    if (pos.off > 30 && performance.now() - rAt > 2000) { route(u, c); pos = along(u.x, u.y); say('Rerouting'); }   // left the route: find a new one from here
+    const total = cum[cum.length - 1], left = Math.max(0, total - pos.at) + Math.min(pos.off, 30);
+    const next = man.find(m => m.at > pos.at + 4) || man[man.length - 1], dist = Math.max(0, next.at - pos.at), after = man[man.indexOf(next) + 1];
+    arrived = left < 22;
+    Q('.nav-ic').innerHTML = svg(arrived ? 'arrive' : next.k);
+    Q('.nav-top b').textContent = arrived ? 'Arrived' : next.k === 'arrive' ? fmt(dist) : fmt(dist);
+    Q('.nav-top span').textContent = arrived ? `${c.code} ${c.type}, ${c.where}` : next.k === 'arrive' ? `${c.where}` : (dist > 450 ? 'Continue, then ' + next.t.toLowerCase() : next.t);
+    const th = Q('.nav-then'); th.hidden = arrived || !after || after.at - next.at > 120; if (!th.hidden) th.textContent = 'Then ' + after.t.toLowerCase().replace('arrive at the call', 'arrive');
+    const mph = u.live && u.mph > 8 ? u.mph : 30, secs = left * W2M / (mph * 0.44704);
+    Q('.nav-bot .eta b').textContent = new Date(Date.now() + secs * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    Q('.nav-bot div:nth-child(2) b').textContent = Math.max(1, Math.round(secs / 60)); Q('.nav-bot div:nth-child(3) b').textContent = (left * W2M * FT / 5280).toFixed(1);
+    Q('.nav-arr').hidden = !arrived || c.stage >= 2;
+    // spoken turns: once a little before each, once as you reach it, and on arrival
+    const id = man.indexOf(next);
+    if (!arrived && dist < 160 && dist > 45 && !spoke[id + 'a']) { spoke[id + 'a'] = 1; say(next.k === 'arrive' ? `In ${fmt(dist)}, arrive at the call` : `In ${fmt(dist)}, ${next.t.toLowerCase()}`); }
+    if (!arrived && dist <= 25 && !spoke[id + 'b'] && next.k !== 'arrive') { spoke[id + 'b'] = 1; say(next.t); }
+    if (arrived && !spoke.arr) { spoke.arr = 1; say('You have arrived'); }
+    // the map: heading-up along the route, you near the bottom, zoomed out a little when driving fast
+    const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1); if (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
+    const ahead = pointAt(Math.min(total, pos.at + 25)), want = Math.atan2(ahead[1] - pos.py, ahead[0] - pos.px) || 0;
+    if (rot == null) rot = want; let dr = want - rot; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); rot += dr * 0.12;
+    const viewH = 220 + Math.min(220, (u.live ? u.mph || 0 : 30) * 3), sc = cv.height / viewH, ox = cv.width / 2, oy = cv.height * 0.7;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = /darkmode/.test(imgSrc) ? '#111113' : /-dark\./.test(imgSrc) ? '#04070E' : '#3E6972'; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(sc, 0, 0, sc, ox, oy); ctx.rotate(-rot - Math.PI / 2); ctx.translate(-u.x, -u.y);
+    if (img.complete && img.naturalWidth) ctx.drawImage(img, 0, 0, 2000, 2000);
+    const rest = [[pos.px, pos.py]]; for (let i = 0; i < R.length; i++) if (cum[i] > pos.at) rest.push(R[i]);
+    ctx.lineJoin = ctx.lineCap = 'round'; const line = (w, col) => { ctx.beginPath(); ctx.moveTo(u.x, u.y); for (const q of rest) ctx.lineTo(q[0], q[1]); ctx.strokeStyle = col; ctx.lineWidth = w / sc; ctx.stroke(); };
+    line(16 * dpr, 'rgba(8,30,70,.85)'); line(10 * dpr, '#2F7BF6');
+    ctx.beginPath(); ctx.arc(c.x, c.y, 11 * dpr / sc, 0, Math.PI * 2); ctx.fillStyle = '#E24B4B'; ctx.fill(); ctx.lineWidth = 3 * dpr / sc; ctx.strokeStyle = '#fff'; ctx.stroke();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); const ux = ox / dpr, uy = oy / dpr;   // you: a blue arrow pointing the way you are going
+    ctx.beginPath(); ctx.arc(ux, uy, 20, 0, Math.PI * 2); ctx.fillStyle = 'rgba(47,123,246,.25)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(ux, uy, 13, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.beginPath(); ctx.arc(ux, uy, 10.5, 0, Math.PI * 2); ctx.fillStyle = '#2F7BF6'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(ux, uy - 7); ctx.lineTo(ux + 5.5, uy + 5); ctx.lineTo(ux, uy + 2.5); ctx.lineTo(ux - 5.5, uy + 5); ctx.closePath(); ctx.fillStyle = '#fff'; ctx.fill(); };
+  const open = t => { const c = (window.CALLS || []).find(k => String(k.startedAt) === String(t)); if (!c) return; callT = c.startedAt; R = null; rot = null; arrived = false; on = true; el.hidden = false;
+    if (c.stage < 1) document.querySelector('#fdHomeCall [data-home="enroute"]')?.click();   // asking for directions means you're on your way
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); say('Starting route'); };
+  const close = () => { on = false; el.hidden = true; cancelAnimationFrame(raf); try { speechSynthesis.cancel(); } catch (e) {} };
+  document.addEventListener('click', e => { const b = e.target.closest('[data-nav]'); if (b && b.dataset.nav) { e.preventDefault(); open(b.dataset.nav); } });
+  Q('.nav-end').onclick = close;
+  Q('.nav-arr').onclick = () => { document.querySelector('#fdHomeCall [data-home="onscene"]')?.click(); close(); };
+  snd.onclick = () => { const v = snd.getAttribute('aria-pressed') !== 'true'; snd.setAttribute('aria-pressed', v); snd.querySelector('.w').style.display = v ? '' : 'none'; if (!v) try { speechSynthesis.cancel(); } catch (e) {} };
+  addEventListener('mdt', e => { if (!e.detail) close(); });
+  addEventListener('keydown', e => { if (on && e.key === 'Escape') close(); });
+  window.navTo = open;
 })();
 </script>
 <aside class="admin" id="admin" aria-label="Admin panel" aria-hidden="true">

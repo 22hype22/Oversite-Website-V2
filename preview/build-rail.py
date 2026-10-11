@@ -239,7 +239,9 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   setTimeout(() => addEventListener('units', () => { units = window.UNITS || []; countUnits(); bind(); if (MAP) setMini(MAP); measure(); const f = document.querySelector('.chips [aria-pressed="true"]')?.dataset.filter || 'all';
     for (const card of document.querySelectorAll('.veh[data-unit]')) card.hidden = f !== 'all' && !card.classList.contains('dept-' + f); }), 0);
   const VIEW = 300;                                   // world units visible across a mini map
-  let curMap = MAP; const setMini = url => { curMap = url; for (const m of minis) m.el.style.backgroundImage = `url("${url}")`; };
+  // past the edge of the map picture is open water, in the same colour as the picture's own sea
+  const seaOf = url => /darkmode/.test(url) ? '#111113' : /-dark\./.test(url) ? '#04070E' : '#3E6972';
+  let curMap = MAP; const setMini = url => { curMap = url; for (const m of minis) { m.el.style.backgroundImage = `url("${url}")`; m.el.style.backgroundColor = seaOf(url); } };
   if (MAP) setMini(MAP);
   addEventListener('maptheme', e => { const l = document.getElementById('mapsrc-mini')?.getAttribute('href') || document.getElementById('mapsrc')?.getAttribute('href'), d = document.getElementById('mapsrc-dark')?.getAttribute('href') || document.querySelector('.view img')?.dataset.dark; setMini(e.detail.theme === 'dark' ? (d || l) : (l || d)); });
   let w = 0, h = 0; const measure = () => { for (const m of minis) { const r = m.el.getBoundingClientRect(); m.w = r.width; m.h = r.height; m.view = m.el.classList.contains('tmap') ? 520 : VIEW; m.base = m.view; } w = minis[0]?.w || 0; h = minis[0]?.h || 0; };
@@ -248,14 +250,15 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   // GPS on the MDT maps: the road route from your unit to the call you're on, redrawn as you drive, zoomed so both fit
   const gps = (m, ts) => { const { el, u } = m, c = (window.CALLS || []).find(k => window.onIt ? window.onIt(k, u.name) : k.unit === u.name);
     let svg = el.querySelector('svg.gps');
-    if (!c || !Number.isFinite(c.x)) { if (svg) svg.remove(); m.view = m.base; m.route = null; return; }
+    if (!c || !Number.isFinite(c.x)) { if (svg) svg.remove(); m.view = m.base; m.route = null; m.cx = m.cy = null; return; }
     if (!svg) { svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'gps'); svg.innerHTML = '<path class="r2"/><path class="r1"/><circle class="dst" r="0"/>'; el.insertBefore(svg, el.querySelector('.pin')); }
     const moved = m.route && Math.hypot(u.x - m.route[0][0], u.y - m.route[0][1]);
     if (!m.route || m.routeFor !== c.startedAt || (moved > 25 && ts - m.routeAt > 1500)) { m.route = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; m.routeFor = c.startedAt; m.routeAt = ts; }
     const pts = [[u.x, u.y], ...m.route.slice(1)], d = 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
-    const far = Math.max(...pts.map(p => Math.max(Math.abs(p[0] - u.x) / (m.w / m.h || 1), Math.abs(p[1] - u.y))));
-    m.view = Math.min(2600, Math.max(m.base * 0.6, far * 2.9 * (m.w / m.h || 1)));     // fit the route around your unit
-    const vw = m.view, vh = vw * m.h / m.w; svg.setAttribute('viewBox', `${(u.x - vw / 2).toFixed(1)} ${(u.y - vh / 2).toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
+    // frame the whole trip: centre between you and the call, zoomed in until both (and the road between) just fit
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), ar = m.w / m.h || 1;
+    m.cx = (x0 + x1) / 2; m.cy = (y0 + y1) / 2; m.view = Math.min(2600, Math.max(140, (x1 - x0) * 1.35 + 40, ((y1 - y0) * 1.35 + 40) * ar));
+    const vw = m.view, vh = vw * m.h / m.w; svg.setAttribute('viewBox', `${(m.cx - vw / 2).toFixed(1)} ${(m.cy - vh / 2).toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
     const sw = (vw / m.w).toFixed(3); svg.querySelector('.r1').setAttribute('d', d); svg.querySelector('.r2').setAttribute('d', d); svg.style.setProperty('--sw', sw);
     const dst = svg.querySelector('.dst'); dst.setAttribute('cx', c.x); dst.setAttribute('cy', c.y); dst.setAttribute('r', (7 * sw).toFixed(2)); };
   let last = performance.now(), tick = 0, miniT = 0;   // tick = last timer refresh (ms)
@@ -271,7 +274,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
     if (w && ts - miniT >= 33 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
       for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; if (m.base && el.classList.contains('tmap')) gps(m, ts); const s2 = m.w / m.view, size2 = 2000 * s2;
-        el.style.backgroundSize = `${size2}px ${size2}px`; el.style.backgroundPosition = `${m.w/2 - u.x*s2}px ${m.h/2 - u.y*s2}px`;
+        el.style.backgroundSize = `${size2}px ${size2}px`; const fx = m.cx ?? u.x, fy = m.cy ?? u.y; el.style.backgroundPosition = `${m.w/2 - fx*s2}px ${m.h/2 - fy*s2}px`; el.style.setProperty('--ox', ((u.x - fx) * s2).toFixed(1) + 'px'); el.style.setProperty('--oy', ((u.y - fy) * s2).toFixed(1) + 'px');
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; const nh = !!u.live && !u.headingKnown; if (el.classList.contains('nohead') !== nh) el.classList.toggle('nohead', nh); } }
     if (ts - tick >= 1000) { tick = ts; const now = Date.now();
       for (const { el, u } of spds) el.textContent = u.live ? u.mph : (u.task ? (u.task.i >= u.task.path.length - 1 ? 0 : Math.round(u.task.mps * 2.237)) : Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9)))));
