@@ -4,6 +4,7 @@ import { layout, esc, vbadge } from './pages.mjs';
 
 const CSS = `
 .sv{max-width:1120px}
+.xb.voted{color:var(--dim)}.xb.voted svg{fill:#E9C24C;stroke:#E9C24C}
 .sv-back{display:inline-flex;align-items:center;gap:6px;color:var(--dim);text-decoration:none;font-size:13px;margin:0 0 14px}.sv-back:hover{color:var(--ink)}
 .sv-hero{position:relative;height:210px;border-radius:22px;overflow:hidden;border:1px solid var(--hair);background:#3E6973 url(/liberty-county.jpg) var(--pos)/620% no-repeat}
 .sv-hero.gal{height:clamp(240px,36vw,380px);background:#15171a}
@@ -117,7 +118,7 @@ export const serverPage = ({ logo, user, x, medals = [], players, voteTimes, lis
 <div class="sv-id"><h1>${esc(x.name)}${x.badge ? vbadge(24) : ''}</h1>${x.owner_name ? `<div class="sv-by">by ${esc(x.owner_name)}${x.owner_badge ? vbadge(14) : ''}</div>` : ''}
 <div class="sv-tags">${x.region ? `<span class="sv-tag">${I.pin}${esc(x.region.name)}</span>` : ''}${lang ? `<span class="sv-tag">${I.lang}${esc(lang)}</span>` : ''}${x.discord ? `<span class="sv-tag">${I.dc}${esc(x.discord)}</span>` : ''}</div>${medals.length ? `<div class="sv-md sv-md2">${medals.map(m => medal(m.place, m.label)).join('')}</div>` : ''}</div>
 <div class="sv-acts">${x.join_key ? `<a class="xb pri" href="${ERLC}" target="_blank" rel="noopener" data-play="${esc(x.join_key)}" title="Copy the join code and open ER:LC">${I.play}Join</a>` : ''}
-${me ? `<button class="xb" id="vote"${x.next_vote > 0 ? ' data-wait="' + x.next_vote + '"' : ''}>${I.star}<span>${x.next_vote > 0 ? 'Voted' : 'Vote'}</span></button>` : `<a class="xb" href="/?next=${encodeURIComponent('/' + x.slug)}">${I.star}Sign in to vote</a>`}
+${me ? `<button class="xb${x.next_vote > 0 ? ' voted' : ''}" id="vote"${x.next_vote > 0 ? ` data-wait="${x.next_vote}" title="You can vote again in ${Math.max(1, Math.ceil(x.next_vote / 3600000))}h"` : ''}>${I.star}<span>${x.next_vote > 0 ? `Voted · ${Math.max(1, Math.ceil(x.next_vote / 3600000))}h` : 'Vote'}</span></button>` : `<a class="xb" href="/?next=${encodeURIComponent('/' + x.slug)}">${I.star}Sign in to vote</a>`}
 ${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopener">${I.dc}Discord</a>` : ''}${x.role ? `<a class="xb" href="/${esc(x.slug)}">Open CAD</a>` : x.open_join && me ? '<button class="xb" id="joinCad">Join CAD</button>' : ''}</div></div>
 
 <div class="sv-stats">
@@ -237,7 +238,7 @@ document.getElementById('rvL').addEventListener('submit',async ev=>{const f=ev.t
 /* join the CAD, vote, play, report */
 const jcb=document.getElementById('joinCad');if(jcb)jcb.onclick=async()=>{jcb.disabled=true;try{const j=await api('/api/explore/join',{slug:D.slug});location.href=j.next}catch(err){toast(err.message);jcb.disabled=false}};
 const v=document.getElementById('vote');if(v)v.onclick=async()=>{if(v.dataset.wait)return toast('You can vote for '+D.name+' again in '+hrs(+v.dataset.wait)+'.');v.disabled=true;
-  try{const j=await api('/api/explore/vote',{slug:D.slug});document.getElementById('vN').textContent=Number(j.votes).toLocaleString('en-US');v.dataset.wait=j.next_vote;v.querySelector('span').textContent='Voted';toast('Thanks for voting for '+D.name+'!')}catch(err){toast(err.message)}v.disabled=false};
+  try{const j=await api('/api/explore/vote',{slug:D.slug});document.getElementById('vN').textContent=Number(j.votes).toLocaleString('en-US');v.dataset.wait=j.next_vote;v.classList.add('voted');v.title='You can vote again in '+hrs(+j.next_vote);v.querySelector('span').textContent='Voted · '+hrs(+j.next_vote);toast('Thanks for voting for '+D.name+'!')}catch(err){toast(err.message)}v.disabled=false};
 document.querySelectorAll('[data-play]').forEach(p=>p.addEventListener('click',()=>{navigator.clipboard?.writeText(p.dataset.play).catch(()=>{});toast('Join code '+p.dataset.play+' copied. In ER:LC open Servers, then paste it to join.')}));
 const rs=document.getElementById('repS');if(rs)rs.onclick=()=>{const d=document.createElement('dialog');d.className='dlg';
   const R=[['name','Inappropriate name'],['icon','Inappropriate icon'],['bio','Inappropriate bio'],['fake','Fake or misleading'],['other','Something else']];
