@@ -94,7 +94,7 @@ const I = {
   star: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>',
   back: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
 };
-const ERLC = 'https://www.roblox.com/games/2534724415/Emergency-Response-Liberty-County';
+const JOIN = c => 'https://erlc.gg/join/' + encodeURIComponent(c);   // ER:LC's own join link: opens Roblox straight into the private server
 const n = v => Number(v || 0).toLocaleString('en-US');
 // every server gets its own slice of the Liberty County map, the same one its Explore card uses
 const spot = slug => { let h = 0; for (const c of slug) h = (h * 31 + c.charCodeAt(0)) >>> 0; return `${12 + h % 76}% ${14 + (h >>> 8) % 72}%`; };
@@ -117,7 +117,7 @@ export const serverPage = ({ logo, user, x, medals = [], players, voteTimes, lis
 <div class="sv-head"><span class="sv-ic">${esc(x.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(x.slug)}/icon" alt="" onerror="this.remove()"></span>
 <div class="sv-id"><h1>${esc(x.name)}${x.badge ? vbadge(24) : ''}</h1>${x.owner_name ? `<div class="sv-by">by ${esc(x.owner_name)}${x.owner_badge ? vbadge(14) : ''}</div>` : ''}
 <div class="sv-tags">${x.region ? `<span class="sv-tag">${I.pin}${esc(x.region.name)}</span>` : ''}${lang ? `<span class="sv-tag">${I.lang}${esc(lang)}</span>` : ''}${x.discord ? `<span class="sv-tag">${I.dc}${esc(x.discord)}</span>` : ''}</div>${medals.length ? `<div class="sv-md sv-md2">${medals.map(m => medal(m.place, m.label)).join('')}</div>` : ''}</div>
-<div class="sv-acts">${x.join_key ? `<a class="xb pri" href="${ERLC}" target="_blank" rel="noopener" data-play="${esc(x.join_key)}" title="Copy the join code and open ER:LC">${I.play}Join</a>` : ''}
+<div class="sv-acts">${x.join_key ? `<a class="xb pri" href="${esc(JOIN(x.join_key))}" target="_blank" rel="noopener" data-play="${esc(x.join_key)}" title="Join ${esc(x.name)} in ER:LC">${I.play}Join</a>` : ''}
 ${me ? `<button class="xb${x.next_vote > 0 ? ' voted' : ''}" id="vote"${x.next_vote > 0 ? ` data-wait="${x.next_vote}" title="You can vote again in ${Math.max(1, Math.ceil(x.next_vote / 3600000))}h"` : ''}>${I.star}<span>${x.next_vote > 0 ? `Voted · ${Math.max(1, Math.ceil(x.next_vote / 3600000))}h` : 'Vote'}</span></button>` : `<a class="xb" href="/?next=${encodeURIComponent('/' + x.slug)}">${I.star}Sign in to vote</a>`}
 ${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopener">${I.dc}Discord</a>` : ''}${x.role ? `<a class="xb" href="/${esc(x.slug)}">Open CAD</a>` : x.open_join && me ? '<button class="xb" id="joinCad">Join CAD</button>' : ''}</div></div>
 
@@ -239,7 +239,7 @@ document.getElementById('rvL').addEventListener('submit',async ev=>{const f=ev.t
 const jcb=document.getElementById('joinCad');if(jcb)jcb.onclick=async()=>{jcb.disabled=true;try{const j=await api('/api/explore/join',{slug:D.slug});location.href=j.next}catch(err){toast(err.message);jcb.disabled=false}};
 const v=document.getElementById('vote');if(v)v.onclick=async()=>{if(v.dataset.wait)return toast('You can vote for '+D.name+' again in '+hrs(+v.dataset.wait)+'.');v.disabled=true;
   try{const j=await api('/api/explore/vote',{slug:D.slug});document.getElementById('vN').textContent=Number(j.votes).toLocaleString('en-US');v.dataset.wait=j.next_vote;v.classList.add('voted');v.title='You can vote again in '+hrs(+j.next_vote);v.querySelector('span').textContent='Voted · '+hrs(+j.next_vote);toast('Thanks for voting for '+D.name+'!')}catch(err){toast(err.message)}v.disabled=false};
-document.querySelectorAll('[data-play]').forEach(p=>p.addEventListener('click',()=>{navigator.clipboard?.writeText(p.dataset.play).catch(()=>{});toast('Join code '+p.dataset.play+' copied. In ER:LC open Servers, then paste it to join.')}));
+document.querySelectorAll('[data-play]').forEach(p=>p.addEventListener('click',()=>{navigator.clipboard?.writeText(p.dataset.play).catch(()=>{});toast('Opening ER:LC and joining '+p.dataset.play+'. If Roblox does not start, the code is copied: paste it in Servers.')}));
 const rs=document.getElementById('repS');if(rs)rs.onclick=()=>{const d=document.createElement('dialog');d.className='dlg';
   const R=[['name','Inappropriate name'],['icon','Inappropriate icon'],['bio','Inappropriate bio'],['fake','Fake or misleading'],['other','Something else']];
   d.innerHTML='<form method="dialog" class="rp"><h2></h2><p>Tell Oversite what is wrong with this listing. The owner won’t see who reported it.</p><div class="rp-o">'+R.map((r,i)=>'<label><input type="radio" name="rr" value="'+r[0]+'"'+(i?'':' checked')+'><span>'+r[1]+'</span></label>').join('')+'</div><label for="rpD">Details <small>(optional)</small></label><textarea id="rpD" maxlength="500" rows="3" placeholder="What did you see?"></textarea><p class="msg" id="rpM"></p><div class="acts"><button type="button" class="btn" data-no>Cancel</button><button class="btn pri" data-send>Send report</button></div></form>';

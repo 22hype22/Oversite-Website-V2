@@ -483,7 +483,8 @@ export const explore = ({ logo, user, servers, owned }) => layout({ title: 'Expl
 <div class="xp-toast" id="xtoast" role="status" aria-live="polite"></div>
 <dialog class="xp-dlg" id="xd" aria-labelledby="xdT"><div class="xp-dlgin" id="xdB"></div></dialog>`, script: `
 let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};let TAB='trending';
-const ERLC='https://www.roblox.com/games/2534724415/Emergency-Response-Liberty-County';
+// ER:LC's own join links open Roblox straight into a private server by its code
+const JOIN=c=>'https://erlc.gg/join/'+encodeURIComponent(c);
 const g=document.getElementById('xg'),q=document.getElementById('xq'),em=document.getElementById('xe'),dlg=document.getElementById('xd'),tabs=document.getElementById('xt');
 const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n=v=>Number(v||0).toLocaleString();
@@ -510,7 +511,7 @@ const meta=x=>(x.rating!=null?'<span class="xr-rt" title="'+x.reviews+' review'+
 const by=x=>x.owner_name?'<span class="by">by '+e(x.owner_name)+(x.owner_badge?VBS:'')+'</span>':'';
 const voteBtn=x=>x.next_vote>0?'<button class="xb ghost voted" data-vote="'+e(x.slug)+'" title="You can vote again in '+hrs(x.next_vote)+'">'+STAR+'Voted · '+hrs(x.next_vote)+'</button>'
   :'<button class="xb ghost" data-vote="'+e(x.slug)+'">'+STO+'Vote'+(x.votes?' <small>'+n(x.votes)+'</small>':'')+'</button>';
-const acts=x=>(x.join_key?'<a class="xb pri" href="'+ERLC+'" target="_blank" rel="noopener" data-play="'+e(x.join_key)+'" title="Copy the join code and open ER:LC">'+PLAY+'Join</a>':'')+(x.open_join&&!x.role?'<button class="xb" data-joincad="'+e(x.slug)+'" title="Join this server on Oversite">'+CADI+'Join CAD</button>':'')+voteBtn(x)
+const acts=x=>(x.join_key?'<a class="xb pri" href="'+e(JOIN(x.join_key))+'" target="_blank" rel="noopener" data-play="'+e(x.join_key)+'" title="Join '+e(x.name)+' in ER:LC">'+PLAY+'Join</a>':'')+(x.open_join&&!x.role?'<button class="xb" data-joincad="'+e(x.slug)+'" title="Join this server on Oversite">'+CADI+'Join CAD</button>':'')+voteBtn(x)
   +(x.invite?'<a class="xb ghost" href="'+e(x.invite)+'" target="_blank" rel="noopener" title="Join their Discord">'+DC+'Discord</a>':'');
 const pct=x=>x.live&&x.max?Math.min(100,Math.round(x.players/x.max*100)):0;
 const card=(x,i)=>'<article class="xr st-'+state(x)+(i===0?' is-top':'')+'" tabindex="0" data-slug="'+e(x.slug)+'"'+(x.role?' data-mine="1"':'')+' aria-label="'+e(x.name)+'">'
@@ -553,7 +554,7 @@ document.addEventListener('click',async ev=>{
     v.disabled=true; try{ const j=await api('/api/explore/vote',{slug:x.slug}); x.votes=j.votes; x.next_vote=j.next_vote; x.week++; toast('Thanks for voting for '+x.name+'!'); }catch(err){ toast(err.message); } render(); if(dlg.open) open(x.slug); return; }
   const rp=ev.target.closest('[data-report]'); if(rp){ const x=S.find(s=>s.slug===rp.dataset.report); if(x){ dlg.close(); report(x); } return; }
   const jc=ev.target.closest('[data-joincad]'); if(jc){ ev.preventDefault(); ev.stopPropagation(); jc.disabled=true; try{ const j=await api('/api/explore/join',{slug:jc.dataset.joincad}); location.href=j.next; }catch(err){ toast(err.message); jc.disabled=false; } return; }
-  const pl=ev.target.closest('[data-play]'); if(pl){ navigator.clipboard?.writeText(pl.dataset.play).catch(()=>{}); toast('Join code '+pl.dataset.play+' copied. In ER:LC open Servers, then paste it to join.'); return; }
+  const pl=ev.target.closest('[data-play]'); if(pl){ navigator.clipboard?.writeText(pl.dataset.play).catch(()=>{}); toast('Opening ER:LC and joining '+pl.dataset.play+'. If Roblox does not start, the code is copied: paste it in Servers.'); return; }
   if(ev.target.closest('a,button')) return; const c=ev.target.closest('.xr'); if(c&&g.contains(c)) location.href='/'+encodeURIComponent(c.dataset.slug)+(c.dataset.mine?'/about':''); });
 g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xr')){ ev.preventDefault(); location.href='/'+encodeURIComponent(ev.target.dataset.slug)+(ev.target.dataset.mine?'/about':''); } });
 dlg.addEventListener('click',ev=>{ if(ev.target===dlg||ev.target.closest('[data-close]')) dlg.close(); }); dlg.addEventListener('close',()=>dlg.classList.remove('in'));
