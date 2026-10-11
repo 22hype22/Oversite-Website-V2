@@ -1,4 +1,4 @@
-// A listed server's own page (/s/:slug): banner, live stats, player and vote charts, details, and reviews.
+// A listed server's own page (/:slug, or /:slug/about for its members): banner, live stats, player and vote charts, details, and reviews.
 // Explore cards open this. Anyone can read it; voting, reviewing and reporting need a signed-in account with Roblox linked.
 import { layout, esc, vbadge } from './pages.mjs';
 
@@ -6,6 +6,17 @@ const CSS = `
 .sv{max-width:1120px}
 .sv-back{display:inline-flex;align-items:center;gap:6px;color:var(--dim);text-decoration:none;font-size:13px;margin:0 0 14px}.sv-back:hover{color:var(--ink)}
 .sv-hero{position:relative;height:210px;border-radius:22px;overflow:hidden;border:1px solid var(--hair);background:#3E6973 url(/liberty-county.jpg) var(--pos)/620% no-repeat}
+.sv-hero.gal{height:clamp(240px,36vw,380px);background:#15171a}
+.sv-track{position:absolute;inset:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;outline:none}
+.sv-track::-webkit-scrollbar{display:none}
+.sv-track img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;scroll-snap-align:start;user-select:none;-webkit-user-drag:none}
+.sv-hero.gal::after{pointer-events:none;background:linear-gradient(180deg,rgba(8,10,12,.35),rgba(8,10,12,0) 30%,rgba(8,10,12,0) 55%,rgba(11,12,14,.92))}
+.gal-b{position:absolute;top:50%;z-index:2;width:38px;height:38px;margin-top:-19px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(240,242,245,.2);background:rgba(10,11,13,.6);color:var(--ink);cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity .2s,background .15s}
+.gal-b.prev{left:14px}.gal-b.next{right:14px}.sv-hero:hover .gal-b,.gal-b:focus-visible{opacity:1}.gal-b:hover{background:rgba(20,22,26,.85)}
+.gal-d{position:absolute;left:0;right:0;bottom:62px;z-index:2;display:flex;justify-content:center;gap:6px;pointer-events:none}
+.gal-d i{width:6px;height:6px;border-radius:6px;background:rgba(240,242,245,.4);transition:width .25s,background .25s}.gal-d i.on{width:18px;background:var(--ink)}
+.sv-ht{pointer-events:none}.sv-ht>*{pointer-events:auto}
+@media (hover:none){.gal-b{display:none}}
 .sv-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,12,.05),rgba(8,10,12,.3) 55%,rgba(11,12,14,.92))}
 .sv-ht{position:absolute;left:18px;right:18px;top:16px;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sv-ht{align-items:flex-start}
@@ -71,7 +82,7 @@ const CSS = `
 .rv-e{color:var(--faint);font-size:13px;padding:6px 0}
 .sv-toast{position:fixed;left:50%;bottom:74px;transform:translate(-50%,12px);z-index:50;max-width:calc(100vw - 32px);padding:11px 16px;border-radius:12px;background:#1A1B1F;border:1px solid var(--hair2);font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}.sv-toast.on{opacity:1;transform:translate(-50%,0)}
 @media (max-width:980px){.sv-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.sv-grid{grid-template-columns:1fr}}
-@media (max-width:620px){.sv-hero{height:150px}.sv-head{padding:0 6px;margin-top:-44px}.sv-id{padding-top:0;flex-basis:100%}.sv-acts{padding-top:0}.sv-ic{width:84px;height:84px;border-radius:22px}.sv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-st:last-child{grid-column:span 2}.sv-st b{font-size:24px}.rv-top{grid-template-columns:1fr}.sv-acts{width:100%}}
+@media (max-width:620px){.sv-hero{height:150px}.sv-hero.gal{height:56vw}.gal-d{bottom:56px}.sv-head{padding:0 6px;margin-top:-44px}.sv-id{padding-top:0;flex-basis:100%}.sv-acts{padding-top:0}.sv-ic{width:84px;height:84px;border-radius:22px}.sv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-st:last-child{grid-column:span 2}.sv-st b{font-size:24px}.rv-top{grid-template-columns:1fr}.sv-acts{width:100%}}
 `;
 
 const I = {
@@ -101,13 +112,13 @@ export const serverPage = ({ logo, user, x, medals = [], players, voteTimes, lis
   return layout({ title: `${x.name} · Oversite`, logo, user, body: `<style>${CSS}</style>
 <main class="sv">
 <a class="sv-back" href="/explore">${I.back}Explore</a>
-<section class="sv-hero" style="--pos:${spot(x.slug)}"><div class="sv-ht">${status}${medals.length ? `<div class="sv-md">${medals.map(m => medal(m.place, m.label)).join('')}</div>` : ''}</div></section>
+<section class="sv-hero${x.photos?.length ? ' gal' : ''}" style="--pos:${spot(x.slug)}"${x.photos?.length ? ` aria-roledescription="carousel" aria-label="Photos of ${esc(x.name)}"` : ''}>${x.photos?.length ? `<div class="sv-track" id="gal" tabindex="0">${x.photos.map((id, i) => `<img src="/c/${esc(x.slug)}/photos/${id}" alt="Photo ${i + 1} of ${x.photos.length}"${i ? ' loading="lazy"' : ''} draggable="false">`).join('')}</div>${x.photos.length > 1 ? `<button type="button" class="gal-b prev" aria-label="Previous photo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button type="button" class="gal-b next" aria-label="Next photo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button><div class="gal-d" aria-hidden="true">${x.photos.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</div>` : ''}` : ''}<div class="sv-ht">${status}${medals.length ? `<div class="sv-md">${medals.map(m => medal(m.place, m.label)).join('')}</div>` : ''}</div></section>
 <div class="sv-head"><span class="sv-ic">${esc(x.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(x.slug)}/icon" alt="" onerror="this.remove()"></span>
 <div class="sv-id"><h1>${esc(x.name)}${x.badge ? vbadge(24) : ''}</h1>${x.owner_name ? `<div class="sv-by">by ${esc(x.owner_name)}${x.owner_badge ? vbadge(14) : ''}</div>` : ''}
 <div class="sv-tags">${x.region ? `<span class="sv-tag">${I.pin}${esc(x.region.name)}</span>` : ''}${lang ? `<span class="sv-tag">${I.lang}${esc(lang)}</span>` : ''}${x.discord ? `<span class="sv-tag">${I.dc}${esc(x.discord)}</span>` : ''}</div>${medals.length ? `<div class="sv-md sv-md2">${medals.map(m => medal(m.place, m.label)).join('')}</div>` : ''}</div>
 <div class="sv-acts">${x.join_key ? `<a class="xb pri" href="${ERLC}" target="_blank" rel="noopener" data-play="${esc(x.join_key)}" title="Copy the join code and open ER:LC">${I.play}Join</a>` : ''}
-${me ? `<button class="xb" id="vote"${x.next_vote > 0 ? ' data-wait="' + x.next_vote + '"' : ''}>${I.star}<span>${x.next_vote > 0 ? 'Voted' : 'Vote'}</span></button>` : `<a class="xb" href="/?next=${encodeURIComponent('/s/' + x.slug)}">${I.star}Sign in to vote</a>`}
-${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopener">${I.dc}Discord</a>` : ''}${x.role ? `<a class="xb" href="/c/${esc(x.slug)}">Open CAD</a>` : x.open_join && me ? '<button class="xb" id="joinCad">Join CAD</button>' : ''}</div></div>
+${me ? `<button class="xb" id="vote"${x.next_vote > 0 ? ' data-wait="' + x.next_vote + '"' : ''}>${I.star}<span>${x.next_vote > 0 ? 'Voted' : 'Vote'}</span></button>` : `<a class="xb" href="/?next=${encodeURIComponent('/' + x.slug)}">${I.star}Sign in to vote</a>`}
+${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopener">${I.dc}Discord</a>` : ''}${x.role ? `<a class="xb" href="/${esc(x.slug)}">Open CAD</a>` : x.open_join && me ? '<button class="xb" id="joinCad">Join CAD</button>' : ''}</div></div>
 
 <div class="sv-stats">
 <div class="sv-st"><small>In game now</small><b>${live ? x.players : '–'}${live && x.max ? `<span>/ ${x.max}</span>` : ''}</b>${live && x.max ? `<div class="bar"><i style="width:${Math.min(100, Math.round(x.players / x.max * 100))}%"></i></div>` : `<p>${live ? 'Live' : x.connected ? 'Server is offline' : 'Not linked to ER:LC'}</p>`}</div>
@@ -126,6 +137,16 @@ ${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopene
 <section class="card"><h2>Details</h2><div class="sv-facts">${fact('In-game name', esc(x.ingame))}${fact('Join code', x.join_key ? `<code>${esc(x.join_key)}</code>` : '')}${fact('Co-owners', esc(x.co_owners.join(', ')))}
 ${fact('Account verification', esc(x.verified))}${fact('Team balance', x.at ? (x.team_balance ? 'On' : 'Off') : '')}${fact('Departments', esc(x.depts.map(d => d.name).join(', ')))}${fact('On Oversite since', new Date(x.created).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))}</div>
 ${me && x.role !== 'owner' ? '<button class="sv-rep" id="repS">Report this server</button>' : ''}</section></aside></div></main><div class="sv-toast" id="toast" role="status"></div>`, script: `
+// photos: swipe or scroll the strip, or use the arrows; the dots follow, and it moves on by itself every 6 seconds until someone touches it
+(()=>{const t=document.getElementById('gal');if(!t)return;const n=t.children.length,dots=[...document.querySelectorAll('.gal-d i')],hero=t.parentElement;
+  const at=()=>Math.round(t.scrollLeft/t.clientWidth),go=i=>t.scrollTo({left:((i+n)%n)*t.clientWidth,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+  let stop=n<2||matchMedia('(prefers-reduced-motion: reduce)').matches;const hold=()=>{stop=true};
+  t.addEventListener('scroll',()=>{const i=at();dots.forEach((d,k)=>d.classList.toggle('on',k===i))},{passive:true});
+  hero.querySelectorAll('.gal-b').forEach(b=>b.addEventListener('click',()=>{hold();go(at()+(b.classList.contains('next')?1:-1))}));
+  t.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();hold();go(at()+(e.key==='ArrowRight'?1:-1))}});
+  ['pointerdown','wheel','touchstart'].forEach(ev=>t.addEventListener(ev,hold,{passive:true}));
+  setInterval(()=>{if(!stop&&!document.hidden&&!hero.matches(':hover'))go(at()+1)},6000);})();
+
 const D=${JSON.stringify(data).replace(/</g, '\\u003c')},VB=${JSON.stringify(vbadge(13))};
 const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const toast=m=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),3200)};
@@ -180,7 +201,7 @@ const drawTop=()=>{const c=L.length,avg=c?L.reduce((a,r)=>a+r.rating,0)/c:0,dist
   document.getElementById('rvTop').innerHTML=c?'<div class="rv-top"><div class="rv-avg"><b>'+avg.toFixed(1)+'</b><div class="stars">'+stars(avg)+'</div><small>'+c+' review'+(c===1?'':'s')+'</small></div><div class="rv-dist">'+dist.map(([s,k])=>'<div><span>'+s+'</span><i><s style="width:'+(c?k/c*100:0)+'%"></s></i><em>'+k+'</em></div>').join('')+'</div></div>':'<p class="rv-e" style="margin:8px 0 14px">No reviews yet.'+(D.me&&D.me.can?' Be the first to share what playing here is like.':'')+'</p>';
   document.getElementById('rA').textContent=c?avg.toFixed(1):'–';document.getElementById('rC').innerHTML=c?'<span class="stars">'+stars(avg)+'</span> '+c+' review'+(c===1?'':'s'):'No reviews yet'};
 const drawForm=()=>{const f=document.getElementById('rvForm'),m=mine();
-  if(!D.me){f.innerHTML='<div class="rv-cta"><a href="/?next='+encodeURIComponent('/s/'+D.slug+'#reviews')+'">Sign in</a> to write a review.</div>';return}
+  if(!D.me){f.innerHTML='<div class="rv-cta"><a href="/?next='+encodeURIComponent('/'+D.slug+'/about')+'">Sign in</a> to write a review.</div>';return}
   if(!D.me.can){f.innerHTML=D.me.why?'<div class="rv-cta">'+e(D.me.why)+'</div>':'';return}
   if(m&&!editing){f.innerHTML='';return}
   let pick=m?m.rating:0;

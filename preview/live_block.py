@@ -135,7 +135,7 @@ LIVE_JS = r"""<script id="live">
     F.relay.closest('label').style.display = 'none'; for (const sel of document.querySelectorAll('#adTeams select')) sel.disabled = true;
     const note = F.key.closest('section, div')?.querySelector('.ad-note'); if (note) note.textContent = OV.canEdit ? 'The key is stored encrypted on the server for this community. Paste a new one and save to replace it, or manage it in Settings.' : 'Only community admins can change the server connection.';
     if (!OV.canEdit) { F.key.closest('label').style.display = 'none'; $('adKeyRow').style.display = 'none'; }
-    const links = document.createElement('div'); links.className = 'ad-row'; links.innerHTML = `<a class="ad-btn" href="/dashboard">Dashboard</a>${OV.canEdit ? `<a class="ad-btn" href="/c/${OV.slug}/settings">Community settings</a>` : ''}`; $('admin').querySelector('section')?.prepend(links); }
+    const links = document.createElement('div'); links.className = 'ad-row'; links.innerHTML = `<a class="ad-btn" href="/dashboard">Dashboard</a>${OV.canEdit ? `<a class="ad-btn" href="/${OV.slug}/settings">Community settings</a>` : ''}`; $('admin').querySelector('section')?.prepend(links); }
   if (HOSTED) { const l = F.live.closest('label'); if (l) l.hidden = true; }
   for (const sel of document.querySelectorAll('#adTeams select')) { sel.value = S.teams[sel.dataset.team] ?? ''; sel.addEventListener('change', () => { S.teams[sel.dataset.team] = sel.value; save(); }); }
   F.key.addEventListener('input', () => { S.key = F.key.value.trim(); save(); });

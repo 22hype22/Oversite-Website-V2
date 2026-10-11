@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Oversite: a multi-community CAD for ER:LC. Each community connects its own server and gets its own live map and MDTs at /c/<slug>.
+// Oversite: a multi-community CAD for ER:LC. Each community connects its own server and gets its own live map and MDTs at /<slug>.
 // Railway runs `npm start`. Data lives in SQLite on the /data volume (see app/db.mjs).
 import http from 'node:http';
 import { createReadStream, statSync, existsSync, readFileSync, renameSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, RESERVED, token } from './app/db.mjs';
+import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, RESERVED, token } from './app/db.mjs';
 import { serverPage } from './app/serverpage.mjs';
 import * as voice from './app/voice.mjs';
 import { voicePage } from './app/voicepage.mjs';
@@ -31,7 +31,7 @@ const LEGACY_KEY = join(DATA, existsSync('/data') ? 'erlc.key' : '.erlc.key');  
 // ── small helpers ──
 const html = (res, body, status = 200, extra = {}) => { res.writeHead(status, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-frame-options': 'SAMEORIGIN', ...extra }); res.end(body); };
 const json = (res, obj, status = 200, extra = {}) => { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...extra }); res.end(JSON.stringify(obj)); };
-const redirect = (res, to, extra = {}) => { res.writeHead(303, { location: to, 'cache-control': 'no-store', ...extra }); res.end(); };
+const redirect = (res, to, extra = {}, code = 303) => { res.writeHead(code, { location: to, 'cache-control': 'no-store', ...extra }); res.end(); };
 const body = (req, limit = 1e5) => new Promise(resolve => { let b = ''; req.on('data', c => { b += c; if (b.length > limit) req.destroy(); }); req.on('end', () => resolve(b)); req.on('error', () => resolve('')); });
 const jsonBody = async req => { try { return JSON.parse(await body(req) || '{}'); } catch (e) { return {}; } };
 const formBody = async req => new URLSearchParams(await body(req));
@@ -70,7 +70,7 @@ const access = async (req, slug) => { const user = auth.currentUser(req), c = co
 const requireDiscord = id => { if (!discordlink.ready()) return; const c = communities.byId(id); c.settings.discordRequired = true; communities.saveSettings(id, c.settings); };
 export const needsDiscord = c => !!(c && c.settings.discordRequired && !c.settings.discord?.guild_id && discordlink.ready());
 const withSetup = list => list.map(x => ({ ...x, setup: needsDiscord(communities.byId(x.id)) }));
-const nextAfterCreate = slug => discordlink.ready() ? `/c/${slug}/discord/connect?new=1` : `/c/${slug}/settings?new=1`;
+const nextAfterCreate = slug => discordlink.ready() ? `/c/${slug}/discord/connect?new=1` : `/${slug}/settings?new=1`;
 const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
 
 const communityApi = async (req, res, slug, rest) => {
@@ -124,6 +124,9 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'profile/save' && M === 'POST') { const r = profile.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 5e5) || '{}'); } catch (e) {} const r = profile.setIcon(c, j.data); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon/remove' && M === 'POST') return json(res, profile.clearIcon(c));
+  if (rest === 'profile/photos' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 1.3e6) || '{}'); } catch (e) {} const r = profile.addPhoto(c, j.data); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'profile/photos/remove' && M === 'POST') return json(res, profile.removePhoto(c, (await jsonBody(req)).id));
+  if (rest === 'profile/photos/order' && M === 'POST') return json(res, profile.orderPhotos(c, (await jsonBody(req)).ids));
   // department units (Engine 1, K-9, ...) and who is in which, for the unit tags on the map; players set their own from the MDT
   if (rest === 'settings' && M === 'POST') { const j = await jsonBody(req), s = c.settings;
     const name = String(j.name || '').trim(); if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400); if (rude(name)) return json(res, { error: RUDE_MSG }, 400);
@@ -175,7 +178,7 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'explore/join' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to join a server.' }, 403);
     const c = visible((await jsonBody(req)).slug); if (!c) return json(res, { error: 'That server is not listed.' }, 404);
     if (!members.role(c.id, user.id)) { if (!c.settings.profile?.open_join) return json(res, { error: 'This server takes new members with its invite code. Ask them for it, or join their Discord.' }, 403); members.add(c.id, user.id, 'member'); }
-    return json(res, { ok: true, next: `/c/${c.slug}` }); }
+    return json(res, { ok: true, next: `/${c.slug}` }); }
   if (rest === 'reviews' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to write a review.' }, 403);
     const j = await jsonBody(req), c = visible(j.slug); if (!c) return json(res, { error: 'That server is not listed.' }, 404);
     if (runsServer(c.id, user.id)) return json(res, { error: 'You can\'t review a server you run.' }, 403);
@@ -215,6 +218,7 @@ const globalApi = async (req, res, rest) => {
     if (act === 'hide' || act === 'show') { communities.setFlag(c.id, 'hidden', act === 'hide'); if (act === 'hide') reports.resolveFor(c.id, 'hidden'); }
     else if (act === 'suspend' || act === 'unsuspend') { communities.setFlag(c.id, 'suspended', act === 'suspend'); if (act === 'suspend') reports.resolveFor(c.id, 'suspended'); }
     else if (act === 'reset_icon') profile.clearIcon(c);
+    else if (act === 'clear_photos') profile.clearPhotos(c);
     else if (act === 'clear_bio') profile.clearBio(c);
     else return json(res, { error: 'Unknown action.' }, 400);
     console.log(`moderation: ${user.discord_id} ${act} server ${c.id} (${c.slug})`); return json(res, { ok: true, servers: communities.overview(), reports: reports.open() }); }
@@ -249,7 +253,16 @@ const runsServer = (cid, uid) => ['owner', 'co_owner'].includes(members.role(cid
 const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.(png|svg)|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/avatar\/\d+)$/;
 // ── routes ──
 const route = async (req, res) => {
-  const url = new URL(req.url, 'http://x'), path = decodeURIComponent(url.pathname); let m0, m0r;
+  const url = new URL(req.url, 'http://x'); let path = decodeURIComponent(url.pathname), m0, m0r, aboutPage = false;
+  // short addresses: oversitescad.com/<server> is the CAD for its members and the server's page for everyone else;
+  // /<server>/about is always the server page, /<server>/settings and /<server>/voice are what they say.
+  // The old /c/<server> and /s/<server> addresses still work and move to the short ones.
+  const old = req.method === 'GET' && path.match(/^\/(c|s)\/([a-z0-9-]{3,32})(\/(?:settings|voice))?\/?$/);
+  if (old && !RESERVED.has(old[2])) return redirect(res, `/${old[2]}${old[1] === 's' ? '' : old[3] || ''}${url.search}`, { 'cache-control': 'no-store' }, 301);
+  const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|voice|about))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
+  if (sc) { const sub = short[2] || '', u = auth.currentUser(req);
+    if (sub === '/about' || (!sub && !(u && members.role(sc.id, u.id)) && visible(sc.slug))) { path = `/s/${sc.slug}`; aboutPage = true; }
+    else path = `/c/${sc.slug}${sub}`; }
   const me0 = auth.currentUser(req);
   if (me0?.suspended && !isSiteAdmin(me0) && !SUSPENDED_OK.test(path)) { if (path.startsWith('/api/') || /^\/c\/[^/]+\/api\//.test(path)) return json(res, { error: 'Your account is suspended.' }, 403);
     return msg(res, me0, 'Your account is suspended', 'Oversite has suspended this account for breaking the Terms of Use, so you can\'t use the CAD or Explore right now. If you think this is a mistake, email support@oversite.shop.', { href: 'mailto:support@oversite.shop', label: 'Contact support' }, 403); }
@@ -261,7 +274,7 @@ const route = async (req, res) => {
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, user.roblox_name ? '/account' : '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
   if (path === '/explore') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/explore'); if (!user.roblox_name) return redirect(res, '/dashboard?link=%2Fexplore');
     return page(res, pages.explore({ logo: LOGO, user, servers: profile.directory(user), owned: communities.forUser(user.id).filter(m => m.role === 'owner' || m.role === 'co_owner').map(m => m.slug) })); }
-  if ((m0r = path.match(/^\/s\/([a-z0-9-]{3,32})$/))) { const user = auth.currentUser(req), c = communities.bySlug(m0r[1]);
+  if (aboutPage && (m0r = path.match(/^\/s\/([a-z0-9-]{3,32})$/))) { const user = auth.currentUser(req), c = communities.bySlug(m0r[1]);
     const all = profile.directory(user), x = c && all.find(y => y.id === c.id);
     if (!x) return msg(res, user, 'Server not found', 'It may have been taken off Explore, or the address is wrong.', { href: '/explore', label: 'Explore servers' }, 404);
     // medals: where this server places on each Explore tab (top 3 earns one; a tab with nothing to count doesn't)
@@ -278,12 +291,12 @@ const route = async (req, res) => {
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
     return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON } })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
-    const from = url.searchParams.get('from'), back = from && /^\/c\/[a-z0-9-]{3,32}$/.test(from) ? from : null;
+    const from = url.searchParams.get('from'), back = from && /^\/(c\/)?[a-z0-9-]{3,32}$/.test(from) ? from : null;
     return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
     const p = roblox.pending(user.id), w = url.searchParams.get('welcome'), wc = w && communities.bySlug(w);
     // a Roblox link is required; once it is there, carry on to the CAD they were heading for
-    const back = url.searchParams.get('link'), dest = back && (/^\/c\/[a-z0-9-]{3,32}(\/[a-z]*)?(\?[a-z0-9=&]*)?$/.test(back) || back === '/explore') ? back : wc && members.role(wc.id, user.id) ? `/c/${wc.slug}` : null;
+    const back = url.searchParams.get('link'), dest = back && (/^\/(c\/)?[a-z0-9-]{3,32}(\/[a-z]*)?(\?[a-z0-9=&]*)?$/.test(back) || back === '/explore') ? back : wc && members.role(wc.id, user.id) ? `/${wc.slug}` : null;
     if (user.roblox_name && dest) return redirect(res, dest);
     if (user.roblox_name) return redirect(res, '/account');                     // the dashboard is only the Roblox link step now; the account page is home
     return page(res, pages.dashboard({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()) })); }
@@ -293,14 +306,18 @@ const route = async (req, res) => {
     if (!src) { res.writeHead(404, { 'cache-control': 'public, max-age=300' }); return res.end(); }
     if (src.kind === 'custom') { res.writeHead(200, { 'content-type': src.mime, 'cache-control': 'public, max-age=300', 'content-length': src.data.length }); return res.end(src.data); }
     return redirect(res, src.url); }
+  // a server's photo; a photo is never changed in place (a new upload gets a new id), so browsers can keep it a while
+  if ((m0r = path.match(/^\/c\/([a-z0-9-]{3,32})\/photos\/(\d{1,12})$/))) { const c = communities.bySlug(m0r[1]), ph = c && !c.suspended && communityPhotos.get(c.id, Number(m0r[2]));
+    if (!ph) { res.writeHead(404, { 'cache-control': 'public, max-age=60' }); return res.end(); }
+    res.writeHead(200, { 'content-type': ph.mime, 'cache-control': 'public, max-age=86400', 'content-length': ph.data.length, 'x-content-type-options': 'nosniff' }); return res.end(ph.data); }
   if ((m0r = path.match(/^\/rbx\/avatar\/(\d{1,20})$/))) { const url = await headshot(m0r[1]); if (!url) { res.writeHead(404, { 'cache-control': 'public, max-age=600' }); return res.end(); }
     res.writeHead(302, { location: url, 'cache-control': 'public, max-age=3600' }); return res.end(); }
   if (path === '/privacy' || path === '/terms' || path === '/refunds') return page(res, pages.legal({ logo: LOGO, user: auth.currentUser(req), doc: path.slice(1) }));
   if ((m0 = path.match(/^\/c\/([a-z0-9-]+)\/discord\/connect$/))) { const { c, user, role } = await access(req, m0[1]);
     if (!c || !user || !can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner or a co-owner can connect a Discord server.', { href: '/dashboard', label: 'Back' }, 403);
-    if (!discordlink.ready()) return msg(res, user, 'Discord is not set up yet', 'Oversite needs its Discord bot keys before servers can be linked.', { href: `/c/${c.slug}/settings`, label: 'Back' });
+    if (!discordlink.ready()) return msg(res, user, 'Discord is not set up yet', 'Oversite needs its Discord bot keys before servers can be linked.', { href: `/${c.slug}/settings`, label: 'Back' });
     const state = token(16); return redirect(res, discordlink.installUrl(req, state), { 'set-cookie': auth.setCookie(req, 'ov_dg', `${state}|${c.slug}|${url.searchParams.has('new') ? 'new' : ''}`, 600) }); }
-  if (path === '/auth/discord/guild') { const [state, slug, fresh] = (auth.cookies(req).ov_dg || '').split('|'), back = slug ? `/c/${slug}/settings` : '/dashboard', u0 = auth.currentUser(req);
+  if (path === '/auth/discord/guild') { const [state, slug, fresh] = (auth.cookies(req).ov_dg || '').split('|'), back = slug ? `/${slug}/settings` : '/dashboard', u0 = auth.currentUser(req);
     try { if (!state || state !== url.searchParams.get('state')) throw new Error('That link expired. Please try connecting again.');
       if (url.searchParams.get('error')) throw new Error('Adding the bot was cancelled.');
       const { c, user, role } = await access(req, slug); if (!c || !user || !can(role, 'co_owner')) throw new Error('Only the owner or a co-owner can connect a Discord server.');
@@ -328,7 +345,7 @@ const route = async (req, res) => {
     if (r.error) return json(res, { error: r.error }, 400);
     if (path === '/auth/create') { legacyKey(r.id); requireDiscord(r.id); }
     const slug = r.slug || r.community.slug, u = users.byId(r.user.id);
-    let next = path === '/auth/create' ? nextAfterCreate(slug) : (u.roblox_name ? `/c/${slug}` : `/dashboard?welcome=${slug}`);
+    let next = path === '/auth/create' ? nextAfterCreate(slug) : (u.roblox_name ? `/${slug}` : `/dashboard?welcome=${slug}`);
     if (j.roblox && !u.roblox_name) { const s2 = await auth.robloxStart(u, j.roblox); if (!s2.error && path === '/auth/code') next = `/dashboard?welcome=${slug}`; }
     return json(res, { next }, 200, user ? {} : { 'set-cookie': auth.signIn(req, r.user.id) }); }
   if (path === '/auth/logout' && req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, '/'); return redirect(res, '/', { 'set-cookie': [auth.signOut(req), auth.setCookie(req, COOKIE, '', 0)] }); }   // signing out also forgets the preview code, so the browser is back at the very first screen
@@ -336,24 +353,24 @@ const route = async (req, res) => {
   if ((m = path.match(/^\/join\/([0-9a-f]{10})$/))) { const user = auth.currentUser(req), inv = invites.get(m[1]), c = inv && communities.byId(inv.community_id);
     if (!inv || !c) return msg(res, user, 'This invite has expired', 'Ask your community for a new link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
     if (!user) return redirect(res, `/?next=/join/${m[1]}`);
-    if (members.role(c.id, user.id)) return redirect(res, `/c/${c.slug}`);
-    if (req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, `/join/${m[1]}`); members.add(c.id, user.id); invites.use(m[1]); return redirect(res, `/c/${c.slug}`); }
+    if (members.role(c.id, user.id)) return redirect(res, `/${c.slug}`);
+    if (req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, `/join/${m[1]}`); members.add(c.id, user.id); invites.use(m[1]); return redirect(res, `/${c.slug}`); }
     return page(res, pages.join({ logo: LOGO, user, c, code: m[1] })); }
   if ((m = path.match(/^\/c\/([a-z0-9-]{3,32})(\/.*)?$/))) { const slug = m[1], sub = (m[2] || '/').replace(/\/+$/, '') || '/';
     if (sub.startsWith('/api/')) return communityApi(req, res, slug, sub.slice(5));
     const { c, user, role } = await access(req, slug);
     if (!c) return msg(res, user, 'Community not found', 'Check the address, or ask your community for an invite link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
     if (c.suspended && !isSiteAdmin(user)) return msg(res, user, `${c.name} is suspended`, 'Oversite has suspended this server for breaking the Terms of Use, so its CAD is closed. The owner can email support@oversite.shop about it.', { href: user ? '/account' : '/', label: user ? 'Your account' : 'Back' }, 403);
-    if (!user) return redirect(res, `/?next=${encodeURIComponent(path)}`);
+    if (!user) return redirect(res, `/?next=${encodeURIComponent(url.pathname)}`);
     if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', { href: '/dashboard', label: 'Go to dashboard' }, 403);
-    if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(path + url.search)}`);   // no CAD without a linked Roblox account
-    if (needsDiscord(c) && sub === '/') return can(role, 'co_owner') ? redirect(res, `/c/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
+    if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname + url.search)}`);   // no CAD without a linked Roblox account
+    if (needsDiscord(c) && sub === '/') return can(role, 'co_owner') ? redirect(res, `/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
     if (sub === '/') return html(res, mapPage(c, user, role));
     if (sub === '/voice') return page(res, voicePage({ logo: LOGO, user, c, settings: voice.voiceSettings(c), keyOk: !!communities.key(c.id) }));
-    if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 403);
+    if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null })); }
-    return msg(res, user, 'Not found', 'That page does not exist.', { href: `/c/${c.slug}`, label: 'Open CAD' }, 404); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null })); }
+    return msg(res, user, 'Not found', 'That page does not exist.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
   return serve(req, res, path); };
 

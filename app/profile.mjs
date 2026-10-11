@@ -1,7 +1,7 @@
 // A server's public profile: what ER:LC knows about it (name, join code, owner, size, rules), kept fresh from the API,
 // plus what only the owner can say (bio, icon, Discord invite). Saved now so the server browser can list servers later.
 import { rude, RUDE_MSG } from './clean.mjs';
-import { communities, communityIcons, users, members, votes, stats, reviews } from './db.mjs';
+import { communities, communityIcons, communityPhotos, users, members, votes, stats, reviews } from './db.mjs';
 import * as discordlink from './discordlink.mjs';
 
 // where a server is and what it speaks, shown as chips in the server browser (code: [label, flag])
@@ -16,7 +16,7 @@ const VOTE_GAP = 12 * 3600000;
 
 const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg';
 const RUSERS = process.env.ROBLOX_USERS_API || 'https://users.roblox.com';
-const BIO_MAX = 300, ICON_MAX = 300000;
+const BIO_MAX = 300, ICON_MAX = 300000, PHOTO_MAX = 900000, PHOTOS_MAX = 8;
 // an invite can be typed as just its code or pasted as any discord.gg / discord.com/invite link; it is stored as https://discord.gg/<code>
 const inviteCode = t => { t = String(t || '').trim().replace(/^<|>$/g, ''); const m = /^(?:https?:\/\/)?(?:www\.)?(?:discord\.gg|discord(?:app)?\.com\/invite)\/([A-Za-z0-9-]{2,32})\/?(?:\?.*)?$/i.exec(t) || /^([A-Za-z0-9-]{2,32})$/.exec(t); return m ? m[1] : null; };
 
@@ -55,6 +55,17 @@ export const setIcon = (c, dataUrl) => { const m = /^data:(image\/(?:png|jpeg|we
   if (!m) return { error: 'Use a PNG, JPG or WebP image.' }; const buf = Buffer.from(m[2], 'base64'); if (buf.length > ICON_MAX) return { error: 'That image is too big. Try a smaller one.' };
   const sig = buf.subarray(0, 12).toString('hex'); if (!(sig.startsWith('89504e47') || sig.startsWith('ffd8ff') || (sig.startsWith('52494646') && buf.subarray(8, 12).toString() === 'WEBP'))) return { error: 'That file is not a valid image.' };
   communityIcons.set(c.id, m[1], buf); return { ok: true }; };
+// a photo arrives already shrunk by the browser (1600 px wide at most); a server keeps up to eight
+const imageOf = (dataUrl, max) => { const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
+  if (!m) return { error: 'Use a PNG, JPG or WebP image.' }; const buf = Buffer.from(m[2], 'base64'); if (buf.length > max) return { error: 'That image is too big. Try a smaller one.' };
+  const sig = buf.subarray(0, 12).toString('hex'); if (!(sig.startsWith('89504e47') || sig.startsWith('ffd8ff') || (sig.startsWith('52494646') && buf.subarray(8, 12).toString() === 'WEBP'))) return { error: 'That file is not a valid image.' };
+  return { mime: m[1], buf }; };
+export const addPhoto = (c, dataUrl) => { if (communityPhotos.ids(c.id).length >= PHOTOS_MAX) return { error: `A server can have up to ${PHOTOS_MAX} photos. Remove one first.` };
+  const im = imageOf(dataUrl, PHOTO_MAX); if (im.error) return im; return { ok: true, id: Number(communityPhotos.add(c.id, im.mime, im.buf)) }; };
+export const removePhoto = (c, id) => { communityPhotos.remove(c.id, Number(id)); return { ok: true }; };
+export const orderPhotos = (c, ids) => { const have = new Set(communityPhotos.ids(c.id)), list = (Array.isArray(ids) ? ids : []).map(Number).filter(i => have.has(i));
+  communityPhotos.order(c.id, [...new Set(list)]); return { ok: true }; };
+export const clearPhotos = c => { communityPhotos.clear(c.id); return { ok: true }; };
 export const clearBio = c => { const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), bio: '' }; communities.saveSettings(c.id, s); return { ok: true }; };
 export const clearIcon = c => { communityIcons.remove(c.id); return { ok: true }; };
 
@@ -91,12 +102,12 @@ export const startDirectory = (feedPeek) => { let busy = false; if (feedPeek) pe
 // what anyone browsing may see about a listed server; `me` marks the ones this person already belongs to
 export const directory = me => { const mine = new Map((me ? communities.forUser(me.id) : []).map(m => [m.id, m.role]));
   const total = votes.totals(), week = votes.since(Date.now() - 7 * 86400000), voted = me ? votes.mine(me.id) : {};
-  const vr = users.verifiedRoblox(), rv = reviews.summary(), owners = new Map(), ownerOf = c => { if (!owners.has(c.owner_id)) owners.set(c.owner_id, users.byId(c.owner_id) || {}); return owners.get(c.owner_id); };
+  const vr = users.verifiedRoblox(), rv = reviews.summary(), ph = communityPhotos.byServer(), owners = new Map(), ownerOf = c => { if (!owners.has(c.owner_id)) owners.set(c.owner_id, users.byId(c.owner_id) || {}); return owners.get(c.owner_id); };
   return communities.all().filter(c => c.settings.profile?.listed && !c.hidden && !c.suspended).map(c => { const P = c.settings.profile, E = P.erlc || {};
     return { slug: c.slug, name: c.name, bio: P.bio || '', invite: P.invite || '', players: E.players ?? null, max: E.max ?? null, join_key: E.join_key || P.join_code || '', open_join: !!P.open_join, ingame: E.name || '',
       owner_id: E.owner_id || ownerOf(c).roblox_id || '', owner_name: E.owner_name || ownerOf(c).roblox_name || ownerOf(c).name || '', co_owners: (E.co_owners || []).map(o => o.name).filter(Boolean), verified: E.verified || '', team_balance: !!E.team_balance,
       depts: ['pd', 'fd', 'dot'].map(d => c.settings.depts?.[d] && { k: d, name: c.settings.depts[d].name, short: c.settings.depts[d].short }).filter(Boolean), discord: c.settings.discord?.guild_name || '', at: E.at || 0, created: c.created || 0,
-      role: mine.get(c.id) || null, live: !!E.at && Date.now() - E.at < 10 * 60000,
+      role: mine.get(c.id) || null, photos: ph.get(c.id) || [], live: !!E.at && Date.now() - E.at < 10 * 60000,
       votes: total[c.id] || 0, week: week[c.id] || 0, next_vote: voted[c.id] ? Math.max(0, voted[c.id] + VOTE_GAP - Date.now()) : 0,
       region: REGIONS[P.region] ? { code: P.region, name: REGIONS[P.region][0], flag: REGIONS[P.region][1] } : null, lang: LANGS[P.lang] ? { code: P.lang, name: LANGS[P.lang][0], flag: LANGS[P.lang][1] } : null,
       dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, connected: !!c.erlc_key, badge: !!c.verified, owner_badge: !!(E.owner_id || ownerOf(c).roblox_id) && vr.has(String(E.owner_id || ownerOf(c).roblox_id)), rating: rv[c.id] ? Math.round(rv[c.id].avg * 10) / 10 : null, reviews: rv[c.id]?.n || 0, id: c.id }; }); };

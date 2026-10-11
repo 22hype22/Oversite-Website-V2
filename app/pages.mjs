@@ -21,6 +21,16 @@ a{color:inherit}
 .sp-icon i{position:absolute;inset:auto 0 0;font:500 10.5px/1 inherit;font-style:normal;padding:5px 0;background:rgba(0,0,0,.62);opacity:0;transition:opacity .15s}
 .sp-icon:hover i,.sp-icon:focus-visible i{opacity:1}
 .sp-id{min-width:0}.sp-id b{display:block;font-size:16px;font-weight:600}.sp-id small{display:block;color:var(--dim);font-size:12.5px;margin-top:2px}
+.sp-ph{margin:16px 0 0}.sp-phh{display:flex;align-items:baseline;justify-content:space-between}.sp-phh b{font-size:13px;font-weight:600}.sp-phh span{color:var(--faint);font-size:12px}
+.sp-phg{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
+.sp-phg figure{position:relative;margin:0;aspect-ratio:16/10;border-radius:12px;overflow:hidden;border:1px solid var(--hair2);background:#1b1d21}
+.sp-phg img{width:100%;height:100%;object-fit:cover;display:block}
+.sp-phg em{position:absolute;left:7px;top:7px;font-style:normal;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:999px;background:rgba(10,11,13,.78);color:var(--ink)}
+.ph-acts{position:absolute;right:6px;top:6px;display:flex;gap:4px}
+.ph-acts button{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;border:1px solid rgba(240,242,245,.18);background:rgba(10,11,13,.78);color:var(--ink);cursor:pointer;padding:0}
+.ph-acts button:hover{background:rgba(30,32,36,.95)}.ph-acts .ph-x:hover{color:#ff8a8a}.ph-acts [hidden]{display:none}
+.sp-phadd{aspect-ratio:16/10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:12px;border:1px dashed rgba(240,242,245,.22);background:rgba(240,242,245,.03);color:var(--dim);font:inherit;font-size:12.5px;cursor:pointer}
+.sp-phadd:hover{color:var(--ink);border-color:rgba(240,242,245,.4);background:rgba(240,242,245,.06)}
 .sp-erlc{border:1px solid var(--hair);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,.02);margin-bottom:4px}
 .sp-erlch{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 .sp-erlch .lnk{background:none;border:0;color:var(--dim);font:inherit;font-size:11.5px;letter-spacing:0;text-transform:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
@@ -49,6 +59,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xr.is-top{border-color:rgba(240,242,245,.24);box-shadow:0 0 0 1px rgba(240,242,245,.06),0 24px 60px -30px rgba(200,215,255,.35)}
 .xr-map{position:relative;height:96px;background:#3E6973 url(/liberty-county.jpg) var(--pos)/850% no-repeat;transition:background-size .6s cubic-bezier(.23,1,.32,1)}
 .xr:hover .xr-map{background-size:930%}
+.xr-map.ph{height:112px;background-size:cover;background-position:center}.xr:hover .xr-map.ph{background-size:cover}
 .xr-map::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,12,.1),rgba(8,10,12,.35) 50%,rgba(16,16,18,.96))}
 .xr-mt{position:absolute;left:14px;right:14px;top:12px;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .xs{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#D5D8DD;padding:5px 11px;border-radius:999px;background:rgba(8,9,11,.72);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08)}
@@ -292,7 +303,7 @@ export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', err
 <button class="btn pri">Sign in</button><p class="msg" id="codemsg"></p>${roblox ? '<div class="or">already linked Roblox?</div><a class="btn" href="/auth/roblox?next=/dashboard">Sign in with Roblox</a>' : ''}</form>
 <form class="card path" id="makeform" autocomplete="off"><h2>Create a server</h2><p class="note">Set up a CAD for your ER:LC server.</p>
 <input id="mname" maxlength="48" placeholder="Server name" aria-label="Server name" required>
-<input id="mslug" maxlength="32" placeholder="address" aria-label="Address" required><p class="hint addr">oversitescad.com/c/<span id="slugp">your-server</span></p>
+<input id="mslug" maxlength="32" placeholder="address" aria-label="Address" required><p class="hint addr">oversitescad.com/<span id="slugp">your-server</span></p>
 <input id="mcode" maxlength="24" placeholder="Invite code (optional)" aria-label="Invite code" autocapitalize="characters" spellcheck="false"><p class="hint">What members type to join. Leave it empty for a random one.</p>
 <p class="hint" style="margin:0 0 10px">Next you connect your server's <b>Discord</b>. Every Oversite server needs one: it's how staff ranks and roles work.</p><button class="btn pri">Create and connect Discord</button><p class="msg" id="makemsg"></p></form>
 </div>
@@ -336,12 +347,12 @@ const vbtn=(k,id,on)=>'<button class="btn sm'+(on?' is-on':'')+'" data-k="'+k+'"
 const act=(a,id,label,cls)=>'<button class="btn sm'+(cls?' '+cls:'')+'" data-a="'+a+'" data-id="'+id+'">'+label+'</button>';
 const open=new Set();
 const rRow=x=>'<div class="adm-r adm-rr">'+sIc(x)+'<div class="tx"><b>'+e(x.name)+'</b><small>'+tag(e(RS[x.reason]||x.reason),'warn')+' by '+e(x.by_name||'someone')+' · '+ago(x.created)+(x.hidden?' · '+tag('Hidden','dim'):'')+(x.suspended?' · '+tag('Suspended','bad'):'')+'</small>'
-  +(x.review_id?(x.review_body!=null?'<q>'+'★'.repeat(x.review_rating)+' '+e(x.review_body)+'</q><small>Review by '+e(x.review_by||'someone')+' · <a href="/s/'+e(x.slug)+'#reviews" target="_blank">open page</a></small>':'<q>This review was already deleted.</q>'):(x.details?'<q>'+e(x.details)+'</q>':''))+'</div>'
+  +(x.review_id?(x.review_body!=null?'<q>'+'★'.repeat(x.review_rating)+' '+e(x.review_body)+'</q><small>Review by '+e(x.review_by||'someone')+' · <a href="/'+e(x.slug)+'/about#reviews" target="_blank">open page</a></small>':'<q>This review was already deleted.</q>'):(x.details?'<q>'+e(x.details)+'</q>':''))+'</div>'
   +'<div class="adm-b">'+(x.review_id?(x.review_body!=null?'<button class="btn sm warnb" data-rvd="'+x.review_id+'">Remove review</button>':''):(x.hidden?'':act('hide',x.community_id,'Hide server','warnb')))+'<button class="btn sm" data-dismiss="'+x.id+'">Dismiss</button></div></div>';
-const sRow=x=>'<div class="adm-r'+(x.verified?' on':'')+(x.suspended?' off':'')+'" data-srv="'+x.id+'">'+sIc(x)+'<div class="tx"><b>'+e(x.name)+(x.verified?VB:'')+'</b><small>/c/'+e(x.slug)+' · '+(x.owner_rbx||x.owner_name?'by '+e(x.owner_rbx||x.owner_name)+' · ':'')+x.members+' member'+(x.members===1?'':'s')+(x.listed&&!x.hidden?' · On Explore':'')+'</small>'
+const sRow=x=>'<div class="adm-r'+(x.verified?' on':'')+(x.suspended?' off':'')+'" data-srv="'+x.id+'">'+sIc(x)+'<div class="tx"><b>'+e(x.name)+(x.verified?VB:'')+'</b><small>/'+e(x.slug)+' · '+(x.owner_rbx||x.owner_name?'by '+e(x.owner_rbx||x.owner_name)+' · ':'')+x.members+' member'+(x.members===1?'':'s')+(x.listed&&!x.hidden?' · On Explore':'')+'</small>'
   +((x.open_reports||x.hidden||x.suspended)?'<span class="adm-ts">'+(x.open_reports?tag(x.open_reports+' report'+(x.open_reports===1?'':'s'),'warn'):'')+(x.hidden?tag('Hidden from Explore','dim'):'')+(x.suspended?tag('Suspended','bad'):'')+'</span>':'')+'</div>'
   +'<div class="adm-b">'+vbtn('server',x.id,x.verified)+'<button class="btn sm ghost" data-more="'+x.id+'" aria-expanded="'+open.has(x.id)+'">Manage</button></div>'
-  +(open.has(x.id)?'<div class="adm-x">'+act(x.hidden?'show':'hide',x.id,x.hidden?'Show on Explore':'Hide from Explore')+(x.custom_icon?act('reset_icon',x.id,'Reset icon'):'')+(x.has_bio?act('clear_bio',x.id,'Clear bio'):'')+'<a class="btn sm" href="/c/'+e(x.slug)+'">Open CAD</a>'+act(x.suspended?'unsuspend':'suspend',x.id,x.suspended?'Lift suspension':'Suspend server',x.suspended?'':'warnb')+'</div>':'')+'</div>';
+  +(open.has(x.id)?'<div class="adm-x">'+act(x.hidden?'show':'hide',x.id,x.hidden?'Show on Explore':'Hide from Explore')+(x.custom_icon?act('reset_icon',x.id,'Reset icon'):'')+(x.photos?act('clear_photos',x.id,'Remove photos'):'')+(x.has_bio?act('clear_bio',x.id,'Clear bio'):'')+'<a class="btn sm" href="/'+e(x.slug)+'">Open CAD</a>'+act(x.suspended?'unsuspend':'suspend',x.id,x.suspended?'Lift suspension':'Suspend server',x.suspended?'':'warnb')+'</div>':'')+'</div>';
 const pRow=x=>'<div class="adm-r'+(x.verified?' on':'')+(x.suspended?' off':'')+'"><span class="pic">'+ini(x.roblox_name)+'<img src="/rbx/avatar/'+e(x.roblox_id)+'" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>'+e(x.roblox_name)+(x.verified?VB:'')+'</b><small>Roblox '+e(x.roblox_id)+(x.discord?' · Discord '+e(x.discord_name||''):'')+' · '+x.servers+' server'+(x.servers===1?'':'s')+'</small>'+(x.suspended?'<span class="adm-ts">'+tag('Suspended','bad')+'</span>':'')+'</div>'
   +'<div class="adm-b">'+vbtn('user',x.id,x.verified)+'<button class="btn sm'+(x.suspended?'':' warnb')+'" data-p="'+(x.suspended?'unsuspend':'suspend')+'" data-id="'+x.id+'">'+(x.suspended?'Unsuspend':'Suspend')+'</button></div></div>';
 const sL=document.getElementById('sL'),sQ=document.getElementById('sQ'),pL=document.getElementById('pL'),pQ=document.getElementById('pQ'),rL=document.getElementById('rL');
@@ -354,7 +365,7 @@ const fresh=j=>{if(j&&j.servers){S=j.servers;R=j.reports}drawS();drawR()};
 const sName=id=>(S.find(x=>x.id===id)||{}).name||'this server';
 const CONFIRM={suspend:id=>({title:'Suspend '+sName(id)+'?',text:'Its CAD closes for everyone and it disappears from Explore until you lift the suspension.',ok:'Suspend server',danger:true}),
   hide:id=>({title:'Hide '+sName(id)+' from Explore?',text:'The owner can still use the CAD. Their Settings will say Oversite hid it. Open reports about it are closed.',ok:'Hide server'}),
-  clear_bio:id=>({title:'Clear the bio of '+sName(id)+'?',text:'The owner can write a new one.',ok:'Clear bio'}),reset_icon:id=>({title:'Reset the icon of '+sName(id)+'?',text:'It goes back to the ER:LC or Discord icon.',ok:'Reset icon'})};
+  clear_bio:id=>({title:'Clear the bio of '+sName(id)+'?',text:'The owner can write a new one.',ok:'Clear bio'}),clear_photos:id=>({title:'Remove the photos of '+sName(id)+'?',text:'Every photo the owner uploaded is deleted. Its banner goes back to the map.',ok:'Remove photos'}),reset_icon:id=>({title:'Reset the icon of '+sName(id)+'?',text:'It goes back to the ER:LC or Discord icon.',ok:'Reset icon'})};
 sQ.addEventListener('input',drawS);pQ.addEventListener('input',()=>{clearTimeout(pt);pt=setTimeout(loadP,200)});
 document.addEventListener('click',async ev=>{
   const m=ev.target.closest('[data-more]');if(m){const id=+m.dataset.more;open.has(id)?open.delete(id):open.add(id);drawS();return}
@@ -382,15 +393,15 @@ ${user.roblox_name ? `<p class="note">Linked to <b>${esc(user.roblox_name)}</b>$
 <div class="grid"><div>
 ${comms.length ? `<section class="card"><h2>Your servers</h2>
 ${comms.map(c => { const admin = runs(c.role), setup = !c.connected && admin, role = RANK_LABEL[c.role] || c.role;
-  return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(c.slug)}/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b title="oversitescad.com/c/${esc(c.slug)}">${esc(c.name)}</b>
+  return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(c.slug)}/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b title="oversitescad.com/${esc(c.slug)}">${esc(c.name)}</b>
 <small><i class="st ${c.connected ? 'ok' : 'warn'}"></i>${c.connected ? 'Live data connected' : 'ER:LC not connected yet'}<span class="sep">·</span>${role}</small></div>
-<div class="go">${c.setup ? (admin ? `<a class="btn pri discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord to finish</a>` : '<span class="tag warn">Being set up</span>') : `${admin ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Settings</a>` : ''}${setup ? `<a class="btn ghost" href="/c/${esc(c.slug)}">Open CAD</a><a class="btn pri" href="/c/${esc(c.slug)}/settings">Connect ER:LC</a>` : `<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>`}`}</div></div>`; }).join('')}
+<div class="go">${c.setup ? (admin ? `<a class="btn pri discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord to finish</a>` : '<span class="tag warn">Being set up</span>') : `${admin ? `<a class="btn ghost" href="/${esc(c.slug)}/settings">Settings</a>` : ''}${setup ? `<a class="btn ghost" href="/${esc(c.slug)}">Open CAD</a><a class="btn pri" href="/${esc(c.slug)}/settings">Connect ER:LC</a>` : `<a class="btn pri" href="/${esc(c.slug)}">Open CAD<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>`}`}</div></div>`; }).join('')}
 </section>` : ''}
 <section class="card"><h2>${comms.length ? 'Add another server' : 'Get started'}</h2><p class="note">${comms.length ? 'Got an invite code from another server? Enter it here.' : 'Enter your server\'s invite code.'}</p>
 <form id="join" class="row" autocomplete="off" style="flex-wrap:nowrap"><input id="jcode" placeholder="Invite code" aria-label="Invite code" spellcheck="false" required><button class="btn pri">Join</button></form><p class="msg" id="jmsg"></p>
 <details class="mk"${comms.length ? '' : ' open'}><summary>Create a new server instead</summary><p class="note">One per ER:LC server. Members join with its invite code.</p>
 <form id="create" autocomplete="off"><label for="cname">Server name</label><input id="cname" maxlength="48" placeholder="Liberty County Roleplay" required>
-<label for="cslug">Address</label><input id="cslug" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="liberty-county" required><p class="hint">oversitescad.com/c/<span id="slugp">liberty-county</span></p>
+<label for="cslug">Address</label><input id="cslug" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="liberty-county" required><p class="hint">oversitescad.com/<span id="slugp">liberty-county</span></p>
 <label for="ccode">Invite code</label><input id="ccode" maxlength="24" placeholder="LIBERTY" autocapitalize="characters" spellcheck="false"><p class="hint">Members type this on the front page to join. 2 to 24 letters or numbers, or leave it empty for a random one. You can change it later.</p>
 <p class="hint" style="margin:10px 0 0">Next you connect your server's <b>Discord</b>. Every Oversite server needs one: it's how staff ranks and roles work.</p><div class="row" style="margin-top:14px"><button class="btn pri">Create and connect Discord</button></div><p class="msg" id="cmsg"></p></form></details></section>
 </div><div>
@@ -423,12 +434,12 @@ export const account = ({ logo, user, comms, discord, back }) => layout({ title:
 <div class="grid"><div>
 ${(() => { const row = c => { const owner = c.role === 'owner';
   return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(c.slug)}/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>${esc(c.name)}</b><small>${esc(RANK_LABEL[c.role] || c.role)}</small></div>
-<div class="go">${runs(c.role) ? `<a class="btn ghost" href="/c/${esc(c.slug)}/settings">Server settings</a>` : ''}${owner ? '' : `<button class="btn ghost" data-leave="${esc(c.slug)}" data-name="${esc(c.name)}">Leave</button>`}${c.setup ? (runs(c.role) ? `<a class="btn pri discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord</a>` : '<span class="tag warn">Being set up</span>') : `<a class="btn pri" href="/c/${esc(c.slug)}">Open CAD</a>`}</div></div>`; };
+<div class="go">${runs(c.role) ? `<a class="btn ghost" href="/${esc(c.slug)}/settings">Server settings</a>` : ''}${owner ? '' : `<button class="btn ghost" data-leave="${esc(c.slug)}" data-name="${esc(c.name)}">Leave</button>`}${c.setup ? (runs(c.role) ? `<a class="btn pri discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord</a>` : '<span class="tag warn">Being set up</span>') : `<a class="btn pri" href="/${esc(c.slug)}">Open CAD</a>`}</div></div>`; };
   const mine = comms.filter(c => c.role === 'owner'), joined = comms.filter(c => c.role !== 'owner');
   return `<section class="card"><h2>Your servers</h2>${mine.length ? mine.map(row).join('') : '<p class="note">You don\'t own a server yet.</p>'}
 <details class="mk"${mine.length ? '' : ' open'}><summary>Make a new server</summary><p class="note">One per ER:LC server. Members join with its invite code.</p>
 <form id="create" autocomplete="off"><label for="cname">Server name</label><input id="cname" maxlength="48" placeholder="Liberty County Roleplay" required>
-<label for="cslug">Address</label><input id="cslug" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="liberty-county" required><p class="hint">oversitescad.com/c/<span id="slugp">liberty-county</span></p>
+<label for="cslug">Address</label><input id="cslug" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="liberty-county" required><p class="hint">oversitescad.com/<span id="slugp">liberty-county</span></p>
 <label for="ccode">Invite code</label><input id="ccode" maxlength="24" placeholder="LIBERTY" autocapitalize="characters" spellcheck="false"><p class="hint">Members type this on the front page to join. 2 to 24 letters or numbers, or leave it empty for a random one. You can change it later.</p>
 <p class="hint" style="margin:10px 0 0">Next you connect your server's <b>Discord</b>. Every Oversite server needs one: it's how staff ranks and roles work.</p><div class="row" style="margin-top:14px"><button class="btn pri">Create and connect Discord</button></div><p class="msg" id="cmsg"></p></form></details></section>
 <section class="card" style="margin-top:18px"><h2>Joined servers</h2>${joined.length ? joined.map(row).join('') : '<p class="note">You haven\'t joined anyone else\'s server yet.</p>'}
@@ -502,10 +513,10 @@ const voteBtn=x=>x.next_vote>0?'<button class="xb ghost voted" data-vote="'+e(x.
 const acts=x=>(x.join_key?'<a class="xb pri" href="'+ERLC+'" target="_blank" rel="noopener" data-play="'+e(x.join_key)+'" title="Copy the join code and open ER:LC">'+PLAY+'Join</a>':'')+(x.open_join&&!x.role?'<button class="xb" data-joincad="'+e(x.slug)+'" title="Join this server on Oversite">'+CADI+'Join CAD</button>':'')+voteBtn(x)
   +(x.invite?'<a class="xb ghost" href="'+e(x.invite)+'" target="_blank" rel="noopener" title="Join their Discord">'+DC+'Discord</a>':'');
 const pct=x=>x.live&&x.max?Math.min(100,Math.round(x.players/x.max*100)):0;
-const card=(x,i)=>'<article class="xr st-'+state(x)+(i===0?' is-top':'')+'" tabindex="0" data-slug="'+e(x.slug)+'" aria-label="'+e(x.name)+'">'
-  +'<div class="xr-map" style="--pos:'+spot(x)+'"><div class="xr-mt">'+status(x)+(i===0?'<span class="xr-badge">'+(TAB==='new'?'Newest':TAB==='voted'?'Most voted':TAB==='popular'?'Most popular':'Most active')+'</span>':i<3?'<span class="xr-rank">#'+(i+1)+'</span>':'')+'</div>'
+const card=(x,i)=>'<article class="xr st-'+state(x)+(i===0?' is-top':'')+'" tabindex="0" data-slug="'+e(x.slug)+'"'+(x.role?' data-mine="1"':'')+' aria-label="'+e(x.name)+'">'
+  +'<div class="xr-map'+(x.photos&&x.photos.length?' ph':'')+'" style="--pos:'+spot(x)+(x.photos&&x.photos.length?';background-image:url(/c/'+e(x.slug)+'/photos/'+x.photos[0]+')':'')+'"><div class="xr-mt">'+status(x)+(i===0?'<span class="xr-badge">'+(TAB==='new'?'Newest':TAB==='voted'?'Most voted':TAB==='popular'?'Most popular':'Most active')+'</span>':i<3?'<span class="xr-rank">#'+(i+1)+'</span>':'')+'</div>'
   +(x.join_key?'<span class="xr-code" title="Join code">'+e(x.join_key)+'</span>':'')+'<div class="xr-bar"><i style="width:'+pct(x)+'%"></i></div></div>'
-  +'<div class="xr-b"><div class="xr-h">'+ic(x)+'<div class="xr-n"><h3>'+e(x.name)+(x.badge?VB:'')+'</h3>'+by(x)+'</div>'+(x.role?'<a class="xr-mine" href="/c/'+e(x.slug)+'">'+e(RN[x.role]||'Member')+' · Open CAD</a>':'')+'</div>'
+  +'<div class="xr-b"><div class="xr-h">'+ic(x)+'<div class="xr-n"><h3>'+e(x.name)+(x.badge?VB:'')+'</h3>'+by(x)+'</div>'+(x.role?'<a class="xr-mine" href="/'+e(x.slug)+'">'+e(RN[x.role]||'Member')+' · Open CAD</a>':'')+'</div>'
   +'<div class="xr-m">'+meta(x)+'</div><p class="'+(x.bio?'':'none')+'">'+e(x.bio||'No description yet.')+'</p>'
   +'<div class="xr-f"><div class="xr-a">'+acts(x)+'</div></div></div></article>';
 const row=card;
@@ -515,7 +526,7 @@ const render=()=>{ const t=q.value.trim().toLowerCase(), k=SORT[TAB];
     .sort((a,b)=>k(b)-k(a)||b.votes-a.votes||a.name.localeCompare(b.name));
   g.innerHTML=L.map(row).join(''); em.hidden=!!L.length;
   if(!L.length) em.innerHTML=TAB==='active'&&!t?'<b>No servers are online right now.</b><p>Servers show up here while they are running. Check Trending in the meantime.</p>':S.length?'<b>No servers match that.</b><p>Try a different search.</p>'
-    :'<b>No servers are listed yet.</b><p>Owners can add theirs in their server\\'s Settings, under Server profile.</p>'+(OWNED.length?'<a class="btn pri" href="/c/'+e(OWNED[0])+'/settings#profile">List your server</a>':''); };
+    :'<b>No servers are listed yet.</b><p>Owners can add theirs in their server\\'s Settings, under Server profile.</p>'+(OWNED.length?'<a class="btn pri" href="/'+e(OWNED[0])+'/settings#profile">List your server</a>':''); };
 const toast=m=>{ const t=document.getElementById('xtoast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),3200); };
 tabs.addEventListener('click',ev=>{ const b=ev.target.closest('[data-t]'); if(!b) return; TAB=b.dataset.t; tabs.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x===b)); render(); });
 // report a listing to Oversite: pick a reason, add details, sent to the site admins' list on /admin
@@ -543,17 +554,17 @@ document.addEventListener('click',async ev=>{
   const rp=ev.target.closest('[data-report]'); if(rp){ const x=S.find(s=>s.slug===rp.dataset.report); if(x){ dlg.close(); report(x); } return; }
   const jc=ev.target.closest('[data-joincad]'); if(jc){ ev.preventDefault(); ev.stopPropagation(); jc.disabled=true; try{ const j=await api('/api/explore/join',{slug:jc.dataset.joincad}); location.href=j.next; }catch(err){ toast(err.message); jc.disabled=false; } return; }
   const pl=ev.target.closest('[data-play]'); if(pl){ navigator.clipboard?.writeText(pl.dataset.play).catch(()=>{}); toast('Join code '+pl.dataset.play+' copied. In ER:LC open Servers, then paste it to join.'); return; }
-  if(ev.target.closest('a,button')) return; const c=ev.target.closest('.xr'); if(c&&g.contains(c)) location.href='/s/'+encodeURIComponent(c.dataset.slug); });
-g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xr')){ ev.preventDefault(); location.href='/s/'+encodeURIComponent(ev.target.dataset.slug); } });
+  if(ev.target.closest('a,button')) return; const c=ev.target.closest('.xr'); if(c&&g.contains(c)) location.href='/'+encodeURIComponent(c.dataset.slug)+(c.dataset.mine?'/about':''); });
+g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xr')){ ev.preventDefault(); location.href='/'+encodeURIComponent(ev.target.dataset.slug)+(ev.target.dataset.mine?'/about':''); } });
 dlg.addEventListener('click',ev=>{ if(ev.target===dlg||ev.target.closest('[data-close]')) dlg.close(); }); dlg.addEventListener('close',()=>dlg.classList.remove('in'));
 q.addEventListener('input',render); render();
 setInterval(async()=>{ if(document.hidden||dlg.open) return; try{ const r=await fetch('/api/explore'); if(r.ok){ S=(await r.json()).servers; render(); } }catch(x){} },60000);   // live player counts
 ` });
 
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
-export const settings = ({ logo, user, c, role, keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {} }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
+export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {} }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main><h1><b>${esc(c.name)}</b> settings</h1><p class="lead">${isNew ? 'Your server is ready. Connect it to ER:LC, then give your members the invite code.' : 'Manage your server connection, codes, departments and members.'}</p>
-<div class="row" style="margin:-8px 0 20px"><a class="btn sm pri" href="/c/${esc(c.slug)}">Open CAD</a></div>
+<div class="row" style="margin:-8px 0 20px"><a class="btn sm pri" href="/${esc(c.slug)}">Open CAD</a></div>
 ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord server to finish</h2><p class="note">Every Oversite server is tied to its Discord. Members can't open the CAD until it's connected, and it's where you pick which Discord roles are Admin and Mod.</p></div><a class="btn discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord server</a></section>` : ''}
 <div class="grid"><div>
 <section class="card"><h2>ER:LC server</h2>
@@ -569,6 +580,9 @@ ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.
 <div class="sp-head"><button type="button" class="sp-icon" id="spPick" title="Change icon" aria-label="Change server icon"><span>${letter}</span><img id="spImg" src="/c/${esc(c.slug)}/icon?v=${Date.now()}" alt="" onerror="this.remove()"><i>Change</i></button>
 <div class="sp-id"><b>${esc(c.name)}</b><small id="spIconNote">${iconKind === 'custom' ? 'Using the icon you uploaded.' : iconKind === 'discord' ? 'Using your Discord server\'s icon. Upload one to replace it.' : iconKind === 'owner' ? 'Using the server owner\'s Roblox avatar. Upload an icon to replace it.' : 'No icon yet. Upload one.'}</small>
 <div class="row" style="margin-top:8px"><button type="button" class="btn sm" id="spUp">Upload icon</button>${iconKind === 'custom' ? '<button type="button" class="btn sm" id="spDefault">Use default</button>' : ''}<input type="file" id="spFile" accept="image/png,image/jpeg,image/webp" hidden></div></div></div>
+<div class="sp-ph"><div class="sp-phh"><b>Photos</b><span>${photos.length} / 8</span></div><p class="hint" style="margin:2px 0 10px">Screenshots of your server. They scroll across the top of your server page, and the first one is the banner on your Explore card.</p>
+<div class="sp-phg" id="spPhg">${photos.map((id, i) => `<figure data-id="${id}"><img src="/c/${esc(c.slug)}/photos/${id}" alt="" loading="lazy">${i ? '' : '<em>Cover</em>'}<div class="ph-acts"><button type="button" class="ph-l" title="Move earlier" aria-label="Move earlier"${i ? '' : ' hidden'}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button type="button" class="ph-x" title="Remove photo" aria-label="Remove photo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></figure>`).join('')}${photos.length < 8 ? `<button type="button" class="sp-phadd" id="spPhAdd"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>Add photos</button>` : ''}</div>
+<input type="file" id="spPhFile" accept="image/png,image/jpeg,image/webp" multiple hidden></div>
 <div class="sp-erlc"><div class="sp-erlch"><span>From ER:LC</span><button type="button" class="lnk" id="spRefresh">${E.at ? 'Refresh' : 'Load from ER:LC'}</button></div>${E.at ? `<div class="sp-facts">${facts}</div>` : `<p class="hint" style="margin:6px 0 0">${keyStatus.connected ? 'Loading your server details…' : 'Connect your ER:LC server above to fill this in.'}</p>`}</div>
 <form id="spForm"><label for="spBio">Bio</label><textarea id="spBio" maxlength="300" rows="3" placeholder="What your server is about: the vibe, the rules, what makes it different.">${esc(P.bio || '')}</textarea><p class="hint" style="text-align:right;margin:4px 0 0"><span id="spCount">${(P.bio || '').length}</span> / 300</p>
 <label for="spInv">Discord invite</label><div class="sp-inv"><span>discord.gg/</span><input id="spInv" maxlength="80" placeholder="yourserver" value="${esc((P.invite || '').replace(/^https:\/\/discord\.gg\//, ''))}" spellcheck="false" autocomplete="off"></div><p class="hint" style="margin:4px 0 0">Just the code is enough. Pasting a full invite link works too.</p>
@@ -582,7 +596,7 @@ ${(() => { const V = c.settings.voice || {}, r = V.range || 'normal'; return `<s
 <form id="vForm"><label class="chk"><input type="checkbox" id="vOn"${V.on ? ' checked' : ''}> Turn on proximity voice</label>
 <label for="vRange">Hearing range</label><select id="vRange">${[['short', 'Short, about 25 m'], ['normal', 'Normal, about 40 m'], ['long', 'Long, about 60 m']].map(([k, t]) => `<option value="${k}"${r === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
 <label class="chk"><input type="checkbox" id="vMuffle"${V.muffle === false ? '' : ' checked'}> Muffle voices to and from vehicles</label>
-<p class="hint" style="margin:6px 0 0">Players join at <a href="/c/${esc(c.slug)}/voice">oversitescad.com/c/${esc(c.slug)}/voice</a> or from the headset button in the CAD. They need a microphone, and headphones stop echo.${keyStatus && !keyStatus.connected ? ' Connect your ER:LC server above first: voice uses in-game positions.' : ''}</p>
+<p class="hint" style="margin:6px 0 0">Players join at <a href="/${esc(c.slug)}/voice">oversitescad.com/${esc(c.slug)}/voice</a> or from the headset button in the CAD. They need a microphone, and headphones stop echo.${keyStatus && !keyStatus.connected ? ' Connect your ER:LC server above first: voice uses in-game positions.' : ''}</p>
 <div class="row" style="margin-top:12px"><button class="btn pri">Save</button></div><p class="msg" id="vMsg"></p></form></section>`; })()}
 <section class="card"><h2>Departments</h2><p class="note">Rename the departments for your server, and choose which in-game team belongs to each.</p>
 <form id="depts"><div class="cols">${['pd', 'fd', 'dot'].map(d => `<div class="dept"><h3><i style="background:${COL[d]}"></i>${{ pd: 'Law enforcement', fd: 'Fire and EMS', dot: 'Transportation' }[d]}</h3>
@@ -622,6 +636,18 @@ const pick=()=>f.click();document.getElementById('spPick').addEventListener('cli
 f.addEventListener('change',async()=>{const file=f.files[0];f.value='';if(!file)return;if(!/^image\\/(png|jpeg|webp)$/.test(file.type))return say(m,'Use a PNG, JPG or WebP image.');
   try{const bm=await createImageBitmap(file),s=Math.min(bm.width,bm.height),cv=document.createElement('canvas');cv.width=cv.height=256;cv.getContext('2d').drawImage(bm,(bm.width-s)/2,(bm.height-s)/2,s,s,0,0,256,256);
   let data=cv.toDataURL('image/webp',.9);if(!data.startsWith('data:image/webp'))data=cv.toDataURL('image/png');say(m,'Uploading…',true);await api(A+'/profile/icon',{data});location.reload()}catch(x){say(m,x.message||'Could not read that image.')}});
+// photos: shrink to 1600 px on the long side in the browser, upload one at a time, then reorder or remove in place
+const pg=document.getElementById('spPhg'),pf=document.getElementById('spPhFile'),pa=document.getElementById('spPhAdd');
+if(pa)pa.addEventListener('click',()=>pf.click());
+const shrink=async(file,side,q)=>{const bm=await createImageBitmap(file),k=Math.min(1,side/Math.max(bm.width,bm.height)),cv=document.createElement('canvas');cv.width=Math.round(bm.width*k);cv.height=Math.round(bm.height*k);cv.getContext('2d').drawImage(bm,0,0,cv.width,cv.height);let d=cv.toDataURL('image/webp',q);if(!d.startsWith('data:image/webp'))d=cv.toDataURL('image/jpeg',q);return d};
+pf.addEventListener('change',async()=>{const files=[...pf.files].filter(f=>/^image\\/(png|jpeg|webp)$/.test(f.type));pf.value='';if(!files.length)return say(m,'Use PNG, JPG or WebP images.');
+  const room=8-pg.querySelectorAll('figure').length,list=files.slice(0,room);if(!list.length)return say(m,'A server can have up to 8 photos. Remove one first.');
+  try{for(let i=0;i<list.length;i++){say(m,'Uploading photo '+(i+1)+' of '+list.length+'…',true);let d=await shrink(list[i],1600,.84);if(d.length>1.15e6)d=await shrink(list[i],1280,.72);await api(A+'/profile/photos',{data:d})}location.reload()}catch(x){say(m,x.message||'Could not read that image.')}});
+const order=()=>[...pg.querySelectorAll('figure')].map(f=>Number(f.dataset.id));
+const relabel=()=>pg.querySelectorAll('figure').forEach((f,i)=>{let em=f.querySelector('em');if(!i&&!em){em=document.createElement('em');em.textContent='Cover';f.insertBefore(em,f.querySelector('.ph-acts'))}if(i&&em)em.remove();f.querySelector('.ph-l').hidden=!i});
+pg.addEventListener('click',async e=>{const f=e.target.closest('figure');if(!f)return;
+  if(e.target.closest('.ph-x')){try{await api(A+'/profile/photos/remove',{id:Number(f.dataset.id)});location.reload()}catch(x){say(m,x.message)}}
+  else if(e.target.closest('.ph-l')&&f.previousElementSibling){pg.insertBefore(f,f.previousElementSibling);relabel();try{await api(A+'/profile/photos/order',{ids:order()});say(m,'Photo order saved.',true)}catch(x){say(m,x.message)}}});
 const d=document.getElementById('spDefault');if(d)d.addEventListener('click',async()=>{await api(A+'/profile/icon/remove');location.reload()});
 const r=document.getElementById('spRefresh');const refresh=async(auto)=>{r.textContent='Loading…';try{await api(A+'/profile/refresh');location.reload()}catch(x){r.textContent='Refresh';if(!auto)say(m,x.message)}};
 r.addEventListener('click',()=>refresh(false));

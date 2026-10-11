@@ -1994,14 +1994,14 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const chip = document.querySelector(`[data-filter="${d}"]`); if (chip) { const b = chip.querySelector('b'); chip.textContent = ' ' + n.short; if (b) chip.prepend(b); } }
   // the round avatar top right is the person's own account: their Roblox headshot, opening their account page
   const avEl = document.querySelector('header .avatar');
-  if (avEl) { const a = document.createElement('a'); a.className = 'avatar'; a.href = '/account?from=' + encodeURIComponent('/c/' + O.slug); a.title = (O.me || O.user || 'Your account') + ' · account settings'; a.setAttribute('aria-label', 'Your account');
+  if (avEl) { const a = document.createElement('a'); a.className = 'avatar'; a.href = '/account?from=' + encodeURIComponent('/' + O.slug); a.title = (O.me || O.user || 'Your account') + ' · account settings'; a.setAttribute('aria-label', 'Your account');
     a.textContent = (O.me || O.user || '?').slice(0, 1).toUpperCase();
     if (/^\d+$/.test(O.rid || '')) { const im = new Image(); im.alt = ''; im.onload = () => { a.textContent = ''; a.appendChild(im); }; im.src = '/rbx/avatar/' + O.rid; }
     avEl.replaceWith(a); }
   const mark = document.querySelector('.bar .mark') || document.querySelector('.mark'); if (mark) { mark.style.cursor = 'pointer'; mark.title = O.name + ' · your account'; mark.addEventListener('click', () => { location.href = '/account'; }); }
   dispatchEvent(new Event('resize')); })();
 </script>
-<script>if (window.OVERSITE && window.OVERSITE.voice) { const v = document.getElementById('voiceBtn'); v.href = '/c/' + window.OVERSITE.slug + '/voice'; v.hidden = false; }</script>
+<script>if (window.OVERSITE && window.OVERSITE.voice) { const v = document.getElementById('voiceBtn'); v.href = '/' + window.OVERSITE.slug + '/voice'; v.hidden = false; }</script>
 <script>
 /* phones: tabs for the bottom sheet (Units, Calls, Alerts, On duty); tap a tab to open it, tap it again or drag the strip down to tuck it away */
 (() => { const mq = matchMedia('(max-width:760px)'), B = document.body;
@@ -2091,7 +2091,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     F.relay.closest('label').style.display = 'none'; for (const sel of document.querySelectorAll('#adTeams select')) sel.disabled = true;
     const note = F.key.closest('section, div')?.querySelector('.ad-note'); if (note) note.textContent = OV.canEdit ? 'The key is stored encrypted on the server for this community. Paste a new one and save to replace it, or manage it in Settings.' : 'Only community admins can change the server connection.';
     if (!OV.canEdit) { F.key.closest('label').style.display = 'none'; $('adKeyRow').style.display = 'none'; }
-    const links = document.createElement('div'); links.className = 'ad-row'; links.innerHTML = `<a class="ad-btn" href="/dashboard">Dashboard</a>${OV.canEdit ? `<a class="ad-btn" href="/c/${OV.slug}/settings">Community settings</a>` : ''}`; $('admin').querySelector('section')?.prepend(links); }
+    const links = document.createElement('div'); links.className = 'ad-row'; links.innerHTML = `<a class="ad-btn" href="/dashboard">Dashboard</a>${OV.canEdit ? `<a class="ad-btn" href="/${OV.slug}/settings">Community settings</a>` : ''}`; $('admin').querySelector('section')?.prepend(links); }
   if (HOSTED) { const l = F.live.closest('label'); if (l) l.hidden = true; }
   for (const sel of document.querySelectorAll('#adTeams select')) { sel.value = S.teams[sel.dataset.team] ?? ''; sel.addEventListener('change', () => { S.teams[sel.dataset.team] = sel.value; save(); }); }
   F.key.addEventListener('input', () => { S.key = F.key.value.trim(); save(); });

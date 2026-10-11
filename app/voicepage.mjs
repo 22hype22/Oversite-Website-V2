@@ -1,4 +1,4 @@
-// The proximity voice page (/c/:slug/voice): join, mute, see who is near. Audio is peer to peer (WebRTC); every second the
+// The proximity voice page (/:slug/voice): join, mute, see who is near. Audio is peer to peer (WebRTC); every second the
 // server says who is in range and how far, and this page sets each voice's volume (and muffles it through a vehicle).
 import { layout, esc } from './pages.mjs';
 
@@ -31,9 +31,9 @@ const CSS = `
 const HEADSET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></svg>';
 
 export const voicePage = ({ logo, user, c, settings, keyOk }) => layout({ title: `Voice · ${c.name}`, logo, user, body: `<style>${CSS}</style>
-<main class="vc" id="vc"><div class="vc-hd"><div><h1>Proximity voice</h1><p>${esc(c.name)} · hear the players near you in ER:LC</p></div><a class="btn sm" href="/c/${esc(c.slug)}">Open CAD</a></div>
-${!settings.on ? `<section class="card vc-off">Proximity voice is turned off for this server. The owner can turn it on in <a href="/c/${esc(c.slug)}/settings#voice">Settings</a>.</section>`
-  : !keyOk ? `<section class="card vc-off">This server isn't linked to ER:LC yet, so Oversite can't tell where anyone is. The owner can connect it in <a href="/c/${esc(c.slug)}/settings">Settings</a>.</section>`
+<main class="vc" id="vc"><div class="vc-hd"><div><h1>Proximity voice</h1><p>${esc(c.name)} · hear the players near you in ER:LC</p></div><a class="btn sm" href="/${esc(c.slug)}">Open CAD</a></div>
+${!settings.on ? `<section class="card vc-off">Proximity voice is turned off for this server. The owner can turn it on in <a href="/${esc(c.slug)}/settings#voice">Settings</a>.</section>`
+  : !keyOk ? `<section class="card vc-off">This server isn't linked to ER:LC yet, so Oversite can't tell where anyone is. The owner can connect it in <a href="/${esc(c.slug)}/settings">Settings</a>.</section>`
   : `<div class="vc-main">
 <section class="card vc-join"><span class="vc-orb" aria-hidden="true">${HEADSET}<i></i></span><div class="vc-st"><b id="vS">Not connected</b><small id="vSub">Join to hear players near you in game. Keep this tab open while you play.</small></div>
 <div class="vc-acts"><button class="btn pri" id="vJoin">Join voice</button><button class="btn" id="vMute" hidden>Mute</button><button class="btn" id="vLeave" hidden>Leave</button></div></section>

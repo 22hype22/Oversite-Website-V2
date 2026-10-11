@@ -43,6 +43,9 @@ CREATE INDEX IF NOT EXISTS server_votes_c ON server_votes (community_id, created
 CREATE INDEX IF NOT EXISTS server_votes_u ON server_votes (user_id, community_id, created);
 CREATE TABLE IF NOT EXISTS community_icons (
   community_id INTEGER PRIMARY KEY REFERENCES communities(id) ON DELETE CASCADE, mime TEXT NOT NULL, data BLOB NOT NULL, updated INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS community_photos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, mime TEXT NOT NULL, data BLOB NOT NULL, pos INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS community_photos_c ON community_photos (community_id, pos);
 CREATE TABLE IF NOT EXISTS command_log (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, player TEXT NOT NULL, player_id TEXT NOT NULL DEFAULT '',
   command TEXT NOT NULL, at INTEGER NOT NULL, UNIQUE (community_id, at, player, command));
@@ -125,7 +128,9 @@ export const sessions = {
 export const DEFAULT_SETTINGS = { depts: { pd: { name: 'Law Enforcement', short: 'LE' }, fd: { name: 'Fire Department', short: 'FD' }, dot: { name: 'Department of Transportation', short: 'DOT' } },
   teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, cal: [] };
 const withSettings = c => c && { ...c, settings: { ...DEFAULT_SETTINGS, ...JSON.parse(c.settings || '{}') } };
-export const RESERVED = new Set(['api', 'app', 'admin', 'auth', 'c', 'dashboard', 'join', 'login', 'logout', 'www', 'oversite', 'settings', 'account', 'help', 'support', 'status', 'new']);
+export const RESERVED = new Set(['api', 'app', 'admin', 'auth', 'c', 'dashboard', 'join', 'login', 'logout', 'www', 'oversite', 'settings', 'account', 'help', 'support', 'status', 'new',
+  // top-level pages and files: a server's address is oversitescad.com/<slug>, so it can't be any of these
+  'explore', 's', 'about', 'privacy', 'terms', 'refunds', 'health', 'rbx', 'unlock', 'lock', 'preview', 'newmap', 'relay', 'vendor', 'dispatch', 'intro', 'voice', 'cad', 'server', 'servers', 'home', 'discord', 'roblox', 'docs', 'legal', 'pricing', 'shop', 'store', 'blog', 'static', 'assets', 'profile', 'user', 'users', 'moderation', 'reports', 'icon', 'photos']);
 export const communities = {
   bySlug: slug => withSettings(q('SELECT * FROM communities WHERE slug = ?').get(slug)),
   byId: id => withSettings(q('SELECT * FROM communities WHERE id = ?').get(id)),
@@ -142,7 +147,7 @@ export const communities = {
   setVerified: (id, on) => q('UPDATE communities SET verified = ? WHERE id = ?').run(on ? 1 : 0, id).changes,
   // for the verification page: every server with its owner and size
   setFlag: (id, flag, on) => ['hidden', 'suspended'].includes(flag) ? q(`UPDATE communities SET ${flag} = ? WHERE id = ?`).run(on ? 1 : 0, id).changes : 0,
-  overview: () => q('SELECT c.id, c.slug, c.name, c.verified, c.hidden, c.suspended, c.created, json_extract(c.settings, \'$.profile.listed\') AS listed, length(coalesce(json_extract(c.settings, \'$.profile.bio\'), \'\')) > 0 AS has_bio, EXISTS (SELECT 1 FROM community_icons i WHERE i.community_id = c.id) AS custom_icon, (SELECT COUNT(*) FROM reports r WHERE r.community_id = c.id AND r.resolved IS NULL) AS open_reports, u.roblox_name AS owner_rbx, u.name AS owner_name, (SELECT COUNT(*) FROM members m WHERE m.community_id = c.id) AS members FROM communities c LEFT JOIN users u ON u.id = c.owner_id ORDER BY open_reports DESC, c.verified DESC, c.name').all(),
+  overview: () => q('SELECT c.id, c.slug, c.name, c.verified, c.hidden, c.suspended, c.created, json_extract(c.settings, \'$.profile.listed\') AS listed, length(coalesce(json_extract(c.settings, \'$.profile.bio\'), \'\')) > 0 AS has_bio, EXISTS (SELECT 1 FROM community_icons i WHERE i.community_id = c.id) AS custom_icon, (SELECT COUNT(*) FROM community_photos ph WHERE ph.community_id = c.id) AS photos, (SELECT COUNT(*) FROM reports r WHERE r.community_id = c.id AND r.resolved IS NULL) AS open_reports, u.roblox_name AS owner_rbx, u.name AS owner_name, (SELECT COUNT(*) FROM members m WHERE m.community_id = c.id) AS members FROM communities c LEFT JOIN users u ON u.id = c.owner_id ORDER BY open_reports DESC, c.verified DESC, c.name').all(),
 };
 export const members = {
   role: (cid, uid) => q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(cid, uid)?.role || null,
@@ -196,6 +201,16 @@ export const communityIcons = {
   get: cid => q('SELECT mime, data, updated FROM community_icons WHERE community_id = ?').get(cid),
   set: (cid, mime, data) => q('INSERT INTO community_icons (community_id, mime, data, updated) VALUES (?, ?, ?, ?) ON CONFLICT (community_id) DO UPDATE SET mime = excluded.mime, data = excluded.data, updated = excluded.updated').run(cid, mime, data, now()),
   remove: cid => q('DELETE FROM community_icons WHERE community_id = ?').run(cid),
+};
+// photos of a server, uploaded by its owner and shown as the banner on its page and Explore card
+export const communityPhotos = {
+  ids: cid => q('SELECT id FROM community_photos WHERE community_id = ? ORDER BY pos, id').all(cid).map(r => r.id),
+  byServer: () => { const m = new Map(); for (const r of q('SELECT community_id, id FROM community_photos ORDER BY pos, id').all()) { if (!m.has(r.community_id)) m.set(r.community_id, []); m.get(r.community_id).push(r.id); } return m; },
+  get: (cid, id) => q('SELECT mime, data FROM community_photos WHERE community_id = ? AND id = ?').get(cid, id),
+  add: (cid, mime, data) => q('INSERT INTO community_photos (community_id, mime, data, pos, created) VALUES (?, ?, ?, (SELECT coalesce(MAX(pos), 0) + 1 FROM community_photos WHERE community_id = ?), ?)').run(cid, mime, data, cid, now()).lastInsertRowid,
+  remove: (cid, id) => q('DELETE FROM community_photos WHERE community_id = ? AND id = ?').run(cid, id),
+  clear: cid => q('DELETE FROM community_photos WHERE community_id = ?').run(cid),
+  order: (cid, ids) => { const up = q('UPDATE community_photos SET pos = ? WHERE community_id = ? AND id = ?'); ids.forEach((id, i) => up.run(i + 1, cid, id)); },
 };
 // every command ER:LC has reported for a community, kept for good (ER:LC itself only returns the latest few); nothing deletes from it
 export const commandLog = {
