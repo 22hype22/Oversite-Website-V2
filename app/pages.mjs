@@ -21,7 +21,7 @@ a{color:inherit}
 .sp-icon i{position:absolute;inset:auto 0 0;font:500 10.5px/1 inherit;font-style:normal;padding:5px 0;background:rgba(0,0,0,.62);opacity:0;transition:opacity .15s}
 .sp-icon:hover i,.sp-icon:focus-visible i{opacity:1}
 .sp-id{min-width:0}.sp-id b{display:block;font-size:16px;font-weight:600}.sp-id small{display:block;color:var(--dim);font-size:12.5px;margin-top:2px}
-.sp-ph{margin:16px 0 0}.sp-phh{display:flex;align-items:baseline;justify-content:space-between}.sp-phh b{font-size:13px;font-weight:600}.sp-phh span{color:var(--faint);font-size:12px}
+.sp-ph{margin:18px 0 20px}.sp-phh{display:flex;align-items:baseline;justify-content:space-between}.sp-phh b{font-size:13px;font-weight:600}.sp-phh span{color:var(--faint);font-size:12px}
 .sp-phg{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
 .sp-phg figure{position:relative;margin:0;aspect-ratio:16/10;border-radius:12px;overflow:hidden;border:1px solid var(--hair2);background:#1b1d21}
 .sp-phg img{width:100%;height:100%;object-fit:cover;display:block}
