@@ -1592,6 +1592,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
         const dept = deptFor(c.code), all = nearest(c), free = all.filter(n => !CALLS.some(k => onIt(k, n.u.name))), pref = free.filter(n => n.u.dept === dept), rest = free.filter(n => n.u.dept !== dept);
         const list = [...pref.slice(0, 3), ...rest.slice(0, 2)];
         extra += `<div class="pick"><div class="lbl">Send a unit${pref.length ? '' : ' (no ' + dept.toUpperCase() + ' units free)'}:</div>` + (list.length ? list.map((n, i) => `<button type="button" class="u${i === 0 && n.u.dept === dept ? ' best' : ''}" style="--acc:${COL[n.u.dept]}" data-send="${esc(n.u.id)}|${c.startedAt}"><i></i><b>${esc(n.u.name)}</b><small>${(n.d / 1609 * 1.2).toFixed(1)} mi</small><span class="go">${i === 0 && n.u.dept === dept ? 'Recommended' : 'Send'}</span></button>`).join('') : '<div class="r">No units available.</div>') + `</div>`;
+        extra += `<div class="acts"><button type="button" class="clr" data-clear="${c.startedAt}" title="False alarm or no longer needed">Clear call</button></div>`;   // a false alarm can go without sending anyone
       } else {
         const names = callUnits(c), dist = u => u ? (Math.hypot(u.x - c.x, u.y - c.y) / 1609 * 1.2).toFixed(1) + ' mi' : '';
         extra += `<div class="asg2"><div class="lbl">On this call <b>${names.length}</b></div>` + names.map((name, i) => { const u = (window.UNITS || []).find(x => x.name === name), dept = (u && u.dept) || (i ? (c.more[i - 1] || {}).dept : c.dept);
