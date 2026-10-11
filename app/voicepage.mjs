@@ -29,7 +29,7 @@ const CSS = `
 .vc-set h2{margin:0 0 4px;font-size:16px}.vc-set>p{margin:0 0 14px;color:var(--faint);font-size:12.5px}
 .vc-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
 .vc-f{display:grid;gap:6px;min-width:0}.vc-f>span{font-size:12.5px;color:var(--dim);display:flex;justify-content:space-between;gap:8px}.vc-f>span em{font-style:normal;color:var(--faint)}
-.vc-f select{width:100%;padding:8px 30px 8px 10px;font-size:13px}.vc-f input[type=range]{width:100%;accent-color:#4C8DFF}
+.vc-f select{width:100%;min-width:0;max-width:100%;padding:8px 30px 8px 10px;font-size:13px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.vc-f input[type=range]{width:100%;accent-color:#4C8DFF}
 .vc-f small{color:var(--faint);font-size:12px}
 .vc-mtr{position:relative;height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}.vc-mtr i{display:block;height:100%;width:0;background:#46D07C;transition:width .06s}.vc-mtr b{position:absolute;top:-2px;bottom:-2px;width:2px;background:#E9B04C;left:0}
 .vc-mtr.low i{background:rgba(240,242,245,.3)}
@@ -86,8 +86,9 @@ const openMic=async()=>{const want=(id)=>({audio:{...(id?{deviceId:{exact:id}}:{
 const closeAudio=()=>{if(mic){for(const t of mic.getTracks())t.stop();mic=null}cancelAnimationFrame(raf);if(ac){ac.close().catch(()=>{});ac=null}micSrc=inGain=gate=sendDest=sendTrack=master=null;monitor=false;$('sTest').textContent='Test microphone';vc.style.setProperty('--lvl',0)};
 const fill=async()=>{if(!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices)return;let ds=[];try{ds=await navigator.mediaDevices.enumerateDevices()}catch(_){}
   const put=(sel,kind,first,cur)=>{const list=ds.filter(d=>d.kind===kind&&d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications');
-    sel.innerHTML='<option value="">'+first+'</option>'+list.map((d,i)=>'<option value="'+e(d.deviceId)+'">'+e(d.label||(kind==='audioinput'?'Microphone ':'Output ')+(i+1))+'</option>').join('');
-    sel.value=list.some(d=>d.deviceId===cur)?cur:''};
+    const name=(d,i)=>(d.label||(kind==='audioinput'?'Microphone ':'Output ')+(i+1)).replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/i,'');   // drop the USB id Chrome adds
+    sel.innerHTML='<option value="">'+first+'</option>'+list.map((d,i)=>'<option value="'+e(d.deviceId)+'" title="'+e(name(d,i))+'">'+e(name(d,i))+'</option>').join('');
+    sel.value=list.some(d=>d.deviceId===cur)?cur:'';sel.title=sel.selectedOptions[0]?sel.selectedOptions[0].textContent:''};
   put($('sIn'),'audioinput','Default microphone',cfg.inId);put($('sOut'),'audiooutput','Default output',cfg.outId);
   $('sNames').hidden=ds.some(d=>d.label)};
 const show=()=>{$('sInVol').value=cfg.inVol;$('sInV').textContent=cfg.inVol+'%';$('sOutVol').value=cfg.outVol;$('sOutV').textContent=cfg.outVol+'%';
@@ -103,6 +104,7 @@ for(const [id,k] of [['sNs','ns'],['sEc','ec'],['sAgc','agc']])$(id).onchange=()
 $('sTest').onclick=async()=>{if(monitor){monitor=false;try{gate.disconnect(master)}catch(_){}$('sTest').textContent='Test microphone';if(!es)closeAudio();return}
   try{await audio();if(!mic)await openMic()}catch(_){return status('No microphone','Your browser blocked the mic. Allow it in the address bar and try again.')}
   gate.connect(master);monitor=true;$('sTest').textContent='Stop test'};
+for(const id of ['sIn','sOut'])$(id).addEventListener('change',()=>{const o=$(id).selectedOptions[0];$(id).title=o?o.textContent:''});
 if(navigator.mediaDevices)navigator.mediaDevices.ondevicechange=fill;
 show();fill();
 const peers=new Map();   // rid -> { pc, gain, filter, an, el, queue, name, seen }
