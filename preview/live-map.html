@@ -619,6 +619,7 @@
   .dm-call{position:absolute;left:0;top:0;transform:translate(calc(var(--ux,0) * var(--k) * 1px),calc(var(--uy,0) * var(--k) * 1px))}
   .dm-call i{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:2px solid #E24B4B;background:rgba(226,75,75,.25);animation:dmring 1.8s ease-out infinite}
   .dm-call b{position:absolute;white-space:nowrap;transform:translate(12px,-50%);font-size:10.5px;font-weight:700;color:#FFD2D2;text-shadow:0 1px 3px #000,0 0 2px #000;pointer-events:none}
+  .dm-call.hl i{width:26px;height:26px;margin:-13px 0 0 -13px;border-color:#fff;background:rgba(226,75,75,.55)}.dm-call.hl b{font-size:12px;color:#fff}
   @keyframes dmring{0%{box-shadow:0 0 0 0 rgba(226,75,75,.5)}100%{box-shadow:0 0 0 12px rgba(226,75,75,0)}}
   @media (prefers-reduced-motion:reduce){.dm-call i{animation:none}}
   .dm-empty{position:absolute;left:12px;right:12px;bottom:12px;padding:9px 12px;border-radius:10px;background:rgba(12,13,15,.86);border:1px solid rgba(255,255,255,.1);font-size:12px;color:#C9CDD3;pointer-events:none}
@@ -1283,8 +1284,10 @@ window.UNIT_OF = (window.OVERSITE && window.OVERSITE.unitOf) || {};
 window.unitOf = u => (u && u.uid && window.UNIT_OF[String(u.uid)]) || '';
 window.tagHTML = u => { if (!u) return ''; const e = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const unit = window.unitOf(u), dn = (window.OVERSITE && window.OVERSITE.depts && window.OVERSITE.depts[u.dept] && window.OVERSITE.depts[u.dept].name) || ({ pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' })[u.dept] || '';
-  const call = (window.CALLS || []).find(k => onIt(k, u.name));
-  return `<div class="k">${e(u.name)}</div><div class="s">${e((u.crew || []).join(', '))}</div><div class="v un${unit ? '' : ' none'}">${e(unit || dn)}</div><div class="av${call ? ' busy' : ''}">${call ? 'On call · ' + e(call.code) : 'Available'}</div>`; };
+  const call = (window.CALLS || []).find(k => onIt(k, u.name)), st = (window.UNIT_STATUS || {})[u.name];   // the status the unit set in its MDT, e.g. 10-76
+  const ST = { '10-8': 'Available', '10-76': 'En route', '10-23': 'On scene', '10-19': 'Returning', '10-7': 'Out of service', '10-6': 'Busy' };
+  const label = st && ST[st] ? ST[st] + (call && st !== '10-8' ? ' · ' + e(call.code) : '') : call ? 'On call · ' + e(call.code) : 'Available', busy = st ? st !== '10-8' : !!call;
+  return `<div class="k">${e(u.name)}</div><div class="s">${e((u.crew || []).join(', '))}</div><div class="v un${unit ? '' : ' none'}">${e(unit || dn)}</div><div class="av${busy ? ' busy' : ''}">${label}</div>`; };
 if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(window.OVERSITE.api + '/units', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; window.UNIT_OF = j.of || {};
     for (const d of ['pd', 'fd', 'dot']) if (window.OVERSITE.depts && window.OVERSITE.depts[d]) window.OVERSITE.depts[d].units = (j.units || {})[d] || []; dispatchEvent(new CustomEvent('unitassign')); }).catch(() => {});
   setInterval(pullUnits, 30000); }
@@ -1354,8 +1357,11 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
 
   const MAP = document.getElementById('mapsrc-mini')?.getAttribute('href') || document.getElementById('mapsrc')?.getAttribute('href') || document.querySelector('.view img')?.getAttribute('src');
   let minis = [], timers = [], spds = [], bars = [];
+  // a map box can change size after it was measured (the MDT home grows when a call is assigned); the picture must follow, or the
+  // map slides out from under the dots, so every box is watched and re-measured when it resizes
+  const ro = window.ResizeObserver ? new ResizeObserver(es => { for (const e of es) { const m = minis.find(x => x.el === e.target); if (!m) continue; const r = e.target.getBoundingClientRect(); m.w = r.width; m.h = r.height; } if (minis[0]) { w = minis[0].w || 0; h = minis[0].h || 0; } }) : null;
   const bind = () => { const find = el => units.find(x => x.id === el.dataset.unit);
-    minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: find(el) })).filter(m => m.u);
+    minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: find(el) })).filter(m => m.u); if (ro) { ro.disconnect(); for (const m of minis) ro.observe(m.el); }
     timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     spds = [...document.querySelectorAll('.spd[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: find(el) })).filter(m => m.u); };
@@ -1754,7 +1760,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const toast = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1800); };
 
   // ── unit status ──
-  const unitStatus = {};                                   // callsign → 10-code
+  const unitStatus = window.UNIT_STATUS = window.UNIT_STATUS || {};   // shared with the map tags, so the 10-code you pick shows everywhere                                   // callsign → 10-code
   let myStatus = '10-8', selected = null;
   const stClass = st => st === '10-8' ? '' : (st === '10-7' ? 'oos' : 'busy');
   const LOG = []; const logTime = t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -1808,7 +1814,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const CM_VIEW = 380;                                                       // map units across the mini map at normal zoom (the map is 2000 across)
   const cmapHTML = () => `<div class="cmap" id="fdCmap"><img src="liberty-county-4k.jpg" alt="" draggable="false"><span class="cm-pin"><i></i></span>
       <div class="cm-ctl"><button type="button" data-cmz="1" aria-label="Zoom in">+</button><button type="button" data-cmz="-1" aria-label="Zoom out">&minus;</button></div>
-      <button type="button" class="cm-open" data-act="showmap">Show on live map</button></div>`;
+      <button type="button" class="cm-open" data-act="showmap">Show on map</button></div>`;
   // the map image is laid out at its real on-screen size around the call, so it stays sharp
   const layoutCmap = c => { const el = $('fdCmap'); if (!el) return; const ok = Number.isFinite(c.x) && Number.isFinite(c.y); el.hidden = !ok; if (!ok) return;
     const w = el.clientWidth, h = el.clientHeight; if (!w) return; const sc = w / (CM_VIEW / cmZoom), img = el.firstElementChild;
@@ -1828,8 +1834,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     layoutCmap(c); };
   new ResizeObserver(() => { const c = cur(); if (c) layoutCmap(c); }).observe($('fdDetBody'));
   $('fdDetail').addEventListener('click', e => { const z = e.target.closest('[data-cmz]'); if (z) { const c0 = cur(); cmZoom = Math.min(6, Math.max(0.5, cmZoom * (z.dataset.cmz === '1' ? 1.6 : 1 / 1.6))); if (c0) layoutCmap(c0); return; }
-    if (e.target.closest('[data-act="showmap"]')) { const c0 = cur(); if (!c0) return; window.focusCall = c0.startedAt; document.querySelector('.menu [data-view="dispatch"]')?.click();
-      dispatchEvent(new CustomEvent('focuscall', { detail: c0 })); setTimeout(() => dispatchEvent(new CustomEvent('showcall', { detail: c0 })), 60); return; }
+    if (e.target.closest('[data-act="showmap"]')) { const c0 = cur(); if (!c0) return; dispatchEvent(new CustomEvent('dmfocus', { detail: c0 })); return; }
     const b = e.target.closest('[data-act]'); if (!b) return; const c = cur(), u = me(); if (!c || !u) return;
     const act = b.dataset.act;
     if (act === 'respond') { if (window.assignCall) window.assignCall(c, u.name, u.dept || 'fd'); else { c.unit = u.name; c.dept = u.dept || 'fd'; c.stage = 0; } myStatus = '10-76'; c.stage = 1; unitStatus[u.name] = myStatus; toast(`${u.name} responding to ${c.code}`); }
@@ -2096,7 +2101,7 @@ body.voice-snap .stage{transition:none!important}
   const $ = id => document.getElementById(id), wrap = $('dmWrap'); if (!wrap) return;
   const inner = $('dmIn'), dots = $('dmDots'), calls = $('dmCalls'), img = $('dmImg'), MS = 1000, W = 2000;   // units and calls are in 2000-unit world space
   const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' }, esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  let V = { k: 1, x: 0, y: 0 }, fitted = false, f = 'dept', followed = false;
+  let V = { k: 1, x: 0, y: 0 }, fitted = false, f = 'dept', followed = false, focusT = 0;
   const src = () => document.querySelector('.view img')?.getAttribute('src') || document.getElementById('mapsrc')?.getAttribute('href') || 'liberty-county.jpg';
   let nzT = 0;
   const place = () => { inner.classList.add('nz'); clearTimeout(nzT); nzT = setTimeout(() => inner.classList.remove('nz'), 150);   // dots jump with a zoom or pan, and glide again between position updates
@@ -2126,7 +2131,7 @@ body.voice-snap .stage{transition:none!important}
       el.classList.toggle('me', u === me); el.classList.toggle('dim', f === 'dept' && u.dept !== d); el.hidden = false; }
     dots.querySelectorAll('.st-dot').forEach(el => { if (!seen.has(el.dataset.key)) el.remove(); });
     calls.innerHTML = (window.CALLS || []).filter(c => Number.isFinite(c.x) && Number.isFinite(c.y) && (f === 'all' || c.dept === d || !c.unit))
-      .map(c => `<div class="dm-call" style="--ux:${(c.x / W * MS).toFixed(2)};--uy:${(c.y / W * MS).toFixed(2)}" title="${esc(c.code + ' ' + c.type + ', ' + c.where)}"><i></i><b>${esc(c.code)}</b></div>`).join('');
+      .map(c => `<div class="dm-call${c.startedAt === focusT ? ' hl' : ''}" style="--ux:${(c.x / W * MS).toFixed(2)};--uy:${(c.y / W * MS).toFixed(2)}" title="${esc(c.code + ' ' + c.type + ', ' + c.where)}"><i></i><b>${esc(c.code)}</b></div>`).join('');
     // your route to the call you're on, along the roads (same search as the home map)
     const mc = me && (window.CALLS || []).find(k => window.onIt ? window.onIt(k, me.name) : k.unit === me.name), rp = $('dmRoute');
     if (mc && Number.isFinite(mc.x) && window.roadRoute) { if (!draw.r || draw.rFor !== mc.startedAt || (Math.hypot(me.x - draw.r[0][0], me.y - draw.r[0][1]) > 25 && Date.now() - draw.rAt > 1500)) { draw.r = window.roadRoute(me.x, me.y, mc.x, mc.y); draw.rFor = mc.startedAt; draw.rAt = Date.now(); }
@@ -2140,6 +2145,13 @@ body.voice-snap .stage{transition:none!important}
   document.querySelectorAll('.tside [data-pane="map"]').forEach(b => b.addEventListener('click', () => requestAnimationFrame(() => { fitted = false; followed = false; draw(); })));
   addEventListener('resize', () => { if (wrap.offsetParent) { fitted = false; followed = false; draw(); } });
   addEventListener('units', draw); addEventListener('calls', draw);
+  // "Show on map" from a call: open the Map tab framed on you and the call together, the call ringed
+  addEventListener('dmfocus', e => { const c = e.detail; if (!c || !Number.isFinite(c.x)) return; focusT = c.startedAt; document.querySelector('#mdt .tside [data-pane="map"]')?.click();
+    requestAnimationFrame(() => requestAnimationFrame(() => { fit(); followed = true; const me = myUnit(), k0 = fitK(); if (!k0) return;
+      const xs = [c.x, ...(me ? [me.x] : [])], ys = [c.y, ...(me ? [me.y] : [])], minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
+      const sx = Math.max(60, maxx - minx) / W * MS, sy = Math.max(60, maxy - miny) / W * MS;
+      V.k = Math.min(k0 * 8, Math.max(k0, Math.min(wrap.clientWidth / (sx * 1.8), wrap.clientHeight / (sy * 1.8))));
+      V.x = wrap.clientWidth / 2 - (minx + maxx) / 2 / W * MS * V.k; V.y = wrap.clientHeight / 2 - (miny + maxy) / 2 / W * MS * V.k; place(); draw(); })); });
 })();
 </script>
 <aside class="admin" id="admin" aria-label="Admin panel" aria-hidden="true">

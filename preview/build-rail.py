@@ -154,8 +154,10 @@ window.UNIT_OF = (window.OVERSITE && window.OVERSITE.unitOf) || {};
 window.unitOf = u => (u && u.uid && window.UNIT_OF[String(u.uid)]) || '';
 window.tagHTML = u => { if (!u) return ''; const e = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const unit = window.unitOf(u), dn = (window.OVERSITE && window.OVERSITE.depts && window.OVERSITE.depts[u.dept] && window.OVERSITE.depts[u.dept].name) || ({ pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' })[u.dept] || '';
-  const call = (window.CALLS || []).find(k => onIt(k, u.name));
-  return `<div class="k">${e(u.name)}</div><div class="s">${e((u.crew || []).join(', '))}</div><div class="v un${unit ? '' : ' none'}">${e(unit || dn)}</div><div class="av${call ? ' busy' : ''}">${call ? 'On call · ' + e(call.code) : 'Available'}</div>`; };
+  const call = (window.CALLS || []).find(k => onIt(k, u.name)), st = (window.UNIT_STATUS || {})[u.name];   // the status the unit set in its MDT, e.g. 10-76
+  const ST = { '10-8': 'Available', '10-76': 'En route', '10-23': 'On scene', '10-19': 'Returning', '10-7': 'Out of service', '10-6': 'Busy' };
+  const label = st && ST[st] ? ST[st] + (call && st !== '10-8' ? ' · ' + e(call.code) : '') : call ? 'On call · ' + e(call.code) : 'Available', busy = st ? st !== '10-8' : !!call;
+  return `<div class="k">${e(u.name)}</div><div class="s">${e((u.crew || []).join(', '))}</div><div class="v un${unit ? '' : ' none'}">${e(unit || dn)}</div><div class="av${busy ? ' busy' : ''}">${label}</div>`; };
 if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(window.OVERSITE.api + '/units', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; window.UNIT_OF = j.of || {};
     for (const d of ['pd', 'fd', 'dot']) if (window.OVERSITE.depts && window.OVERSITE.depts[d]) window.OVERSITE.depts[d].units = (j.units || {})[d] || []; dispatchEvent(new CustomEvent('unitassign')); }).catch(() => {});
   setInterval(pullUnits, 30000); }
@@ -225,8 +227,11 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
 
   const MAP = document.getElementById('mapsrc-mini')?.getAttribute('href') || document.getElementById('mapsrc')?.getAttribute('href') || document.querySelector('.view img')?.getAttribute('src');
   let minis = [], timers = [], spds = [], bars = [];
+  // a map box can change size after it was measured (the MDT home grows when a call is assigned); the picture must follow, or the
+  // map slides out from under the dots, so every box is watched and re-measured when it resizes
+  const ro = window.ResizeObserver ? new ResizeObserver(es => { for (const e of es) { const m = minis.find(x => x.el === e.target); if (!m) continue; const r = e.target.getBoundingClientRect(); m.w = r.width; m.h = r.height; } if (minis[0]) { w = minis[0].w || 0; h = minis[0].h || 0; } }) : null;
   const bind = () => { const find = el => units.find(x => x.id === el.dataset.unit);
-    minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: find(el) })).filter(m => m.u);
+    minis = [...document.querySelectorAll('.mini.live')].map(el => ({ el, u: find(el) })).filter(m => m.u); if (ro) { ro.disconnect(); for (const m of minis) ro.observe(m.el); }
     timers = [...document.querySelectorAll('.timer[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     spds = [...document.querySelectorAll('.spd[data-unit]')].map(el => ({ el, u: find(el) })).filter(m => m.u);
     bars = [...document.querySelectorAll('.veh[data-unit]')].map(el => ({ el: el.querySelector('.bar2'), u: find(el) })).filter(m => m.u); };
