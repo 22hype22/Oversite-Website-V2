@@ -1,4 +1,4 @@
-// The proximity voice page (/c/:slug/voice): join, mute, see who is near. Audio is peer to peer (WebRTC); every second the
+// The proximity voice page (/:slug/prox; the old /c/:slug/voice sends you there): join, mute, see who is near. Audio is peer to peer (WebRTC); every second the
 // server says who is in range and how far, and this page sets each voice's volume (and muffles it through a vehicle).
 import { layout, esc } from './pages.mjs';
 
@@ -26,6 +26,16 @@ const CSS = `
 .vc-e{color:var(--faint);font-size:13px;padding:10px 2px}
 .vc-tips{color:var(--dim);font-size:13px;line-height:1.6;margin:0;padding-left:18px}
 .vc-off{padding:26px;text-align:center;color:var(--dim)}
+.vc-set h2{margin:0 0 4px;font-size:16px}.vc-set>p{margin:0 0 14px;color:var(--faint);font-size:12.5px}
+.vc-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+.vc-f{display:grid;gap:6px;min-width:0}.vc-f>span{font-size:12.5px;color:var(--dim);display:flex;justify-content:space-between;gap:8px}.vc-f>span em{font-style:normal;color:var(--faint)}
+.vc-f select{width:100%;padding:8px 30px 8px 10px;font-size:13px}.vc-f input[type=range]{width:100%;accent-color:#4C8DFF}
+.vc-f small{color:var(--faint);font-size:12px}
+.vc-mtr{position:relative;height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}.vc-mtr i{display:block;height:100%;width:0;background:#46D07C;transition:width .06s}.vc-mtr b{position:absolute;top:-2px;bottom:-2px;width:2px;background:#E9B04C;left:0}
+.vc-mtr.low i{background:rgba(240,242,245,.3)}
+.vc-sw{display:flex;flex-wrap:wrap;gap:8px 18px;margin:16px 0 0}.vc-sw .chk{margin:0}
+.vc-tst{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0 0}.vc-tst small{color:var(--faint);font-size:12px}
+@media (max-width:560px){.vc-g{grid-template-columns:1fr}}
 @media (max-width:560px){.vc-vol{width:56px}}
 `;
 const HEADSET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></svg>';
@@ -37,6 +47,17 @@ ${!settings.on ? `<section class="card vc-off">Proximity voice is turned off for
   : `<div class="vc-main">
 <section class="card vc-join"><span class="vc-orb" aria-hidden="true">${HEADSET}<i></i></span><div class="vc-st"><b id="vS">Not connected</b><small id="vSub">Join to hear players near you in game. Keep this tab open while you play.</small></div>
 <div class="vc-acts"><button class="btn pri" id="vJoin">Join voice</button><button class="btn" id="vMute" hidden>Mute</button><button class="btn" id="vLeave" hidden>Leave</button></div></section>
+<section class="card vc-set" id="vSet"><h2>Audio settings</h2><p>Saved on this browser. Changes apply straight away, even while you're in voice.</p>
+<div class="vc-g">
+<label class="vc-f"><span>Microphone</span><select id="sIn"><option value="">Default microphone</option></select></label>
+<label class="vc-f"><span>Speakers or headphones</span><select id="sOut"><option value="">Default output</option></select><small id="sOutNote" hidden>Your browser plays voice through your system's default output. Chrome and Edge let you pick one here.</small></label>
+<label class="vc-f"><span>Input volume <em id="sInV">100%</em></span><input type="range" id="sInVol" min="0" max="200" step="5" value="100"></label>
+<label class="vc-f"><span>Output volume <em id="sOutV">100%</em></span><input type="range" id="sOutVol" min="0" max="200" step="5" value="100"></label>
+<label class="vc-f" style="grid-column:1/-1"><span>Input sensitivity <em id="sSensV">Off</em></span><input type="range" id="sSens" min="0" max="100" step="1" value="0"><span class="vc-mtr" id="sMtr"><i></i><b></b></span><small>Off sends everything your mic hears. Turn it up and your voice only goes out when it's louder than the yellow line, which keeps keyboard and background noise out.</small></label>
+</div>
+<div class="vc-sw"><label class="chk"><input type="checkbox" id="sNs" checked> Noise suppression</label><label class="chk"><input type="checkbox" id="sEc" checked> Echo cancellation</label><label class="chk"><input type="checkbox" id="sAgc" checked> Automatic gain control</label></div>
+<div class="vc-tst"><button class="btn sm" id="sTest" type="button">Test microphone</button><small id="sTestNote">Hear yourself the way others will. Wear headphones.</small></div>
+<p id="sNames" class="vc-e" style="padding:8px 0 0" hidden>Device names show once you allow the microphone (press Join voice or Test microphone).</p></section>
 <section class="card vc-near"><h2>Nearby <span id="vCount"></span></h2><div class="vc-l" id="vL"><p class="vc-e">Nobody yet. People show up here when they're in voice and close to you in game.</p></div></section>
 <section class="card"><ul class="vc-tips"><li>Wear headphones, or other players hear themselves through your speakers.</li><li>Voices get quieter with distance and stop at about ${settings.range === 'short' ? '25' : settings.range === 'long' ? '60' : '40'} m.${settings.muffle ? ' Inside a vehicle, people outside sound muffled, and so do you to them.' : ''}</li><li>Your position comes from ER:LC every few seconds, so volume follows you with a short delay.</li></ul></section></div>`}
 </main>`, script: !settings.on || !keyOk ? '' : `
@@ -44,6 +65,46 @@ const API=${JSON.stringify(`/c/${c.slug}/api`)};
 const $=id=>document.getElementById(id),vc=$('vc'),S=$('vS'),SUB=$('vSub'),L=$('vL');
 const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let es=null,me='',ice=[],mic=null,ac=null,muted=false,near={range:90,peers:[],found:false,veh:false,muffle:true};
+// ── audio settings, kept on this browser ──
+const DEF={inId:'',outId:'',inVol:100,outVol:100,sens:0,ns:true,ec:true,agc:true};
+let cfg={...DEF};try{cfg={...DEF,...JSON.parse(localStorage.getItem('ov-voice')||'{}')}}catch(_){}
+const save=()=>{try{localStorage.setItem('ov-voice',JSON.stringify(cfg))}catch(_){}};
+// mic -> input volume -> sensitivity gate -> what is sent; everyone you hear -> output volume -> speakers.
+// What is sent is its own track, so changing the mic or its settings never touches the calls.
+let micSrc=null,inGain=null,gate=null,sendDest=null,sendTrack=null,master=null,monitor=false,loudAt=0;
+const canSink=!!(window.AudioContext&&AudioContext.prototype.setSinkId);
+const audio=async()=>{if(ac)return;ac=new (window.AudioContext||window.webkitAudioContext)();await ac.resume();
+  inGain=ac.createGain();gate=ac.createGain();sendDest=ac.createMediaStreamDestination();master=ac.createGain();
+  inGain.connect(gate).connect(sendDest);master.connect(ac.destination);sendTrack=sendDest.stream.getAudioTracks()[0];
+  meter.an=ac.createAnalyser();meter.an.fftSize=256;inGain.connect(meter.an);applyLevels();await applyOut();meter()};
+const applyLevels=()=>{if(!ac)return;inGain.gain.setTargetAtTime(cfg.inVol/100,ac.currentTime,.05);master.gain.setTargetAtTime(cfg.outVol/100,ac.currentTime,.05)};
+const applyOut=async()=>{if(!ac||!canSink)return;try{await ac.setSinkId(cfg.outId||'')}catch(_){cfg.outId='';save();fill()}};
+const openMic=async()=>{const want=(id)=>({audio:{...(id?{deviceId:{exact:id}}:{}),echoCancellation:cfg.ec,noiseSuppression:cfg.ns,autoGainControl:cfg.agc}});
+  let s;try{s=await navigator.mediaDevices.getUserMedia(want(cfg.inId))}catch(err){if(!cfg.inId)throw err;cfg.inId='';save();s=await navigator.mediaDevices.getUserMedia(want(''))}
+  if(micSrc)try{micSrc.disconnect()}catch(_){}if(mic)for(const t of mic.getTracks())t.stop();
+  mic=s;micSrc=ac.createMediaStreamSource(mic);micSrc.connect(inGain);fill()};
+const closeAudio=()=>{if(mic){for(const t of mic.getTracks())t.stop();mic=null}cancelAnimationFrame(raf);if(ac){ac.close().catch(()=>{});ac=null}micSrc=inGain=gate=sendDest=sendTrack=master=null;monitor=false;$('sTest').textContent='Test microphone';vc.style.setProperty('--lvl',0)};
+const fill=async()=>{if(!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices)return;let ds=[];try{ds=await navigator.mediaDevices.enumerateDevices()}catch(_){}
+  const put=(sel,kind,first,cur)=>{const list=ds.filter(d=>d.kind===kind&&d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications');
+    sel.innerHTML='<option value="">'+first+'</option>'+list.map((d,i)=>'<option value="'+e(d.deviceId)+'">'+e(d.label||(kind==='audioinput'?'Microphone ':'Output ')+(i+1))+'</option>').join('');
+    sel.value=list.some(d=>d.deviceId===cur)?cur:''};
+  put($('sIn'),'audioinput','Default microphone',cfg.inId);put($('sOut'),'audiooutput','Default output',cfg.outId);
+  $('sNames').hidden=ds.some(d=>d.label)};
+const show=()=>{$('sInVol').value=cfg.inVol;$('sInV').textContent=cfg.inVol+'%';$('sOutVol').value=cfg.outVol;$('sOutV').textContent=cfg.outVol+'%';
+  $('sSens').value=cfg.sens;$('sSensV').textContent=cfg.sens?cfg.sens+'%':'Off';$('sMtr').querySelector('b').style.left=cfg.sens+'%';$('sMtr').querySelector('b').hidden=!cfg.sens;
+  $('sNs').checked=cfg.ns;$('sEc').checked=cfg.ec;$('sAgc').checked=cfg.agc;$('sOut').hidden=!canSink;$('sOutNote').hidden=canSink};
+const remic=async()=>{save();if(mic)try{await openMic()}catch(_){status('No microphone','That microphone could not be opened. Pick another one.')}};
+$('sIn').onchange=()=>{cfg.inId=$('sIn').value;remic()};
+$('sOut').onchange=async()=>{cfg.outId=$('sOut').value;save();await applyOut()};
+$('sInVol').oninput=()=>{cfg.inVol=+$('sInVol').value;save();show();applyLevels()};
+$('sOutVol').oninput=()=>{cfg.outVol=+$('sOutVol').value;save();show();applyLevels()};
+$('sSens').oninput=()=>{cfg.sens=+$('sSens').value;save();show()};
+for(const [id,k] of [['sNs','ns'],['sEc','ec'],['sAgc','agc']])$(id).onchange=()=>{cfg[k]=$(id).checked;remic()};
+$('sTest').onclick=async()=>{if(monitor){monitor=false;try{gate.disconnect(master)}catch(_){}$('sTest').textContent='Test microphone';if(!es)closeAudio();return}
+  try{await audio();if(!mic)await openMic()}catch(_){return status('No microphone','Your browser blocked the mic. Allow it in the address bar and try again.')}
+  gate.connect(master);monitor=true;$('sTest').textContent='Stop test'};
+if(navigator.mediaDevices)navigator.mediaDevices.ondevicechange=fill;
+show();fill();
 const peers=new Map();   // rid -> { pc, gain, filter, an, el, queue, name, seen }
 window.__voicePeers=peers;   // for checking a connection from the browser console
 const post=(p,b)=>fetch(API+p,{method:'POST',headers:{'content-type':'application/json','x-oversite':'1'},body:JSON.stringify(b)}).then(r=>r.json()).catch(()=>({}));
@@ -57,12 +118,12 @@ const tune=()=>{for(const p of near.peers){const x=peers.get(p.rid);if(!x||!x.ga
 
 const ensure=rid=>{let x=peers.get(rid);if(x)return x;
   const pc=new RTCPeerConnection({iceServers:ice});x={pc,queue:[],seen:Date.now()};peers.set(rid,x);
-  for(const t of mic.getTracks())pc.addTrack(t,mic);
+  pc.addTrack(sendTrack,sendDest.stream);
   pc.onicecandidate=ev=>{if(ev.candidate)sig(rid,{ice:ev.candidate})};
   pc.ontrack=ev=>{const st=ev.streams[0];if(x.src)return;
     x.el=new Audio();x.el.srcObject=st;x.el.muted=true;x.el.play().catch(()=>{});   // Chrome only plays WebRTC audio into Web Audio while an element holds the stream
     x.src=ac.createMediaStreamSource(st);x.filter=ac.createBiquadFilter();x.filter.type='lowpass';x.filter.frequency.value=20000;x.gain=ac.createGain();x.gain.gain.value=0;
-    x.an=ac.createAnalyser();x.an.fftSize=256;x.src.connect(x.filter).connect(x.gain).connect(ac.destination);x.src.connect(x.an);tune()};
+    x.an=ac.createAnalyser();x.an.fftSize=256;x.src.connect(x.filter).connect(x.gain).connect(master);x.src.connect(x.an);tune()};
   pc.onconnectionstatechange=()=>{if(pc.connectionState==='failed')drop(rid);draw()};
   if(me<rid)(async()=>{await pc.setLocalDescription(await pc.createOffer());sig(rid,{sdp:pc.localDescription})})();   // the lower id starts the call, so both sides never offer at once
   return x};
@@ -80,12 +141,14 @@ const draw=()=>{const ps=near.peers;$('vCount').textContent=ps.length?ps.length+
 // talking glow on people you can hear, and your own mic level on the ring
 let raf=0;const meter=()=>{raf=requestAnimationFrame(meter);const buf=new Uint8Array(128);
   for(const [rid,x] of peers){if(!x.an)continue;x.an.getByteTimeDomainData(buf);let m=0;for(const v of buf)m=Math.max(m,Math.abs(v-128));const row=L.querySelector('[data-rid="'+rid+'"]');if(row)row.classList.toggle('talk',m>12&&x.gain&&x.gain.gain.value>.02)}
-  if(meter.an){meter.an.getByteTimeDomainData(buf);let m=0;for(const v of buf)m=Math.max(m,Math.abs(v-128));vc.style.setProperty('--lvl',muted?0:Math.min(1,m/50).toFixed(2))}};
+  if(meter.an){meter.an.getByteTimeDomainData(buf);let m=0;for(const v of buf)m=Math.max(m,Math.abs(v-128));vc.style.setProperty('--lvl',muted?0:Math.min(1,m/50).toFixed(2));
+    const pct=Math.min(100,m/64*100),bar=$('sMtr');bar.querySelector('i').style.width=pct.toFixed(0)+'%';
+    const open=!cfg.sens||pct>=cfg.sens;if(open)loudAt=performance.now();const on=open||performance.now()-loudAt<350;   // hold briefly so word endings aren't cut
+    bar.classList.toggle('low',!on);if(gate)gate.gain.setTargetAtTime(on?1:0,ac.currentTime,on?.01:.08)}};
 
 const join=async()=>{$('vJoin').disabled=true;status('Starting…','Allow microphone access when your browser asks.');
-  try{mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}
-  catch(err){$('vJoin').disabled=false;return status('No microphone','Your browser blocked the mic. Allow it in the address bar and try again.')}
-  ac=new (window.AudioContext||window.webkitAudioContext)();await ac.resume();meter.an=ac.createAnalyser();meter.an.fftSize=256;ac.createMediaStreamSource(mic).connect(meter.an);meter();
+  try{await audio();if(!mic)await openMic()}
+  catch(err){closeAudio();$('vJoin').disabled=false;return status('No microphone','Your browser blocked the mic. Allow it in the address bar and try again.')}
   es=new EventSource(API+'/voice/stream');
   es.addEventListener('hello',ev=>{const j=JSON.parse(ev.data);me=j.you;ice=j.ice;vc.classList.add('on');$('vJoin').hidden=true;$('vMute').hidden=false;$('vLeave').hidden=false});
   es.addEventListener('near',ev=>{near=JSON.parse(ev.data);
@@ -99,9 +162,9 @@ const join=async()=>{$('vJoin').disabled=true;status('Starting…','Allow microp
   es.addEventListener('gone',ev=>drop(JSON.parse(ev.data).rid));
   es.addEventListener('replaced',()=>{leave();status('Opened somewhere else','You joined voice in another tab or device, so this one stopped.')});
   es.onerror=()=>{if(es&&es.readyState===2){leave();status('Disconnected','The connection dropped. Join again.')}}};
-const leave=()=>{if(es){es.close();es=null}for(const rid of [...peers.keys()])drop(rid);if(mic){for(const t of mic.getTracks())t.stop();mic=null}cancelAnimationFrame(raf);
+const leave=()=>{if(es){es.close();es=null}for(const rid of [...peers.keys()])drop(rid);closeAudio();
   vc.classList.remove('on','muted');muted=false;$('vMute').textContent='Mute';$('vJoin').hidden=false;$('vJoin').disabled=false;$('vMute').hidden=true;$('vLeave').hidden=true;near.peers=[];draw();status('Not connected','Join to hear players near you in game.')};
 $('vJoin').onclick=join;$('vLeave').onclick=leave;
-$('vMute').onclick=()=>{muted=!muted;if(mic)for(const t of mic.getAudioTracks())t.enabled=!muted;vc.classList.toggle('muted',muted);$('vMute').textContent=muted?'Unmute':'Mute';post('/voice/mute',{muted});status(muted?'Muted':'Connected','')};
+$('vMute').onclick=()=>{muted=!muted;if(sendTrack)sendTrack.enabled=!muted;vc.classList.toggle('muted',muted);$('vMute').textContent=muted?'Unmute':'Mute';post('/voice/mute',{muted});status(muted?'Muted':'Connected','')};
 addEventListener('pagehide',()=>{if(es)es.close()});
 ` });

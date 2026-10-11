@@ -2001,7 +2001,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const mark = document.querySelector('.bar .mark') || document.querySelector('.mark'); if (mark) { mark.style.cursor = 'pointer'; mark.title = O.name + ' · your account'; mark.addEventListener('click', () => { location.href = '/account'; }); }
   dispatchEvent(new Event('resize')); })();
 </script>
-<script>if (window.OVERSITE && window.OVERSITE.voice) { const v = document.getElementById('voiceBtn'); v.href = '/c/' + window.OVERSITE.slug + '/voice'; v.hidden = false; }</script>
+<script>if (window.OVERSITE && window.OVERSITE.voice) { const v = document.getElementById('voiceBtn'); v.href = '/' + window.OVERSITE.slug + '/prox'; v.hidden = false; }</script>
 <script>
 /* phones: tabs for the bottom sheet (Units, Calls, Alerts, On duty); tap a tab to open it, tap it again or drag the strip down to tuck it away */
 (() => { const mq = matchMedia('(max-width:760px)'), B = document.body;
