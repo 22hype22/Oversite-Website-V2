@@ -29,6 +29,19 @@ a{color:inherit}
 .ph-acts{position:absolute;right:6px;top:6px;display:flex;gap:4px}
 .ph-acts button{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;border:1px solid rgba(240,242,245,.18);background:rgba(10,11,13,.78);color:var(--ink);cursor:pointer;padding:0}
 .ph-acts button:hover{background:rgba(30,32,36,.95)}.ph-acts .ph-x:hover{color:#ff8a8a}.ph-acts [hidden]{display:none}
+.sp-phg figure{cursor:grab;touch-action:pan-y;user-select:none;transition:box-shadow .2s}.sp-phg img{pointer-events:none;-webkit-user-drag:none}
+.sp-phg figure.sel{outline:2px solid var(--ink);outline-offset:2px}
+.sp-phg figure.drag{z-index:3;cursor:grabbing;box-shadow:0 14px 34px rgba(0,0,0,.5);opacity:.94}
+.sp-cov{margin:0 0 14px}
+.sp-cvf{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--hair2);background:#15171a;cursor:grab;touch-action:none;user-select:none;outline:none}
+.sp-cvf.on{cursor:grabbing}.sp-cvf:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sp-cvf img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;-webkit-user-drag:none}
+.sp-cvf.pg{aspect-ratio:2.8/1}.sp-cvf.xc{aspect-ratio:5/1;width:min(100%,340px);margin-top:8px}
+.sp-cvf span{position:absolute;left:8px;bottom:7px;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:999px;background:rgba(10,11,13,.78);color:var(--ink);pointer-events:none}
+.sp-cvf i{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-size:12.5px;font-weight:600;color:var(--ink);background:rgba(10,11,13,.35);opacity:0;transition:opacity .25s;pointer-events:none}
+.sp-cvf:hover i{opacity:1}.sp-cvf.on i{opacity:0}
+.sp-cvr{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:6px}
+.sp-cvr .lnk{background:none;border:0;color:var(--dim);font:inherit;font-size:12px;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px;flex:none}.sp-cvr .lnk:hover{color:var(--ink)}
 .sp-phadd{aspect-ratio:16/10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:12px;border:1px dashed rgba(240,242,245,.22);background:rgba(240,242,245,.03);color:var(--dim);font:inherit;font-size:12.5px;cursor:pointer}
 .sp-phadd:hover{color:var(--ink);border-color:rgba(240,242,245,.4);background:rgba(240,242,245,.06)}
 .sp-erlc{border:1px solid var(--hair);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,.02);margin-bottom:4px}
@@ -524,7 +537,7 @@ const acts=x=>(x.join_key?'<a class="xb pri" href="'+e(JOIN(x.join_key))+'" targ
   +(x.invite?'<a class="xb ghost" href="'+e(x.invite)+'" target="_blank" rel="noopener" title="Join their Discord">'+DC+'Discord</a>':'');
 const pct=x=>x.live&&x.max?Math.min(100,Math.round(x.players/x.max*100)):0;
 const card=(x,i)=>'<article class="xr st-'+state(x)+(i===0?' is-top':'')+'" tabindex="0" data-slug="'+e(x.slug)+'"'+(x.role?' data-mine="1"':'')+' aria-label="'+e(x.name)+'">'
-  +'<div class="xr-map'+(x.photos&&x.photos.length?' ph':'')+'" style="--pos:'+spot(x)+(x.photos&&x.photos.length?';background-image:url(/c/'+e(x.slug)+'/photos/'+x.photos[0]+')':'')+'"><div class="xr-mt">'+status(x)+(i===0?'<span class="xr-badge">'+(TAB==='new'?'Newest':TAB==='voted'?'Most voted':TAB==='popular'?'Most popular':'Most active')+'</span>':i<3?'<span class="xr-rank">#'+(i+1)+'</span>':'')+'</div>'
+  +'<div class="xr-map'+(x.photos&&x.photos.length?' ph':'')+'" style="--pos:'+spot(x)+(x.photos&&x.photos.length?';background-image:url(/c/'+e(x.slug)+'/photos/'+x.photos[0]+')'+(x.ppos&&x.ppos[0]?';background-position:'+(+x.ppos[0][0])+'% '+(+x.ppos[0][1])+'%':''):'')+'"><div class="xr-mt">'+status(x)+(i===0?'<span class="xr-badge">'+(TAB==='new'?'Newest':TAB==='voted'?'Most voted':TAB==='popular'?'Most popular':'Most active')+'</span>':i<3?'<span class="xr-rank">#'+(i+1)+'</span>':'')+'</div>'
   +(x.join_key?'<span class="xr-code" title="Join code">'+e(x.join_key)+'</span>':'')+'<div class="xr-bar"><i style="width:'+pct(x)+'%"></i></div></div>'
   +'<div class="xr-b"><div class="xr-h">'+ic(x)+'<div class="xr-n"><h3>'+e(x.name)+(x.badge?VB:'')+'</h3>'+by(x)+'</div>'+(x.role?'<a class="xr-mine" href="/'+e(x.slug)+'">'+e(RN[x.role]||'Member')+' · Open CAD</a>':'')+'</div>'
   +'<div class="xr-m">'+meta(x)+'</div><p class="'+(x.bio?'':'none')+'">'+e(x.bio||'No description yet.')+'</p>'
@@ -591,8 +604,10 @@ ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.
 <div class="sp-head"><button type="button" class="sp-icon" id="spPick" title="Change icon" aria-label="Change server icon"><span>${letter}</span><img id="spImg" src="/c/${esc(c.slug)}/icon?v=${Date.now()}" alt="" onerror="this.remove()"><i>Change</i></button>
 <div class="sp-id"><b>${esc(c.name)}</b><small id="spIconNote">${iconKind === 'custom' ? 'Using the icon you uploaded.' : iconKind === 'discord' ? 'Using your Discord server\'s icon. Upload one to replace it.' : iconKind === 'owner' ? 'Using the server owner\'s Roblox avatar. Upload an icon to replace it.' : 'No icon yet. Upload one.'}</small>
 <div class="row" style="margin-top:8px"><button type="button" class="btn sm" id="spUp">Upload icon</button>${iconKind === 'custom' ? '<button type="button" class="btn sm" id="spDefault">Use default</button>' : ''}<input type="file" id="spFile" accept="image/png,image/jpeg,image/webp" hidden></div></div></div>
-<div class="sp-ph"><div class="sp-phh"><b>Photos</b><span>${photos.length} / 8</span></div><p class="hint" style="margin:2px 0 10px">Screenshots of your server. They scroll across the top of your server page, and the first one is the banner on your Explore card.</p>
-<div class="sp-phg" id="spPhg">${photos.map((id, i) => `<figure data-id="${id}"><img src="/c/${esc(c.slug)}/photos/${id}" alt="" loading="lazy">${i ? '' : '<em>Cover</em>'}<div class="ph-acts"><button type="button" class="ph-l" title="Move earlier" aria-label="Move earlier"${i ? '' : ' hidden'}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button type="button" class="ph-x" title="Remove photo" aria-label="Remove photo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></figure>`).join('')}${photos.length < 8 ? `<button type="button" class="sp-phadd" id="spPhAdd"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>Add photos</button>` : ''}</div>
+<div class="sp-ph"><div class="sp-phh"><b>Photos</b><span>${photos.length} / 8</span></div><p class="hint" style="margin:2px 0 10px">Screenshots of your server. They scroll across the top of your server page, and the first one is the banner on your Explore card. Drag photos to change the order.</p>
+${photos.length ? `<div class="sp-cov" id="spCov"><div class="sp-cvf pg" id="spCvPg" tabindex="0" aria-label="Photo position. Drag, or use the arrow keys."><img alt=""><i>Drag to move</i><span>Server page</span></div><div class="sp-cvf xc" id="spCvXc" tabindex="-1"><img alt=""><span>Explore card</span></div>
+<div class="sp-cvr"><p class="hint" style="margin:0" id="spCvH">Drag the photo to choose which part shows. Click a photo below to position that one.</p><button type="button" class="lnk" id="spCvReset">Center</button></div></div>` : ''}
+<div class="sp-phg" id="spPhg">${photos.map((id, i) => `<figure data-id="${id}"${i ? '' : ' class="sel"'}><img src="/c/${esc(c.slug)}/photos/${id}" alt="" loading="lazy"${P.ppos?.[id] ? ` style="object-position:${+P.ppos[id][0]}% ${+P.ppos[id][1]}%"` : ''}>${i ? '' : '<em>Cover</em>'}<div class="ph-acts"><button type="button" class="ph-l" title="Move earlier" aria-label="Move earlier"${i ? '' : ' hidden'}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button type="button" class="ph-x" title="Remove photo" aria-label="Remove photo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></figure>`).join('')}${photos.length < 8 ? `<button type="button" class="sp-phadd" id="spPhAdd"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>Add photos</button>` : ''}</div>
 <input type="file" id="spPhFile" accept="image/png,image/jpeg,image/webp" multiple hidden></div>
 <div class="sp-erlc"><div class="sp-erlch"><span>From ER:LC</span><button type="button" class="lnk" id="spRefresh">${E.at ? 'Refresh' : 'Load from ER:LC'}</button></div>${E.at ? `<div class="sp-facts">${facts}</div>` : `<p class="hint" style="margin:6px 0 0">${keyStatus.connected ? 'Loading your server details…' : 'Connect your ER:LC server above to fill this in.'}</p>`}</div>
 <form id="spForm"><label for="spBio">Bio</label><textarea id="spBio" maxlength="300" rows="3" placeholder="What your server is about: the vibe, the rules, what makes it different.">${esc(P.bio || '')}</textarea><p class="hint" style="text-align:right;margin:4px 0 0"><span id="spCount">${(P.bio || '').length}</span> / 300</p>
@@ -657,9 +672,38 @@ pf.addEventListener('change',async()=>{const files=[...pf.files].filter(f=>/^ima
   try{for(let i=0;i<list.length;i++){say(m,'Uploading photo '+(i+1)+' of '+list.length+'…',true);let d=await shrink(list[i],1600,.84);if(d.length>1.15e6)d=await shrink(list[i],1280,.72);await api(A+'/profile/photos',{data:d})}location.reload()}catch(x){say(m,x.message||'Could not read that image.')}});
 const order=()=>[...pg.querySelectorAll('figure')].map(f=>Number(f.dataset.id));
 const relabel=()=>pg.querySelectorAll('figure').forEach((f,i)=>{let em=f.querySelector('em');if(!i&&!em){em=document.createElement('em');em.textContent='Cover';f.insertBefore(em,f.querySelector('.ph-acts'))}if(i&&em)em.remove();f.querySelector('.ph-l').hidden=!i});
-pg.addEventListener('click',async e=>{const f=e.target.closest('figure');if(!f)return;
+// position: drag the photo inside the banner-shaped frames; saved per photo
+const PP=${JSON.stringify((c.settings.profile && c.settings.profile.ppos) || {})},cv=document.getElementById('spCov');let cur=null,dragged=false;
+const tiles=()=>[...pg.querySelectorAll('figure')],posOf=id=>PP[id]||[50,50];
+const paint=()=>{if(!cur)return;const p=posOf(cur.dataset.id),op=p[0]+'% '+p[1]+'%';cv.querySelectorAll('img').forEach(i=>i.style.objectPosition=op);cur.querySelector('img').style.objectPosition=op};
+const choose=f=>{if(!cv||!f)return;cur=f;tiles().forEach(t=>t.classList.toggle('sel',t===f));const src=f.querySelector('img').src;cv.querySelectorAll('img').forEach(i=>{if(i.src!==src)i.src=src});
+  const first=tiles()[0]===f;document.getElementById('spCvXc').hidden=!first;document.getElementById('spCvH').textContent=first?'Drag the photo to choose which part shows. Click a photo below to position that one.':'Drag the photo to choose which part shows on your server page.';paint()};
+let saveT=0;const savePos=()=>{clearTimeout(saveT);const id=cur.dataset.id,p=posOf(id);saveT=setTimeout(async()=>{try{await api(A+'/profile/photos/pos',{id:Number(id),x:p[0],y:p[1]});say(m,'Photo position saved.',true)}catch(x){say(m,x.message)}},250)};
+if(cv){choose(tiles()[0]);
+  const clamp=v=>Math.round(Math.min(100,Math.max(0,v))*10)/10;
+  cv.querySelectorAll('.sp-cvf').forEach(fr=>{let st=null;
+    fr.addEventListener('pointerdown',e=>{if(e.button||!cur)return;const im=fr.querySelector('img');if(!im.naturalWidth)return;e.preventDefault();fr.setPointerCapture(e.pointerId);fr.classList.add('on');
+      const fw=fr.clientWidth,fh=fr.clientHeight,k=Math.max(fw/im.naturalWidth,fh/im.naturalHeight);st={x:e.clientX,y:e.clientY,p:posOf(cur.dataset.id).slice(),ox:im.naturalWidth*k-fw,oy:im.naturalHeight*k-fh,moved:false}});
+    fr.addEventListener('pointermove',e=>{if(!st)return;const dx=e.clientX-st.x,dy=e.clientY-st.y;if(Math.abs(dx)+Math.abs(dy)>1)st.moved=true;
+      PP[cur.dataset.id]=[st.ox>1?clamp(st.p[0]-dx/st.ox*100):st.p[0],st.oy>1?clamp(st.p[1]-dy/st.oy*100):st.p[1]];paint()});
+    const end=()=>{if(!st)return;fr.classList.remove('on');if(st.moved)savePos();st=null};fr.addEventListener('pointerup',end);fr.addEventListener('pointercancel',end)});
+  document.getElementById('spCvPg').addEventListener('keydown',e=>{const d={ArrowLeft:[-2,0],ArrowRight:[2,0],ArrowUp:[0,-2],ArrowDown:[0,2]}[e.key];if(!d||!cur)return;e.preventDefault();
+    const p=posOf(cur.dataset.id);PP[cur.dataset.id]=[clamp(p[0]+d[0]),clamp(p[1]+d[1])];paint();savePos()});
+  document.getElementById('spCvReset').addEventListener('click',()=>{if(!cur)return;PP[cur.dataset.id]=[50,50];paint();savePos()})}
+// order: drag a photo onto another spot; the first one is the cover
+let dg=null;
+pg.addEventListener('pointerdown',e=>{const f=e.target.closest('figure');if(!f||e.button||e.target.closest('button'))return;dg={f,x:e.clientX,y:e.clientY,id:e.pointerId,on:false}});
+addEventListener('pointermove',e=>{if(!dg||e.pointerId!==dg.id)return;const dx=e.clientX-dg.x,dy=e.clientY-dg.y;
+  if(!dg.on){if(Math.hypot(dx,dy)<6)return;dg.on=true;dg.f.classList.add('drag');dg.f.style.pointerEvents='none';dg.l=dg.f.offsetLeft;dg.t=dg.f.offsetTop;dg.was=order().join()}
+  const o=document.elementFromPoint(e.clientX,e.clientY)?.closest('#spPhg figure');if(o&&o!==dg.f){const L=tiles();pg.insertBefore(dg.f,L.indexOf(o)>L.indexOf(dg.f)?o.nextSibling:o)}
+  dg.f.style.transform='translate('+(dg.l+dx-dg.f.offsetLeft)+'px,'+(dg.t+dy-dg.f.offsetTop)+'px)'});
+const drop=async()=>{if(!dg)return;const d=dg;dg=null;if(!d.on)return;dragged=true;setTimeout(()=>dragged=false,0);d.f.classList.remove('drag');d.f.style.transform='';d.f.style.pointerEvents='';
+  if(order().join()===d.was)return;relabel();if(cur)choose(cur);try{await api(A+'/profile/photos/order',{ids:order()});say(m,'Photo order saved.',true)}catch(x){say(m,x.message)}};
+addEventListener('pointerup',drop);addEventListener('pointercancel',drop);
+pg.addEventListener('click',async e=>{const f=e.target.closest('figure');if(!f||dragged)return;
+  if(!e.target.closest("button")){choose(f);return}
   if(e.target.closest('.ph-x')){try{await api(A+'/profile/photos/remove',{id:Number(f.dataset.id)});location.reload()}catch(x){say(m,x.message)}}
-  else if(e.target.closest('.ph-l')&&f.previousElementSibling){pg.insertBefore(f,f.previousElementSibling);relabel();try{await api(A+'/profile/photos/order',{ids:order()});say(m,'Photo order saved.',true)}catch(x){say(m,x.message)}}});
+  else if(e.target.closest('.ph-l')&&f.previousElementSibling){pg.insertBefore(f,f.previousElementSibling);relabel();if(cur)choose(cur);try{await api(A+'/profile/photos/order',{ids:order()});say(m,'Photo order saved.',true)}catch(x){say(m,x.message)}}});
 const d=document.getElementById('spDefault');if(d)d.addEventListener('click',async()=>{await api(A+'/profile/icon/remove');location.reload()});
 const r=document.getElementById('spRefresh');const refresh=async(auto)=>{r.textContent='Loading…';try{await api(A+'/profile/refresh');location.reload()}catch(x){r.textContent='Refresh';if(!auto)say(m,x.message)}};
 r.addEventListener('click',()=>refresh(false));

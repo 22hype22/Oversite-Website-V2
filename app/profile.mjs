@@ -63,10 +63,15 @@ const imageOf = (dataUrl, max) => { const m = /^data:(image\/(?:png|jpeg|webp));
   return { mime: m[1], buf }; };
 export const addPhoto = (c, dataUrl) => { if (communityPhotos.ids(c.id).length >= PHOTOS_MAX) return { error: `A server can have up to ${PHOTOS_MAX} photos. Remove one first.` };
   const im = imageOf(dataUrl, PHOTO_MAX); if (im.error) return im; return { ok: true, id: Number(communityPhotos.add(c.id, im.mime, im.buf)) }; };
-export const removePhoto = (c, id) => { communityPhotos.remove(c.id, Number(id)); return { ok: true }; };
+export const removePhoto = (c, id) => { communityPhotos.remove(c.id, Number(id)); const s = communities.byId(c.id).settings;
+  if (s.profile?.ppos?.[Number(id)]) { delete s.profile.ppos[Number(id)]; communities.saveSettings(c.id, s); } return { ok: true }; };
+// which part of a photo shows when it's cropped to a banner: the owner drags it into place; x and y are CSS background/object-position percentages
+export const posPhoto = (c, id, x, y) => { id = Number(id); if (!communityPhotos.ids(c.id).includes(id)) return { error: 'That photo is gone. Reload the page.' };
+  const k = v => Number.isFinite(+v) ? Math.round(Math.min(100, Math.max(0, +v)) * 10) / 10 : 50, s = communities.byId(c.id).settings;
+  s.profile = { ...(s.profile || {}), ppos: { ...(s.profile?.ppos || {}), [id]: [k(x), k(y)] } }; communities.saveSettings(c.id, s); return { ok: true }; };
 export const orderPhotos = (c, ids) => { const have = new Set(communityPhotos.ids(c.id)), list = (Array.isArray(ids) ? ids : []).map(Number).filter(i => have.has(i));
   communityPhotos.order(c.id, [...new Set(list)]); return { ok: true }; };
-export const clearPhotos = c => { communityPhotos.clear(c.id); return { ok: true }; };
+export const clearPhotos = c => { communityPhotos.clear(c.id); const s = communities.byId(c.id).settings; if (s.profile?.ppos) { delete s.profile.ppos; communities.saveSettings(c.id, s); } return { ok: true }; };
 export const clearBio = c => { const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), bio: '' }; communities.saveSettings(c.id, s); return { ok: true }; };
 export const clearIcon = c => { communityIcons.remove(c.id); return { ok: true }; };
 
@@ -108,7 +113,7 @@ export const directory = me => { const mine = new Map((me ? communities.forUser(
     return { slug: c.slug, name: c.name, bio: P.bio || '', invite: P.invite || '', players: E.players ?? null, max: E.max ?? null, join_key: E.join_key || P.join_code || '', open_join: !!P.open_join, ingame: E.name || '',
       owner_id: E.owner_id || ownerOf(c).roblox_id || '', owner_name: E.owner_name || ownerOf(c).roblox_name || ownerOf(c).name || '', co_owners: (E.co_owners || []).map(o => o.name).filter(Boolean), verified: E.verified || '', team_balance: !!E.team_balance,
       depts: ['pd', 'fd', 'dot'].map(d => c.settings.depts?.[d] && { k: d, name: c.settings.depts[d].name, short: c.settings.depts[d].short }).filter(Boolean), discord: c.settings.discord?.guild_name || '', at: E.at || 0, created: c.created || 0,
-      role: mine.get(c.id) || null, photos: ph.get(c.id) || [], live: !!E.at && Date.now() - E.at < 10 * 60000,
+      role: mine.get(c.id) || null, photos: ph.get(c.id) || [], ppos: (ph.get(c.id) || []).map(id => P.ppos?.[id] || null), live: !!E.at && Date.now() - E.at < 10 * 60000,
       votes: total[c.id] || 0, week: week[c.id] || 0, next_vote: voted[c.id] ? Math.max(0, voted[c.id] + VOTE_GAP - Date.now()) : 0,
       region: REGIONS[P.region] ? { code: P.region, name: REGIONS[P.region][0], flag: REGIONS[P.region][1] } : null, lang: LANGS[P.lang] ? { code: P.lang, name: LANGS[P.lang][0], flag: LANGS[P.lang][1] } : null,
       dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, connected: !!c.erlc_key, badge: !!c.verified, owner_badge: !!(E.owner_id || ownerOf(c).roblox_id) && vr.has(String(E.owner_id || ownerOf(c).roblox_id)), rating: rv[c.id] ? Math.round(rv[c.id].avg * 10) / 10 : null, reviews: rv[c.id]?.n || 0, id: c.id }; }); };

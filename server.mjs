@@ -139,6 +139,7 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'profile/photos' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 1.3e6) || '{}'); } catch (e) {} const r = profile.addPhoto(c, j.data); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/photos/remove' && M === 'POST') return json(res, profile.removePhoto(c, (await jsonBody(req)).id));
   if (rest === 'profile/photos/order' && M === 'POST') return json(res, profile.orderPhotos(c, (await jsonBody(req)).ids));
+  if (rest === 'profile/photos/pos' && M === 'POST') { const j = await jsonBody(req), r = profile.posPhoto(c, j.id, j.x, j.y); return json(res, r, r.error ? 400 : 200); }
   // department units (Engine 1, K-9, ...) and who is in which, for the unit tags on the map; players set their own from the MDT
   if (rest === 'settings' && M === 'POST') { const j = await jsonBody(req), s = c.settings;
     const name = String(j.name || '').trim(); if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400); if (rude(name)) return json(res, { error: RUDE_MSG }, 400);
