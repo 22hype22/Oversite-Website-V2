@@ -295,7 +295,9 @@ LIVE_JS = r"""<script id="live">
     const h00 = 2 * s ** 3 - 3 * s * s + 1, h10 = s ** 3 - 2 * s * s + s, h01 = -2 * s ** 3 + 3 * s * s, h11 = s ** 3 - s * s;
     return [h00 * p1.x + h10 * m1[0] + h01 * p2.x + h11 * m2[0], h00 * p1.y + h10 * m1[1] + h01 * p2.y + h11 * m2[1]]; };
   // coarser game updates are drawn further behind, through the real positions, so the dot never has to back up
-  const delayFor = m => Math.max(m.df || 0, m.stale > 0.2 ? MO.delaySlow + (MO.maxDelay - MO.delaySlow) * Math.min(1, Math.max(0, (m.gap - 0.8) / 0.8)) : MO.delay) * Math.min(6, m.gap);   // seconds
+  // on a road the prediction follows the road, so the dot is drawn at "now" (only the self-tuned margin if it keeps overshooting); off-road it
+  // stays a little behind through the real positions
+  const delayFor = m => m.look && m.sp > 4 ? (m.df || 0) * Math.min(6, m.gap) : Math.max(m.df || 0, m.stale > 0.2 ? MO.delaySlow + (MO.maxDelay - MO.delaySlow) * Math.min(1, Math.max(0, (m.gap - 0.8) / 0.8)) : MO.delay) * Math.min(6, m.gap);   // seconds
   const traj = (m, t) => { const F = m.fixes, dl = m.dls || 0; if (dl > 0.005 && F.length >= 2) { const tt = t - dl;
       if (tt <= F[F.length - 1].t) { if (tt <= F[0].t) return [F[0].x, F[0].y]; let i = F.length - 2; while (i > 0 && F[i].t > tt) i--; return hermite(F, i, tt); }
       t = tt; }

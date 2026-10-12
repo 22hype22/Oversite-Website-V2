@@ -274,7 +274,9 @@ const route = async (req, res) => {
   const me0 = auth.currentUser(req);
   if (me0?.suspended && !isSiteAdmin(me0) && !SUSPENDED_OK.test(path)) { if (path.startsWith('/api/') || /^\/c\/[^/]+\/api\//.test(path)) return json(res, { error: 'Your account is suspended.' }, 403);
     return msg(res, me0, 'Your account is suspended', 'Oversite has suspended this account for breaking the Terms of Use, so you can\'t use the CAD or Explore right now. If you think this is a mistake, email support@oversite.shop.', { href: 'mailto:support@oversite.shop', label: 'Contact support' }, 403); }
-  if (path === '/health') { let w = 0, perMin = 0; for (const f of feeds.values()) { w += f.clients.size; perMin += f.sent.length; } res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${communities.all().length} communities, ${w} watching, ${perMin}/min`); }
+  if (path === '/health') { let w = 0, perMin = 0; const live = []; for (const f of feeds.values()) { w += f.clients.size; perMin += f.sent.length; if (f.clients.size && f.rtt) live.push(f.stats()); }
+    const avg = k => live.length ? Math.round(live.reduce((a, s) => a + s[k], 0) / live.length) : 0;   // how fresh the live feeds are: ER:LC round trip, time between updates, time between real moves
+    res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${communities.all().length} communities, ${w} watching, ${perMin}/min` + (live.length ? `, api ${avg('rtt')}ms, update every ${avg('every')}ms, positions change every ${avg('moves')}ms` : '')); }
   // an account that only ever came from a server code (no Discord, no Roblox) is nothing once its last server is gone: sign it out and start over
   const stranded = user => user && !user.discord_id && !user.roblox_id && !communities.forUser(user.id).length;
   if (path === '/' || path === '/dashboard') { const user = auth.currentUser(req); if (stranded(user)) return redirect(res, '/', { 'set-cookie': auth.signOut(req) }); }

@@ -10,7 +10,7 @@ export const NOKEY = '{"code":2000,"message":"This community has not connected i
 
 export class Feed {
   constructor(id, getKey) { Object.assign(this, { id, getKey, snap: null, clients: new Set(), timer: null, inflight: 0, lastClient: 0, nextAt: 0, seq: 0, shown: 0, rl: null, rlSeq: 0,
-    holdUntil: 0, penaltyUntil: 0, n: 0, joins: null, sent: [], n429: 0, reverts: 0, hist: new Map(), track: new Map(), pending: new Map(), lastAt: new Map() }); this.key = getKey(); }
+    holdUntil: 0, penaltyUntil: 0, n: 0, joins: null, sent: [], n429: 0, reverts: 0, rtt: 0, gapEv: 0, lastEv: 0, moveEv: 0, lastMove: 0, hist: new Map(), track: new Map(), pending: new Map(), lastAt: new Map() }); this.key = getKey(); }
   bcast(ev, data, id) { const msg = `event: ${ev}\n${id ? `id: ${id}\n` : ''}data: ${data}\n\n`; for (const c of this.clients) c.write(msg); }
   // time between requests: spread what the rate limit has left evenly until it resets, keep a reserve, count requests still in flight
   pace() { let g = 700; const h = this.rl, keep = Date.now() < this.penaltyUntil ? 10 : 4;
@@ -31,17 +31,18 @@ export class Feed {
     try {
       const up = await fetch(UPSTREAM + (full ? QUERY : QUERY_FAST), { headers: { 'server-key': key } }); const body = await up.text(), headers = pickRL(up.headers);
       if (key !== this.key) return;                                       // the key changed while this was in flight
-      const taken = Math.round((now + Date.now()) / 2); this.takeRL(headers, seq);
+      const taken = Math.round((now + Date.now()) / 2); this.takeRL(headers, seq); const ema = (a, v) => a ? a * 0.9 + v * 0.1 : v; this.rtt = ema(this.rtt, Date.now() - now);   // timing, for /health
       if (up.status === 429) { this.holdUntil = Date.now() + Math.max(1, +headers['retry-after'] || 30) * 1000; this.penaltyUntil = Date.now() + 180000; this.n429++; this.bcast('err', JSON.stringify({ status: 429, retry_after: +headers['retry-after'] || 30 })); }
       else if (up.ok) { if (seq > this.shown) { this.shown = seq; let out = body;
           if (full) { try { this.joins = JSON.parse(body).JoinLogs || []; } catch (e) {} } else if (this.joins) out = body.replace(/}\s*$/, `,"JoinLogs":${JSON.stringify(this.joins)}}`);
           out = this.steady(out, taken);
-          if (out) { this.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; this.bcast('server', out, taken); } } }
+          if (out) { this.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; this.bcast('server', out, taken); if (this.lastEv) this.gapEv = ema(this.gapEv, taken - this.lastEv); this.lastEv = taken;
+            if (this.moved) { if (this.lastMove && taken - this.lastMove < 10000) this.moveEv = ema(this.moveEv, taken - this.lastMove); this.lastMove = taken; } } } }
       else { let j = {}; try { j = JSON.parse(body); } catch (e) {} this.bcast('err', JSON.stringify({ status: up.status, ...j })); this.holdUntil = Date.now() + (up.status === 403 || up.status === 401 ? 15000 : 3000); }
     } catch (e) { this.bcast('err', JSON.stringify({ status: 502, message: 'could not reach api.erlc.gg: ' + e.message })); this.holdUntil = Date.now() + 3000; }
     finally { this.inflight--; } }
   // drop answers from an old API cache: a player back at a spot they already left, or (for updates under 2 s apart) suddenly behind a moving car
-  steady(body, taken) { let j; try { j = JSON.parse(body); } catch (e) { return body; } let stale = false; const adds = [];
+  steady(body, taken) { this.moved = false; let j; try { j = JSON.parse(body); } catch (e) { return body; } let stale = false; const adds = [];
     for (const p of j.Players || []) { const L = p.Location; if (!L || !Number.isFinite(L.LocationX)) continue; const h = this.hist.get(p.Player) || [], cur = [L.LocationX, L.LocationZ];
       const same = q => Math.abs(q[0] - cur[0]) < 0.01 && Math.abs(q[1] - cur[1]) < 0.01;
       if (h.length && same(h[h.length - 1])) continue;
@@ -51,6 +52,7 @@ export class Feed {
           if (!(pend && Math.hypot(cur[0] - pend[0], cur[1] - pend[1]) < ld + 40 && (cur[0] - pend[0]) * d[0] + (cur[1] - pend[1]) * d[1] >= 0)) { this.pending.set(p.Player, cur); stale = true; break; } } }
       this.pending.delete(p.Player); adds.push([p, h, cur, L]); }
     if (stale) { this.reverts++; return null; }
+    if (adds.length) this.moved = true;
     for (const [p, h, cur, L] of adds) { this.lastAt.set(p.Player, taken); h.push(cur); if (h.length > 12) h.shift(); this.hist.set(p.Player, h);
       const tr = this.track.get(p.Player) || []; tr.push([taken, +cur[0].toFixed(2), +cur[1].toFixed(2), L.PostalCode || '']); while (tr.length && taken - tr[0][0] > 900000) tr.shift(); this.track.set(p.Player, tr); }
     return body; }
@@ -66,7 +68,7 @@ export class Feed {
   async snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return this.snap; if (!this.key) return { status: 401, body: NOKEY, headers: {} };
     try { const up = await fetch(UPSTREAM + QUERY, { headers: { 'server-key': this.key } }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) this.snap = out; return out; }
     catch (e) { return { status: 502, body: JSON.stringify({ message: 'could not reach api.erlc.gg: ' + e.message }), headers: {} }; } }
-  stats() { return { watching: this.clients.size, perMin: this.sent.length, left: this.rl?.left ?? null, limited: this.n429, stale: this.reverts }; }
+  stats() { return { watching: this.clients.size, perMin: this.sent.length, left: this.rl?.left ?? null, limited: this.n429, stale: this.reverts, rtt: Math.round(this.rtt), every: Math.round(this.gapEv), moves: Math.round(this.moveEv) }; }
 }
 // test a key once without starting a feed: { ok, name, players } or { ok:false, message }
 export const testKey = async key => { try { const r = await fetch(UPSTREAM + '/v2/server', { headers: { 'server-key': key } }); const j = await r.json().catch(() => ({}));
