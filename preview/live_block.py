@@ -271,7 +271,7 @@ LIVE_JS = r"""<script id="live">
     const rl = { limit: r.headers.get('x-ratelimit-limit'), left: r.headers.get('x-ratelimit-remaining'), reset: r.headers.get('x-ratelimit-reset') };
     if (r.status === 429) { const wait = +(r.headers.get('retry-after') || 30); throw Object.assign(new Error(`Rate limited. Waiting ${wait}s before the next request.`), { wait }); }
     let body = null; try { body = await r.json(); } catch (e) {}
-    if (!r.ok) { const m = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' }[body?.code] || body?.message || `HTTP ${r.status}`; throw Object.assign(new Error(m), { code: body?.code }); }
+    if (!r.ok) { const m = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' }[body?.code] || body?.message || `HTTP ${r.status}`; throw Object.assign(new Error(appSideMsg(body) || m), { code: body?.code }); }
     return { body, rl };
   };
 
@@ -469,6 +469,7 @@ LIVE_JS = r"""<script id="live">
   let lastUpdate = 0, updates = 0, source = '', fixAt = 0; const eventTimes = [];                 // fixAt = last time any unit's reported position changed
   const ERR = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 2003: "ER:LC turned down Oversite's application key. This is on our side; it will reconnect shortly.", 2005: "ER:LC needs Oversite's application key to connect this server. This is on our side, not yours.", 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
   // when ER:LC refuses, the unit list says so instead of looking like nobody is on duty; the next good answer clears it
+  const appSideMsg = j => j && (j.code === 2005 || j.code === 2003 || /multiple servers|application|global api key/i.test(String(j.message || ''))) ? "Your server key is saved. ER:LC is holding the live data until Oversite finishes its ER:LC application setup. Nothing to do on your side: it starts by itself once that's done." : '';
   const showDown = msg => { if (!HOSTED || (lastUnits && lastUnits.length)) return; const fl = document.querySelector('.fleet'); if (!fl) return;
     fl.innerHTML = `<div class="empty" style="padding:18px 6px;color:var(--dim);font-size:12.5px;line-height:1.5"><b style="color:var(--ink)">Live data is paused.</b><br>${esc(msg)}</div>`; shownIds = null; };
   const handle = (body, rl, src, taken) => { const tFix = fixTime(taken); lastServer = body; lastPlayers = body.Players || []; dispatchEvent(new Event('players')); lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
@@ -490,7 +491,7 @@ LIVE_JS = r"""<script id="live">
   const poll = async () => { if (inflight) return; inflight = true;
     try { if (streaming()) { schedule(20000); return; }
       const { body, rl } = await fetchServer(); handle(body, rl, 'poll'); schedule(paceMs(rl)); }
-    catch (e) { status(e.message, 'err'); schedule((e.wait || 15) * 1000); }
+    catch (e) { status(e.message, 'err'); showDown(e.message); schedule((e.wait || 15) * 1000); }
     finally { inflight = false; } };
   const schedule = ms => { clearTimeout(timer); if (S.live) timer = setTimeout(poll, ms); };
   let es = null, esRetry = null, esFails = 0;
@@ -505,7 +506,7 @@ LIVE_JS = r"""<script id="live">
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }
       if (j.status === 429) return status(`Rate limited by the API. Resuming in ${j.retry_after || 30}s.`, 'err');
-      status(ERR[j.code] || j.message || `HTTP ${j.status}`, 'err'); showDown(ERR[j.code] || j.message || `ER:LC answered ${j.status}`); });
+      const why = appSideMsg(j) || ERR[j.code] || j.message || `ER:LC answered ${j.status}`; status(why, 'err'); showDown(why); });
     es.onerror = () => { if (es && es.readyState === 2 || !got) { esFails++; stopStream(); schedule(500); esRetry = setTimeout(startStream, Math.min(60000, 3000 * esFails)); } }; };
   const start = () => { if (!S.key && !S.relay && !HOSTED) { status('Enter the server key (or a relay URL) first.', 'err'); F.live.checked = S.live = false; save(); return; } clearTimeout(timer); startStream(); poll(); };
   const stop = () => { if (HOSTED) return; clearTimeout(timer); stopStream(); restoreDemo(); status('Live data off. Demo units are showing.'); };

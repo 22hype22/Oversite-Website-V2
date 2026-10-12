@@ -105,7 +105,10 @@ export class Feed {
   stats() { return { watching: this.clients.size, perMin: this.sent.length, left: this.rl?.left ?? null, limited: this.n429, stale: this.reverts, rtt: Math.round(this.rtt), every: Math.round(this.gapEv), moves: Math.round(this.moveEv), err: this.lastErr && Date.now() - this.lastErr.at < 120000 ? this.lastErr.code ?? this.lastErr.status : null }; }
 }
 // test a key once without starting a feed: { ok, name, players } or { ok:false, message }
+// ER:LC refusing because of Oversite's own application key (not the owner's server key): codes 2003/2005, or that message
+export const appSide = j => j && (j.code === 2005 || j.code === 2003 || /multiple servers|application|global api key/i.test(String(j.message || '')));
 export const testKey = async key => { try { const r = await fetch(UPSTREAM + '/v2/server', { headers: erlcHeaders(key) }); const j = await r.json().catch(() => ({}));
+  if (!r.ok && appSide(j)) return { ok: false, appSide: true, message: "Your server key is saved. ER:LC is holding the live data until Oversite finishes its ER:LC application setup. Nothing to do on your side: it starts by itself once that's done." };
   if (r.ok) return { ok: true, name: j.Name, players: j.CurrentPlayers, max: j.MaxPlayers };
   const msg = { 2000: 'No key was sent.', 2001: "ER:LC says that isn't a server key. In your private server open Settings, then the ER:LC API section, and copy the Server Key (not an application key).",
     2003: "ER:LC turned down Oversite's application key. This is on our side: we've been told and the connection will work again shortly.",
