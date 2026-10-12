@@ -20,11 +20,17 @@ export const erlcHeaders = (key, extra = {}) => { const k = appKey(); return { '
 export const authLink = serverKey => { const i = String(serverKey || '').indexOf('-'), sid = i > 0 ? serverKey.slice(i + 1) : '', id = appId();
   return sid && /^[A-Za-z0-9]+$/.test(sid) && /^\d+$/.test(id) ? `https://api.erlc.gg/server-owners/server/${sid}/authorize/${id}` : ''; };
 const GL = { left: NaN, reset: 0, at: 0 }, ACTIVE = new Set();
+// Without Oversite's ER:LC application key, ER:LC blocks every server as soon as one machine reads more than one ("multiple servers", 2005).
+// So until the key is added, only one server's feed reads ER:LC at a time; a server run by a site admin goes first, the rest wait their turn.
+const SOLO = { feed: null };
+const SOLO_WAIT = JSON.stringify({ status: 403, code: 2005, message: 'Waiting for Oversite to finish its ER:LC application setup. Until then ER:LC only lets Oversite read one server at a time.' });
+const holderLive = f => f && ACTIVE.has(f) && (f.clients.size > 0 || Date.now() - f.lastClient < 60000);
+export const soloBusy = key => !appKey() && holderLive(SOLO.feed) && SOLO.feed.key !== key;   // another server holds the one slot
 const pickRL = h => { const out = {}; for (const k of RL) if (h.get(k)) out[k] = h.get(k); return out; };
 export const NOKEY = '{"code":2000,"message":"This community has not connected its ER:LC server yet. An admin can add the server key in Settings."}';
 
 export class Feed {
-  constructor(id, getKey) { Object.assign(this, { id, getKey, snap: null, clients: new Set(), timer: null, inflight: 0, lastClient: 0, nextAt: 0, seq: 0, shown: 0, rl: null, rlSeq: 0,
+  constructor(id, getKey, prio = () => false) { Object.assign(this, { id, getKey, prio, snap: null, clients: new Set(), timer: null, inflight: 0, lastClient: 0, nextAt: 0, seq: 0, shown: 0, rl: null, rlSeq: 0,
     holdUntil: 0, penaltyUntil: 0, n: 0, joins: null, sent: [], n429: 0, reverts: 0, rtt: 0, gapEv: 0, lastEv: 0, moveEv: 0, lastMove: 0, hist: new Map(), track: new Map(), pending: new Map(), lastAt: new Map() }); this.key = getKey(); }
   bcast(ev, data, id) { const msg = `event: ${ev}\n${id ? `id: ${id}\n` : ''}data: ${data}\n\n`; for (const c of this.clients) c.write(msg); }
   // time between requests: spread what the rate limit has left evenly until it resets, keep a reserve, count requests still in flight
@@ -35,12 +41,15 @@ export class Feed {
     if (b === 'global' && Number.isFinite(left)) { GL.left = left; GL.reset = reset; GL.at = Date.now(); }
     if (seq < this.rlSeq) return; this.rlSeq = seq; this.rl = { left, reset, bucket: b }; }
   setKey(k) { this.key = k; this.snap = null; this.joins = null; this.hist.clear(); this.nextAt = 0; this.holdUntil = 0; if (this.clients.size) this.wake(); }
+  soloOk() { const h = SOLO.feed; if (h && h !== this && holderLive(h) && !(this.prio() && !h.prio())) return false;
+    if (h !== this) { if (h) console.log(`feed ${this.id}: takes the one ER:LC slot from feed ${h.id} (no application key yet)`); SOLO.feed = this; } return true; }
   wake() { if (!this.timer) this.timer = setTimeout(() => this.tick(), Math.max(0, this.nextAt - Date.now())); }
   async tick() {
     this.timer = null; const now = Date.now();
     if (!this.clients.size && now - this.lastClient > IDLE_STOP) { ACTIVE.delete(this); return; }
     ACTIVE.add(this);
     if (!this.key) { this.bcast('err', NOKEY); this.timer = setTimeout(() => this.tick(), 5000); return; }
+    if (!appKey() && !this.soloOk()) { this.bcast('err', SOLO_WAIT); this.timer = setTimeout(() => this.tick(), 8000); return; }
     if (now < this.holdUntil) { this.timer = setTimeout(() => this.tick(), this.holdUntil - now); return; }
     if (this.inflight >= 2) { this.timer = setTimeout(() => this.tick(), 40); return; }
     const seq = ++this.seq, full = !this.joins || this.n++ % 20 === 0, key = this.key;
@@ -102,6 +111,7 @@ export class Feed {
   // reload the open CADs of one person (suspended), or of everyone on this server (server suspended)
   kick(uid = null) { for (const r of this.clients) if (uid == null || r.uid === uid) r.write('event: reload\ndata: {}\n\n'); }
   async snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return this.snap; if (!this.key) return { status: 401, body: NOKEY, headers: {} };
+    if (!appKey() && !this.soloOk()) return { status: 403, body: SOLO_WAIT, headers: {} };
     try { const up = await fetch(UPSTREAM + QUERY, { headers: erlcHeaders(this.key) }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) this.snap = out; return out; }
     catch (e) { return { status: 502, body: JSON.stringify({ message: 'could not reach api.erlc.gg: ' + e.message }), headers: {} }; } }
   stats() { return { watching: this.clients.size, perMin: this.sent.length, left: this.rl?.left ?? null, limited: this.n429, stale: this.reverts, rtt: Math.round(this.rtt), every: Math.round(this.gapEv), moves: Math.round(this.moveEv), err: this.lastErr && Date.now() - this.lastErr.at < 120000 ? this.lastErr.code ?? this.lastErr.status : null }; }
@@ -109,7 +119,7 @@ export class Feed {
 // test a key once without starting a feed: { ok, name, players } or { ok:false, message }
 // ER:LC refusing because of Oversite's own application key (not the owner's server key): codes 2003/2005, or that message
 export const appSide = j => j && (j.code === 2005 || j.code === 2003 || /multiple servers|application|global api key/i.test(String(j.message || '')));
-export const testKey = async key => { try { const r = await fetch(UPSTREAM + '/v2/server', { headers: erlcHeaders(key) }); const j = await r.json().catch(() => ({}));
+export const testKey = async key => { if (soloBusy(key)) return { ok: false, keep: true, message: 'Your server key is saved. Oversite is waiting for its ER:LC application setup before it can check more servers, so the CAD connects once that is done.' }; try { const r = await fetch(UPSTREAM + '/v2/server', { headers: erlcHeaders(key) }); const j = await r.json().catch(() => ({}));
   if (!r.ok && appSide(j)) return { ok: false, appSide: true, message: "Your server key is saved. ER:LC is holding the live data until Oversite finishes its ER:LC application setup. Nothing to do on your side: it starts by itself once that's done." };
   if (r.ok) return { ok: true, name: j.Name, players: j.CurrentPlayers, max: j.MaxPlayers };
   const msg = { 2000: 'No key was sent.', 2001: "ER:LC says that isn't a server key. In your private server open Settings, then the ER:LC API section, and copy the Server Key (not an application key).",

@@ -43,7 +43,7 @@ const msg = (res, user, title, text, action, status = 200) => page(res, pages.me
 // ── live feeds, one per community ──
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
-const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id)); feeds.set(c.id, f); } return f; };
+const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f); } return f; };
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 
 // ── the CAD page, with this community's settings injected ──

@@ -1,7 +1,7 @@
 // A server's public profile: what ER:LC knows about it (name, join code, owner, size, rules), kept fresh from the API,
 // plus what only the owner can say (bio, icon, Discord invite). Saved now so the server browser can list servers later.
 import { rude, RUDE_MSG } from './clean.mjs';
-import { erlcHeaders } from './feed.mjs';
+import { erlcHeaders, appKey } from './feed.mjs';
 import { communities, communityIcons, communityPhotos, users, members, votes, stats, reviews } from './db.mjs';
 import * as discordlink from './discordlink.mjs';
 
@@ -94,7 +94,8 @@ export const startDirectory = (feedPeek) => { let busy = false; if (feedPeek) pe
   for (const c of communities.all()) { const P = c.settings.profile; if (P && OLD_LANG[P.lang]) { const s = c.settings; s.profile = { ...P, lang: OLD_LANG[P.lang] }; communities.saveSettings(c.id, s); } }
   const pass = async () => { if (busy) return; busy = true;
     try { for (const c of communities.all()) { if (c.settings.profile?.unlisted) continue;
-      if (communities.key(c.id) && !fromFeed(c)) { const r = await refresh(c).catch(e => ({ error: e.message }));
+      // without Oversite's application key, reading other servers would get every server blocked, so Explore only reuses open CADs' data
+      if (communities.key(c.id) && !fromFeed(c) && appKey()) { const r = await refresh(c).catch(e => ({ error: e.message }));
         // say why a listed server couldn't be read, at most every half hour per server, so an "Offline" that should be online can be traced
         if (r?.error && Date.now() - (failedAt.get(c.id) || 0) > 30 * 60000) { failedAt.set(c.id, Date.now()); console.log(`directory: ${c.slug} not refreshed: ${r.error}`); } }
       { const E = communities.byId(c.id).settings.profile?.erlc; if (E?.at && Date.now() - E.at < 5 * 60000 && E.players != null) stats.add(c.id, E.players, E.max ?? null); }
