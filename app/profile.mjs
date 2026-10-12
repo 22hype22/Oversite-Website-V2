@@ -1,6 +1,7 @@
 // A server's public profile: what ER:LC knows about it (name, join code, owner, size, rules), kept fresh from the API,
 // plus what only the owner can say (bio, icon, Discord invite). Saved now so the server browser can list servers later.
 import { rude, RUDE_MSG } from './clean.mjs';
+import { erlcHeaders } from './feed.mjs';
 import { communities, communityIcons, communityPhotos, users, members, votes, stats, reviews } from './db.mjs';
 import * as discordlink from './discordlink.mjs';
 
@@ -27,7 +28,7 @@ const names = async ids => { ids = [...new Set(ids.map(Number).filter(Boolean))]
 
 // read the server's details from ER:LC and keep them on the community
 export const refresh = async c => { const key = communities.key(c.id); if (!key) return { error: 'Connect your ER:LC server first.' };
-  let r, j = {}; try { r = await fetch(UPSTREAM + '/v2/server', { headers: { 'server-key': key } }); j = await r.json().catch(() => ({})); } catch (e) { return { error: 'Could not reach ER:LC right now.' }; }
+  let r, j = {}; try { r = await fetch(UPSTREAM + '/v2/server', { headers: erlcHeaders(key) }); j = await r.json().catch(() => ({})); } catch (e) { return { error: 'Could not reach ER:LC right now.' }; }
   if (!r.ok) return { error: j.message || `ER:LC answered ${r.status}.` };
   const co = (j.CoOwnerIds || []).map(String), prev = communities.byId(c.id).settings.profile?.erlc;
   const known = prev && prev.owner_id === String(j.OwnerId || '') && prev.co_owners?.map(o => o.id).join() === co.join() && prev.owner_name;   // names only change when the people do

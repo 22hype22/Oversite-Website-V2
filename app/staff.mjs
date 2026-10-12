@@ -1,5 +1,6 @@
 // Staff tools for one community: a staff view of the ER:LC server (players, mod calls, command and kill logs, bans) and in-game
 // moderation through the API's command endpoint, with every warning, kick and ban written to the community's records.
+import { erlcHeaders } from './feed.mjs';
 import { staffRecords, staffSent, commandLog, communities, users } from './db.mjs';
 
 // who did something, by the account behind it rather than the name saved at the time: once someone links Roblox their past
@@ -42,7 +43,7 @@ const NEEDS_REASON = new Set(['warn', 'pm', 'kick', 'ban', 'announce', 'note']);
 const state = new Map();                                                     // community id -> { view, bans, queue, lastCmd }
 const of = cid => { if (!state.has(cid)) state.set(cid, { view: null, viewAt: 0, viewing: null, bans: null, bansAt: 0, queue: Promise.resolve(), lastCmd: 0 }); return state.get(cid); };
 
-const get = async (key, path) => { const r = await fetch(UPSTREAM + path, { headers: { 'server-key': key } }); const text = await r.text(); let j = null; try { j = JSON.parse(text); } catch (e) {}
+const get = async (key, path) => { const r = await fetch(UPSTREAM + path, { headers: erlcHeaders(key) }); const text = await r.text(); let j = null; try { j = JSON.parse(text); } catch (e) {}
   return { ok: r.ok, status: r.status, j, retry: +r.headers.get('retry-after') || 0 }; };
 
 // the staff view, refreshed at most every few seconds however many staff have it open
@@ -71,7 +72,7 @@ export const view = async (c, key) => {
 const run = (c, key, command, by) => { const s = of(c.id);
   const job = s.queue.then(async () => {
     const wait = s.lastCmd + GAP - Date.now(); if (wait > 0) await new Promise(r => setTimeout(r, wait));
-    const send = () => fetch(UPSTREAM + '/v2/server/command', { method: 'POST', headers: { 'server-key': key, 'content-type': 'application/json' }, body: JSON.stringify({ command }) });
+    const send = () => fetch(UPSTREAM + '/v2/server/command', { method: 'POST', headers: erlcHeaders(key, { 'content-type': 'application/json' }), body: JSON.stringify({ command }) });
     let r = await send(); s.lastCmd = Date.now();
     let j = {}; try { j = await r.json(); } catch (e) {}
     for (let tries = 0; r.status === 429 && tries < 3; tries++) {                // another app on the same key can use up the slot; wait it out

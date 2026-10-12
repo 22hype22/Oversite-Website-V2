@@ -4,7 +4,13 @@ const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg';
 const QUERY = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true&JoinLogs=true';
 const QUERY_FAST = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true';   // join logs only change on joins: fetched every 20th request and reused
 const IDLE_STOP = 30000, FLOOR = +(process.env.FEED_FLOOR_MS || 250);
-const RL = ['x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset', 'retry-after'];
+const RL = ['x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset', 'x-ratelimit-bucket', 'retry-after'];
+// ER:LC refuses a service that speaks for several servers unless it is a registered public application sending its Global API Key
+// in the Authorization header (error 2005). Every request carries it next to that server's own key. Its rate limit is one budget
+// shared by every server (bucket "global"), so the live feeds split it between them instead of each spending all of it.
+const APP_KEY = (process.env.ERLC_API_KEY || '').trim();
+export const erlcHeaders = (key, extra = {}) => ({ 'server-key': key, ...(APP_KEY ? { authorization: APP_KEY } : {}), ...extra });
+const GL = { left: NaN, reset: 0, at: 0 }, ACTIVE = new Set();
 const pickRL = h => { const out = {}; for (const k of RL) if (h.get(k)) out[k] = h.get(k); return out; };
 export const NOKEY = '{"code":2000,"message":"This community has not connected its ER:LC server yet. An admin can add the server key in Settings."}';
 
@@ -13,15 +19,18 @@ export class Feed {
     holdUntil: 0, penaltyUntil: 0, n: 0, joins: null, sent: [], n429: 0, reverts: 0, rtt: 0, gapEv: 0, lastEv: 0, moveEv: 0, lastMove: 0, hist: new Map(), track: new Map(), pending: new Map(), lastAt: new Map() }); this.key = getKey(); }
   bcast(ev, data, id) { const msg = `event: ${ev}\n${id ? `id: ${id}\n` : ''}data: ${data}\n\n`; for (const c of this.clients) c.write(msg); }
   // time between requests: spread what the rate limit has left evenly until it resets, keep a reserve, count requests still in flight
-  pace() { let g = 700; const h = this.rl, keep = Date.now() < this.penaltyUntil ? 10 : 4;
-    if (h && Number.isFinite(h.left) && Number.isFinite(h.reset) && h.reset > 0) { const left = h.left - this.inflight, win = Math.max(0, (h.reset > 1e12 ? h.reset : h.reset * 1000) - Date.now()) + (left <= keep ? 1200 : 300); g = left <= keep ? win : win / (left - keep); }
+  pace() { let g = 700; const shared = this.rl?.bucket === 'global', h = shared ? GL : this.rl, n = shared ? Math.max(1, ACTIVE.size) : 1, keep = (Date.now() < this.penaltyUntil ? 10 : 4) * n;
+    if (h && Number.isFinite(h.left) && Number.isFinite(h.reset) && h.reset > 0) { const left = h.left - (shared ? [...ACTIVE].reduce((a, f) => a + f.inflight, 0) : this.inflight), win = Math.max(0, (h.reset > 1e12 ? h.reset : h.reset * 1000) - Date.now()) + (left <= keep ? 1200 : 300); g = left <= keep ? win : win / (left - keep) * n; }   // shared: each feed takes its turn in the one budget
     return Math.min(15000, Math.max(FLOOR, g)); }
-  takeRL(headers, seq) { if (seq < this.rlSeq) return; this.rlSeq = seq; this.rl = { left: +headers['x-ratelimit-remaining'], reset: +headers['x-ratelimit-reset'] }; }
+  takeRL(headers, seq) { const b = headers['x-ratelimit-bucket'] || '', left = +headers['x-ratelimit-remaining'], reset = +headers['x-ratelimit-reset'];
+    if (b === 'global' && Number.isFinite(left)) { GL.left = left; GL.reset = reset; GL.at = Date.now(); }
+    if (seq < this.rlSeq) return; this.rlSeq = seq; this.rl = { left, reset, bucket: b }; }
   setKey(k) { this.key = k; this.snap = null; this.joins = null; this.hist.clear(); this.nextAt = 0; this.holdUntil = 0; if (this.clients.size) this.wake(); }
   wake() { if (!this.timer) this.timer = setTimeout(() => this.tick(), Math.max(0, this.nextAt - Date.now())); }
   async tick() {
     this.timer = null; const now = Date.now();
-    if (!this.clients.size && now - this.lastClient > IDLE_STOP) return;
+    if (!this.clients.size && now - this.lastClient > IDLE_STOP) { ACTIVE.delete(this); return; }
+    ACTIVE.add(this);
     if (!this.key) { this.bcast('err', NOKEY); this.timer = setTimeout(() => this.tick(), 5000); return; }
     if (now < this.holdUntil) { this.timer = setTimeout(() => this.tick(), this.holdUntil - now); return; }
     if (this.inflight >= 2) { this.timer = setTimeout(() => this.tick(), 40); return; }
@@ -29,7 +38,7 @@ export class Feed {
     this.inflight++; this.nextAt = now + this.pace(); this.timer = setTimeout(() => this.tick(), this.nextAt - now);
     this.sent.push(now); while (this.sent.length && now - this.sent[0] > 60000) this.sent.shift();
     try {
-      const up = await fetch(UPSTREAM + (full ? QUERY : QUERY_FAST), { headers: { 'server-key': key } }); const body = await up.text(), headers = pickRL(up.headers);
+      const up = await fetch(UPSTREAM + (full ? QUERY : QUERY_FAST), { headers: erlcHeaders(key) }); const body = await up.text(), headers = pickRL(up.headers);
       if (key !== this.key) return;                                       // the key changed while this was in flight
       const taken = Math.round((now + Date.now()) / 2); this.takeRL(headers, seq); const ema = (a, v) => a ? a * 0.9 + v * 0.1 : v; this.rtt = ema(this.rtt, Date.now() - now);   // timing, for /health
       if (up.status === 429) { this.holdUntil = Date.now() + Math.max(1, +headers['retry-after'] || 30) * 1000; this.penaltyUntil = Date.now() + 180000; this.n429++; this.bcast('err', JSON.stringify({ status: 429, retry_after: +headers['retry-after'] || 30 })); }
@@ -66,12 +75,14 @@ export class Feed {
     this.wake(); }
   // one-off answer for a dashboard whose stream dropped: the feed's latest snapshot, or a direct request if nobody is streaming
   async snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return this.snap; if (!this.key) return { status: 401, body: NOKEY, headers: {} };
-    try { const up = await fetch(UPSTREAM + QUERY, { headers: { 'server-key': this.key } }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) this.snap = out; return out; }
+    try { const up = await fetch(UPSTREAM + QUERY, { headers: erlcHeaders(this.key) }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) this.snap = out; return out; }
     catch (e) { return { status: 502, body: JSON.stringify({ message: 'could not reach api.erlc.gg: ' + e.message }), headers: {} }; } }
   stats() { return { watching: this.clients.size, perMin: this.sent.length, left: this.rl?.left ?? null, limited: this.n429, stale: this.reverts, rtt: Math.round(this.rtt), every: Math.round(this.gapEv), moves: Math.round(this.moveEv) }; }
 }
 // test a key once without starting a feed: { ok, name, players } or { ok:false, message }
-export const testKey = async key => { try { const r = await fetch(UPSTREAM + '/v2/server', { headers: { 'server-key': key } }); const j = await r.json().catch(() => ({}));
+export const testKey = async key => { try { const r = await fetch(UPSTREAM + '/v2/server', { headers: erlcHeaders(key) }); const j = await r.json().catch(() => ({}));
   if (r.ok) return { ok: true, name: j.Name, players: j.CurrentPlayers, max: j.MaxPlayers };
-  const msg = { 2000: 'No key was sent.', 2001: 'That key is not in the right format.', 2002: 'That key is invalid or has expired. Copy a fresh one from your ER:LC private server settings.', 2004: 'That key is banned from the API.' }[j.code] || j.message || `ER:LC answered ${r.status}.`;
+  const msg = { 2000: 'No key was sent.', 2001: "ER:LC says that isn't a server key. In your private server open Settings, then the ER:LC API section, and copy the Server Key (not an application key).",
+    2003: "ER:LC turned down Oversite's application key. This is on our side: we've been told and the connection will work again shortly.",
+    2005: "ER:LC needs Oversite's application key before it will connect more servers. This is on our side, not yours: try again in a little while.", 2002: 'That key is invalid or has expired. Copy a fresh one from your ER:LC private server settings.', 2004: 'That key is banned from the API.' }[j.code] || j.message || `ER:LC answered ${r.status}.`;
   return { ok: false, message: msg }; } catch (e) { return { ok: false, message: 'Could not reach api.erlc.gg right now. Try again in a moment.' }; } };
