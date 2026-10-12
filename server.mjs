@@ -6,7 +6,7 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, RESERVED, token } from './app/db.mjs';
+import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, RESERVED, token } from './app/db.mjs';
 import { serverPage } from './app/serverpage.mjs';
 import * as voice from './app/voice.mjs';
 import { voicePage } from './app/voicepage.mjs';
@@ -47,7 +47,7 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // ── the CAD page, with this community's settings injected ──
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), voice: voice.voiceSettings(c).on, roads: c.settings.roads || null, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
+  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on, roads: c.settings.roads || null, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};</script>`;
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
@@ -121,11 +121,16 @@ const communityApi = async (req, res, slug, rest) => {
       if (k.startsWith('t_')) { ov[k] = { t: 1 }; continue; }   // a tunnel the owner added between two road ends
       if ([1, -1, 0].includes(v.o)) o.o = v.o; if (v.b) o.b = 1; if (v.x) o.x = 1; if (v.l === 0 || v.l === 1) o.l = v.l; if (Object.keys(o).length) ov[k] = o; }
     const s = communities.byId(c.id).settings; s.roads = { ov, at: Date.now() }; communities.saveSettings(c.id, s); c.settings.roads = s.roads; f.bcast('roads', JSON.stringify(s.roads)); return json(res, s.roads); }
-  if (rest === 'units' && M === 'GET') return json(res, { of: unitMembers.all(c.id), units: Object.fromEntries(['pd', 'fd', 'dot'].map(d => [d, c.settings.depts?.[d]?.units || []])) });
+  if (rest === 'units' && M === 'GET') return json(res, { of: unitMembers.all(c.id), ride: rideWith.all(c.id), units: Object.fromEntries(['pd', 'fd', 'dot'].map(d => [d, c.settings.depts?.[d]?.units || []])) });
   if (rest === 'units/me' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     const unit = String((await jsonBody(req)).unit || '').trim(), all = ['pd', 'fd', 'dot'].flatMap(d => c.settings.depts?.[d]?.units || []);
     if (unit && !all.includes(unit)) return json(res, { error: 'That unit no longer exists. Pick another one.' }, 400);
-    unitMembers.set(c.id, String(user.roblox_id), unit); return json(res, { ok: true, of: unitMembers.all(c.id) }); }
+    unitMembers.set(c.id, String(user.roblox_id), unit); const out = { of: unitMembers.all(c.id), ride: rideWith.all(c.id) }; f.bcast('unitsof', JSON.stringify(out)); return json(res, { ok: true, ...out }); }
+  // ride with a teammate: you join their unit on the map and in dispatch (empty to ride alone again)
+  if (rest === 'units/ride' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
+    const w = String((await jsonBody(req)).with || '').trim(); if (w && (!/^\d{1,20}$/.test(w) || w === String(user.roblox_id))) return json(res, { error: 'Pick a teammate to ride with.' }, 400);
+    const R = rideWith.all(c.id); if (w && R[w] === String(user.roblox_id)) rideWith.set(c.id, w, '');   // they were riding with you: now you ride with them instead
+    rideWith.set(c.id, String(user.roblox_id), w); const out = { of: unitMembers.all(c.id), ride: rideWith.all(c.id) }; f.bcast('unitsof', JSON.stringify(out)); return json(res, { ok: true, ...out }); }
   if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can do that.' }, 403);
   if (rest === 'profile/refresh' && M === 'POST') { const r = await profile.refresh(c); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/save' && M === 'POST') { const r = profile.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }

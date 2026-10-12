@@ -151,6 +151,7 @@ window.onIt = (c, n) => !!n && !!c && (c.unit === n || (c.more || []).some(m => 
 window.callUnits = c => c && c.unit ? [c.unit, ...(c.more || []).map(m => m.name)] : [];
 /* a unit's map tag: callsign, players, the unit they picked (or their department) and whether they are free */
 window.UNIT_OF = (window.OVERSITE && window.OVERSITE.unitOf) || {};
+window.RIDE_WITH = (window.OVERSITE && window.OVERSITE.rideWith) || {};   // Roblox id -> the teammate's Roblox id they ride with
 window.unitOf = u => (u && u.uid && window.UNIT_OF[String(u.uid)]) || '';
 window.tagHTML = u => { if (!u) return ''; const e = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const unit = window.unitOf(u), dn = (window.OVERSITE && window.OVERSITE.depts && window.OVERSITE.depts[u.dept] && window.OVERSITE.depts[u.dept].name) || ({ pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' })[u.dept] || '';
@@ -158,7 +159,7 @@ window.tagHTML = u => { if (!u) return ''; const e = t => String(t ?? '').replac
   const ST = { '10-8': 'Available', '10-76': 'En route', '10-23': 'On scene', '10-19': 'Returning', '10-7': 'Out of service', '10-6': 'Busy' };
   const label = st && ST[st] ? ST[st] + (call && st !== '10-8' ? ' · ' + e(call.code) : '') : call ? 'On call · ' + e(call.code) : 'Available', busy = st ? st !== '10-8' : !!call;
   return `<div class="k">${e(u.name)}</div><div class="s">${e((u.crew || []).join(', '))}</div><div class="v un${unit ? '' : ' none'}">${e(unit || dn)}</div><div class="av${busy ? ' busy' : ''}">${label}</div>`; };
-if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(window.OVERSITE.api + '/units', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; window.UNIT_OF = j.of || {};
+if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(window.OVERSITE.api + '/units', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; window.UNIT_OF = j.of || {}; window.RIDE_WITH = j.ride || {};
     for (const d of ['pd', 'fd', 'dot']) if (window.OVERSITE.depts && window.OVERSITE.depts[d]) window.OVERSITE.depts[d].units = (j.units || {})[d] || []; dispatchEvent(new CustomEvent('unitassign')); }).catch(() => {});
   setInterval(pullUnits, 30000); }
 /* ── shared unit simulation: positions for cards, 2D pins and the 3D scene ── */

@@ -403,9 +403,14 @@ LIVE_JS = r"""<script id="live">
   const buildUnits = (players, vehicles, joins, tFix = performance.now() / 1000) => {
     const now = Date.now(), ids = new Set();
     const joinAt = {}; for (const j of joins || []) if (j.Join) joinAt[j.Player] = Math.max(joinAt[j.Player] || 0, j.Timestamp * 1000);
-    const groups = new Map();
-    for (const p of players) { const dept = S.teams[p.Team] ?? ''; if (!dept) continue; const cs = (p.Callsign || '').trim(); if (!cs && S.callsignOnly) continue;
-      const [name, pid] = p.Player.split(':'); const id = `${dept}-${slug(cs || name)}`;
+    const groups = new Map(), R = window.RIDE_WITH || {}, own = new Map();
+    // ride-alongs: a player riding with a teammate on duty in the same department joins that teammate's unit (its name stays, so a call
+    // already given to it stays given); the teammate comes first so the unit keeps their position and callsign
+    const on = new Map(); for (const p of players) { const dept = S.teams[p.Team] ?? ''; if (dept) on.set(p.Player.split(':')[1], dept); }
+    const leaderOf = (pid, dept) => { let l = pid; for (let i = 0; i < 4 && R[l] && R[l] !== pid && on.get(R[l]) === dept; i++) l = R[l]; return l; };
+    const list = players.map(p => { const dept = S.teams[p.Team] ?? '', pid = p.Player.split(':')[1]; return { p, dept, pid, lead: dept ? leaderOf(pid, dept) : pid }; }).sort((a, b) => (a.lead !== a.pid) - (b.lead !== b.pid));
+    for (const { p, dept, pid, lead } of list) { if (!dept) continue; const cs = (p.Callsign || '').trim(); if (!cs && S.callsignOnly && lead === pid) continue;
+      const name = p.Player.split(':')[0]; let id = lead !== pid && own.get(lead); if (!id) id = `${dept}-${slug(cs || name)}`; own.set(pid, id);
       if (!groups.has(id)) groups.set(id, { id, dept, cs, members: [], loc: p.Location, pid });
       groups.get(id).members.push({ name, pid, perm: p.Permission, join: joinAt[p.Player] }); }
     for (const g of groups.values()) { ids.add(g.id); let u = units.get(g.id);
@@ -414,7 +419,7 @@ LIVE_JS = r"""<script id="live">
       if (!u) { u = { id: g.id, live: true, dept: g.dept, kind: KIND[g.dept], route: 'B', t: 0, dir: 1, speed: 0, x: wx, y: wy, tx: wx, ty: wy, heading: 0, th: 0, mph: 0, sx: g.loc?.LocationX, sz: g.loc?.LocationZ, seen: now,
           startedAt: Math.min(...g.members.map(m => m.join || now)) }; units.set(g.id, u); motionReset(u, wx, wy, tFix); }
       else if (g.loc) { if (motionFix(u, wx, wy, tFix)) { fixAt = now; u.seen = now; } u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ; u.tx = wx; u.ty = wy; }
-      u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
+      u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.crewIds = g.members.map(m => m.pid); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
       u.uid = g.pid; u.model = veh ? veh.Name : 'On foot'; u.postal = g.loc?.PostalCode || ''; u.street = g.loc?.StreetName || ''; }
     for (const id of [...units.keys()]) if (!ids.has(id)) units.delete(id);
     const me = (S.me || '').toLowerCase(); const mine = u => me && u.crew.some(n => n.toLowerCase() === me) ? 0 : 1;
@@ -481,6 +486,7 @@ LIVE_JS = r"""<script id="live">
     es = new EventSource(`${base()}/stream`);
     es.addEventListener('server', e => { got = true; esFails = 0; let body; try { body = JSON.parse(e.data); } catch (x) { return; } handle(body, null, 'stream', +e.lastEventId || 0); schedule(20000); });
     es.addEventListener('cal', e => { try { takeCal(JSON.parse(e.data)); } catch (x) {} });
+    es.addEventListener('unitsof', e => { try { const j = JSON.parse(e.data); window.UNIT_OF = j.of || {}; window.RIDE_WITH = j.ride || {}; dispatchEvent(new CustomEvent('unitassign')); } catch (x) {} });   // someone picked a unit or a ride-along
     es.addEventListener('roads', e => { try { window.ROADNET?.setOv(JSON.parse(e.data).ov); } catch (x) {} });   // an owner fixed a road: re-route now
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }
