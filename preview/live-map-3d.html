@@ -557,10 +557,8 @@
   .tlock{flex:1;min-height:0;display:grid;grid-template-columns:1.12fr 1fr;border-top:1px solid var(--line)}
   .tl-rd{position:relative;overflow:hidden;border-right:1px solid var(--line);background:#0A0B0C}
   .tl-pad{position:absolute;left:50%;top:50%;width:min(300px,76%);aspect-ratio:300/190;transform:translate(-50%,-50%);border-radius:12px;border:1px dashed rgba(255,255,255,.16);display:grid;place-items:center}
-  .tl-rings{position:relative;width:90px;height:90px}
-  .tl-rings i{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--fd);opacity:0;animation:tlRing 2.4s ease-out infinite}
-  .tl-rings i:nth-child(2){animation-delay:.8s}.tl-rings i:nth-child(3){animation-delay:1.6s}.tl-rings b{position:absolute;inset:32px;border-radius:50%;background:var(--fd)}
-  @keyframes tlRing{from{transform:scale(.35);opacity:.9}to{transform:scale(1.25);opacity:0}}
+  .tl-pad{animation:tlPad 2.2s ease-in-out infinite}
+  @keyframes tlPad{50%{border-color:rgba(255,255,255,.42)}}
   .tl-card{position:absolute;left:50%;top:50%;width:400px;height:250px;margin:-125px 0 0 -200px;transform:scale(var(--ks,1))}
   .tl-card{pointer-events:none}.tl-card .lcard{pointer-events:auto;touch-action:none;user-select:none}
   .tl-card .lcard{transform:translateY(140%) rotate(-8deg);transition:transform .7s cubic-bezier(.2,.8,.2,1)}
@@ -568,7 +566,7 @@
   .tl-card.peek .lcard:hover{transform:translateY(calc(var(--peek,170px) - 16px)) rotate(-4deg)}
   .tl-card.drag .lcard{transition:none;cursor:grabbing}
   .tl-card.in .lcard{transform:rotate(-3deg)}
-  .tl-pad{cursor:pointer;transition:border-color .2s,background .2s}.tl-pad:hover,.tl-pad.over{border-color:var(--fd);background:var(--fd-soft)}
+  .tl-pad{cursor:pointer;transition:border-color .2s,background .2s}.tl-pad:hover,.tl-pad.over{animation:none;border-color:var(--fd);background:var(--fd-soft)}
   .tl-card .lc-k2 span.typing::after{content:"";display:inline-block;width:1.5px;height:15px;margin-left:1px;background:#2F7322;vertical-align:-2px;animation:tlBlink 1s steps(1) infinite}
   .tl-msg{position:absolute;left:12px;right:12px;bottom:14px;text-align:center;font-size:14px;color:var(--mute);pointer-events:none;z-index:2;text-shadow:0 1px 6px rgba(0,0,0,.8)}.tl-msg a{pointer-events:auto}
   .tl-rd{user-select:none;-webkit-user-select:none}.tl-rd.peek .tl-msg{top:calc(50% + 104px);bottom:auto}
@@ -591,7 +589,7 @@
   .tl-go:disabled{opacity:.4;cursor:default}.tl-go:active:not(:disabled){transform:scale(.98)}
   .tl-st{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mute);min-height:16px}.tl-st.bad{color:#FF8A82}
   @media (max-width:760px){.tlock{grid-template-columns:1fr;grid-template-rows:minmax(190px,42%) 1fr}.tl-rd{border-right:0;border-bottom:1px solid var(--line)}}
-  @media (prefers-reduced-motion:reduce){.tl-rings i{animation:none}.tl-card .lcard{transition:none}}
+  @media (prefers-reduced-motion:reduce){.tl-pad{animation:none}.tl-card .lcard{transition:none}}
   .tscreens{flex:1;min-height:0;position:relative}
   .tscreen{position:absolute;inset:0;overflow-y:auto;padding:8px 24px 20px;display:none;scrollbar-width:none}
   .tscreen::-webkit-scrollbar{display:none}
@@ -1324,7 +1322,7 @@
     <div class="screen">
       <div class="sbar"><span id="tbClock">00:00</span><span class="sb-mid" id="tbDept">Fire Department</span><span class="sb-r"><svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="3" y="4" width="2" height="6" rx=".5"/><rect x="6" y="2" width="2" height="8" rx=".5"/><rect x="9" y="0" width="2" height="10" rx=".5"/></svg><svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="18" height="9" rx="2.5"/><rect x="2" y="2" width="13" height="6" rx="1.2" fill="currentColor" stroke="none"/><path d="M20 3.5v3" stroke-width="1.5"/></svg></span></div>
       <div class="tlock" id="tLock" hidden>
-        <div class="tl-rd" id="tlRd"><div class="tl-pad" id="tlPad"><div class="tl-rings"><i></i><i></i><i></i><b></b></div></div><div class="tl-card" id="tlCard"></div><div class="tl-msg" id="tlMsg">Hold your license to the reader</div></div>
+        <div class="tl-rd" id="tlRd"><div class="tl-pad" id="tlPad"></div><div class="tl-card" id="tlCard"></div><div class="tl-msg" id="tlMsg">Hold your license to the reader</div></div>
         <form class="tl-si" id="tlForm" autocomplete="off">
           <div class="tl-step on" id="tlS1"><i>1</i><h5>License</h5><div class="c tl-who" id="tlWho">Reading your card…</div></div>
           <div class="tl-step" id="tlS2"><i>2</i><h5>Rank</h5><div class="c"><div class="tl-ranks off" id="tlRanks"></div></div></div>
