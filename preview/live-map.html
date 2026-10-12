@@ -552,36 +552,37 @@
   .tmenu hr{border:0;border-top:1px solid var(--line);margin:4px 0}.tmenu .tm-out{color:#FF8A82}
   /* the MDT locks until you sign in: tap your license on the reader, pick your rank, type a password */
   .screen.locked .tbody{display:none}
+  .tlock[hidden],.screen:not(.locked) .tlock{display:none!important}
   .tlock{flex:1;min-height:0;display:grid;grid-template-columns:1.12fr 1fr;border-top:1px solid var(--line)}
   .tl-rd{position:relative;overflow:hidden;border-right:1px solid var(--line);background:#0A0B0C}
-  .tl-h{position:absolute;left:18px;right:18px;top:12px;display:flex;justify-content:space-between;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mute);z-index:2}
   .tl-pad{position:absolute;left:50%;top:50%;width:min(300px,76%);aspect-ratio:300/190;transform:translate(-50%,-50%);border-radius:12px;border:1px dashed rgba(255,255,255,.16);display:grid;place-items:center}
   .tl-rings{position:relative;width:90px;height:90px}
   .tl-rings i{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--fd);opacity:0;animation:tlRing 2.4s ease-out infinite}
   .tl-rings i:nth-child(2){animation-delay:.8s}.tl-rings i:nth-child(3){animation-delay:1.6s}.tl-rings b{position:absolute;inset:32px;border-radius:50%;background:var(--fd)}
   @keyframes tlRing{from{transform:scale(.35);opacity:.9}to{transform:scale(1.25);opacity:0}}
   .tl-card{position:absolute;left:50%;top:50%;width:400px;height:250px;margin:-125px 0 0 -200px;transform:scale(var(--ks,1))}
-  .tl-card .lcard{transform:translateY(130%) rotate(-5deg);transition:transform .8s cubic-bezier(.2,.8,.2,1)}
-  .tl-card.in .lcard{transform:none}
-  .tl-msg{position:absolute;left:12px;right:12px;bottom:12px;text-align:center;font-size:12.5px;color:var(--mute)}
+  .tl-card{perspective:1400px}
+  .tl-card .lcard{transform:translateY(140%) rotate(-9deg);transition:transform .85s cubic-bezier(.2,.8,.2,1)}
+  .tl-card.in .lcard{transform:rotateY(9deg) rotateX(3deg) rotate(-3deg)}
+  .tl-msg{position:absolute;left:12px;right:12px;bottom:14px;text-align:center;font-size:14px;color:var(--mute)}
   .tl-msg.ok{color:#46D07C}.tl-msg a{color:#E9EAEC}
-  .tl-si{display:flex;flex-direction:column;gap:12px;padding:16px 20px;min-width:0;overflow-y:auto}
-  .tl-step{display:grid;grid-template-columns:18px 1fr;gap:4px 10px}
-  .tl-step>i{font:500 11px ui-monospace,SFMono-Regular,Menlo,monospace;font-style:normal;color:#5B5F66;padding-top:1px}
-  .tl-step h5{margin:0;font-size:12px;font-weight:600;color:var(--mute)}.tl-step .c{grid-column:2;min-width:0}
+  .tl-si{display:flex;flex-direction:column;gap:20px;padding:24px 28px;min-width:0;overflow-y:auto}
+  .tl-step{display:grid;grid-template-columns:22px 1fr;gap:8px 12px}
+  .tl-step>i{font:500 13px ui-monospace,SFMono-Regular,Menlo,monospace;font-style:normal;color:#5B5F66;padding-top:1px}
+  .tl-step h5{margin:0;font-size:15px;font-weight:600;color:var(--mute)}.tl-step .c{grid-column:2;min-width:0}
   .tl-step.on>i,.tl-step.on h5,.tl-step.done>i,.tl-step.done h5{color:#E9EAEC}
-  .tl-who{font-size:12.5px;color:#5B5F66}.tl-who b{color:#E9EAEC;font-weight:600}
-  .tl-ranks{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-  .tl-rk{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--mute);font:12px inherit;font-family:inherit;text-align:left;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+  .tl-who{font-size:18px;color:#5B5F66;min-height:24px}.tl-who b{color:#E9EAEC;font-weight:600}.tl-who b.typing::after{content:"";display:inline-block;width:2px;height:18px;margin-left:2px;background:#E9EAEC;vertical-align:-3px;animation:tlBlink 1s steps(1) infinite}
+  @keyframes tlBlink{50%{opacity:0}}
+  .tl-ranks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tl-rk{display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--mute);font:14.5px inherit;font-size:14.5px;font-family:inherit;text-align:left;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
   .tl-rk:hover{color:#E9EAEC}.tl-rk[aria-pressed="true"]{border-color:var(--fd);background:var(--fd-soft);color:#E9EAEC}
-  .tl-rk s{width:3px;height:10px;border-radius:1px;background:#C9A54A;text-decoration:none}.tl-rk s:first-of-type{margin-left:auto}
   .tl-ranks.off{opacity:.4;pointer-events:none}
-  .tl-pw{width:100%;height:34px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14);color:#E9EAEC;padding:0 10px;font:15px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.15em;outline:none}
+  .tl-pw{width:100%;height:44px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14);color:#E9EAEC;padding:0 12px;font:20px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.2em;outline:none}
   .tl-pw:focus{border-color:var(--fd)}.tl-pw::placeholder{letter-spacing:0;font-size:12px;color:#5B5F66}.tl-pw:disabled{opacity:.4}
   .tl-note{font-size:11px;color:#5B5F66;margin-top:4px}
-  .tl-go{margin-top:auto;height:38px;border:0;border-radius:6px;background:var(--fd);color:#fff;font:600 13px inherit;font-family:inherit;cursor:pointer;transition:opacity .2s,transform .12s}
+  .tl-go{margin-top:auto;height:48px;border:0;border-radius:8px;background:var(--fd);color:#fff;font:600 15px inherit;font-size:15px;font-family:inherit;cursor:pointer;transition:opacity .2s,transform .12s}
   .tl-go:disabled{opacity:.4;cursor:default}.tl-go:active:not(:disabled){transform:scale(.98)}
-  .tl-st{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mute);min-height:16px}.tl-st.bad{color:#FF8A82}
+  .tl-st{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mute);min-height:16px}.tl-st.bad{color:#FF8A82}
   @media (max-width:760px){.tlock{grid-template-columns:1fr;grid-template-rows:minmax(190px,42%) 1fr}.tl-rd{border-right:0;border-bottom:1px solid var(--line)}}
   @media (prefers-reduced-motion:reduce){.tl-rings i{animation:none}.tl-card .lcard{transition:none}}
   .tscreens{flex:1;min-height:0;position:relative}
@@ -1260,11 +1261,11 @@
     <div class="screen">
       <div class="sbar"><span id="tbClock">00:00</span><span class="sb-mid" id="tbDept">Fire Department</span><span class="sb-r"><svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="3" y="4" width="2" height="6" rx=".5"/><rect x="6" y="2" width="2" height="8" rx=".5"/><rect x="9" y="0" width="2" height="10" rx=".5"/></svg><svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="18" height="9" rx="2.5"/><rect x="2" y="2" width="13" height="6" rx="1.2" fill="currentColor" stroke="none"/><path d="M20 3.5v3" stroke-width="1.5"/></svg></span></div>
       <div class="tlock" id="tLock" hidden>
-        <div class="tl-rd" id="tlRd"><div class="tl-h"><span>CARD READER</span><span id="tlState">READY</span></div><div class="tl-pad" id="tlPad"><div class="tl-rings"><i></i><i></i><i></i><b></b></div></div><div class="tl-card" id="tlCard"></div><div class="tl-msg" id="tlMsg">Hold your license to the reader</div></div>
+        <div class="tl-rd" id="tlRd"><div class="tl-pad" id="tlPad"><div class="tl-rings"><i></i><i></i><i></i><b></b></div></div><div class="tl-card" id="tlCard"></div><div class="tl-msg" id="tlMsg">Hold your license to the reader</div></div>
         <form class="tl-si" id="tlForm" autocomplete="off">
           <div class="tl-step on" id="tlS1"><i>1</i><h5>License</h5><div class="c tl-who" id="tlWho">Reading your card…</div></div>
           <div class="tl-step" id="tlS2"><i>2</i><h5>Rank</h5><div class="c"><div class="tl-ranks off" id="tlRanks"></div></div></div>
-          <div class="tl-step" id="tlS3"><i>3</i><h5>Password</h5><div class="c"><input class="tl-pw" id="tlPw" type="password" autocomplete="off" aria-label="Password" placeholder="Password" disabled><div class="tl-note">Roleplay only: type anything. It isn't saved or sent anywhere.</div></div></div>
+          <div class="tl-step" id="tlS3"><i>3</i><h5>Password</h5><div class="c"><input class="tl-pw" id="tlPw" type="password" autocomplete="off" aria-label="Password" placeholder="Password" readonly disabled></div></div>
           <button class="tl-go" id="tlGo" type="submit" disabled>Sign in</button><div class="tl-st" id="tlSt" role="status"></div>
         </form>
       </div>
@@ -2206,30 +2207,39 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const loadLic = () => lic || (lic = fetch('/api/me/license', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))).then(j => j);
   const myTeam = () => { const P = window.live?.players ? window.live.players() : [], n = (OVS?.me || '').toLowerCase(); return (P.find(p => (p.Player || '').split(':')[0].toLowerCase() === n) || {}).Team || ''; };
   const DEF_OCC = { fd: 'Firefighter', pd: 'Police Officer', dot: 'DOT Worker' };
-  const fitCard = () => { const rd = $('tlRd'), card = $('tlCard'); if (!rd || !card) return; card.style.setProperty('--ks', Math.min(1, (rd.clientWidth - 36) / 400, (rd.clientHeight - 80) / 250).toFixed(3)); };
+  const fitCard = () => { const rd = $('tlRd'), card = $('tlCard'); if (!rd || !card) return; card.style.setProperty('--ks', Math.max(.4, Math.min(1.6, (rd.clientWidth - 60) / 400, (rd.clientHeight - 110) / 250)).toFixed(3)); };
   new ResizeObserver(fitCard).observe($('tlRd'));
   const showLock = async () => { const d = DEPT(), run = ++lockRun, wait = ms => new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms)), live = () => run === lockRun && !$('tLock').hidden;
     closeMenu(); screen.classList.add('locked'); $('tLock').hidden = false; fitCard();
-    pick = signed[d] || lastRank(d); $('tlRanks').innerHTML = (OVS.ranks[d] || []).map(([n, m]) => `<button type="button" class="tl-rk" data-r="${esc(n)}" aria-pressed="${n === pick}">${esc(n)}${'<s></s>'.repeat(m)}</button>`).join('');
-    $('tlRanks').classList.add('off'); $('tlPw').value = ''; $('tlPw').disabled = true; $('tlGo').disabled = true; $('tlSt').textContent = ''; $('tlSt').className = 'tl-st';
+    pick = signed[d] || lastRank(d); $('tlRanks').innerHTML = (OVS.ranks[d] || []).map(([n, m]) => `<button type="button" class="tl-rk" data-r="${esc(n)}" aria-pressed="${n === pick}">${esc(n)}</button>`).join('');
+    $('tlRanks').classList.add('off'); $('tlPw').value = ''; $('tlPw').disabled = true; typing = false; $('tlGo').disabled = true; $('tlSt').textContent = ''; $('tlSt').className = 'tl-st';
     ['tlS1', 'tlS2', 'tlS3'].forEach((id, i) => { $(id).className = 'tl-step' + (i ? '' : ' on'); });
-    $('tlState').textContent = 'READY'; $('tlPad').style.visibility = ''; $('tlMsg').className = 'tl-msg'; $('tlMsg').textContent = locked.has(d) && signed[d] ? 'MDT locked. Tap your license to unlock.' : 'Hold your license to the reader';
+    $('tlS1').querySelector('h5').textContent = 'License'; $('tlPad').style.visibility = ''; $('tlMsg').className = 'tl-msg'; $('tlMsg').textContent = locked.has(d) && signed[d] ? 'MDT locked. Tap your license to unlock.' : 'Hold your license to the reader';
     $('tlWho').textContent = 'Waiting for your card';
     const L = await loadLic(); if (!live()) return; const team = myTeam();
     $('tlCard').className = 'tl-card'; $('tlCard').innerHTML = window.LicenseCard ? window.LicenseCard.html({ ...L, occ: (window.LicenseCard.occ(team)) || DEF_OCC[d] || '' }) : '';
     await wait(500); if (!live()) return; $('tlCard').classList.add('in'); await wait(850); if (!live()) return;
-    const card = $('tlCard').querySelector('.lcard'); $('tlState').textContent = 'READING'; $('tlMsg').textContent = 'Reading…'; card?.classList.add('reading'); await wait(1500); if (!live()) return;
-    card?.classList.add('ok'); $('tlState').textContent = 'OK'; $('tlPad').style.visibility = 'hidden'; $('tlMsg').className = 'tl-msg ok';
+    const card = $('tlCard').querySelector('.lcard'); $('tlMsg').textContent = 'Reading…'; card?.classList.add('reading'); await wait(1500); if (!live()) return;
+    card?.classList.add('ok'); $('tlPad').style.visibility = 'hidden'; $('tlMsg').className = 'tl-msg ok';
     $('tlMsg').innerHTML = L.saved ? 'License verified' : `License verified · <a href="/account?from=${encodeURIComponent('/' + OVS.slug)}#license">fill in your license details</a>`;
-    $('tlS1').className = 'tl-step done'; $('tlWho').innerHTML = `<b>@${esc(L.user || OVS.me || '')}</b>${L.display && L.display !== L.user ? ' · ' + esc(L.display) : ''}`;
-    $('tlS2').className = 'tl-step on'; $('tlRanks').classList.remove('off'); if (pick) { $('tlS3').className = 'tl-step on'; $('tlPw').disabled = false; $('tlPw').focus({ preventScroll: true }); }
-    else $('tlRanks').querySelector('.tl-rk')?.focus({ preventScroll: true });
+    // the reader types out who it read
+    $('tlS1').querySelector('h5').textContent = 'Username'; $('tlWho').innerHTML = '<b class="typing"></b>'; const nm = $('tlWho').firstChild;
+    for (const ch of String(L.user || OVS.me || '')) { await wait(55 + Math.random() * 60); if (!live()) return; nm.textContent += ch; }
+    nm.classList.remove('typing'); $('tlS1').className = 'tl-step done';
+    $('tlS2').className = 'tl-step on'; $('tlRanks').classList.remove('off'); if (pick) autoPw(); else $('tlRanks').querySelector('.tl-rk')?.focus({ preventScroll: true });
     syncGo(); };
-  const syncGo = () => { $('tlGo').disabled = !pick || $('tlPw').disabled || $('tlPw').value.length < 1; };
+  // the password types itself (roleplay; nothing real): four characters, one deleted, two more, then Sign in
+  let typing = false;
+  const autoPw = async () => { const pw = $('tlPw'); if (typing || pw.value.length >= 5) return syncGo(); typing = true; const run = lockRun, w = ms => new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms));
+    $('tlS3').className = 'tl-step on'; pw.disabled = false; pw.value = ''; pw.focus({ preventScroll: true }); const ch = () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.random() * 31 | 0];
+    try { await w(350); for (let i = 0; i < 4; i++) { if (run !== lockRun) return; pw.value += ch(); await w(120 + Math.random() * 110); }
+      await w(250); if (run !== lockRun) return; pw.value = pw.value.slice(0, -1); await w(300);
+      for (let i = 0; i < 2; i++) { if (run !== lockRun) return; pw.value += ch(); await w(120 + Math.random() * 110); }
+      $('tlS3').className = 'tl-step done'; } finally { typing = false; } if (run !== lockRun) return; syncGo(); $('tlGo').focus({ preventScroll: true }); };
+  const syncGo = () => { $('tlGo').disabled = !pick || typing || $('tlPw').value.length < 5; };
   const hideLock = () => { ++lockRun; screen.classList.remove('locked'); $('tLock').hidden = true; };
   $('tlRanks').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (!b) return; pick = b.dataset.r;
-    for (const x of $('tlRanks').children) x.setAttribute('aria-pressed', x === b); $('tlS3').className = 'tl-step on'; $('tlPw').disabled = false; $('tlPw').focus(); syncGo(); });
-  $('tlPw').addEventListener('input', syncGo);
+    for (const x of $('tlRanks').children) x.setAttribute('aria-pressed', x === b); $('tlS2').className = 'tl-step done'; autoPw(); });
   $('tlForm').addEventListener('submit', async e => { e.preventDefault(); if ($('tlGo').disabled) return; const d = DEPT(), st = $('tlSt'); $('tlGo').disabled = true; st.className = 'tl-st'; st.textContent = 'Checking password…';
     try { const r = await fetch(OVS.api + '/mdt/signin', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d, rank: pick }) }), j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Could not sign in.');
