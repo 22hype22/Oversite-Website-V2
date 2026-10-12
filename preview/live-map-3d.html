@@ -2043,6 +2043,15 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     dispatchEvent(new CustomEvent('viewchange', { detail: real })); };
   const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const ok = !gated() || myDept() === t.dataset.dept; t.classList.toggle('locked', !ok); t.title = ok ? '' : 'For players on the ' + DEPT_NAME[t.dataset.dept] + ' team in game'; }); };
   updateLocks(); addEventListener('me', updateLocks);
+  // your MDT follows your team in game: switch teams and the old MDT closes and the new one opens; a refresh reopens the one you had open
+  const OPEN_KEY = 'oversite.mdtopen.' + (window.OVERSITE?.slug || ''); let lastDept = myDept();
+  const wasOpen = () => { try { return sessionStorage.getItem(OPEN_KEY) || ''; } catch (e) { return ''; } };
+  addEventListener('mdt', e => { try { e.detail ? sessionStorage.setItem(OPEN_KEY, window.mdtDept || '') : sessionStorage.removeItem(OPEN_KEY); } catch (x) {} });
+  addEventListener('me', () => { if (!gated()) return; const d = myDept(), prev = lastDept, open = document.body.classList.contains('mdt-open'); lastDept = d;
+    if (d && !open && wasOpen() === d && document.body.dataset.view === 'dispatch') { setView('mdt', d); return; }   // after a refresh
+    if (d === prev || !open || window.mdtDept === d) return;
+    if (d) { setView('mdt', d); toastMsg(`You're on the ${DEPT_NAME[d]} team now, so its MDT is open.`); }
+    else { setView('dispatch'); toastMsg(`You left the ${DEPT_NAME[prev] || 'department'} team, so its MDT closed.`); } });
   if (mdtBtn) mdtBtn.addEventListener('click', () => { const d = myDept() || (gated() ? null : 'fd'); if (!d) return canOpen('fd'); if (document.body.dataset.view !== 'dispatch') setView('dispatch'); if (document.body.classList.contains('mdt-open')) openMdt(false); else setView('mdt', d); });
   document.getElementById('mdtClose').addEventListener('click', () => setView('dispatch'));
   tabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.view === 'mdt') { if (canOpen(t.dataset.dept)) setView('mdt', t.dataset.dept); } else if (t.dataset.view) setView(t.dataset.view); else tabs.forEach(x => x.setAttribute('aria-selected', x === t)); }));

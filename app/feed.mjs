@@ -24,8 +24,8 @@ const GL = { left: NaN, reset: 0, at: 0 }, ACTIVE = new Set();
 // So until the key is added, only one server's feed reads ER:LC at a time; a server run by a site admin goes first, the rest wait their turn.
 const SOLO = { feed: null };
 const SOLO_WAIT = JSON.stringify({ status: 403, code: 2005, message: 'Waiting for Oversite to finish its ER:LC application setup. Until then ER:LC only lets Oversite read one server at a time.' });
-const holderLive = f => f && ACTIVE.has(f) && (f.clients.size > 0 || Date.now() - f.lastClient < 60000);
-export const soloBusy = key => !appKey() && holderLive(SOLO.feed) && SOLO.feed.key !== key;   // another server holds the one slot
+const holderLive = f => !!f && (f.clients.size > 0 || Date.now() - Math.max(f.lastClient || 0, f.lastUse || 0) < 20000);   // someone has its CAD open, or it read ER:LC in the last 20 s
+export const soloBusy = key => !appKey() && SOLO.feed && holderLive(SOLO.feed) && SOLO.feed.key !== key;   // another server holds the one slot
 const pickRL = h => { const out = {}; for (const k of RL) if (h.get(k)) out[k] = h.get(k); return out; };
 export const NOKEY = '{"code":2000,"message":"This community has not connected its ER:LC server yet. An admin can add the server key in Settings."}';
 
@@ -41,8 +41,9 @@ export class Feed {
     if (b === 'global' && Number.isFinite(left)) { GL.left = left; GL.reset = reset; GL.at = Date.now(); }
     if (seq < this.rlSeq) return; this.rlSeq = seq; this.rl = { left, reset, bucket: b }; }
   setKey(k) { this.key = k; this.snap = null; this.joins = null; this.hist.clear(); this.nextAt = 0; this.holdUntil = 0; if (this.clients.size) this.wake(); }
+  // the holder keeps the slot while it's in use; a site admin's server can take it from anyone else's, never from another of theirs
   soloOk() { const h = SOLO.feed; if (h && h !== this && holderLive(h) && !(this.prio() && !h.prio())) return false;
-    if (h !== this) { if (h) console.log(`feed ${this.id}: takes the one ER:LC slot from feed ${h.id} (no application key yet)`); SOLO.feed = this; } return true; }
+    if (h !== this) { console.log(`feed ${this.id}: has the one ER:LC slot${h ? ` (was feed ${h.id})` : ''} until Oversite's application key is added`); SOLO.feed = this; } this.lastUse = Date.now(); return true; }
   wake() { if (!this.timer) this.timer = setTimeout(() => this.tick(), Math.max(0, this.nextAt - Date.now())); }
   async tick() {
     this.timer = null; const now = Date.now();
