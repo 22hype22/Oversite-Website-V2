@@ -100,9 +100,9 @@ export class Feed {
     for (const [p, h, cur, L] of adds) { this.lastAt.set(p.Player, taken); h.push(cur); if (h.length > 12) h.shift(); this.hist.set(p.Player, h);
       const tr = this.track.get(p.Player) || []; tr.push([taken, +cur[0].toFixed(2), +cur[1].toFixed(2), L.PostalCode || '']); while (tr.length && taken - tr[0][0] > 900000) tr.shift(); this.track.set(p.Player, tr); }
     return body; }
-  stream(req, res, cal, cleared = [], uid = null) { res.uid = uid;
+  stream(req, res, cal, cleared = [], uid = null) { res.uid = uid; const panics = this.activePanics();
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
-    res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(cal)}\n\n`); res.write(`event: callclears\ndata: ${JSON.stringify(cleared)}\n\n`);   // calls someone already cleared stay off this board
+    res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(cal)}\n\n`); res.write(`event: callclears\ndata: ${JSON.stringify(cleared)}\n\n`); if (panics.length) res.write(`event: panics\ndata: ${JSON.stringify(panics)}\n\n`);   // anyone opening the CAD sees panics still going   // calls someone already cleared stay off this board
     if (this.snap && Date.now() - this.snap.t < 10000) res.write(`event: server\nid: ${this.snap.taken}\ndata: ${this.snap.body}\n\n`); else if (!this.key) res.write(`event: err\ndata: ${NOKEY}\n\n`);
     this.clients.add(res); this.lastClient = Date.now();
     const ka = setInterval(() => res.write(': ping\n\n'), 15000);
@@ -110,6 +110,10 @@ export class Feed {
     this.wake(); }
   // one-off answer for a dashboard whose stream dropped: the feed's latest snapshot, or a direct request if nobody is streaming
   // reload the open CADs of one person (suspended), or of everyone on this server (server suspended)
+  // panic buttons pressed on this server: kept until someone clears them (or an hour passes)
+  activePanics() { const P = this.panics || (this.panics = new Map()); for (const [k, p] of P) if (Date.now() - p.at > 3600000) P.delete(k); return [...P.values()]; }
+  panic(p) { this.activePanics(); this.panics.set(p.id, p); this.bcast('panic', JSON.stringify(p)); }
+  panicClear(id, by) { this.activePanics(); const p = this.panics.get(id); if (!p) return false; this.panics.delete(id); this.bcast('panicclear', JSON.stringify({ id, by })); return true; }
   kick(uid = null) { for (const r of this.clients) if (uid == null || r.uid === uid) r.write('event: reload\ndata: {}\n\n'); }
   async snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return this.snap; if (!this.key) return { status: 401, body: NOKEY, headers: {} };
     if (!appKey() && !this.soloOk()) return { status: 403, body: SOLO_WAIT, headers: {} };

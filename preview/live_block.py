@@ -521,7 +521,10 @@ LIVE_JS = r"""<script id="live">
     es.addEventListener('unitsof', e => { try { const j = JSON.parse(e.data); window.UNIT_OF = j.of || {}; window.RIDE_WITH = j.ride || {}; dispatchEvent(new CustomEvent('unitassign')); } catch (x) {} });   // someone picked a unit or a ride-along
     es.addEventListener('callclears', e => { try { for (const k of JSON.parse(e.data) || []) clearedElsewhere(String(k)); } catch (x) {} });   // already cleared by someone: never shown again
     es.addEventListener('callclear', e => { try { clearedElsewhere(String(JSON.parse(e.data).key)); } catch (x) {} });                 // someone just cleared one
-    es.addEventListener('reload', () => location.reload());   // suspended (you or this server): reload straight into the notice
+    es.addEventListener('reload', () => location.reload());
+    es.addEventListener('panic', e => { try { dispatchEvent(new CustomEvent('panic', { detail: JSON.parse(e.data) })); } catch (x) {} });            // someone pressed their panic button
+    es.addEventListener('panics', e => { try { for (const p of JSON.parse(e.data) || []) dispatchEvent(new CustomEvent('panic', { detail: p })); } catch (x) {} });
+    es.addEventListener('panicclear', e => { try { dispatchEvent(new CustomEvent('panicclear', { detail: JSON.parse(e.data) })); } catch (x) {} });   // suspended (you or this server): reload straight into the notice
     es.addEventListener('roads', e => { try { window.ROADNET?.setOv(JSON.parse(e.data).ov); } catch (x) {} });   // an owner fixed a road: re-route now
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }

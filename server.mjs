@@ -133,6 +133,14 @@ const communityApi = async (req, res, slug, rest) => {
     const unit = String((await jsonBody(req)).unit || '').trim(), all = ['pd', 'fd', 'dot'].flatMap(d => c.settings.depts?.[d]?.units || []);
     if (unit && !all.includes(unit)) return json(res, { error: 'That unit no longer exists. Pick another one.' }, 400);
     unitMembers.set(c.id, String(user.roblox_id), unit); const out = { of: unitMembers.all(c.id), ride: rideWith.all(c.id) }; f.bcast('unitsof', JSON.stringify(out)); return json(res, { ok: true, ...out }); }
+  // the panic button in a unit's MDT: every open CAD on this server gets it at once, until someone clears it
+  if (rest === 'panic' && M === 'POST') { const j = await jsonBody(req), num = v => Number.isFinite(+v) ? Math.round(+v * 10) / 10 : null, T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
+    if (!['pd', 'fd', 'dot'].includes(j.dept)) return json(res, { error: 'Open your department\'s MDT first.' }, 400);
+    const mine = f.activePanics().find(p => p.uid === user.id); if (mine) return json(res, { ok: true, panic: mine });   // already pressed: one at a time per person
+    const p = { id: token(8), uid: user.id, by: user.roblox_name || user.name, rid: user.roblox_id || '', dept: j.dept, unit: T(j.unit, 40), crew: (Array.isArray(j.crew) ? j.crew : []).map(x => T(x, 40)).filter(Boolean).slice(0, 6),
+      x: num(j.x), y: num(j.y), where: T(j.where, 80), at: Date.now() };
+    f.panic(p); console.log(`panic: ${c.slug} ${p.unit || p.by} (${p.dept}) at ${p.where || 'unknown'}`); return json(res, { ok: true, panic: p }); }
+  if (rest === 'panic/clear' && M === 'POST') { const j = await jsonBody(req); const ok = f.panicClear(String(j.id || ''), user.roblox_name || user.name); return json(res, { ok }); }
   // signing in to a department's MDT with your license and rank; it stays until you sign out
   if (rest === 'mdt/signin' && M === 'POST') { const j = await jsonBody(req); if (!validRank(j.dept, j.rank)) return json(res, { error: 'Pick your rank.' }, 400);
     mdtSignin.set(c.id, user.id, j.dept, j.rank); return json(res, { ok: true, mdt: mdtSignin.mine(c.id, user.id) }); }
