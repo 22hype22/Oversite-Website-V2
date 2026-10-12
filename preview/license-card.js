@@ -8,12 +8,13 @@
   background:radial-gradient(42% 46% at 72% 58%,rgba(170,176,168,.42),transparent 72%),radial-gradient(38% 40% at 20% 92%,rgba(190,196,186,.38),transparent 72%),
     radial-gradient(30% 34% at 95% 20%,rgba(200,204,198,.35),transparent 70%),linear-gradient(180deg,#F7F8F5,#EEF0EB);box-shadow:0 22px 44px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.25)}
 .lcard>*{position:absolute}
-.lcard .lc-seal{left:11px;top:10px;width:19px;height:19px;border-radius:50%;border:1.5px solid #5F6B58;background:radial-gradient(circle,#F3F4EE 45%,#B9C0AE 46%,#B9C0AE 55%,#F3F4EE 56%)}
+.lcard .lc-seal{left:10px;top:8px;width:22px;height:22px;border-radius:50%;background:url(/lc-seal.png?v=1) center/contain no-repeat}
 .lcard .lc-ttl{left:34px;top:5px;font-size:22px;font-weight:800;color:#38542A;letter-spacing:-.01em;line-height:1.2}
 .lcard .lc-kind{right:22px;top:10px;font-size:11.5px;font-weight:500;color:#222}
 .lcard .lc-rule{left:136px;right:12px;top:37px;height:5px;border-top:2.5px solid #5C7D44;border-bottom:1px solid #B8C3AC}
 .lcard .lc-ph{left:11px;top:43px;width:121px;height:134px;border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#8ED6EA,#B8E8F4)}
-.lcard .lc-ph img,.lcard .lc-gh img{width:100%;height:100%;object-fit:cover;object-position:50% 30%;display:block}
+.lcard .lc-ph img,.lcard .lc-gh img{position:absolute;left:50%;top:5%;width:168%;height:auto;max-width:none;transform:translateX(-50%);display:block}
+.lcard .lc-ph,.lcard .lc-gh{position:absolute}
 .lcard .lc-sig{left:22px;width:100px;top:186px;text-align:center;font-family:"Reenie Beanie","Bradley Hand","Segoe Script",cursive;font-size:17px;color:#6A6A6A;transform:rotate(-2deg);white-space:nowrap;overflow:hidden}
 .lcard .lc-un{left:137px;top:56px;max-width:122px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:800;color:#203B6E}
 .lcard .lc-iss{left:263px;top:56px;font-size:12.5px}.lcard .lc-iss b,.lcard .lc-k b,.lcard .lc-row b{font-weight:800;color:#203B6E}

@@ -495,7 +495,7 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 <label>Issued<input id="lIss" type="date"></label>
 <div class="row wide"><button class="btn pri">Save license</button><span class="msg" id="licmsg"></span></div></form>` : '<p class="note">Link your Roblox account first. Your license uses your Roblox photo and username.</p>'}</section>
 <section class="card"><h2>Sign out</h2><p class="note">Signs you out on this device. You'll need your sign-in again to get back in.</p><form method="post" action="/auth/logout" style="margin:0"><button class="btn danger">Sign out</button></form></section>
-</div></div></main><script src="/license-card.js?v=1"></script>
+</div></div></main><script src="/license-card.js?v=2"></script>
 <style>.licw{position:relative;width:100%;max-width:400px;aspect-ratio:400/250;margin:6px 0 14px}.licw .lcard{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(var(--ls,1))}
 .licf{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.licf label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim);min-width:0}.licf .wide{grid-column:1/-1}
 .licf input,.licf select{width:100%;min-width:0}.licf .lh{display:grid;grid-template-columns:1fr 1fr;gap:6px}.licf .row{align-items:center;gap:12px}</style>`, script: `
