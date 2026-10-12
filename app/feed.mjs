@@ -113,4 +113,7 @@ export const testKey = async key => { try { const r = await fetch(UPSTREAM + '/v
   const msg = { 2000: 'No key was sent.', 2001: "ER:LC says that isn't a server key. In your private server open Settings, then the ER:LC API section, and copy the Server Key (not an application key).",
     2003: "ER:LC turned down Oversite's application key. This is on our side: we've been told and the connection will work again shortly.",
     2005: "ER:LC needs Oversite's application key before it will connect more servers. This is on our side, not yours: try again in a little while.", 2002: 'That key is invalid or has expired. Copy a fresh one from your ER:LC private server settings.', 2004: 'That key is banned from the API.' }[j.code] || j.message || `ER:LC answered ${r.status}.`;
-  return { ok: false, message: msg }; } catch (e) { return { ok: false, message: 'Could not reach api.erlc.gg right now. Try again in a moment.' }; } };
+  // only a key ER:LC says is wrong is turned away; anything else (rate limit, ER:LC down, server offline) is ER:LC's moment, not the key's, so it's kept
+  if ([2001, 2002, 2004].includes(j.code)) return { ok: false, message: msg };
+  return { ok: false, keep: true, message: `Your server key is saved. ER:LC didn't confirm it just now (${String(msg).replace(/\.$/, '')}), so the CAD will connect as soon as it answers.` }; }
+  catch (e) { return { ok: false, keep: true, message: "Your server key is saved. Oversite couldn't reach ER:LC to check it just now, so the CAD will connect as soon as it can." }; } };

@@ -93,8 +93,9 @@ const communityApi = async (req, res, slug, rest) => {
     if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can change the server key.' }, 403);
     if (M === 'DELETE') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner can disconnect the server.' }, 403); communities.setKey(c.id, null); f.setKey(''); return json(res, { ok: true }); }
     const k = String((await jsonBody(req)).key || '').trim(); if (!/^[A-Za-z0-9_\-]{8,200}$/.test(k)) return json(res, { error: 'That does not look like an ER:LC server key.' }, 400);
-    const t = await testKey(k); if (!t.ok && !t.appSide) return json(res, { error: t.message }, 400);
-    communities.setKey(c.id, k); f.setKey(k); return json(res, { ok: true, persistent: true, name: t.name, players: t.players, pending: t.appSide ? t.message : undefined }); }   // pending: saved, ER:LC waits on Oversite's side
+    const t = await testKey(k); if (!t.ok && !t.appSide && !t.keep) return json(res, { error: t.message }, 400);
+    communities.setKey(c.id, k); f.setKey(k); console.log(`key: ${c.slug} saved${t.ok ? '' : ' (ER:LC did not confirm: ' + String(t.message).slice(0, 120) + ')'}`);
+    return json(res, { ok: true, persistent: true, name: t.name, players: t.players, pending: t.ok ? undefined : t.message }); }   // pending: saved, but ER:LC hasn't confirmed it yet
   if (rest === 'track' && M === 'GET') { if (!can(role, 'co_owner')) return json(res, { error: 'Owner only.' }, 403); return json(res, { stats: f.stats(), players: Object.fromEntries([...f.track].map(([k, v]) => [k.split(':')[0], v])) }); }
   // staff tools: Staff and up
   if (rest.startsWith('staff/')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403);

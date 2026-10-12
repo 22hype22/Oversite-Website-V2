@@ -130,6 +130,8 @@ LIVE_JS = r"""<script id="live">
   const DEPT = { pd: OV?.depts?.pd?.short || 'LE', fd: OV?.depts?.fd?.short || 'FD', dot: OV?.depts?.dot?.short || 'DOT' }, KIND = { pd: 'cruiser', fd: 'engine', dot: 'dot' };
   const HOSTED = /^https?:$/.test(location.protocol);                      // served by server.mjs: same-origin relay
   const API = OV ? OV.api : location.origin + '/api';
+  const NOKEY_MSG = OV ? (OV.canEdit ? 'This server is not connected to ER:LC yet. Paste your server key in the CAD settings (the gear at the top) and press Save, or add it in Community settings.' : 'This server is not connected to ER:LC yet. Ask the server owner to add the server key in Community settings.')
+    : HOSTED ? 'No server key yet. Paste your private server key in the CAD settings (the gear at the top) and press Save.' : 'No server key sent.';
   const post = (path, body, method = 'POST') => fetch(API + path, { method, headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: body ? JSON.stringify(body) : undefined });
   const DEFAULTS = { key: '', relay: '', live: HOSTED, teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, callsignOnly: false, me: '', cal: [] };
   const KEY = 'oversite.admin' + (OV ? '.' + OV.slug : '');               // each community keeps its own panel settings
@@ -158,17 +160,20 @@ LIVE_JS = r"""<script id="live">
   for (const sel of document.querySelectorAll('#adTeams select')) { sel.value = S.teams[sel.dataset.team] ?? ''; sel.addEventListener('change', () => { S.teams[sel.dataset.team] = sel.value; save(); }); }
   const MASK = '••••••••••••••••••••••••••••', keyVal = () => F.key.value.trim() === MASK ? '' : F.key.value.trim();   // dots stand in for a key saved on the server
   F.key.addEventListener('focus', () => { if (F.key.value === MASK) F.key.select(); });
-  F.key.addEventListener('input', () => { S.key = keyVal(); save(); });
-  F.key.addEventListener('change', () => { S.key = keyVal(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
+  F.key.addEventListener('input', () => { if (OV) return; S.key = keyVal(); save(); });
+  F.key.addEventListener('change', () => { if (OV) { if (keyVal()) saveKey(); return; } S.key = keyVal(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
+  F.key.addEventListener('keydown', e => { if (OV && e.key === 'Enter') { e.preventDefault(); saveKey(); } });
   const keyRow = $('adKeyRow'), keyState = $('adKeyState');
   const keyStatus = async () => { if (!HOSTED) return; try { const j = await (await fetch(API + '/key', { cache: 'no-store' })).json(); keyRow.hidden = false; if (OV && !j.canEdit) keyRow.style.display = 'none';
       keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.') : 'Not saved on the server yet.'; if (j.hasKey) { F.key.placeholder = 'Saved on the server'; if (!F.key.value) { F.key.value = MASK; F.key.dataset.saved = '1'; } } if (j.hasKey && !S.key) start(); if (!j.hasKey && S.key) seedKey(); } catch (e) {} };
   let seededAt = 0;                                                     // the browser remembers the key, so after a redeploy it quietly hands it back to the server
   const seedKey = async () => { if (OV || !HOSTED || !S.key || Date.now() - seededAt < 10000) return; seededAt = Date.now();
     try { const j = await (await post('/key', { key: S.key })).json(); if (j.ok) { keyState.textContent = j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.'; startStream(); } } catch (e) {} };
-  $('adKeySave').addEventListener('click', async () => { const k = keyVal(); if (!k) return status(F.key.value.trim() === MASK ? 'This key is already saved on the server.' : 'Paste the key first.', F.key.value.trim() === MASK ? 'ok' : 'err'); keyState.textContent = 'Saving…';
+  let savingKey = null;
+  const saveKey = () => savingKey || (savingKey = (async () => { const k = keyVal(); if (!k) return status(F.key.value.trim() === MASK ? 'This key is already saved on the server.' : 'Paste the key first.', F.key.value.trim() === MASK ? 'ok' : 'err'); keyState.textContent = 'Saving…';
     try { const j = await (await post('/key', { key: k })).json();
-      keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy.') : (j.error || j.message || 'Could not save.'); if (j.ok) { F.key.value = MASK; F.key.dataset.saved = '1'; start(); } } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
+      keyState.textContent = j.ok ? (j.pending || (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy.')) : (j.error || j.message || 'Could not save.'); if (j.ok) { F.key.value = MASK; F.key.dataset.saved = '1'; start(); } } catch (e) { keyState.textContent = 'Could not reach the server.'; } })().finally(() => { savingKey = null; }));
+  $('adKeySave').addEventListener('click', () => saveKey());
   keyStatus();
   F.relay.addEventListener('change', () => { S.relay = F.relay.value.trim().replace(/\/+$/, ''); F.relay.value = S.relay; save(); });
   F.me.addEventListener('change', () => { S.me = F.me.value.trim(); save(); });
@@ -273,7 +278,7 @@ LIVE_JS = r"""<script id="live">
     const rl = { limit: r.headers.get('x-ratelimit-limit'), left: r.headers.get('x-ratelimit-remaining'), reset: r.headers.get('x-ratelimit-reset') };
     if (r.status === 429) { const wait = +(r.headers.get('retry-after') || 30); throw Object.assign(new Error(`Rate limited. Waiting ${wait}s before the next request.`), { wait }); }
     let body = null; try { body = await r.json(); } catch (e) {}
-    if (!r.ok) { const m = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' }[body?.code] || body?.message || `HTTP ${r.status}`; throw Object.assign(new Error(appSideMsg(body) || m), { code: body?.code }); }
+    if (!r.ok) { const m = { 2000: NOKEY_MSG, 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' }[body?.code] || body?.message || `HTTP ${r.status}`; throw Object.assign(new Error(appSideMsg(body) || m), { code: body?.code }); }
     return { body, rl };
   };
 
@@ -469,7 +474,7 @@ LIVE_JS = r"""<script id="live">
 
   // ── live updates: a server-sent stream when the page is served by server.mjs (or a relay), paced polling otherwise ──
   let lastUpdate = 0, updates = 0, source = '', fixAt = 0; const eventTimes = [];                 // fixAt = last time any unit's reported position changed
-  const ERR = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 2003: "ER:LC turned down Oversite's application key. This is on our side; it will reconnect shortly.", 2005: "ER:LC needs Oversite's application key to connect this server. This is on our side, not yours.", 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
+  const ERR = { 2000: NOKEY_MSG, 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 2003: "ER:LC turned down Oversite's application key. This is on our side; it will reconnect shortly.", 2005: "ER:LC needs Oversite's application key to connect this server. This is on our side, not yours.", 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
   // when ER:LC refuses, the unit list says so instead of looking like nobody is on duty; the next good answer clears it
   const appSideMsg = j => j && (j.code === 2005 || j.code === 2003 || /multiple servers|application|global api key/i.test(String(j.message || ''))) ? "Your server key is saved. ER:LC is holding the live data until Oversite finishes its ER:LC application setup. Nothing to do on your side: it starts by itself once that's done." : '';
   const showDown = msg => { if (!HOSTED || (lastUnits && lastUnits.length)) return; const fl = document.querySelector('.fleet'); if (!fl) return;
