@@ -50,15 +50,19 @@ export class Feed {
       const up = await fetch(UPSTREAM + (full ? QUERY : QUERY_FAST), { headers: erlcHeaders(key) }); const body = await up.text(), headers = pickRL(up.headers);
       if (key !== this.key) return;                                       // the key changed while this was in flight
       const taken = Math.round((now + Date.now()) / 2); this.takeRL(headers, seq); const ema = (a, v) => a ? a * 0.9 + v * 0.1 : v; this.rtt = ema(this.rtt, Date.now() - now);   // timing, for /health
+      if (up.ok) this.lastErr = null;
       if (up.status === 429) { this.holdUntil = Date.now() + Math.max(1, +headers['retry-after'] || 30) * 1000; this.penaltyUntil = Date.now() + 180000; this.n429++; this.bcast('err', JSON.stringify({ status: 429, retry_after: +headers['retry-after'] || 30 })); }
       else if (up.ok) { if (seq > this.shown) { this.shown = seq; let out = body;
           if (full) { try { this.joins = JSON.parse(body).JoinLogs || []; } catch (e) {} } else if (this.joins) out = body.replace(/}\s*$/, `,"JoinLogs":${JSON.stringify(this.joins)}}`);
           out = this.steady(out, taken); if (out) out = this.withDuty(out, taken);
           if (out) { this.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; this.bcast('server', out, taken); if (this.lastEv) this.gapEv = ema(this.gapEv, taken - this.lastEv); this.lastEv = taken;
             if (this.moved) { if (this.lastMove && taken - this.lastMove < 10000) this.moveEv = ema(this.moveEv, taken - this.lastMove); this.lastMove = taken; } } } }
-      else { let j = {}; try { j = JSON.parse(body); } catch (e) {} this.bcast('err', JSON.stringify({ status: up.status, ...j })); this.holdUntil = Date.now() + (up.status === 403 || up.status === 401 ? 15000 : 3000); }
+      else { let j = {}; try { j = JSON.parse(body); } catch (e) {} this.bcast('err', JSON.stringify({ status: up.status, ...j })); this.noteErr(up.status, j); this.holdUntil = Date.now() + (up.status === 403 || up.status === 401 ? 15000 : 3000); }
     } catch (e) { this.bcast('err', JSON.stringify({ status: 502, message: 'could not reach api.erlc.gg: ' + e.message })); this.holdUntil = Date.now() + 3000; }
     finally { this.inflight--; } }
+  // what ER:LC last refused, for /health and the logs (once a minute per server, so a refusal is easy to spot without flooding)
+  noteErr(status, j) { const now = Date.now(); this.lastErr = { status, code: j.code ?? null, message: String(j.message || '').slice(0, 160), at: now };
+    if (now - (this.errLogged || 0) > 60000) { this.errLogged = now; console.log(`feed ${this.id}: ER:LC refused (${status}${j.code != null ? ', code ' + j.code : ''}): ${this.lastErr.message}`); } }
   // when each player joined the team they are on now (a team change restarts it; rejoining the server after leaving does too), sent
   // with every update as OversiteDuty { "Name:id": ms }. Kept in the database, so a reload or restart doesn't zero everyone's clock.
   withDuty(body, taken) { let j; try { j = JSON.parse(body); } catch (e) { return body; }
@@ -98,7 +102,7 @@ export class Feed {
   async snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return this.snap; if (!this.key) return { status: 401, body: NOKEY, headers: {} };
     try { const up = await fetch(UPSTREAM + QUERY, { headers: erlcHeaders(this.key) }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) this.snap = out; return out; }
     catch (e) { return { status: 502, body: JSON.stringify({ message: 'could not reach api.erlc.gg: ' + e.message }), headers: {} }; } }
-  stats() { return { watching: this.clients.size, perMin: this.sent.length, left: this.rl?.left ?? null, limited: this.n429, stale: this.reverts, rtt: Math.round(this.rtt), every: Math.round(this.gapEv), moves: Math.round(this.moveEv) }; }
+  stats() { return { watching: this.clients.size, perMin: this.sent.length, left: this.rl?.left ?? null, limited: this.n429, stale: this.reverts, rtt: Math.round(this.rtt), every: Math.round(this.gapEv), moves: Math.round(this.moveEv), err: this.lastErr && Date.now() - this.lastErr.at < 120000 ? this.lastErr.code ?? this.lastErr.status : null }; }
 }
 // test a key once without starting a feed: { ok, name, players } or { ok:false, message }
 export const testKey = async key => { try { const r = await fetch(UPSTREAM + '/v2/server', { headers: erlcHeaders(key) }); const j = await r.json().catch(() => ({}));
