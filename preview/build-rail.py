@@ -192,8 +192,10 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   // Ordinary two-way roads have no such gap, so they are never penalised. Worked out once per cell and heading, then cached.
   const DIRS = D8.map(([dx, dy]) => { const L = Math.hypot(dx, dy); return [-dy / L, dx / L]; });
   let WW = null; const wrongWay = (x, y, di) => { if (!WW) WW = new Uint8Array(N * 8); const c = (y * GN + x) * 8 + di; if (WW[c]) return WW[c] === 2;
-    const [rx, ry] = DIRS[di]; let gap = -1, wrong = false;
-    for (let o = 1; o <= 14; o++) { const on = road(Math.round(x + rx * o), Math.round(y + ry * o)); if (gap < 0) { if (!on) gap = o; } else if (on) { wrong = o - gap <= 7; break; } }
+    // a side looks divided when, past the edge of this road, a short gap leads to more road. A real divided road shows that on one
+    // side only; a downtown street with sidewalks and lots or other streets on both sides shows it on both, which says nothing
+    const [rx, ry] = DIRS[di], divided = sgn => { let gap = -1; for (let o = 1; o <= 14; o++) { const on = road(Math.round(x + rx * o * sgn), Math.round(y + ry * o * sgn)); if (gap < 0) { if (!on) gap = o; } else if (on) return o - gap <= 6; } return false; };
+    const wrong = divided(1) && !divided(-1);
     WW[c] = wrong ? 2 : 1; return wrong; };
   let RT = null, gen = 0;   // search arrays are made once and reused; a cell counts only if it was touched in this search (gen)
   // direction index of each step: the forward search travels the step as it is, the backward search travels it in reverse
@@ -275,7 +277,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     if (!c || !Number.isFinite(c.x)) { if (svg) svg.remove(); m.view = m.base; m.route = null; m.cx = m.cy = null; return; }
     if (!svg) { svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'gps'); svg.innerHTML = '<path class="r2"/><path class="r1"/><circle class="dst" r="0"/>'; el.insertBefore(svg, el.querySelector('.pin')); }
     const moved = m.route && Math.hypot(u.x - m.route[0][0], u.y - m.route[0][1]);
-    if (!m.route || m.routeFor !== c.startedAt || (moved > 25 && ts - m.routeAt > 1500)) { m.route = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; m.routeFor = c.startedAt; m.routeAt = ts; }
+    if (!m.route || m.routeFor !== c.startedAt || (moved > 10 && ts - m.routeAt > 500)) { m.route = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; m.routeFor = c.startedAt; m.routeAt = ts; }
     const pts = [[u.x, u.y], ...m.route.slice(1)], d = 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
     // frame the whole trip: centre between you and the call, zoomed in until both (and the road between) just fit
     const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), ar = m.w / m.h || 1;
