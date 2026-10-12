@@ -615,20 +615,21 @@ ${(() => { const V = c.settings.voice || {}, r = V.range || 'normal'; return `<s
 <label for="cname">Server name</label><input id="cname" name="name" maxlength="48" value="${esc(c.name)}" required>
 <div class="row" style="margin-top:14px"><button class="btn pri">Save</button></div><p class="msg" id="dmsg"></p></form></section>
 </div><div>
-${codes ? `<section class="card"${isNew ? ' style="border-color:rgba(76,141,255,.35)"' : ''}><h2>Invite code</h2><p class="note">Members type this on the front page to join. Anyone with it can join, so change it if it gets passed around.</p>
+${codes ? `<section class="card"${isNew ? ' style="border-color:rgba(76,141,255,.35)"' : ''}><h2>Invite code</h2><p class="note">Members type this on the front page to join, or open the invite link below. Anyone with either can join, so change the code if it gets passed around (the link changes with it).</p>
 <label>Invite code</label><div class="row" style="flex-wrap:nowrap"><input id="mcode" value="${esc(codes.member)}" spellcheck="false" maxlength="24"><button class="btn sm" data-copy="${esc(codes.member)}">Copy</button></div>
+<label style="margin-top:12px">Invite link <span style="color:var(--faint);font-weight:400">never expires</span></label><div class="row" style="flex-wrap:nowrap"><code id="mlink" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(origin.replace(/^https?:\/\//, ''))}/invite/${esc(codes.member.toLowerCase())}</code><button class="btn sm" id="mlinkc" data-copy="${esc(origin)}/invite/${esc(codes.member.toLowerCase())}">Copy link</button></div>
 <div class="row" style="margin-top:8px"><button class="btn sm" id="savem">Save invite code</button><button class="btn sm" id="genm">New random code</button></div>
 <p class="msg" id="codemsg"></p></section>` : ''}
-<section class="card"><h2>Invite links</h2><p class="note">An alternative to the invite code. Anyone with the link can join. Links last 7 days.</p>
+<section class="card"><h2>One-off invite links</h2><p class="note">Links that stop working after 7 days, for inviting someone without sharing your invite code.</p>
 <div class="row"><button class="btn pri" id="newinv">Create invite link</button></div><p class="msg" id="imsg"></p>
 ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><div class="tx"><code title="${esc(origin)}/join/${esc(i.code)}">${esc(origin.replace(/^https?:\/\//, ''))}/join/${esc(i.code)}</code><small>${i.uses} ${i.uses === 1 ? 'use' : 'uses'}${i.expires ? ` · expires ${new Date(i.expires).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</small></div><div class="acts"><button class="btn sm" data-copy="${esc(origin)}/join/${esc(i.code)}">Copy</button><button class="btn sm danger" data-revoke="${esc(i.code)}">Revoke</button></div></div>`).join('')}</div>` : '<p class="empty">No active invite links.</p>'}
 </section>
 <section class="card"><h2>Members</h2><p class="note"><b>Owner</b> and <b>Co-Owners</b> run these settings (only the owner can delete the server). <b>Admins</b> get the Server Staff tablet with everything: warn, kick, ban, unban, announce. <b>Mods</b> get the tablet to warn, message, kick and add notes. <b>Members</b> use the CAD. Which department MDT someone gets follows their team in game.</p>
 <table><tr><th>Member</th><th>Roblox</th><th>Role</th><th></th></tr>${members.map(m => `<tr><td>${esc(m.name)}${m.verified ? vbadge(14) : ''}</td><td>${m.roblox_name ? esc(m.roblox_name) : '<span style="color:var(--faint)">Not linked</span>'}</td>
-<td>${(() => { const R = { owner: 5, co_owner: 4, admin: 3, mod: 2, member: 1, staff: 3 }, mine = R[role] || 0, can = m.id !== user.id && (R[m.role] || 0) < mine;
+<td>${(() => { const R = { owner: 5, co_owner: 4, admin: 3, mod: 2, member: 1, staff: 3 }, boss = user.id === c.owner_id, mine = boss ? 6 : R[role] || 0, can = m.id !== user.id && m.id !== c.owner_id && (R[m.role] || 0) < mine;
   if (!can) return esc(RANK_LABEL[m.role] || m.role);
-  return `<select data-role="${m.id}">${['co_owner', 'admin', 'mod', 'member'].filter(k => R[k] < mine).map(k => `<option value="${k}"${(m.role === k || (m.role === 'staff' && k === 'admin')) ? ' selected' : ''}>${RANK_LABEL[k]}</option>`).join('')}</select>`; })()}</td>
-<td style="text-align:right">${m.role !== 'owner' && m.id !== user.id && ({ owner: 5, co_owner: 4, admin: 3, mod: 2, member: 1, staff: 3 }[m.role] || 0) < ({ owner: 5, co_owner: 4 }[role] || 0) ? `<button class="btn sm danger" data-remove="${m.id}">Remove</button>` : ''}</td></tr>`).join('')}</table><p class="msg" id="mmsg"></p>
+  return `<select data-role="${m.id}">${['co_owner', 'admin', 'mod', 'member'].filter(k => R[k] < mine).map(k => `<option value="${k}"${(m.role === k || (m.role === 'staff' && k === 'admin')) ? ' selected' : ''}>${RANK_LABEL[k]}</option>`).join('')}${m.role === 'owner' ? `<option value="owner" selected disabled>${RANK_LABEL.owner || 'Owner'}</option>` : ''}</select>`; })()}</td>
+<td style="text-align:right">${m.id !== user.id && m.id !== c.owner_id && (user.id === c.owner_id || (m.role !== 'owner' && ({ owner: 5, co_owner: 4, admin: 3, mod: 2, member: 1, staff: 3 }[m.role] || 0) < ({ owner: 5, co_owner: 4 }[role] || 0))) ? `<button class="btn sm danger" data-remove="${m.id}">Remove</button>` : ''}</td></tr>`).join('')}</table><p class="msg" id="mmsg"></p>
 </section>
 ${runs(role) ? `<section class="card" id="discord"><h2 class="hrow">Discord server<span class="tag" id="dgTag">…</span></h2><p class="note">Link your Discord server and choose which roles are <b>Admin</b> and which are <b>Mod</b>. Anyone with one of those roles who signs in with Discord gets that rank's staff tools, and loses them when the role is taken away. Everything else in the CAD follows the team they are on in game.</p><div id="dgBody"><p class="empty">Loading…</p></div><p class="msg" id="dgMsg"></p></section>` : ''}
 ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p class="note">Removes the server from Oversite with its settings, codes and member list. This cannot be undone.</p><button class="btn danger" id="del">Delete ${esc(c.name)}</button></section>` : ''}
@@ -685,17 +686,17 @@ document.addEventListener('click',async e=>{const c=e.target.closest('[data-copy
 const r=e.target.closest('[data-revoke]');if(r){await api(A+'/invites/revoke',{code:r.dataset.revoke});location.reload()}
 const x=e.target.closest('[data-remove]');if(x){if(!await ask({title:'Remove this member?',text:'They lose access to the CAD for this server. They can rejoin with the invite code or an invite link.',ok:'Remove',danger:true}))return;try{await api(A+'/members/remove',{userId:+x.dataset.remove});location.reload()}catch(err){say(document.getElementById('mmsg'),err.message)}}});
 document.addEventListener('change',async e=>{const s=e.target.closest('[data-role]');if(!s)return;try{await api(A+'/members/role',{userId:+s.dataset.role,role:s.value});say(document.getElementById('mmsg'),'Role updated.',true)}catch(x){say(document.getElementById('mmsg'),x.message)}});
-const cm=document.getElementById('codemsg'),setc=async(body)=>{try{const j=await api(A+'/codes',body);say(cm,'Saved: '+j.code,true);return j.code}catch(x){say(cm,x.message)}};
+const cm=document.getElementById('codemsg'),ml=document.getElementById('mlink'),mlc=document.getElementById('mlinkc'),setc=async(body)=>{try{const j=await api(A+'/codes',body);say(cm,'Saved: '+j.code,true);if(ml&&body.role==='member'){const u=location.origin+'/invite/'+j.code.toLowerCase();ml.textContent=u.split('//')[1];mlc.dataset.copy=u}return j.code}catch(x){say(cm,x.message)}};
 const sm=document.getElementById('savem');if(sm){sm.addEventListener('click',()=>setc({role:'member',code:document.getElementById('mcode').value}));
 document.getElementById('genm').addEventListener('click',async()=>{const c=await setc({role:'member',generate:true});if(c){document.getElementById('mcode').value=c;document.querySelector('[data-copy]').dataset.copy=c}});
 }
 const del=document.getElementById('del');if(del)del.addEventListener('click',async()=>{if(!await ask({title:${JSON.stringify('Delete ' + c.name + '?').replace(/</g, '\\u003c')},text:'This removes the server from Oversite with its settings, codes and member list. It cannot be undone.',ok:'Delete server',danger:true,typed:'${esc(c.slug)}'}))return;await api(A+'/delete',{confirm:'${esc(c.slug)}'});location.href='/dashboard'});
 ` });
 
-export const join = ({ logo, user, c, code }) => layout({ title: `Join ${c.name} · Oversite`, logo, user, body: `
+export const join = ({ logo, user, c, code, action }) => layout({ title: `Join ${c.name} · Oversite`, logo, user, body: `
 <section class="hero"><div class="box"><div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div>
 <h1>Join <b>${esc(c.name)}</b></h1><p class="lead">You have been invited to this server's CAD on Oversite.</p>
-<form method="post" action="/join/${esc(code)}" class="actions"><button class="btn pri">Join community</button></form></div></section>` });
+<form method="post" action="${esc(action || '/join/' + code)}" class="actions"><button class="btn pri">Join community</button></form></div></section>` });
 
 export const message = ({ logo, user, title, text, action }) => layout({ title: `${title} · Oversite`, logo, user, body: `
 <section class="hero"><div class="box"><div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div><h1>${esc(title)}</h1><p class="lead">${esc(text)}</p>

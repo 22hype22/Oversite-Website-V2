@@ -132,7 +132,7 @@ export const sessions = {
 export const DEFAULT_SETTINGS = { depts: { pd: { name: 'Law Enforcement', short: 'LE' }, fd: { name: 'Fire Department', short: 'FD' }, dot: { name: 'Department of Transportation', short: 'DOT' } },
   teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, cal: [] };
 const withSettings = c => c && { ...c, settings: { ...DEFAULT_SETTINGS, ...JSON.parse(c.settings || '{}') } };
-export const RESERVED = new Set(['api', 'app', 'admin', 'auth', 'c', 'dashboard', 'join', 'login', 'logout', 'www', 'oversite', 'settings', 'account', 'help', 'support', 'status', 'new',
+export const RESERVED = new Set(['api', 'app', 'admin', 'auth', 'c', 'dashboard', 'join', 'invite', 'login', 'logout', 'www', 'oversite', 'settings', 'account', 'help', 'support', 'status', 'new',
   // top-level pages and files: a server's address is oversitescad.com/<slug>, so it can't be any of these
   'explore', 's', 'about', 'privacy', 'terms', 'refunds', 'health', 'rbx', 'unlock', 'lock', 'preview', 'newmap', 'relay', 'vendor', 'dispatch', 'intro', 'voice', 'cad', 'server', 'servers', 'home', 'discord', 'roblox', 'docs', 'legal', 'pricing', 'shop', 'store', 'blog', 'static', 'assets', 'profile', 'user', 'users', 'moderation', 'reports', 'icon', 'photos']);
 export const communities = {
@@ -159,8 +159,8 @@ export const members = {
   add: (cid, uid, role = 'member') => q('INSERT OR IGNORE INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(cid, uid, role, now()),
   raise: (cid, uid, role) => { const rank = r => ({ member: 1, mod: 2, admin: 3, co_owner: 4, owner: 5 }[r] || 0), cur = q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(cid, uid)?.role;   // join, or move up a role; never down
     if (!cur) q('INSERT INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(cid, uid, role, now()); else if (rank(role) > rank(cur)) q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ?').run(role, cid, uid); },
-  setRole: (cid, uid, role) => q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ? AND role != \'owner\'').run(role, cid, uid),
-  remove: (cid, uid) => q('DELETE FROM members WHERE community_id = ? AND user_id = ? AND role != \'owner\'').run(cid, uid),
+  setRole: (cid, uid, role) => q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ? AND user_id != (SELECT owner_id FROM communities WHERE id = ?)').run(role, cid, uid, cid),   // never the server's creator
+  remove: (cid, uid) => q('DELETE FROM members WHERE community_id = ? AND user_id = ? AND user_id != (SELECT owner_id FROM communities WHERE id = ?)').run(cid, uid, cid),
 };
 export const invites = {
   create: (cid, by, days = 7) => { const code = token(5); q('INSERT INTO invites (code, community_id, created_by, created, expires) VALUES (?, ?, ?, ?, ?)').run(code, cid, by, now(), days ? now() + days * 864e5 : null); return code; },

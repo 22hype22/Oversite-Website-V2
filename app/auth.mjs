@@ -109,6 +109,9 @@ export const codeSignIn = (req, user, code) => {
   const c = communities.byId(hit.community_id); if (!c) return { error: 'That server no longer exists.' };
   let u = user; if (!u) u = users.byId(users.create({ name: hit.role === 'owner' ? 'Owner' : 'Member' }));
   members.raise(c.id, u.id, hit.role); return { user: u, community: c, role: hit.role, fresh: !user }; };
+// oversitescad.com/invite/CODE: the server whose member invite code this is (never an owner code), guesses rate-limited
+export const inviteByCode = (req, code) => { if (limited(req, 'invite', 30, 60000)) return { error: 'Too many tries. Wait a minute and try again.' };
+  const hit = codes.find(code); if (!hit || hit.role !== 'member') return null; const c = communities.byId(hit.community_id); return c ? { c } : null; };
 // a new server gets the invite code its creator picks (or a random one); owners sign in with Roblox or Discord, so there is no owner code any more
 export const createServer = (req, user, { name, slug, inviteCode }, RESERVED) => {
   name = String(name || '').trim(); slug = String(slug || '').trim().toLowerCase();

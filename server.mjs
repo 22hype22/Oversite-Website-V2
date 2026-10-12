@@ -165,10 +165,12 @@ const communityApi = async (req, res, slug, rest) => {
     return json(res, { error: 'Not found.' }, 404); }
   if (rest === 'members/role' && M === 'POST') { const j = await jsonBody(req), target = members.role(c.id, +j.userId);
     if (!['member', 'mod', 'admin', 'co_owner'].includes(j.role)) return json(res, { error: 'Unknown rank.' }, 400);
-    if (!target || +j.userId === user.id || !(ROLE_RANK[target] < ROLE_RANK[role]) || !(ROLE_RANK[j.role] < ROLE_RANK[role])) return json(res, { error: 'You can only change the rank of people below you, to a rank below yours.' }, 403);
+    const boss = user.id === c.owner_id, mine = boss ? 6 : ROLE_RANK[role];   // the server's creator outranks everyone, owner-code Owners included
+    if (!target || +j.userId === user.id || +j.userId === c.owner_id || !(ROLE_RANK[target] < mine) || !(ROLE_RANK[j.role] < mine)) return json(res, { error: 'You can only change the rank of people below you, to a rank below yours.' }, 403);
     members.setRole(c.id, +j.userId, j.role); return json(res, { ok: true }); }
   if (rest === 'members/remove' && M === 'POST') { const j = await jsonBody(req), target = members.role(c.id, +j.userId);
-    if (!target || target === 'owner' || +j.userId === user.id || !(ROLE_RANK[target] < ROLE_RANK[role])) return json(res, { error: 'That member cannot be removed.' }, 400);
+    const boss = user.id === c.owner_id;
+    if (!target || +j.userId === user.id || +j.userId === c.owner_id || !(boss || (target !== 'owner' && ROLE_RANK[target] < ROLE_RANK[role]))) return json(res, { error: 'That member cannot be removed.' }, 400);
     members.remove(c.id, +j.userId); return json(res, { ok: true }); }
   if (rest === 'delete' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can delete the community.' }, 403);
     if ((await jsonBody(req)).confirm !== c.slug) return json(res, { error: 'Type the address to confirm.' }, 400); communities.remove(c.id); feeds.delete(c.id); return json(res, { ok: true }); }
@@ -386,6 +388,14 @@ const route = async (req, res) => {
     if (members.role(c.id, user.id)) return redirect(res, `/${c.slug}`);
     if (req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, `/join/${m[1]}`); members.add(c.id, user.id); invites.use(m[1]); return redirect(res, `/${c.slug}`); }
     return page(res, pages.join({ logo: LOGO, user, c, code: m[1] })); }
+  // the invite code as a link that never expires: works for as long as the server keeps that code
+  if ((m = path.match(/^\/invite\/([A-Za-z0-9-]{2,30})\/?$/))) { const user = auth.currentUser(req), code = m[1], hit = auth.inviteByCode(req, code);
+    if (hit && hit.error) return msg(res, user, 'Too many tries', hit.error, { href: '/', label: 'Back' }, 429);
+    if (!hit) return msg(res, user, 'This invite does not work any more', 'The server may have changed its invite code. Ask them for the new one.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
+    const c = hit.c; if (!user) return redirect(res, `/?next=/invite/${encodeURIComponent(code)}`);
+    if (members.role(c.id, user.id)) return redirect(res, `/${c.slug}`);
+    if (req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, `/invite/${encodeURIComponent(code)}`); members.raise(c.id, user.id, 'member'); return redirect(res, `/${c.slug}`); }
+    return page(res, pages.join({ logo: LOGO, user, c, code, action: `/invite/${encodeURIComponent(code)}` })); }
   if ((m = path.match(/^\/c\/([a-z0-9-]{3,32})(\/.*)?$/))) { const slug = m[1], sub = (m[2] || '/').replace(/\/+$/, '') || '/';
     if (sub.startsWith('/api/')) return communityApi(req, res, slug, sub.slice(5));
     const { c, user, role } = await access(req, slug);
