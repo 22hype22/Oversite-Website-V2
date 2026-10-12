@@ -598,7 +598,7 @@ const report=x=>{ const d=document.createElement('dialog'); d.className='dlg';
 const open=slug=>{ const x=S.find(s=>s.slug===slug); if(!x) return; const fact=(k,v)=>v?'<div><small>'+k+'</small><b>'+v+'</b></div>':'';
   document.getElementById('xdB').innerHTML='<button class="xp-x" type="button" aria-label="Close" data-close>&times;</button><div class="xd-top">'+ic(x)+'<div><h2 id="xdT">'+e(x.name)+(x.badge?VB:'')+'</h2>'+by(x)+'<div class="xr-m">'+meta(x)+'</div></div></div>'
     +'<div class="xr-t">'+status(x)+'</div>'+(x.bio?'<p class="xd-bio">'+e(x.bio)+'</p>':'')
-    +'<div class="xd-facts">'+fact('In-game name',e(x.ingame))+fact('Join code',x.join_key?'<code>'+e(x.join_key)+'</code>':'')+fact('Co-owners',e(x.co_owners.join(', ')))+fact('Account verification',e(x.verified||''))
+    +'<div class="xd-facts">'+fact('In-game name',e(x.ingame))+fact('Join code',x.join_key?'<code>'+e(x.join_key)+'</code>':'')+fact('Co-owners',x.co_owners.map((n,i)=>'<span class="sv-co">'+e(n)+(x.co_badge&&x.co_badge[i]?VBS:'')+'</span>').join(', '))+fact('Account verification',e(x.verified||''))
     +fact('Team balance',x.team_balance?'On':'Off')+fact('Departments',e(x.depts.map(d=>d.name).join(', ')))+fact('Discord server',e([x.discord,x.dc_members!=null?n(x.dc_members)+' members':'',x.dc_online!=null?n(x.dc_online)+' online':''].filter(Boolean).join(' · ')))+'</div><div class="xr-a">'+acts(x)+'</div>'+(x.role==='owner'?'':'<button type="button" class="xd-rep" data-report="'+e(x.slug)+'">Report this server</button>');
   dlg.showModal(); requestAnimationFrame(()=>dlg.classList.add('in')); };
 document.addEventListener('click',async ev=>{

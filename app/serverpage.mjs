@@ -135,7 +135,7 @@ ${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopene
 <section class="card sv-rv" id="reviews"><h2>Reviews</h2><div id="rvTop"></div><div id="rvForm"></div><div class="rv-l" id="rvL"></div></section>
 </div>
 <aside class="sv-side"><section class="card"><h2>About</h2><p class="sv-bio${x.bio ? '' : ' none'}">${esc(x.bio || 'The owner has not written a description yet.')}</p></section>
-<section class="card"><h2>Details</h2><div class="sv-facts">${fact('In-game name', esc(x.ingame))}${fact('Join code', x.join_key ? `<code>${esc(x.join_key)}</code>` : '')}${fact('Co-owners', esc(x.co_owners.join(', ')))}
+<section class="card"><h2>Details</h2><div class="sv-facts">${fact('In-game name', esc(x.ingame))}${fact('Join code', x.join_key ? `<code>${esc(x.join_key)}</code>` : '')}${fact('Co-owners', x.co_owners.map((n, i) => `<span class="sv-co">${esc(n)}${x.co_badge?.[i] ? vbadge(14) : ''}</span>`).join(', '))}
 ${fact('Account verification', esc(x.verified))}${fact('Team balance', x.at ? (x.team_balance ? 'On' : 'Off') : '')}${fact('Departments', esc(x.depts.map(d => d.name).join(', ')))}${fact('On Oversite since', new Date(x.created).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))}</div>
 ${me && x.role !== 'owner' ? '<button class="sv-rep" id="repS">Report this server</button>' : ''}</section></aside></div></main><div class="sv-toast" id="toast" role="status"></div>`, script: `
 // photos: swipe or scroll the strip, or use the arrows; the dots follow, and it moves on by itself every 6 seconds until someone touches it
