@@ -547,8 +547,8 @@
   .screen .cnt{font-size:12px;font-weight:600;padding:3px 9px;border-radius:var(--r);background:rgba(255,255,255,.07);color:var(--mute)}
   .tscreen[data-pane="home"].on{display:flex;flex-direction:column}
   .hgrid{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;flex:1;min-height:0}
-  .hero{min-width:0;display:flex;flex-direction:column;min-height:0}
-  .ulog{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}
+  .hero{min-width:0;display:flex;flex-direction:column;min-height:0;overflow-y:auto;scrollbar-width:none}.hero::-webkit-scrollbar{display:none}
+  .ulog{flex:1 0 auto;min-height:150px}
   .ulog::-webkit-scrollbar{display:none}
   .ulog .row-l{display:grid;grid-template-columns:52px 1fr;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
   .ulog .row-l span{color:var(--mute);font-variant-numeric:tabular-nums}
@@ -2099,7 +2099,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   // ── calls ──
   const key = c => `${c.code}|${c.startedAt}`;
   const renderCalls = () => { const now = Date.now(); const list = CALLS().filter(fdCall).sort((a, b) => a.pri - b.pri || b.startedAt - a.startedAt);
-    $('fdCallRows').innerHTML = list.map(c => `<div class="fcall p${c.pri}" role="button" tabindex="0" data-key="${key(c)}" aria-selected="${selected === key(c)}"><span class="pstripe"></span><span class="code">${c.code}</span><div class="what"><b>${esc(c.type)}</b><span>${esc(c.where)}, ${c.unit ? esc(c.unit) : 'unassigned'}</span></div><span class="age">${fmtAge((now - c.startedAt) / 1000)}</span></div>`).join('') || '<div class="empty">No fire calls.</div>';
+    $('fdCallRows').innerHTML = list.map(c => `<div class="fcall p${c.pri}" role="button" tabindex="0" data-key="${key(c)}" aria-selected="${selected === key(c)}"><span class="pstripe"></span><span class="code">${c.code}</span><div class="what"><b>${esc(c.type)}</b><span>${esc(c.where)}, ${c.unit ? esc(c.unit) : 'unassigned'}</span></div><span class="age">${fmtAge((now - c.startedAt) / 1000)}</span></div>`).join('') || `<div class="empty">No ${({ pd: 'law enforcement', fd: 'fire', dot: 'DOT' })[DEPT()] || ''} calls right now.</div>`;
     $('fdCallCount').textContent = list.length; renderDetail(); };
   $('fdCallRows').addEventListener('click', e => { const r = e.target.closest('[data-key]'); if (!r) return; selected = r.dataset.key; renderCalls(); });
   $('fdCallRows').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const r = e.target.closest('[data-key]'); if (r) { e.preventDefault(); selected = r.dataset.key; renderCalls(); } } });
@@ -2425,7 +2425,7 @@ body.voice-snap .stage{transition:none!important}
       el.style.setProperty('--ux', (u.x / W * MS).toFixed(2)); el.style.setProperty('--uy', (u.y / W * MS).toFixed(2));
       el.classList.toggle('me', u === me); el.classList.toggle('dim', f === 'dept' && u.dept !== d); el.hidden = false; }
     dots.querySelectorAll('.st-dot').forEach(el => { if (!seen.has(el.dataset.key)) el.remove(); });
-    calls.innerHTML = (window.CALLS || []).filter(c => Number.isFinite(c.x) && Number.isFinite(c.y) && (f === 'all' || c.dept === d || !c.unit))
+    calls.innerHTML = (window.CALLS || []).filter(c => Number.isFinite(c.x) && Number.isFinite(c.y) && (f === 'all' || c.dept === d || (c.more || []).some(m => m.dept === d)))
       .map(c => `<div class="dm-call${c.startedAt === focusT ? ' hl' : ''}" style="--ux:${(c.x / W * MS).toFixed(2)};--uy:${(c.y / W * MS).toFixed(2)}" title="${esc(c.code + ' ' + c.type + ', ' + c.where)}"><i></i><b>${esc(c.code)}</b></div>`).join('');
     // your route to the call you're on, along the roads (same search as the home map)
     const mc = me && (window.CALLS || []).find(k => window.onIt ? window.onIt(k, me.name) : k.unit === me.name), rp = $('dmRoute');
