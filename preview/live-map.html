@@ -543,8 +543,8 @@
     transform-origin:bottom left;transform:translateY(6px) scale(.97);opacity:0;visibility:hidden;transition:opacity .15s,transform .18s cubic-bezier(.2,.8,.2,1),visibility 0s .18s}
   .tmenu.open{opacity:1;transform:none;visibility:visible;transition:opacity .15s,transform .18s cubic-bezier(.2,.8,.2,1),visibility 0s}
   .tmenu .tm-h{display:flex;align-items:center;gap:10px;padding:8px 8px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
-  .tmenu .tm-h i{width:34px;height:34px;flex:none;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:600;background:#2A2C31}
-  .tmenu .tm-h i img{width:100%;height:100%;object-fit:cover}
+  .tmenu .tm-h i{position:relative;width:34px;height:34px;flex:none;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:600;background:#2A2C31}
+  .tmenu .tm-h i img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .tmenu .tm-h b{display:block;font-size:13px;color:#E9EAEC}.tmenu .tm-h small{display:block;font-size:11.5px;color:var(--mute)}
   .tmenu button,.tmenu a{width:100%;display:flex;align-items:center;gap:10px;padding:8px;border:0;border-radius:7px;background:none;color:#E9EAEC;font:13px inherit;font-family:inherit;text-align:left;cursor:pointer;text-decoration:none}
   .tmenu button:hover,.tmenu a:hover,.tmenu button:focus-visible,.tmenu a:focus-visible{background:rgba(255,255,255,.07);outline:none}
@@ -561,9 +561,9 @@
   .tl-rings i:nth-child(2){animation-delay:.8s}.tl-rings i:nth-child(3){animation-delay:1.6s}.tl-rings b{position:absolute;inset:32px;border-radius:50%;background:var(--fd)}
   @keyframes tlRing{from{transform:scale(.35);opacity:.9}to{transform:scale(1.25);opacity:0}}
   .tl-card{position:absolute;left:50%;top:50%;width:400px;height:250px;margin:-125px 0 0 -200px;transform:scale(var(--ks,1))}
-  .tl-card{perspective:1400px}
-  .tl-card .lcard{transform:translateY(140%) rotate(-9deg);transition:transform .85s cubic-bezier(.2,.8,.2,1)}
-  .tl-card.in .lcard{transform:rotateY(9deg) rotateX(3deg) rotate(-3deg)}
+  .tl-card .lcard{transform:translateY(140%) rotate(-8deg);transition:transform .85s cubic-bezier(.2,.8,.2,1)}
+  .tl-card.in .lcard{transform:rotate(-3deg)}
+  .tl-card .lc-k2 span.typing::after{content:"";display:inline-block;width:1.5px;height:15px;margin-left:1px;background:#2F7322;vertical-align:-2px;animation:tlBlink 1s steps(1) infinite}
   .tl-msg{position:absolute;left:12px;right:12px;bottom:14px;text-align:center;font-size:14px;color:var(--mute)}
   .tl-msg.ok{color:#46D07C}.tl-msg a{color:#E9EAEC}
   .tl-si{display:flex;flex-direction:column;gap:20px;padding:24px 28px;min-width:0;overflow-y:auto}
@@ -2207,7 +2207,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const loadLic = () => lic || (lic = fetch('/api/me/license', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))).then(j => j);
   const myTeam = () => { const P = window.live?.players ? window.live.players() : [], n = (OVS?.me || '').toLowerCase(); return (P.find(p => (p.Player || '').split(':')[0].toLowerCase() === n) || {}).Team || ''; };
   const DEF_OCC = { fd: 'Firefighter', pd: 'Police Officer', dot: 'DOT Worker' };
-  const fitCard = () => { const rd = $('tlRd'), card = $('tlCard'); if (!rd || !card) return; card.style.setProperty('--ks', Math.max(.4, Math.min(1.6, (rd.clientWidth - 60) / 400, (rd.clientHeight - 110) / 250)).toFixed(3)); };
+  const fitCard = () => { const rd = $('tlRd'), card = $('tlCard'); if (!rd || !card) return; card.style.setProperty('--ks', Math.max(.4, Math.min(1.25, (rd.clientWidth - 140) / 400, (rd.clientHeight - 170) / 250)).toFixed(3)); };
   new ResizeObserver(fitCard).observe($('tlRd'));
   const showLock = async () => { const d = DEPT(), run = ++lockRun, wait = ms => new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms)), live = () => run === lockRun && !$('tLock').hidden;
     closeMenu(); screen.classList.add('locked'); $('tLock').hidden = false; fitCard();
@@ -2226,8 +2226,15 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     $('tlS1').querySelector('h5').textContent = 'Username'; $('tlWho').innerHTML = '<b class="typing"></b>'; const nm = $('tlWho').firstChild;
     for (const ch of String(L.user || OVS.me || '')) { await wait(55 + Math.random() * 60); if (!live()) return; nm.textContent += ch; }
     nm.classList.remove('typing'); $('tlS1').className = 'tl-step done';
-    $('tlS2').className = 'tl-step on'; $('tlRanks').classList.remove('off'); if (pick) autoPw(); else $('tlRanks').querySelector('.tl-rk')?.focus({ preventScroll: true });
+    $('tlS2').className = 'tl-step on'; $('tlRanks').classList.remove('off'); if (pick) { occTo(pick); autoPw(); } else $('tlRanks').querySelector('.tl-rk')?.focus({ preventScroll: true });
     syncGo(); };
+  let occWant = '', occBusy = false;
+  const occTo = async want => { occWant = want; if (occBusy) return; const el = $('tlCard').querySelector('.lc-k2 span'); if (!el) return; occBusy = true; el.classList.add('typing');
+    const w = ms => new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms));
+    try { while (el.isConnected && el.textContent !== occWant) { const cur = el.textContent;
+        if (!occWant.startsWith(cur)) { el.textContent = cur.slice(0, -1); await w(28); } else { el.textContent = occWant.slice(0, cur.length + 1); await w(45 + Math.random() * 40); }
+        el.style.fontSize = el.textContent.length > 15 ? '11.5px' : ''; } }   // long ranks shrink to stay clear of the small photo
+    finally { occBusy = false; el.classList.remove('typing'); } };
   // the password types itself (roleplay; nothing real): four characters, one deleted, two more, then Sign in
   let typing = false;
   const autoPw = async () => { const pw = $('tlPw'); if (typing || pw.value.length >= 5) return syncGo(); typing = true; const run = lockRun, w = ms => new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms));
@@ -2239,7 +2246,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const syncGo = () => { $('tlGo').disabled = !pick || typing || $('tlPw').value.length < 5; };
   const hideLock = () => { ++lockRun; screen.classList.remove('locked'); $('tLock').hidden = true; };
   $('tlRanks').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (!b) return; pick = b.dataset.r;
-    for (const x of $('tlRanks').children) x.setAttribute('aria-pressed', x === b); $('tlS2').className = 'tl-step done'; autoPw(); });
+    for (const x of $('tlRanks').children) x.setAttribute('aria-pressed', x === b); $('tlS2').className = 'tl-step done'; occTo(pick); autoPw(); });
   $('tlForm').addEventListener('submit', async e => { e.preventDefault(); if ($('tlGo').disabled) return; const d = DEPT(), st = $('tlSt'); $('tlGo').disabled = true; st.className = 'tl-st'; st.textContent = 'Checking password…';
     try { const r = await fetch(OVS.api + '/mdt/signin', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d, rank: pick }) }), j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Could not sign in.');
@@ -2250,9 +2257,8 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   // your name opens your MDT menu
   const menu = $('tMenu'), ubtn = $('tuserBtn');
   const closeMenu = () => { menu.classList.remove('open'); ubtn.setAttribute('aria-expanded', 'false'); };
-  const openMenu = () => { const d = DEPT(), u = me(), status = (u && unitStatus[u.name]) || '10-8';
+  const openMenu = () => { const d = DEPT(), u = me();
     menu.innerHTML = `<div class="tm-h"><i>${$('tuserAv').innerHTML}</i><div><b>${esc(OVS?.me || $('tuserName').textContent)}</b><small>${esc([signed[d], u && u.name].filter(Boolean).join(' · ') || DEPT_NAME[d])}</small></div></div>
-      <button type="button" role="menuitem" data-m="status">Status<small class="r">${esc(status)}</small></button>
       ${OVS ? `<a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}">Account settings</a><a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}#license">Your license</a>` : ''}
       ${LOCKS ? '<button type="button" role="menuitem" data-m="lock">Lock MDT</button><hr><button type="button" role="menuitem" class="tm-out" data-m="out">Sign out</button>' : ''}`;
     menu.classList.add('open'); ubtn.setAttribute('aria-expanded', 'true'); menu.querySelector('[role="menuitem"]')?.focus({ preventScroll: true }); };
@@ -2260,7 +2266,6 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   document.addEventListener('pointerdown', e => { if (menu.classList.contains('open') && !e.target.closest('#tMenu,#tuserBtn')) closeMenu(); });
   menu.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); ubtn.focus(); } });
   menu.addEventListener('click', async e => { const m = e.target.closest('[data-m]')?.dataset.m; if (!m) return; const d = DEPT(); closeMenu();
-    if (m === 'status') { showPane && showPane('home'); return; }
     if (m === 'lock') { locked.add(d); saveLocks(); logIt('Locked MDT'); showLock(); return; }
     if (m === 'out') { try { await fetch(OVS.api + '/mdt/signout', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d }) }); } catch (x) {}
       logIt(`Signed off${signed[d] ? ', ' + signed[d] : ''}`); delete signed[d]; locked.delete(d); saveLocks(); showLock(); } });
