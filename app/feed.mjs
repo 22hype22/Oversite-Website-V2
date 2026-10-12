@@ -90,7 +90,7 @@ export class Feed {
     for (const [p, h, cur, L] of adds) { this.lastAt.set(p.Player, taken); h.push(cur); if (h.length > 12) h.shift(); this.hist.set(p.Player, h);
       const tr = this.track.get(p.Player) || []; tr.push([taken, +cur[0].toFixed(2), +cur[1].toFixed(2), L.PostalCode || '']); while (tr.length && taken - tr[0][0] > 900000) tr.shift(); this.track.set(p.Player, tr); }
     return body; }
-  stream(req, res, cal, cleared = []) {
+  stream(req, res, cal, cleared = [], uid = null) { res.uid = uid;
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
     res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(cal)}\n\n`); res.write(`event: callclears\ndata: ${JSON.stringify(cleared)}\n\n`);   // calls someone already cleared stay off this board
     if (this.snap && Date.now() - this.snap.t < 10000) res.write(`event: server\nid: ${this.snap.taken}\ndata: ${this.snap.body}\n\n`); else if (!this.key) res.write(`event: err\ndata: ${NOKEY}\n\n`);
@@ -99,6 +99,8 @@ export class Feed {
     req.on('close', () => { clearInterval(ka); this.clients.delete(res); this.lastClient = Date.now(); });
     this.wake(); }
   // one-off answer for a dashboard whose stream dropped: the feed's latest snapshot, or a direct request if nobody is streaming
+  // reload the open CADs of one person (suspended), or of everyone on this server (server suspended)
+  kick(uid = null) { for (const r of this.clients) if (uid == null || r.uid === uid) r.write('event: reload\ndata: {}\n\n'); }
   async snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return this.snap; if (!this.key) return { status: 401, body: NOKEY, headers: {} };
     try { const up = await fetch(UPSTREAM + QUERY, { headers: erlcHeaders(this.key) }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) this.snap = out; return out; }
     catch (e) { return { status: 502, body: JSON.stringify({ message: 'could not reach api.erlc.gg: ' + e.message }), headers: {} }; } }

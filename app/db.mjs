@@ -297,6 +297,12 @@ export const dutySince = {
 db.exec(`CREATE TABLE IF NOT EXISTS site_settings (k TEXT PRIMARY KEY, v TEXT NOT NULL, updated INTEGER NOT NULL);`);
 export const siteSettings = { get: k => q('SELECT v FROM site_settings WHERE k = ?').get(k)?.v || '',
   set: (k, v) => v ? q('INSERT OR REPLACE INTO site_settings (k, v, updated) VALUES (?, ?, ?)').run(k, v, now()) : q('DELETE FROM site_settings WHERE k = ?').run(k) };
+db.exec('CREATE TABLE IF NOT EXISTS support_tickets (id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, topic TEXT NOT NULL, email TEXT, body TEXT NOT NULL, page TEXT, created INTEGER NOT NULL, closed INTEGER)');
+export const support = {
+  add: (uid, topic, email, body, page) => q('INSERT INTO support_tickets (user_id, topic, email, body, page, created) VALUES (?, ?, ?, ?, ?, ?)').run(uid, topic, email, body, page, now()).lastInsertRowid,
+  open: () => q('SELECT t.id, t.topic, t.email, t.body, t.page, t.created, u.roblox_name, u.roblox_id, u.name, u.discord_id, u.suspended FROM support_tickets t LEFT JOIN users u ON u.id = t.user_id WHERE t.closed IS NULL ORDER BY t.created DESC LIMIT 200').all(),
+  close: id => q('UPDATE support_tickets SET closed = ? WHERE id = ? AND closed IS NULL').run(now(), id).changes,
+  recent: (uid, since) => q('SELECT COUNT(*) AS n FROM support_tickets WHERE user_id = ? AND created > ?').get(uid, since).n };
 export const licenses = {
   get: uid => { try { return JSON.parse(q('SELECT license FROM users WHERE id = ?').get(uid)?.license || '{}') || {}; } catch (e) { return {}; } },
   set: (uid, o) => q('UPDATE users SET license = ? WHERE id = ?').run(JSON.stringify(o), uid) };

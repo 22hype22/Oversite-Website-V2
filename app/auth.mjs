@@ -102,7 +102,7 @@ export const robloxUnlink = user => users.update(user.id, { roblox_id: null, rob
 // ── server codes: create a server with your own owner code, or sign in to one with the code its owner gave you ──
 const ipOf = req => (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
 const limits = new Map();
-const limited = (req, kind, max, windowMs) => { const k = kind + ipOf(req), now = Date.now(), a = (limits.get(k) || []).filter(t => now - t < windowMs); if (a.length >= max) return true; a.push(now); limits.set(k, a); return false; };
+export const limited = (req, kind, max, windowMs) => { const k = kind + ipOf(req), now = Date.now(), a = (limits.get(k) || []).filter(t => now - t < windowMs); if (a.length >= max) return true; a.push(now); limits.set(k, a); return false; };
 export const codeSignIn = (req, user, code) => {
   if (limited(req, 'code', 8, 60000)) return { error: 'Too many tries. Wait a minute and try again.' };
   const hit = codes.find(code); if (!hit) return { error: 'No server uses that invite code. Check it with your server.' };

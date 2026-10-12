@@ -6,7 +6,7 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, mdtSignin, siteSettings, seal, RESERVED, token } from './app/db.mjs';
+import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, mdtSignin, support, siteSettings, seal, RESERVED, token } from './app/db.mjs';
 import { RANKS, validRank, licenseOf, saveLicense } from './app/license.mjs';
 import { serverPage } from './app/serverpage.mjs';
 import * as voice from './app/voice.mjs';
@@ -84,7 +84,7 @@ const communityApi = async (req, res, slug, rest) => {
   if (!user.roblox_name) return json(res, { error: 'Link your Roblox account first. Open the dashboard to link it.' }, 403);
   if (req.method !== 'GET' && req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
   const f = feedFor(c), M = req.method;
-  if (rest === 'stream' && M === 'GET') return f.stream(req, res, calOf(c), Object.keys(clearedCalls(c)));
+  if (rest === 'stream' && M === 'GET') return f.stream(req, res, calOf(c), Object.keys(clearedCalls(c)), user.id);
   // a game 911 call cleared by anyone in the CAD clears for everyone (and stays cleared after a reload, for as long as ER:LC still lists it)
   if (rest === 'calls/clear' && M === 'POST') { const k = String((await jsonBody(req)).key || ''); if (!/^[\w .:@#-]{1,120}$/.test(k)) return json(res, { error: 'Bad call.' }, 400);
     const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
@@ -194,6 +194,7 @@ const globalApi = async (req, res, rest) => {
   const user = auth.currentUser(req); if (rest === 'explore' && req.method === 'GET') return json(res, { servers: profile.directory(user) });   // Explore's live refresh: open to everyone
   if (!user) return json(res, { error: 'Sign in first.' }, 401);
   // the verification page; anyone else gets a plain not-found
+  if (rest === 'me/ping') return json(res, { ok: true });   // open pages check in; a suspended account gets 403 before this and reloads
   // your Liberty County license for the MDT card reader
   if (rest === 'me/license' && req.method === 'GET') return json(res, await licenseOf(user));
   if (rest === 'me/license' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
@@ -210,6 +211,7 @@ const globalApi = async (req, res, rest) => {
     console.log(`erlc app: ${user.discord_id} ${j.clear ? 'cleared' : 'updated'} the application settings`);
     return json(res, await erlcAppStatus(true)); }
   if (rest === 'admin/erlc-app' && req.method === 'GET') return json(res, await erlcAppStatus(true));
+  if (rest === 'admin/support' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); support.close(Number((await jsonBody(req)).id)); return json(res, { tickets: support.open() }); }
   if (rest === 'admin/verify' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), id = Number(j.id);
     const n = j.kind === 'server' ? communities.setVerified(id, !!j.on) : j.kind === 'user' ? users.setVerified(id, !!j.on) : 0;
     if (!n) return json(res, { error: 'Not found.' }, 404); console.log(`verify: ${user.discord_id} set ${j.kind} ${id} ${j.on ? 'on' : 'off'}`); return json(res, { ok: true }); }
@@ -255,7 +257,7 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'admin/server' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), c = communities.byId(Number(j.id)); if (!c) return json(res, { error: 'Not found.' }, 404);
     const act = String(j.action || '');
     if (act === 'hide' || act === 'show') { communities.setFlag(c.id, 'hidden', act === 'hide'); if (act === 'hide') reports.resolveFor(c.id, 'hidden'); }
-    else if (act === 'suspend' || act === 'unsuspend') { communities.setFlag(c.id, 'suspended', act === 'suspend'); if (act === 'suspend') reports.resolveFor(c.id, 'suspended'); }
+    else if (act === 'suspend' || act === 'unsuspend') { communities.setFlag(c.id, 'suspended', act === 'suspend'); if (act === 'suspend') { reports.resolveFor(c.id, 'suspended'); feeds.get(c.id)?.kick(); } }
     else if (act === 'reset_icon') profile.clearIcon(c);
     else if (act === 'clear_photos') profile.clearPhotos(c);
     else if (act === 'clear_bio') profile.clearBio(c);
@@ -264,7 +266,8 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'admin/person' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), act = String(j.action || ''), id = Number(j.id);
     if (act !== 'suspend' && act !== 'unsuspend') return json(res, { error: 'Unknown action.' }, 400);
     const target = users.byId(id); if (!target) return json(res, { error: 'Not found.' }, 404); if (isSiteAdmin(target)) return json(res, { error: 'You can\'t suspend a site admin.' }, 400);
-    users.setSuspended(id, act === 'suspend'); console.log(`moderation: ${user.discord_id} ${act} person ${id} (${target.roblox_name || target.name})`); return json(res, { ok: true }); }
+    users.setSuspended(id, act === 'suspend'); if (act === 'suspend') for (const fd of feeds.values()) fd.kick(id);   // their open CADs reload into the suspension at once
+    console.log(`moderation: ${user.discord_id} ${act} person ${id} (${target.roblox_name || target.name})`); return json(res, { ok: true }); }
   if (rest === 'admin/report' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req);
     if (!reports.resolve(Number(j.id), 'dismissed')) return json(res, { error: 'That report is already closed.' }, 404); return json(res, { ok: true, servers: communities.overview(), reports: reports.open() }); }
   if (rest === 'explore/vote' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to vote.' }, 403); const r = profile.vote(user, (await jsonBody(req)).slug); return json(res, r, r.error ? 429 : 200); }
@@ -295,7 +298,7 @@ const erlcAppStatus = async live => { const out = { hasKey: !!appKey(), fromEnv:
 const visible = slug => { const c = communities.bySlug(String(slug || '')); return c && !c.settings.profile?.unlisted && !c.hidden && !c.suspended ? c : null; };
 const reviewList = cid => reviews.forServer(cid).map(r => ({ id: r.id, user_id: r.user_id, rating: r.rating, body: r.body, created: r.created, updated: r.updated, reply: r.reply, reply_name: r.reply_name || '', reply_verified: !!r.reply_verified, roblox_name: r.roblox_name, roblox_id: r.roblox_id, verified: !!r.verified }));
 const runsServer = (cid, uid) => ['owner', 'co_owner'].includes(members.role(cid, uid));
-const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.(png|svg)|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/(avatar|bust)\/\d+)$/;
+const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.(png|svg)|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/(avatar|bust)\/\d+|support|api\/support)$/;
 // ── routes ──
 const route = async (req, res) => {
   const url = new URL(req.url, 'http://x'); let path = decodeURIComponent(url.pathname), m0, m0r, aboutPage = false;
@@ -311,7 +314,7 @@ const route = async (req, res) => {
     else path = `/c/${sc.slug}${sub}`; }
   const me0 = auth.currentUser(req);
   if (me0?.suspended && !isSiteAdmin(me0) && !SUSPENDED_OK.test(path)) { if (path.startsWith('/api/') || /^\/c\/[^/]+\/api\//.test(path)) return json(res, { error: 'Your account is suspended.' }, 403);
-    return msg(res, me0, 'Your account is suspended', 'Oversite has suspended this account for breaking the Terms of Use, so you can\'t use the CAD or Explore right now. If you think this is a mistake, email support@oversite.shop.', { href: 'mailto:support@oversite.shop', label: 'Contact support' }, 403); }
+    return msg(res, me0, 'Your account is suspended', 'Oversite has suspended this account for breaking the Terms of Use, so you can\'t use the CAD or Explore right now. If you think this is a mistake, contact support.', { href: '/support?topic=account', label: 'Contact support' }, 403); }
   if (path === '/health') { let w = 0, perMin = 0; const live = [], errs = {}; for (const f of feeds.values()) { w += f.clients.size; perMin += f.sent.length; if (f.clients.size && f.rtt) live.push(f.stats()); const er = f.stats().err; if (er != null) errs[er] = (errs[er] || 0) + 1; }
     const avg = k => live.length ? Math.round(live.reduce((a, s) => a + s[k], 0) / live.length) : 0;   // how fresh the live feeds are: ER:LC round trip, time between updates, time between real moves
     res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(`ok ${communities.all().length} communities, ${w} watching, ${perMin}/min` + (live.length ? `, api ${avg('rtt')}ms, update every ${avg('every')}ms, positions change every ${avg('moves')}ms` : '') + (Object.keys(errs).length ? `, ER:LC refusing: ${Object.entries(errs).map(([k, n]) => `${k} x${n}`).join(', ')}` : '')); }
@@ -338,7 +341,7 @@ const route = async (req, res) => {
     const me = user ? { id: user.id, owner: own, admin: isSiteAdmin(user), can: !!user.roblox_name && !own, why: !user.roblox_name ? 'Link your Roblox account to write a review.' : own ? 'Reviews are from players. You can reply to any review below.' : '' } : null;
     return page(res, serverPage({ logo: LOGO, user, x, medals, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me })); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
-    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false) })); }
+    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open() })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/(c\/)?[a-z0-9-]{3,32}$/.test(from) ? from : null;
     return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }
@@ -419,7 +422,7 @@ const route = async (req, res) => {
     if (sub.startsWith('/api/')) return communityApi(req, res, slug, sub.slice(5));
     const { c, user, role } = await access(req, slug);
     if (!c) return msg(res, user, 'Community not found', 'Check the address, or ask your community for an invite link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
-    if (c.suspended && !isSiteAdmin(user)) return msg(res, user, `${c.name} is suspended`, 'Oversite has suspended this server for breaking the Terms of Use, so its CAD is closed. The owner can email support@oversite.shop about it.', { href: user ? '/account' : '/', label: user ? 'Your account' : 'Back' }, 403);
+    if (c.suspended && !isSiteAdmin(user)) return msg(res, user, `${c.name} is suspended`, 'Oversite has suspended this server for breaking the Terms of Use, so its CAD is closed. The owner can contact support about it.', { href: '/support?topic=server', label: 'Contact support' }, 403);
     if (!user) return redirect(res, `/?next=${encodeURIComponent(url.pathname)}`);
     if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', { href: '/dashboard', label: 'Go to dashboard' }, 403);
     if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname + url.search)}`);   // no CAD without a linked Roblox account
@@ -431,6 +434,15 @@ const route = async (req, res) => {
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
       return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null })); }
     return msg(res, user, 'Not found', 'That page does not exist.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
+  if (path === '/support') return page(res, pages.support({ logo: LOGO, user: auth.currentUser(req), topic: url.searchParams.get('topic') || '' }));
+  if (path === '/api/support' && req.method === 'POST') { const user = auth.currentUser(req); if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
+    if (auth.limited(req, 'support', 6, 3600e3) || (user && support.recent(user.id, Date.now() - 3600e3) >= 6)) return json(res, { error: 'You have sent several messages in the last hour. Oversite has them; wait for a reply.' }, 429);
+    const j = await jsonBody(req), topic = pages.SUPPORT_TOPICS[j.topic] ? j.topic : 'other', body = String(j.body || '').replace(/[\u0000-\u0008\u000b-\u001f]/g, '').trim().slice(0, 3000), email = String(j.email || '').trim().slice(0, 120);
+    if (body.length < 10) return json(res, { error: 'Tell Oversite a bit more: at least a sentence.' }, 400);
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(res, { error: 'That email address does not look right.' }, 400);
+    if (!user && !email) return json(res, { error: 'Add your email so Oversite can reply.' }, 400);
+    const id = support.add(user ? user.id : null, topic, email || null, body, String(j.page || '').slice(0, 200)); console.log(`support: #${id} ${topic} from ${user ? (user.roblox_name || user.name) : email}`);
+    return json(res, { ok: true, id }); }
   if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
   return serve(req, res, path); };
 
