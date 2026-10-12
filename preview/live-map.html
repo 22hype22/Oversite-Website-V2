@@ -2242,13 +2242,11 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
         if (!occWant.startsWith(cur)) { el.textContent = cur.slice(0, -1); await w(28); } else { el.textContent = occWant.slice(0, cur.length + 1); await w(45 + Math.random() * 40); }
         el.style.fontSize = el.textContent.length > 15 ? '11.5px' : ''; } }   // long ranks shrink to stay clear of the small photo
     finally { occBusy = false; el.classList.remove('typing'); } };
-  // the password types itself (roleplay; nothing real): four characters, one deleted, two more, then Sign in
+  // the password types itself, quickly (roleplay; nothing real), then Sign in
   let typing = false;
   const autoPw = async () => { const pw = $('tlPw'); if (typing || pw.value.length >= 5) return syncGo(); typing = true; const run = lockRun, w = ms => new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms));
     $('tlS3').className = 'tl-step on'; pw.disabled = false; pw.value = ''; pw.focus({ preventScroll: true }); const ch = () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.random() * 31 | 0];
-    try { await w(350); for (let i = 0; i < 4; i++) { if (run !== lockRun) return; pw.value += ch(); await w(120 + Math.random() * 110); }
-      await w(250); if (run !== lockRun) return; pw.value = pw.value.slice(0, -1); await w(300);
-      for (let i = 0; i < 2; i++) { if (run !== lockRun) return; pw.value += ch(); await w(120 + Math.random() * 110); }
+    try { await w(150); for (let i = 0; i < 6; i++) { if (run !== lockRun) return; pw.value += ch(); await w(45 + Math.random() * 35); }
       $('tlS3').className = 'tl-step done'; } finally { typing = false; } if (run !== lockRun) return; syncGo(); $('tlGo').focus({ preventScroll: true }); };
   // putting your license on the reader
   let placeCard = null;
@@ -2279,13 +2277,12 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const openMenu = () => { const d = DEPT(), u = me();
     menu.innerHTML = `<div class="tm-h"><i>${$('tuserAv').innerHTML}</i><div><b>${esc(OVS?.me || $('tuserName').textContent)}</b><small>${esc([signed[d], u && u.name].filter(Boolean).join(' · ') || DEPT_NAME[d])}</small></div></div>
       ${OVS ? `<a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}">Account settings</a><a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}#license">Your license</a>` : ''}
-      ${LOCKS ? '<button type="button" role="menuitem" data-m="lock">Lock MDT</button><hr><button type="button" role="menuitem" class="tm-out" data-m="out">Sign out</button>' : ''}`;
+      ${LOCKS ? '<hr><button type="button" role="menuitem" class="tm-out" data-m="out">Sign out</button>' : ''}`;
     menu.classList.add('open'); ubtn.setAttribute('aria-expanded', 'true'); menu.querySelector('[role="menuitem"]')?.focus({ preventScroll: true }); };
   ubtn.addEventListener('click', () => menu.classList.contains('open') ? closeMenu() : openMenu());
   document.addEventListener('pointerdown', e => { if (menu.classList.contains('open') && !e.target.closest('#tMenu,#tuserBtn')) closeMenu(); });
   menu.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); ubtn.focus(); } });
   menu.addEventListener('click', async e => { const m = e.target.closest('[data-m]')?.dataset.m; if (!m) return; const d = DEPT(); closeMenu();
-    if (m === 'lock') { locked.add(d); saveLocks(); logIt('Locked MDT'); showLock(); return; }
     if (m === 'out') { try { await fetch(OVS.api + '/mdt/signout', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d }) }); } catch (x) {}
       logIt(`Signed off${signed[d] ? ', ' + signed[d] : ''}`); delete signed[d]; locked.delete(d); saveLocks(); showLock(); } });
   addEventListener('calls', assist); addEventListener('mdt', e => { if (!e.detail) { closeMenu(); return; } applyDept(); if (isLocked(DEPT())) showLock(); else { hideLock(); if (!LOG.length) logIt(signed[DEPT()] ? `Signed on as ${signed[DEPT()]}, 10-8` : 'Logged on, 10-8'); } renderUnit(); renderApp(); renderCalls(); renderReports(); assist(); });
