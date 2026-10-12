@@ -1,0 +1,9 @@
+{
+  "_about": "Roads the map picture can't show, checked by eye. tunnels: two road ends joined through a hill (points near each end, map units). underpasses: where a road passes under (or over) a highway without meeting it; 'road' is the road's direction in degrees (0 = east, 90 = south), and at the junctions within r of 'at' nothing may turn between the road and the highway.",
+  "tunnels": [
+    { "name": "Cliff road under the bluff to Freedom Avenue", "a": [384, 1272], "b": [411, 1422] }
+  ],
+  "underpasses": [
+    { "name": "Highway 55 over the river road", "at": [790, 797], "r": 16, "road": -59 }
+  ]
+}

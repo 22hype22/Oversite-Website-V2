@@ -9,11 +9,13 @@ short stubs, then give every edge its length, width, speed, whether it is in a l
 a road with a median on one side only is one carriageway of a divided road, so it is one-way with the median
 on the driver's left (ER:LC drives on the right). Everything is in map units (0..2000).
 
-Output: {"v":1,"nodes":[[x,y],...],"edges":[[a,b,len,mph,lot,oneway,[x,y,x,y,...]],...]}
+Output: {"v":1,"nodes":[[x,y],...],"edges":[[a,b,len,mph,lot,oneway,[x,y,x,y,...],tunnel],...]}
   lot: 0 on a road, else a lot number (routes may only use a lot to start or finish in it)
   oneway: 0 both ways, 1 only a->b, -1 only b->a
+  tunnel: 1 for a link through a tunnel or under a bridge, joining two road ends that face each other
+"nt": [[node, [edge, ...]], ...] underpasses: at that junction no turn between the listed edges (the road) and the rest (the highway)
 """
-import sys, json, math, numpy as np
+import sys, os, json, math, numpy as np
 from scipy import ndimage as ndi
 from skimage.morphology import skeletonize
 
@@ -154,9 +156,75 @@ for oi, ps in pair.items():
             if a[0] * b[0] + a[1] * b[1] > 0: drop |= {oi, q}
 for oi in drop: out_edges[oi][5] = 0
 
+# tunnels and underpasses: a road that stops dead and carries on further along, facing back at it (through a hill, or hidden
+# under a bridge deck), is one road. Join each pair of road ends that look at each other across a gap with a smooth link.
+deg = {}
+for e in out_edges: deg[e[0]] = deg.get(e[0], 0) + 1; deg[e[1]] = deg.get(e[1], 0) + 1
+def end_dir(e, at_a):
+    f = e[6]; pts = [(f[i], f[i + 1]) for i in range(0, len(f), 2)]
+    if not at_a: pts = pts[::-1]
+    p0 = pts[0]; q = pts[-1]; acc = 0
+    for i in range(1, len(pts)):
+        acc += math.dist(pts[i - 1], pts[i]); q = pts[i]
+        if acc >= 15: break
+    d = math.dist(p0, q) or 1; return p0, ((p0[0] - q[0]) / d, (p0[1] - q[1]) / d)       # pointing out of the road's end
+ends = []
+for e in out_edges:
+    if e[4] or e[2] < 20: continue                                    # lots and short stubs (driveways) are not tunnel mouths
+    for at_a, n in ((True, e[0]), (False, e[1])):
+        if deg[n] == 1: p0, h = end_dir(e, at_a); ends.append((n, p0, h, e))
+from PIL import Image
+PIC = np.asarray(Image.open('preview/liberty-county-4k.jpg').convert('RGB')).astype(np.int16)
+def lawn(p, q):
+    """How much of the straight line between two road ends is grass: two driveways facing across a garden are not a road."""
+    n = max(2, int(math.dist(p, q))); g = 0
+    for i in range(1, n):
+        x, y = p[0] + (q[0] - p[0]) * i / n, p[1] + (q[1] - p[1]) * i / n; r_, g_, b_ = PIC[int(y / K), int(x / K)]
+        g += (g_ - b_ > 8) and (g_ >= r_ - 2)
+    return g / (n - 1)
+pairs = []
+for i in range(len(ends)):
+    for j in range(i + 1, len(ends)):
+        n1, p1, h1, e1 = ends[i]; n2, p2, h2, e2 = ends[j]; D = math.dist(p1, p2)
+        if not 6 <= D <= 240 or e1 is e2: continue
+        v = ((p2[0] - p1[0]) / D, (p2[1] - p1[1]) / D)
+        c1 = h1[0] * v[0] + h1[1] * v[1]; c2 = -(h2[0] * v[0] + h2[1] * v[1])
+        if c1 > 0.94 and c2 > 0.94 and D <= 120 and lawn(p1, p2) < 0.5: pairs.append((D * (2.2 - c1 - c2), n1, n2, p1, p2, h1, h2, D, e1, e2))   # straight on across a gap (a bridge deck, rails, paint); bent tunnels come from hidden-roads.json
+# tunnels that bend (checked by eye, preview/newmap/roads/hidden-roads.json): the road ends nearest each listed point
+HID = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hidden-roads.json')))
+for t in HID.get('tunnels', []):
+    pick = lambda q: min(ends, key=lambda en: math.dist(en[1], q))
+    A, B = pick(t['a']), pick(t['b'])
+    if math.dist(A[1], t['a']) < 25 and math.dist(B[1], t['b']) < 25: pairs.insert(0, (-1, A[0], B[0], A[1], B[1], A[2], B[2], math.dist(A[1], B[1]), A[3], B[3]))
+    else: print('hidden road not found:', t['name'])
+pairs.sort(key=lambda t: t[0]); taken = set(); TUN = []
+for _, n1, n2, p1, p2, h1, h2, D, e1, e2 in pairs:
+    if n1 in taken or n2 in taken: continue
+    taken |= {n1, n2}; k = D / 3; c1 = (p1[0] + h1[0] * k, p1[1] + h1[1] * k); c2 = (p2[0] + h2[0] * k, p2[1] + h2[1] * k)
+    pts = [((1 - t) ** 3 * p1[0] + 3 * (1 - t) ** 2 * t * c1[0] + 3 * (1 - t) * t * t * c2[0] + t ** 3 * p2[0], (1 - t) ** 3 * p1[1] + 3 * (1 - t) ** 2 * t * c1[1] + 3 * (1 - t) * t * t * c2[1] + t ** 3 * p2[1]) for t in [i / 12 for i in range(13)]]
+    L = sum(math.dist(pts[i - 1], pts[i]) for i in range(1, len(pts)))
+    out_edges.append([n1, n2, round(L, 1), min(e1[3], e2[3]), 0, 0, [round(v, 1) for q in pts for v in q], 1]); TUN.append((n1, n2, round(D)))
+for e in out_edges:
+    if len(e) < 8: e.append(0)                                        # [7] 1 = tunnel / underpass link (drawn dashed)
+if len(sys.argv) > 4: print('tunnels', [(round(nodes[a][0] * K), round(nodes[a][1] * K), round(nodes[b][0] * K), round(nodes[b][1] * K), d) for a, b, d in TUN])
+
+# underpasses: at the junctions where the picture merged a road into the highway above it, nothing turns between the two
+nt = []
+for u in HID.get('underpasses', []):
+    ax = math.radians(u['road']); hit = 0
+    for n, (x, y) in enumerate(nodes):
+        if math.dist((x * K, y * K), u['at']) > u['r']: continue
+        legs = []
+        for i, e in enumerate(out_edges):
+            for at_a, m in ((True, e[0]), (False, e[1])):
+                if m != n: continue
+                p0, h = end_dir(e, at_a); legs.append((i, abs(math.cos(math.atan2(-h[1], -h[0]) - ax))))   # leaving the junction along this leg
+        road = [i for i, c in legs if c > 0.8]
+        if road and len(road) < len(legs): nt.append([n, road]); hit += 1
+    if not hit: print('underpass not found:', u['name'])
 used = sorted({e[0] for e in out_edges} | {e[1] for e in out_edges}); remap = {o: i for i, o in enumerate(used)}
 for e in out_edges: e[0], e[1] = remap[e[0]], remap[e[1]]
-out = {'v': 1, 'nodes': [[round(nodes[o][0] * K, 1), round(nodes[o][1] * K, 1)] for o in used], 'edges': out_edges}
+out = {'v': 1, 'nodes': [[round(nodes[o][0] * K, 1), round(nodes[o][1] * K, 1)] for o in used], 'edges': out_edges, 'nt': [[remap[n], r] for n, r in nt if n in remap]}
 json.dump(out, open(OUT, 'w'), separators=(',', ':'))
 print('nodes', len(out['nodes']), 'edges', len(out_edges), 'lot edges', sum(1 for e in out_edges if e[4]), 'one-way', sum(1 for e in out_edges if e[5]),
       'size KB', round(len(json.dumps(out, separators=(',', ':'))) / 1024))

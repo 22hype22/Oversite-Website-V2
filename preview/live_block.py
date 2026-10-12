@@ -5,13 +5,13 @@ import json, re
 ADMIN_CSS = r"""  /* admin panel: server link, departments, map calibration */
   /* road editor: the traced roads drawn over the map, coloured by what they are */
   #roadEd path{fill:none;stroke-width:4px;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;opacity:.92}
-  #roadEd .r{stroke:#3B82F6}#roadEd .o{stroke:#F97316}#roadEd .l{stroke:#EAB308}#roadEd .b{stroke:#E5484D;stroke-dasharray:6 4}#roadEd .x{stroke:#8B8F98;stroke-dasharray:3 4}
+  #roadEd .r{stroke:#3B82F6}#roadEd .o{stroke:#F97316}#roadEd .l{stroke:#EAB308}#roadEd .b{stroke:#E5484D;stroke-dasharray:6 4}#roadEd .x{stroke:#8B8F98;stroke-dasharray:3 4}#roadEd .t{stroke:#C084FC;stroke-dasharray:7 5}#roadEd .tmark{fill:#C084FC;stroke:#fff;stroke-width:2px;vector-effect:non-scaling-stroke}
   #roadEd .sel{stroke-width:8px;opacity:1;filter:drop-shadow(0 0 3px #fff)}#roadEd .ar{fill:#fff;stroke:#F97316;stroke-width:1.5px;vector-effect:non-scaling-stroke}
   .rd-bar{position:fixed;left:50%;top:calc(var(--barh) + var(--gap) + 8px);transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;padding:8px 8px 8px 16px;border-radius:12px;background:#16171A;color:#F0F2F5;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px);flex-wrap:wrap}
   .rd-bar[hidden],.rd-menu[hidden]{display:none}
   .rd-k{font-style:normal;display:flex;align-items:center;gap:6px;color:#A6ABB5;font-size:12px}.rd-k b{width:14px;height:4px;border-radius:2px;margin-left:6px}
-  .rd-k .r{background:#3B82F6}.rd-k .o{background:#F97316}.rd-k .l{background:#EAB308}.rd-k .b{background:#E5484D}.rd-k .x{background:#8B8F98}
-  .rd-bar button{border:0;border-radius:8px;padding:7px 14px;background:#F0F2F5;color:#0B0B0C;font:inherit;font-weight:600;cursor:pointer}
+  .rd-k .r{background:#3B82F6}.rd-k .o{background:#F97316}.rd-k .l{background:#EAB308}.rd-k .b{background:#E5484D}.rd-k .x{background:#8B8F98}.rd-k .t{background:#C084FC}
+  .rd-bar button{border:0;border-radius:8px;padding:7px 14px;background:#F0F2F5;color:#0B0B0C;font:inherit;font-weight:600;cursor:pointer}.rd-bar .rd-tun{background:rgba(240,242,245,.1);color:#F0F2F5}.rd-bar .rd-tun[aria-pressed="true"]{background:#C084FC;color:#0B0B0C}
   .rd-menu{position:fixed;z-index:13;min-width:180px;padding:6px;border-radius:12px;background:#16171A;box-shadow:0 12px 34px rgba(0,0,0,.45);display:flex;flex-direction:column}
   .rd-h{padding:6px 10px 8px;font-size:12px;color:#A6ABB5;font-weight:600}.rd-h small{font-weight:500;color:#F97316;margin-left:4px}
   .rd-menu button{border:0;background:none;color:#F0F2F5;font:inherit;font-size:13px;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer}.rd-menu button:hover{background:rgba(240,242,245,.1)}
@@ -113,7 +113,7 @@ def admin_html():
   </section>
   <section id="adRoads">
     <h3>Roads (GPS)</h3>
-    <p class="ad-note">The GPS drives the roads traced from the map. If it takes a road it shouldn't, or misses one, click Edit roads, then click that road on the map and say what it is. Everyone's GPS re-routes straight away.</p>
+    <p class="ad-note">The GPS drives the roads traced from the map. If it takes a road it shouldn't, or misses one, click Edit roads, then click that road on the map and say what it is. For a tunnel the map can't show, use Add tunnel and click where the road goes in and where it comes out. Everyone's GPS re-routes straight away.</p>
     <div class="ad-kv"><span>Your fixes</span><b id="adRoadCount">none</b></div>
     <div class="ad-row"><button type="button" class="ad-btn pri" id="adRoadEdit" aria-pressed="false">Edit roads</button><button type="button" class="ad-btn" id="adRoadClear">Remove all fixes</button></div>
   </section>
@@ -464,10 +464,10 @@ LIVE_JS = r"""<script id="live">
   (() => { const RN = window.ROADNET, sec = $('adRoads'); if (!RN || !sec) return; if (OV && !OV.canEdit) { sec.hidden = true; return; }
     const NS = 'http://www.w3.org/2000/svg', svg = document.querySelector('#world svg'), btn = $('adRoadEdit');
     let g = null, sel = -1, editing = false;
-    const bar = document.createElement('div'); bar.className = 'rd-bar'; bar.hidden = true; bar.innerHTML = '<span>Editing roads: click a road to fix it</span><i class="rd-k"><b class="r"></b>Road<b class="o"></b>One-way<b class="l"></b>Lot<b class="b"></b>Blocked<b class="x"></b>Not a road</i><button type="button">Done</button>';
+    const bar = document.createElement('div'); bar.className = 'rd-bar'; bar.hidden = true; bar.innerHTML = '<span>Editing roads: click a road to fix it</span><i class="rd-k"><b class="r"></b>Road<b class="o"></b>One-way<b class="t"></b>Tunnel<b class="l"></b>Lot<b class="b"></b>Blocked<b class="x"></b>Not a road</i><button type="button" class="rd-tun" aria-pressed="false">Add tunnel</button><button type="button" class="rd-done">Done</button>';
     const menu = document.createElement('div'); menu.className = 'rd-menu'; menu.hidden = true; document.body.append(bar, menu);
     const count = () => { const n = Object.keys(RN.ov()).length; $('adRoadCount').textContent = n ? `${n} fix${n === 1 ? '' : 'es'}` : 'none'; };
-    const kind = e => e.off === 2 ? 'x' : e.off ? 'b' : e.lot ? 'l' : e.ow ? 'o' : 'r';
+    const kind = e => e.off === 2 ? 'x' : e.off ? 'b' : e.lot ? 'l' : e.ow ? 'o' : e.tun ? 't' : 'r';
     const mid = e => { const h = e.L / 2; let j = 1; while (j < e.c.length - 1 && e.c[j] < h) j++; const [ax, ay] = e.p[j - 1], [bx, by] = e.p[j], t = (h - e.c[j - 1]) / ((e.c[j] - e.c[j - 1]) || 1); return [ax + (bx - ax) * t, ay + (by - ay) * t, Math.atan2(by - ay, bx - ax)]; };
     const draw = () => { if (!editing) { g?.remove(); g = null; return; } if (!g) { g = document.createElementNS(NS, 'g'); g.id = 'roadEd'; svg.appendChild(g); }
       g.innerHTML = RN.E.map((e, i) => { const d = 'M' + e.p.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L'); let ar = '';
@@ -477,24 +477,32 @@ LIVE_JS = r"""<script id="live">
       else { try { localStorage.setItem('oversite-roads', JSON.stringify(ov)); } catch (e) {} } };
     const ACTS = [['road', 'Road, both ways'], ['one', 'One-way'], ['flip', 'Flip direction'], ['lot', 'Parking lot'], ['block', 'Blocked'], ['off', 'Not a road'], ['reset', 'Undo my fix']];
     const openMenu = (i, cx, cy) => { sel = i; draw(); const e = RN.E[i], has = !!RN.ov()[e.key];
-      menu.innerHTML = `<div class="rd-h">${{ r: 'Road, both ways', o: 'One-way road', l: 'Parking lot', b: 'Blocked', x: 'Not a road' }[kind(e)]}${has ? ' <small>fixed by you</small>' : ''}</div>` +
-        ACTS.filter(([a]) => (a !== 'flip' || e.ow) && (a !== 'reset' || has)).map(([a, t]) => `<button type="button" data-a="${a}">${t}</button>`).join('');
+      menu.innerHTML = `<div class="rd-h">${e.own ? 'Tunnel <small>added by you</small>' : { r: 'Road, both ways', o: 'One-way road', t: 'Tunnel or under a bridge', l: 'Parking lot', b: 'Blocked', x: 'Not a road' }[kind(e)] + (has ? ' <small>fixed by you</small>' : '')}</div>` +
+        (e.own ? '<button type="button" data-a="untun">Remove tunnel</button>' : ACTS.filter(([a]) => (a !== 'flip' || e.ow) && (a !== 'reset' || has)).map(([a, t]) => `<button type="button" data-a="${a}">${t}</button>`).join(''));
       menu.hidden = false; const r = menu.getBoundingClientRect(); menu.style.left = Math.min(innerWidth - r.width - 8, Math.max(8, cx + 12)) + 'px'; menu.style.top = Math.min(innerHeight - r.height - 8, Math.max(8, cy - 20)) + 'px'; };
     const closeMenu = () => { menu.hidden = true; sel = -1; draw(); };
     menu.addEventListener('click', ev => { const a = ev.target.closest('[data-a]')?.dataset.a; if (!a || sel < 0) return; const e = RN.E[sel], ov = { ...RN.ov() }, o = { ...(ov[e.key] || {}) };
+      if (a === 'untun') { delete ov[e.key]; closeMenu(); save(ov); return; }
       if (a === 'road') { delete o.b; delete o.x; o.o = 0; o.l = 0; } else if (a === 'one') { delete o.x; o.o = e.ow || 1; o.l = 0; } else if (a === 'flip') o.o = -(e.ow || 1);
       else if (a === 'lot') { delete o.x; o.l = 1; o.o = 0; } else if (a === 'block') { delete o.x; o.b = 1; } else if (a === 'off') { delete o.b; o.x = 1; }
       if (a === 'reset') delete ov[e.key]; else { if (o.o === e.ow0) delete o.o; if (o.l === (e.lot0 ? 1 : 0)) delete o.l; if (Object.keys(o).length) ov[e.key] = o; else delete ov[e.key]; }   // keep only what differs from the traced map
       save(ov); openMenu(sel, parseFloat(menu.style.left) - 12, parseFloat(menu.style.top) + 20); });
-    const setEdit = on => { editing = on; btn.setAttribute('aria-pressed', on); bar.hidden = !on; if (on) setOpen(false); else closeMenu(); draw(); };
-    btn.addEventListener('click', () => setEdit(!editing)); bar.querySelector('button').addEventListener('click', () => setEdit(false));
+    // a tunnel (or a road hidden under a bridge): click where the road goes in, then where it comes out
+    const tunBtn = bar.querySelector('.rd-tun'), barText = bar.querySelector('span'); let tun = null;
+    const setTun = on => { tun = on ? { a: null } : null; tunBtn.setAttribute('aria-pressed', on); barText.textContent = on ? 'Add tunnel: click the road where it goes in' : 'Editing roads: click a road to fix it'; g?.querySelector('.tmark')?.remove(); if (on) closeMenu(); };
+    tunBtn.addEventListener('click', () => setTun(!tun));
+    const tunClick = w => { const n = RN.nearNode(w[0], w[1]); if (n < 0) { barText.textContent = 'No road end there. Click right on the road.'; return; } const [x, y] = RN.nodes[n];
+      if (!tun.a) { tun.a = [x, y]; barText.textContent = 'Now click the road where it comes out'; const m = document.createElementNS(NS, 'circle'); m.setAttribute('class', 'tmark'); m.setAttribute('cx', x); m.setAttribute('cy', y); m.setAttribute('r', 4); g?.appendChild(m); return; }
+      if (Math.hypot(x - tun.a[0], y - tun.a[1]) < 1) return; const k = `t_${Math.round(tun.a[0])}_${Math.round(tun.a[1])}_${Math.round(x)}_${Math.round(y)}`; setTun(false); save({ ...RN.ov(), [k]: { t: 1 } }); };
+    const setEdit = on => { editing = on; btn.setAttribute('aria-pressed', on); bar.hidden = !on; if (on) setOpen(false); else { closeMenu(); setTun(false); } draw(); };
+    btn.addEventListener('click', () => setEdit(!editing)); bar.querySelector('.rd-done').addEventListener('click', () => setEdit(false));
     $('adRoadClear').addEventListener('click', () => { if (!Object.keys(RN.ov()).length || !confirm('Remove every road fix? The GPS goes back to the roads as traced from the map.')) return; save({}); });
-    addEventListener('keydown', e => { if (e.key === 'Escape' && editing) { if (!menu.hidden) closeMenu(); else setEdit(false); } });
+    addEventListener('keydown', e => { if (e.key === 'Escape' && editing) { if (tun) setTun(false); else if (!menu.hidden) closeMenu(); else setEdit(false); } });
     addEventListener('roadschange', () => { count(); draw(); });
     let dn = null; const view = document.getElementById('view');
     view.addEventListener('pointerdown', e => { dn = [e.clientX, e.clientY]; }, true);
     view.addEventListener('pointerup', e => { if (!editing || !dn || Math.hypot(e.clientX - dn[0], e.clientY - dn[1]) > 5) { dn = null; return; } dn = null;
-      const w = window.map2d?.screenToWorld?.(e.clientX, e.clientY); if (!w) return; const hit = RN.near(w[0], w[1], 14, () => true);
+      const w = window.map2d?.screenToWorld?.(e.clientX, e.clientY); if (!w) return; if (tun) return tunClick(w); const hit = RN.near(w[0], w[1], 14, () => true);
       if (hit) openMenu(hit.i, e.clientX, e.clientY); else closeMenu(); }, true);
     count(); })();
 
