@@ -310,10 +310,41 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
             else turns.push({ i: pts.length - 1, d: t }); }
           const last = j === legs.length - 1; along(e2, d2 === 0 ? 0 : e2.L, last ? B.s : d2 === 0 ? e2.L : 0); } }
       add([bx, by]); pts.turns = turns.filter(t => Math.abs(t.d) * 180 / Math.PI >= 25); pts.secs = best; return pts; };
+    // ── where a moving car is about to be: carry on along the road it is on, through each junction the way it most likely goes ──
+    // At a junction the pick is the road nearest `prefer` (the unit's GPS route to its call, or the way it drove here before),
+    // else the straightest legal road. Returns the points ahead, kept in the car's lane, or null when it isn't on a road.
+    const distTo = (q, poly) => { let b = Infinity; for (let j = 1; j < poly.length; j++) { const [ax, ay] = poly[j - 1], [bx, by] = poly[j], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1,
+      t = Math.max(0, Math.min(1, ((q[0] - ax) * dx + (q[1] - ay) * dy) / L2)), d = Math.hypot(ax + dx * t - q[0], ay + dy * t - q[1]); if (d < b) b = d; } return b; };
+    // the road piece it is driving along: close by and running the way it heads (at a junction the nearest piece is often the cross street)
+    const onto = (x, y, h) => { let best = null; const cx0 = Math.floor(x / CS), cy0 = Math.floor(y / CS), hx = Math.cos(h), hy = Math.sin(h);
+      for (let cy = cy0 - 1; cy <= cy0 + 1; cy++) for (let cx = cx0 - 1; cx <= cx0 + 1; cx++) for (const v of cells.get(cy * GW + cx) || []) { const i = Math.floor(v / 4096), j = v % 4096, e = E[i]; if (e.off) continue;
+        const [ax, ay] = e.p[j - 1], [bx, by] = e.p[j], dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (L * L))), qx = ax + dx * t, qy = ay + dy * t, d = Math.hypot(x - qx, y - qy);
+        const c = (dx * hx + dy * hy) / L; if (d > 12 || Math.abs(c) < 0.64) continue; const sc = d + 12 * (1 - Math.abs(c));
+        if (!best || sc < best.sc) best = { sc, i, s: e.c[j - 1] + L * t, q: [qx, qy], c, ta: Math.atan2(dy, dx) }; }
+      return best; };
+    const follow = (x, y, h, len, prefer) => { const hit = onto(x, y, h); if (!hit) return null; const e = E[hit.i], ta = hit.ta, c = hit.c;   // not on a road, or crossing it
+      const off = (x - hit.q[0]) * -Math.sin(ta) + (y - hit.q[1]) * Math.cos(ta);   // how far off the centre line: its lane
+      let out = [hit.q.slice()], total = 0;
+      const add = q => { const l = out[out.length - 1], dd = Math.hypot(q[0] - l[0], q[1] - l[1]); if (dd > 0.3) { out.push(q); total += dd; } };
+      const walk = (e, s0, s1) => { if (s1 > s0) { for (let j = 0; j < e.c.length; j++) if (e.c[j] > s0 && e.c[j] < s1) add(e.p[j]); } else { for (let j = e.c.length - 1; j >= 0; j--) if (e.c[j] < s0 && e.c[j] > s1) add(e.p[j]); } add(at(e, s1)); };
+      let i1 = hit.i, d1 = c > 0 ? 0 : 1, guard = 0, hIn = null;
+      // right at a junction (just past it on the piece ahead): the turn is still being decided, so decide it there
+      if ((d1 === 0 ? hit.s : e.L - hit.s) < 7 && adj[d1 === 0 ? e.a : e.b].length > 2) { hIn = h; i1 = hit.i; d1 = 1 - d1; add(at(e, d1 === 1 ? 0 : e.L)); }
+      else walk(e, hit.s, d1 === 0 ? e.L : 0);
+      while (total < len && guard++ < 40) { const n = endOf(E[i1], d1); let best = null, bs = Infinity;
+        for (const i2 of adj[n]) for (const d2 of [0, 1]) { const e2 = E[i2]; if ((d2 === 0 ? e2.a : e2.b) !== n || e2.off || (i2 === i1 && hIn == null) || !allowed(n, i1, i2)) continue;
+          let t = hIn == null ? turnOf(E[i1], d1, e2, d2) : outHd(e2, d2) - hIn; t = Math.atan2(Math.sin(t), Math.cos(t)); if (hIn != null && Math.abs(t) > 2.4) continue;   // not back the way it came
+          let sc = Math.abs(t) + (ok(e2, d2) ? 0 : 3);
+          if (prefer && prefer.length > 1) { const pd = distTo(at(e2, d2 === 0 ? Math.min(15, e2.L) : Math.max(0, e2.L - 15)), prefer); if (pd < 12) sc = pd / 12 - 10 + sc * 0.1; }
+          if (sc < bs) { bs = sc; best = [i2, d2]; } }
+        if (!best) break; [i1, d1] = best; hIn = null; const e2 = E[i1]; walk(e2, d1 === 0 ? 0 : e2.L, d1 === 0 ? e2.L : 0); }
+      if (Math.abs(off) > 0.2 && Math.abs(off) < 10) out = out.map((p, k) => { const a = out[Math.max(0, k - 1)], b = out[Math.min(out.length - 1, k + 1)], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+        return [p[0] - (b[1] - a[1]) / L * off, p[1] + (b[0] - a[0]) / L * off]; });
+      return out; };
     roadRoute = (ax, ay, bx, by) => netRoute(ax, ay, bx, by) || gridRoute(ax, ay, bx, by);
     window.roadRoute = roadRoute;
     build([]);
-    window.ROADNET = { get E() { return E; }, nodes: NV, near, setOv, ov: () => OVR, nearNode, deg: baseDeg };
+    window.ROADNET = { get E() { return E; }, nodes: NV, near, setOv, ov: () => OVR, nearNode, deg: baseDeg, follow };
     const OVS = window.OVERSITE; if (OVS && OVS.roads) setOv(OVS.roads.ov);
     else if (!/^https?:$/.test(location.protocol)) { try { setOv(JSON.parse(localStorage.getItem('oversite-roads') || '{}')); } catch (e) {} }
   })();

@@ -280,7 +280,13 @@ LIVE_JS = r"""<script id="live">
   const KPX = 5355 / 2000;                                              // reported units (official map px) per map unit
   const MO = { delay: 0, delaySlow: 1.0, maxDelay: 1.0, spring: 4.5, horizon: 1.5, turnDamp: 0.8, accDamp: 0.6, stopAfter: 1.35, weight: 1.1, maxTurn: 1.1, maxAcc: 25 };   // tuning, exposed for testing
   // predicted position τ seconds after the anchor fix: speed changes by the measured acceleration (never reversing), heading turns at the measured rate
-  const pred = (m, tau) => { let x = m.pf[0], y = m.pf[1], h = m.h, v = m.sp; const n = Math.max(1, Math.ceil(tau / 0.05)), d = tau / n;
+  // On a road, the distance it covers is laid along the road ahead (m.look, from the road network) so it takes the bends and turns
+  // instead of running straight into a wall; off-road it keeps its heading and turn rate.
+  const pred = (m, tau) => { if (m.look && m.sp > 4) { const n = Math.max(1, Math.ceil(tau / 0.05)), d = tau / n; let v = m.sp, s = 0;
+      for (let i = 0; i < n; i++) { const v2 = Math.max(0, v + m.acc * d); s += (v + v2) / 2 * d; v = v2; if (v <= 0 && m.acc <= 0) break; }
+      const { P, C } = m.look; if (s >= C[C.length - 1]) return P[P.length - 1].slice(); let i = 1; while (C[i] < s) i++; const t = (s - C[i - 1]) / ((C[i] - C[i - 1]) || 1);
+      return [P[i - 1][0] + (P[i][0] - P[i - 1][0]) * t, P[i - 1][1] + (P[i][1] - P[i - 1][1]) * t]; }
+    let x = m.pf[0], y = m.pf[1], h = m.h, v = m.sp; const n = Math.max(1, Math.ceil(tau / 0.05)), d = tau / n;
     for (let i = 0; i < n; i++) { const v2 = Math.max(0, v + m.acc * d); const vm = (v + v2) / 2, hm = h + m.w * d / 2; x += Math.cos(hm) * vm * d; y += Math.sin(hm) * vm * d; h += m.w * d * (vm > 0.5 ? 1 : 0); v = v2; if (v <= 0 && m.acc <= 0) break; }
     return [x, y]; };
   // a smooth curve through the real fixes (Catmull-Rom with uneven spacing): drawing a little behind the newest fix keeps the dot exactly on the driven path
@@ -340,10 +346,35 @@ LIVE_JS = r"""<script id="live">
       const h1 = Math.atan2(b.y - a.y, b.x - a.x), dh = Math.atan2(Math.sin(h2 - h1), Math.cos(h2 - h1)), dt = (c.t - a.t) / 2; if (dt > 0.05) w = Math.max(-MO.maxTurn, Math.min(MO.maxTurn, dh / dt)) * MO.turnDamp; } }
     const wasMoving = m.sp > 3;
     m.h = h2 + w * (c.t - b.t) / 2; m.sp = sp; m.acc = acc; m.w = w; m.tf = t; m.pf = [wx, wy];
+    remember(u, wx, wy); m.look = null;
+    if (sp > 4 && window.ROADNET) { const P = window.ROADNET.follow(wx, wy, m.h, Math.min(400, 60 + sp * 4.5), preferFor(u, wx, wy, m.h));
+      if (P) { P.unshift([wx, wy]); const C = [0]; for (let i = 1; i < P.length; i++) C.push(C[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1])); m.look = { P, C }; } }
     // self-tuning: if the dot had run past where the car really is, draw a little further behind; if it keeps landing right, creep back to now
     if (wasMoving && sp > 3) { const now = performance.now() / 1000, P = pred(m, Math.max(0, now - t)), over = (m.D[0] - P[0]) * Math.cos(m.h) + (m.D[1] - P[1]) * Math.sin(m.h);
       m.df = over > Math.max(2, sp * 0.08) ? Math.min(MO.maxDelay, (m.df || 0) + 0.2) : Math.max(0, (m.df || 0) - 0.04); }
     return true; };
+  // ── which way a unit will likely turn next: its GPS route when it's on a call, else the way it drove before ──
+  // Every unit's trail is kept (a point every few units, the last ~45 minutes). Driving back along it (home from a call), or along
+  // it again (a patrol loop), the guess at each junction is the road the trail took.
+  const remember = (u, x, y) => { const T = u.trail || (u.trail = []), l = T[T.length - 1], now = performance.now() / 1000;
+    if (l && Math.hypot(x - l[0], y - l[1]) > 160) T.length = 0;          // a teleport or respawn: that trail no longer leads anywhere
+    if (l && Math.hypot(x - l[0], y - l[1]) < 4) return;
+    // the game only says where it was every couple of seconds; between two of those it drove the roads, so fill the gap with them
+    const D = l ? Math.hypot(x - l[0], y - l[1]) : 0, r = D > 12 && window.roadRoute ? window.roadRoute(l[0], l[1], x, y) : null;
+    if (r) { let len = 0; for (let i = 1; i < r.length; i++) len += Math.hypot(r[i][0] - r[i - 1][0], r[i][1] - r[i - 1][1]); if (len < D * 1.6 + 10) for (const q of r.slice(1, -1)) T.push([q[0], q[1], now]); }
+    T.push([x, y, now]); while (T.length > 4000 || now - T[0][2] > 2700) T.shift(); };
+  const preferFor = (u, x, y, h) => { const c = u.name && (window.CALLS || []).find(k => window.onIt ? window.onIt(k, u.name) : k.unit === u.name);
+    if (c && Number.isFinite(c.x) && Math.hypot(c.x - x, c.y - y) > 25 && window.roadRoute) {
+      if (!u.gps || u.gps.call !== c.startedAt || Math.hypot(u.gps.x - x, u.gps.y - y) > 20) u.gps = { call: c.startedAt, x, y, r: window.roadRoute(x, y, c.x, c.y) }; return u.gps.r; }
+    const T = u.trail; if (!T || T.length < 4) return null; const hx = Math.cos(h), hy = Math.sin(h); let back = 0;
+    // the newest stretch is where it just came from, unless it has turned round on it; skip the last ~60 units of trail
+    for (let i = T.length - 1, s = 0; i > 0 && s < 60; i--) { s += Math.hypot(T[i][0] - T[i - 1][0], T[i][1] - T[i - 1][1]); back = i; }
+    for (let i = back - 1; i >= 1; i--) { const a = T[i - 1], b = T[i]; if (Math.min(a[0], b[0]) > x + 10 || Math.max(a[0], b[0]) < x - 10 || Math.min(a[1], b[1]) > y + 10 || Math.max(a[1], b[1]) < y - 10) continue;
+      const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (L * L)));
+      if (Math.hypot(a[0] + dx * t - x, a[1] + dy * t - y) > 10) continue; const cs = (dx * hx + dy * hy) / L;
+      if (cs > 0.7) return T.slice(i - 1, i + 120);                        // driving that way again
+      if (cs < -0.7) return T.slice(Math.max(0, i - 120), i + 1).reverse(); }   // driving it back the other way
+    return null; };
   // each frame: a critically damped spring pulls the dot onto the predicted path, matching its velocity too, so corrections glide instead of jump
   const motionStep = (u, tsMs) => { const m = u.m; if (!m) return;
     if (!u.headed && window.roadAt) { u.headed = true; if (m.sp === 0) { const a = roadDir(m.D[0], m.D[1]); if (a != null) u.heading = a; } }   // first sight, parked: face along the road
@@ -358,7 +389,7 @@ LIVE_JS = r"""<script id="live">
     const sp = Math.hypot(...m.Dv); if (m.sp > 3 && sp > 1.2) u.headingKnown = true;
     if (sp > 1.2 && dt > 0) { const target = Math.atan2(m.Dv[1], m.Dv[0]), d = Math.atan2(Math.sin(target - u.heading), Math.cos(target - u.heading)); u.heading += d * (1 - Math.exp(-dt * 9)); }
     u.mph = m.sp > 0 ? Math.round(sp * KPX * 0.626) : 0; };
-  window.liveStep = motionStep; window.liveMotion = MO;
+  window.liveStep = motionStep; window.liveMotion = MO; window.liveMotionFix = { fix: motionFix, reset: motionReset };   // the fix entry points too, for testing
   // when each snapshot was taken, on this page's clock: the server stamps it; extra network delay beyond the fastest delivery seen is taken back out
   const lats = []; const fixTime = taken => { const arr = performance.now() / 1000; if (!taken) return arr;
     const lat = Date.now() - taken; lats.push(lat); if (lats.length > 60) lats.shift(); return arr - Math.max(0, lat - Math.min(...lats)) / 1000; };
