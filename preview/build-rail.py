@@ -241,7 +241,10 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const VIEW = 300;                                   // world units visible across a mini map
   // past the edge of the map picture is open water, in the same colour as the picture's own sea
   const seaOf = url => /darkmode/.test(url) ? '#111113' : /-dark\./.test(url) ? '#04070E' : '#3E6972';
-  let curMap = MAP; const setMini = url => { curMap = url; for (const m of minis) { m.el.style.backgroundImage = `url("${url}")`; m.el.style.backgroundColor = seaOf(url); } };
+  // close-up MDT maps use the high-detail picture (light map on the hosted site), so streets stay sharp when zoomed right in
+  const HD = 'liberty-county-hd.jpg', hdOk = url => /^https?:$/.test(location.protocol) && !/dark/.test(url);
+  const bgFor = m => m.el.classList.contains('tmap') && m.view < 700 && hdOk(curMap) ? HD : curMap;
+  let curMap = MAP; const setMini = url => { curMap = url; for (const m of minis) { m.bg = bgFor(m); m.el.style.backgroundImage = `url("${m.bg}")`; m.el.style.backgroundColor = seaOf(url); } };
   if (MAP) setMini(MAP);
   addEventListener('maptheme', e => { const l = document.getElementById('mapsrc-mini')?.getAttribute('href') || document.getElementById('mapsrc')?.getAttribute('href'), d = document.getElementById('mapsrc-dark')?.getAttribute('href') || document.querySelector('.view img')?.dataset.dark; setMini(e.detail.theme === 'dark' ? (d || l) : (l || d)); });
   let w = 0, h = 0; const measure = () => { for (const m of minis) { const r = m.el.getBoundingClientRect(); m.w = r.width; m.h = r.height; m.view = m.el.classList.contains('tmap') ? 520 : VIEW; m.base = m.view; } w = minis[0]?.w || 0; h = minis[0]?.h || 0; };
@@ -274,7 +277,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       const p = at(u.route, u.t); u.x = p.x; u.y = p.y; if (u.dir < 0) p.heading += Math.PI; u.heading = p.heading; }
     if (w && ts - miniT >= 33 && document.body.dataset.view !== 'status' && document.body.dataset.view !== 'fire') { miniT = ts; const sc = w / VIEW; const size = 2000 * sc;
       for (const m of minis) { const { el, u } = m; if (el.hidden || el.closest('[hidden]') || !m.w) continue; if (!m.w) continue; if (m.base && el.classList.contains('tmap')) gps(m, ts); const s2 = m.w / m.view, size2 = 2000 * s2;
-        el.style.backgroundSize = `${size2}px ${size2}px`; const fx = m.cx ?? u.x, fy = m.cy ?? u.y; el.style.backgroundPosition = `${m.w/2 - fx*s2}px ${m.h/2 - fy*s2}px`; el.style.setProperty('--ox', ((u.x - fx) * s2).toFixed(1) + 'px'); el.style.setProperty('--oy', ((u.y - fy) * s2).toFixed(1) + 'px');
+        el.style.backgroundSize = `${size2}px ${size2}px`; if (curMap && m.bg !== bgFor(m)) { m.bg = bgFor(m); el.style.backgroundImage = `url("${m.bg}")`; } const fx = m.cx ?? u.x, fy = m.cy ?? u.y; el.style.backgroundPosition = `${m.w/2 - fx*s2}px ${m.h/2 - fy*s2}px`; el.style.setProperty('--ox', ((u.x - fx) * s2).toFixed(1) + 'px'); el.style.setProperty('--oy', ((u.y - fy) * s2).toFixed(1) + 'px');
         el.querySelector('.pin').style.transform = `rotate(${u.heading + Math.PI/2}rad)`; const nh = !!u.live && !u.headingKnown; if (el.classList.contains('nohead') !== nh) el.classList.toggle('nohead', nh); } }
     if (ts - tick >= 1000) { tick = ts; const now = Date.now();
       for (const { el, u } of spds) el.textContent = u.live ? u.mph : (u.task ? (u.task.i >= u.task.path.length - 1 ? 0 : Math.round(u.task.mps * 2.237)) : Math.round(u.speed * seg[u.route][seg[u.route].length-1] * 2.237 * (0.92 + 0.16 * Math.abs(Math.sin(ts / 4000 + u.t * 9)))));
