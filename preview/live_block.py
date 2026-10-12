@@ -156,17 +156,19 @@ LIVE_JS = r"""<script id="live">
     const links = document.createElement('div'); links.className = 'ad-row'; links.innerHTML = `<a class="ad-btn" href="/dashboard">Dashboard</a>${OV.canEdit ? `<a class="ad-btn" href="/${OV.slug}/settings">Community settings</a>` : ''}`; $('admin').querySelector('section')?.prepend(links); }
   if (HOSTED) { const l = F.live.closest('label'); if (l) l.hidden = true; }
   for (const sel of document.querySelectorAll('#adTeams select')) { sel.value = S.teams[sel.dataset.team] ?? ''; sel.addEventListener('change', () => { S.teams[sel.dataset.team] = sel.value; save(); }); }
-  F.key.addEventListener('input', () => { S.key = F.key.value.trim(); save(); });
-  F.key.addEventListener('change', () => { S.key = F.key.value.trim(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
+  const MASK = '••••••••••••••••••••••••••••', keyVal = () => F.key.value.trim() === MASK ? '' : F.key.value.trim();   // dots stand in for a key saved on the server
+  F.key.addEventListener('focus', () => { if (F.key.value === MASK) F.key.select(); });
+  F.key.addEventListener('input', () => { S.key = keyVal(); save(); });
+  F.key.addEventListener('change', () => { S.key = keyVal(); save(); if (S.key && !S.live) { S.live = F.live.checked = true; save(); } if (S.key) start(); });
   const keyRow = $('adKeyRow'), keyState = $('adKeyState');
   const keyStatus = async () => { if (!HOSTED) return; try { const j = await (await fetch(API + '/key', { cache: 'no-store' })).json(); keyRow.hidden = false; if (OV && !j.canEdit) keyRow.style.display = 'none';
-      keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.') : 'Not saved on the server yet.'; if (j.hasKey) F.key.placeholder = 'Saved on the server'; if (j.hasKey && !S.key) start(); if (!j.hasKey && S.key) seedKey(); } catch (e) {} };
+      keyState.textContent = j.hasKey ? (j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.') : 'Not saved on the server yet.'; if (j.hasKey) { F.key.placeholder = 'Saved on the server'; if (!F.key.value) { F.key.value = MASK; F.key.dataset.saved = '1'; } } if (j.hasKey && !S.key) start(); if (!j.hasKey && S.key) seedKey(); } catch (e) {} };
   let seededAt = 0;                                                     // the browser remembers the key, so after a redeploy it quietly hands it back to the server
   const seedKey = async () => { if (OV || !HOSTED || !S.key || Date.now() - seededAt < 10000) return; seededAt = Date.now();
     try { const j = await (await post('/key', { key: S.key })).json(); if (j.ok) { keyState.textContent = j.persistent ? 'Saved on the server.' : 'Saved on the server until the next deploy.'; startStream(); } } catch (e) {} };
-  $('adKeySave').addEventListener('click', async () => { const k = F.key.value.trim(); if (!k) return status('Paste the key first.', 'err'); keyState.textContent = 'Saving…';
+  $('adKeySave').addEventListener('click', async () => { const k = keyVal(); if (!k) return status(F.key.value.trim() === MASK ? 'This key is already saved on the server.' : 'Paste the key first.', F.key.value.trim() === MASK ? 'ok' : 'err'); keyState.textContent = 'Saving…';
     try { const j = await (await post('/key', { key: k })).json();
-      keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy.') : (j.error || j.message || 'Could not save.'); if (j.ok) { F.key.value = ''; start(); } } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
+      keyState.textContent = j.ok ? (j.persistent ? 'Saved on the server for everyone.' : 'Saved until the next deploy.') : (j.error || j.message || 'Could not save.'); if (j.ok) { F.key.value = MASK; F.key.dataset.saved = '1'; start(); } } catch (e) { keyState.textContent = 'Could not reach the server.'; } });
   keyStatus();
   F.relay.addEventListener('change', () => { S.relay = F.relay.value.trim().replace(/\/+$/, ''); F.relay.value = S.relay; save(); });
   F.me.addEventListener('change', () => { S.me = F.me.value.trim(); save(); });
@@ -510,7 +512,7 @@ LIVE_JS = r"""<script id="live">
     es.onerror = () => { if (es && es.readyState === 2 || !got) { esFails++; stopStream(); schedule(500); esRetry = setTimeout(startStream, Math.min(60000, 3000 * esFails)); } }; };
   const start = () => { if (!S.key && !S.relay && !HOSTED) { status('Enter the server key (or a relay URL) first.', 'err'); F.live.checked = S.live = false; save(); return; } clearTimeout(timer); startStream(); poll(); };
   const stop = () => { if (HOSTED) return; clearTimeout(timer); stopStream(); restoreDemo(); status('Live data off. Demo units are showing.'); };
-  $('adTest').addEventListener('click', async () => { S.key = F.key.value.trim(); S.relay = F.relay.value.trim().replace(/\/+$/, ''); save(); status('Testing…');
+  $('adTest').addEventListener('click', async () => { S.key = keyVal(); S.relay = F.relay.value.trim().replace(/\/+$/, ''); save(); status('Testing…');
     try { const { body, rl } = await fetchServer(); lastPlayers = body.Players || []; status(`OK: ${body.Name}, ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastPlayers.filter(p => p.Callsign).length} with callsigns, ${(body.Vehicles || []).length} vehicles.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : ''), 'ok'); }
     catch (e) { status(e.message, 'err'); } });
 
