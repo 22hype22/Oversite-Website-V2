@@ -2431,7 +2431,7 @@ body.voice-snap .stage{transition:none!important}
   const el = document.createElement('div'); el.className = 'gpsnav'; el.id = 'navView'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Directions');
   el.innerHTML = '<canvas></canvas><div class="nav-top"><div class="nav-ic"></div><div><b></b><span></span></div></div><div class="nav-then" hidden></div>'
     + '<button type="button" class="nav-fs" title="Full screen" aria-label="Full screen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path class="g" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><path class="s" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" style="display:none"/></svg></button><button type="button" class="nav-snd" aria-pressed="true" title="Spoken directions"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="w" d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg></button>'
-    + '<div class="nav-bot"><div class="eta"><b>--:--</b><small>arrival</small></div><div><b>0</b><small>min</small></div><div><b>0</b><small>mi</small></div><button type="button" class="nav-btn nav-arr" hidden>Mark on scene</button><button type="button" class="nav-btn nav-end">End</button></div>';
+    + '<div class="nav-bot"><div class="eta"><b>--:--</b><small>arrival</small></div><div><b>0</b><small>min</small></div><div><b>0</b><small>mi</small></div><button type="button" class="nav-btn nav-arr" hidden>On scene</button><button type="button" class="nav-btn nav-end">End</button></div>';
   screen.appendChild(el);
   const cv = el.querySelector('canvas'), ctx = cv.getContext('2d'), Q = c => el.querySelector(c), snd = Q('.nav-snd');
   const img = new Image(); let imgSrc = '';
@@ -2484,7 +2484,10 @@ body.voice-snap .stage{transition:none!important}
     const mph = u.live && u.mph > 8 ? u.mph : 30, secs = left * W2M / (mph * 0.44704);
     Q('.nav-bot .eta b').textContent = new Date(Date.now() + secs * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     Q('.nav-bot div:nth-child(2) b').textContent = Math.max(1, Math.round(secs / 60)); Q('.nav-bot div:nth-child(3) b').textContent = (left * W2M * FT / 5280).toFixed(1);
-    Q('.nav-arr').hidden = !arrived || c.stage >= 2;
+    // close enough to call yourself on scene: about 0.1 mi to go by road, or that near in a straight line (calls off the road, in a field or the woods)
+    const near = left < 140 || Math.hypot(c.x - u.x, c.y - u.y) < 100;
+    Q('.nav-arr').hidden = !near || c.stage >= 2;
+    if (near && c.stage < 2 && !spoke.near) { spoke.near = 1; if (!arrived) say('You are close. Tap on scene when you get there'); }
     // spoken turns: once a little before each, once as you reach it, and on arrival
     const id = man.indexOf(next);
     if (!arrived && dist < 160 && dist > 45 && !spoke[id + 'a']) { spoke[id + 'a'] = 1; say(next.k === 'arrive' ? `In ${fmt(dist)}, arrive at the call` : `In ${fmt(dist)}, ${next.t.toLowerCase()}`); }
