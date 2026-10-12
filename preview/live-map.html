@@ -2028,7 +2028,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   // ── apparatus ──
   const renderApp = () => { const rows = UN().filter(u => u.dept === DEPT()).map(u => { const st = unitStatus[u.name] || (CALLS().some(c => onIt(c, u.name)) ? '10-6' : '10-8');
       return `<div class="app"><div><b>${esc(u.name)}, ${esc(u.model || 'Engine')}</b><small>${esc(u.crew.join(', '))}</small></div><div class="st">${st}</div></div>`; });
-    $('fdAppRows').innerHTML = rows.join('') || '<div class="empty">No FD units online.</div>'; $('fdAppCount').textContent = rows.length; };
+    $('fdAppRows').innerHTML = rows.join('') || `<div class="empty">No ${({ pd: 'law enforcement', fd: 'fire', dot: 'DOT' })[DEPT()] || ''} units online.</div>`; $('fdAppCount').textContent = rows.length; };
 
   // ── calls ──
   const key = c => `${c.code}|${c.startedAt}`;
@@ -2855,6 +2855,7 @@ body.voice-snap .stage{transition:none!important}
   const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const units = new Map();                     // id -> unit object (kept across polls so timers and 3D cars persist)
   const mph = (dx, dz, dt) => dt > 0 ? Math.hypot(dx, dz) / dt * 0.626 : 0;   // 1 stud = 0.28 m
+  const VEH_FIT = { pd: /police|sheriff|patrol|interceptor|cruiser|swat|k-?9|unmarked|trooper/i, fd: /fire|engine|ladder|ambulance|ems|medic|rescue|brush|tanker|squad|quint/i, dot: /tow|dot|truck|plow|utility|flatbed|wrecker|service|crane|dump/i };
   const starts = new Map();                    // unit -> when it came on duty, kept after it goes, so a unit ER:LC drops for a moment keeps its clock
   const buildUnits = (players, vehicles, joins, tFix = performance.now() / 1000, duty = null) => {
     const now = Date.now(), ids = new Set();
@@ -2870,7 +2871,10 @@ body.voice-snap .stage{transition:none!important}
       if (!groups.has(id)) groups.set(id, { id, dept, cs, members: [], loc: p.Location, pid });
       groups.get(id).members.push({ name, pid, perm: p.Permission, join: joinAt[p.Player], since: duty && duty[p.Player] }); }
     for (const g of groups.values()) { ids.add(g.id); let u = units.get(g.id);
-      const veh = vehicles.find(v => g.members.some(m => m.name === v.Owner));
+      // ER:LC lists spawned vehicles by who spawned them, not who is inside. Take the crew's own vehicle (names match whatever the
+      // capitals); with several, the one that fits the department (a cruiser for police, an engine for fire...)
+      const crew = new Set(g.members.map(m => m.name.toLowerCase())), mine = vehicles.filter(v => crew.has(String(v.Owner || '').split(':')[0].toLowerCase()));
+      const veh = mine.find(v => VEH_FIT[g.dept]?.test(v.Name || '')) || mine[mine.length - 1];
       const [wx, wy] = g.loc ? toWorldP(g.loc.LocationX, g.loc.LocationZ, g.loc.PostalCode) : [1000, 1000];
       if (!u) { u = { id: g.id, live: true, dept: g.dept, kind: KIND[g.dept], route: 'B', t: 0, dir: 1, speed: 0, x: wx, y: wy, tx: wx, ty: wy, heading: 0, th: 0, mph: 0, sx: g.loc?.LocationX, sz: g.loc?.LocationZ, seen: now,
           startedAt: starts.get(g.id) || Math.min(...g.members.map(m => m.join || now)) }; units.set(g.id, u); motionReset(u, wx, wy, tFix); }
@@ -2878,7 +2882,9 @@ body.voice-snap .stage{transition:none!important}
       u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.crewIds = g.members.map(m => m.pid); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
       const ds = g.members.map(m => m.since).filter(Number.isFinite); if (ds.length) u.startedAt = Math.min(...ds);   // the server knows when they came on duty
       starts.set(g.id, u.startedAt); u.gone = 0;
-      u.uid = g.pid; u.model = veh ? veh.Name : 'On foot'; u.postal = g.loc?.PostalCode || ''; u.street = g.loc?.StreetName || ''; }
+      // no vehicle of their own but moving at driving speed: in someone else's (a partner's cruiser); held 20 s so a red light doesn't flip it
+      const mph = u.m ? u.m.sp * KPX * 0.626 : 0; if (mph > 22) u.drove = now;
+      u.uid = g.pid; u.model = veh ? veh.Name : u.drove && now - u.drove < 20000 ? 'In a vehicle' : 'On foot'; u.postal = g.loc?.PostalCode || ''; u.street = g.loc?.StreetName || ''; }
     for (const [id, u] of [...units]) if (!ids.has(id)) { u.gone = u.gone || now; if (now - u.gone > 15000) units.delete(id); }   // gone for good, not just missing from one answer
     if (starts.size > 400) for (const id of [...starts.keys()].slice(0, 100)) if (!units.has(id)) starts.delete(id);
     const me = (S.me || '').toLowerCase(); const mine = u => me && u.crew.some(n => n.toLowerCase() === me) ? 0 : 1;
@@ -2902,7 +2908,8 @@ body.voice-snap .stage{transition:none!important}
     if (ids !== shownIds) { shownIds = ids; const sel = fleet?.querySelector('[aria-pressed="true"]')?.dataset.unit;
       if (fleet) fleet.innerHTML = list.length ? list.map((u, i) => cardHTML(u, sel ? u.id === sel : i === 0)).join('') : '<div class="empty" style="padding:18px 6px;color:var(--dim)">No units on duty. Players need a callsign on a mapped team.</div>';
       window.UNITS = list; if (!demoCleared) { demoCleared = true; clearDemo(); } dispatchEvent(new CustomEvent('units', { detail: { live: true } })); }
-    else for (const u of list) { const code = fleet?.querySelector(`[data-unit="${u.id}"] .code`); if (code) code.textContent = u.postal ? 'Postal ' + u.postal : '10-8'; }
+    else for (const u of list) { const card = fleet?.querySelector(`[data-unit="${u.id}"]`); if (!card) continue; const code = card.querySelector('.code'); if (code) code.textContent = u.postal ? 'Postal ' + u.postal : '10-8';
+      const vb = card.querySelector('.vinfo b'); if (vb && vb.textContent !== u.model) vb.textContent = u.model; }   // the vehicle changes as they get in and out
     dispatchEvent(new CustomEvent('unitsupdate')); };                 // every snapshot: labels that show postal or street refresh
   const clearDemo = () => { const C = window.CALLS || []; for (let i = C.length - 1; i >= 0; i--) if (!C[i].live) C.splice(i, 1); window.demoCalls?.stop(); dispatchEvent(new CustomEvent('calls')); };
   const restoreDemo = () => { if (!fleet || shownIds === '') return; fleet.innerHTML = demoHTML; shownIds = ''; units.clear(); lastUnits = null; window.UNITS = demoUnits; demoCleared = false; if (!HOSTED) window.demoCalls?.start(); dispatchEvent(new CustomEvent('units', { detail: { live: false } })); };
