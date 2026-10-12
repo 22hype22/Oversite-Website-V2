@@ -562,10 +562,16 @@
   .tl-rings i:nth-child(2){animation-delay:.8s}.tl-rings i:nth-child(3){animation-delay:1.6s}.tl-rings b{position:absolute;inset:32px;border-radius:50%;background:var(--fd)}
   @keyframes tlRing{from{transform:scale(.35);opacity:.9}to{transform:scale(1.25);opacity:0}}
   .tl-card{position:absolute;left:50%;top:50%;width:400px;height:250px;margin:-125px 0 0 -200px;transform:scale(var(--ks,1))}
-  .tl-card .lcard{transform:translateY(140%) rotate(-8deg);transition:transform .85s cubic-bezier(.2,.8,.2,1)}
+  .tl-card{pointer-events:none}.tl-card .lcard{pointer-events:auto;touch-action:none;user-select:none}
+  .tl-card .lcard{transform:translateY(140%) rotate(-8deg);transition:transform .7s cubic-bezier(.2,.8,.2,1)}
+  .tl-card.peek .lcard{transform:translateY(var(--peek,170px)) rotate(-5deg);cursor:grab}
+  .tl-card.peek .lcard:hover{transform:translateY(calc(var(--peek,170px) - 16px)) rotate(-4deg)}
+  .tl-card.drag .lcard{transition:none;cursor:grabbing}
   .tl-card.in .lcard{transform:rotate(-3deg)}
+  .tl-pad{cursor:pointer;transition:border-color .2s,background .2s}.tl-pad:hover,.tl-pad.over{border-color:var(--fd);background:var(--fd-soft)}
   .tl-card .lc-k2 span.typing::after{content:"";display:inline-block;width:1.5px;height:15px;margin-left:1px;background:#2F7322;vertical-align:-2px;animation:tlBlink 1s steps(1) infinite}
-  .tl-msg{position:absolute;left:12px;right:12px;bottom:14px;text-align:center;font-size:14px;color:var(--mute)}
+  .tl-msg{position:absolute;left:12px;right:12px;bottom:14px;text-align:center;font-size:14px;color:var(--mute);pointer-events:none;z-index:2;text-shadow:0 1px 6px rgba(0,0,0,.8)}.tl-msg a{pointer-events:auto}
+  .tl-rd{user-select:none;-webkit-user-select:none}.tl-rd.peek .tl-msg{top:calc(50% + 104px);bottom:auto}
   .tl-msg.ok{color:#46D07C}.tl-msg a{color:#E9EAEC}
   .tl-si{display:flex;flex-direction:column;gap:20px;padding:24px 28px;min-width:0;overflow-y:auto}
   .tl-step{display:grid;grid-template-columns:22px 1fr;gap:8px 12px}
@@ -2273,18 +2279,21 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const loadLic = () => lic || (lic = fetch('/api/me/license', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))).then(j => j);
   const myTeam = () => { const P = window.live?.players ? window.live.players() : [], n = (OVS?.me || '').toLowerCase(); return (P.find(p => (p.Player || '').split(':')[0].toLowerCase() === n) || {}).Team || ''; };
   const DEF_OCC = { fd: 'Firefighter', pd: 'Police Officer', dot: 'DOT Worker' };
-  const fitCard = () => { const rd = $('tlRd'), card = $('tlCard'); if (!rd || !card) return; card.style.setProperty('--ks', Math.max(.4, Math.min(1.25, (rd.clientWidth - 140) / 400, (rd.clientHeight - 170) / 250)).toFixed(3)); };
+  const fitCard = () => { const rd = $('tlRd'), card = $('tlCard'); if (!rd || !card) return; const ks = Math.max(.4, Math.min(1.25, (rd.clientWidth - 140) / 400, (rd.clientHeight - 170) / 250)); card.style.setProperty('--ks', ks.toFixed(3));
+    card.style.setProperty('--peek', Math.round((rd.clientHeight / 2 - 92 + 125 * ks) / ks) + 'px'); };
   new ResizeObserver(fitCard).observe($('tlRd'));
   const showLock = async () => { const d = DEPT(), run = ++lockRun, wait = ms => new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms)), live = () => run === lockRun && !$('tLock').hidden;
-    closeMenu(); screen.classList.add('locked'); $('tLock').hidden = false; fitCard();
+    closeMenu(); screen.classList.add('locked'); $('tLock').hidden = false; $('tlRd').classList.remove('peek'); fitCard();
     pick = signed[d] || lastRank(d); $('tlRanks').innerHTML = (OVS.ranks[d] || []).map(([n, m]) => `<button type="button" class="tl-rk" data-r="${esc(n)}" aria-pressed="${n === pick}">${esc(n)}</button>`).join('');
     $('tlRanks').classList.add('off'); $('tlPw').value = ''; $('tlPw').disabled = true; typing = false; $('tlGo').disabled = true; $('tlSt').textContent = ''; $('tlSt').className = 'tl-st';
     ['tlS1', 'tlS2', 'tlS3'].forEach((id, i) => { $(id).className = 'tl-step' + (i ? '' : ' on'); });
-    $('tlS1').querySelector('h5').textContent = 'License'; $('tlPad').style.visibility = ''; $('tlMsg').className = 'tl-msg'; $('tlMsg').textContent = locked.has(d) && signed[d] ? 'MDT locked. Tap your license to unlock.' : 'Hold your license to the reader';
+    $('tlS1').querySelector('h5').textContent = 'License'; $('tlPad').style.visibility = ''; $('tlMsg').className = 'tl-msg'; $('tlMsg').textContent = (locked.has(d) && signed[d] ? 'MDT locked. ' : '') + 'Tap the reader, or drag your license onto it';
     $('tlWho').textContent = 'Waiting for your card';
     const L = await loadLic(); if (!live()) return; const team = myTeam();
     $('tlCard').className = 'tl-card'; $('tlCard').innerHTML = window.LicenseCard ? window.LicenseCard.html({ ...L, occ: (window.LicenseCard.occ(team)) || DEF_OCC[d] || '' }) : '';
-    await wait(500); if (!live()) return; $('tlCard').classList.add('in'); await wait(850); if (!live()) return;
+    await wait(300); if (!live()) return; $('tlCard').classList.add('peek'); $('tlRd').classList.add('peek');
+    await new Promise(res => { placeCard = res; }); if (!live()) return; placeCard = null;   // you put it on the reader: tap the reader, tap the card, or drag it up
+    $('tlCard').classList.remove('peek', 'drag'); $('tlRd').classList.remove('peek'); $('tlCard').querySelector('.lcard')?.style.removeProperty('transform'); $('tlCard').classList.add('in'); $('tlPad').classList.remove('over'); await wait(750); if (!live()) return;
     const card = $('tlCard').querySelector('.lcard'); $('tlMsg').textContent = 'Reading…'; card?.classList.add('reading'); await wait(1500); if (!live()) return;
     card?.classList.add('ok'); $('tlPad').style.visibility = 'hidden'; $('tlMsg').className = 'tl-msg ok';
     $('tlMsg').innerHTML = L.saved ? 'License verified' : `License verified · <a href="/account?from=${encodeURIComponent('/' + OVS.slug)}#license">fill in your license details</a>`;
@@ -2309,6 +2318,18 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       await w(250); if (run !== lockRun) return; pw.value = pw.value.slice(0, -1); await w(300);
       for (let i = 0; i < 2; i++) { if (run !== lockRun) return; pw.value += ch(); await w(120 + Math.random() * 110); }
       $('tlS3').className = 'tl-step done'; } finally { typing = false; } if (run !== lockRun) return; syncGo(); $('tlGo').focus({ preventScroll: true }); };
+  // putting your license on the reader
+  let placeCard = null;
+  $('tlPad').addEventListener('click', () => placeCard && placeCard());
+  $('tlCard').addEventListener('pointerdown', e => { const c = e.target.closest('.lcard'); if (!c || !placeCard || !$('tlCard').classList.contains('peek')) return; e.preventDefault();
+    const ks = parseFloat(getComputedStyle($('tlCard')).getPropertyValue('--ks')) || 1, peek = parseFloat(getComputedStyle($('tlCard')).getPropertyValue('--peek')) || 170, x0 = e.clientX, y0 = e.clientY; let moved = 0;
+    c.setPointerCapture(e.pointerId); $('tlCard').classList.add('drag');
+    const move = ev => { const dx = (ev.clientX - x0) / ks, dy = (ev.clientY - y0) / ks; moved = Math.max(moved, Math.hypot(dx, dy)); const t = Math.min(1, Math.max(0, -dy / peek));
+      c.style.transform = `translate(${dx}px, ${peek + dy}px) rotate(${-5 + 2 * t}deg)`; $('tlPad').classList.toggle('over', t > .45); };
+    const up = ev => { c.removeEventListener('pointermove', move); c.removeEventListener('pointerup', up); c.removeEventListener('pointercancel', up);
+      const t = -((ev.clientY - y0) / ks) / peek, place = moved < 6 || t > .45; $('tlCard').classList.remove('drag'); $('tlPad').classList.remove('over');
+      if (place) placeCard && placeCard(); else c.style.removeProperty('transform'); };   // a tap, or dragged far enough up: onto the reader from where you let go; otherwise it drops back
+    c.addEventListener('pointermove', move); c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up); });
   const syncGo = () => { $('tlGo').disabled = !pick || typing || $('tlPw').value.length < 5; };
   const hideLock = () => { ++lockRun; screen.classList.remove('locked'); $('tLock').hidden = true; };
   $('tlRanks').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (!b) return; pick = b.dataset.r;
