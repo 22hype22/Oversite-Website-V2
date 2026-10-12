@@ -467,10 +467,20 @@ LIVE_JS = r"""<script id="live">
   const restoreDemo = () => { if (!fleet || shownIds === '') return; fleet.innerHTML = demoHTML; shownIds = ''; units.clear(); lastUnits = null; window.UNITS = demoUnits; demoCleared = false; if (!HOSTED) window.demoCalls?.start(); dispatchEvent(new CustomEvent('units', { detail: { live: false } })); };
 
   // ── emergency calls -> dispatch board ──
-  const pushCalls = calls => { for (const c of calls || []) { const k = c.CallNumber ?? `${c.StartedAt}-${c.Description}`; if (seenCalls.has(k)) continue; seenCalls.add(k);
-    const [x, y] = Array.isArray(c.Position) && c.Position.length >= 2 ? toWorld(c.Position[0], c.Position[1]) : [1000, 1000];
-    const dept = S.teams[c.Team] || 'pd';
-    window.addCall?.({ pri: 2, code: '911', type: c.Description || 'Emergency call', where: c.PositionDescriptor || 'Unknown location', unit: '', dept, stage: 0, startedAt: (c.StartedAt || Date.now() / 1000) * 1000, x, y, live: true }); } };
+  // ER:LC lists only open calls: a call that drops off the list was cleared in game, so it comes off dispatch too
+  // (after two updates in a row without it, so one odd answer can't wipe the board)
+  const gameCalls = new Map();                                          // ER:LC call key -> { call on the board, updates missing }
+  const pushCalls = calls => { if (!Array.isArray(calls)) return; const now = new Set();
+    for (const c of calls) { const k = String(`${c.CallNumber ?? c.Description ?? ''}@${c.StartedAt ?? ''}`).replace(/[^\w .:@#-]/g, '').slice(0, 120); now.add(k); if (seenCalls.has(k)) continue; seenCalls.add(k);
+      const [x, y] = Array.isArray(c.Position) && c.Position.length >= 2 ? toWorld(c.Position[0], c.Position[1]) : [1000, 1000];
+      const dept = S.teams[c.Team] || 'pd';
+      const call = { pri: 2, code: '911', type: c.Description || 'Emergency call', where: c.PositionDescriptor || 'Unknown location', unit: '', dept, stage: 0, startedAt: (c.StartedAt || Date.now() / 1000) * 1000, x, y, live: true };
+      gameCalls.set(k, { call, gone: 0 }); window.addCall?.(call); }
+    for (const [k, g] of gameCalls) { if (now.has(k)) { g.gone = 0; continue; } if (++g.gone < 2) continue;
+      gameCalls.delete(k); if (window.removeCall?.(g.call)) console.log(`911 call ${k} cleared in game: removed from dispatch`); } };
+  // cleared in the CAD (dispatch, or a unit's MDT): tell the server, which clears it on everyone's board
+  addEventListener('calls', () => { const on = window.CALLS || []; for (const [k, g] of gameCalls) { if (on.includes(g.call)) continue; gameCalls.delete(k); if (HOSTED) post('/calls/clear', { key: k }).catch(() => {}); } });
+  const clearedElsewhere = k => { seenCalls.add(k); const g = gameCalls.get(k); if (!g) return; gameCalls.delete(k); window.removeCall?.(g.call); };
 
   // ── live updates: a server-sent stream when the page is served by server.mjs (or a relay), paced polling otherwise ──
   let lastUpdate = 0, updates = 0, source = '', fixAt = 0; const eventTimes = [];                 // fixAt = last time any unit's reported position changed
@@ -509,6 +519,8 @@ LIVE_JS = r"""<script id="live">
     es.addEventListener('server', e => { got = true; esFails = 0; let body; try { body = JSON.parse(e.data); } catch (x) { return; } handle(body, null, 'stream', +e.lastEventId || 0); schedule(20000); });
     es.addEventListener('cal', e => { try { takeCal(JSON.parse(e.data)); } catch (x) {} });
     es.addEventListener('unitsof', e => { try { const j = JSON.parse(e.data); window.UNIT_OF = j.of || {}; window.RIDE_WITH = j.ride || {}; dispatchEvent(new CustomEvent('unitassign')); } catch (x) {} });   // someone picked a unit or a ride-along
+    es.addEventListener('callclears', e => { try { for (const k of JSON.parse(e.data) || []) clearedElsewhere(String(k)); } catch (x) {} });   // already cleared by someone: never shown again
+    es.addEventListener('callclear', e => { try { clearedElsewhere(String(JSON.parse(e.data).key)); } catch (x) {} });                 // someone just cleared one
     es.addEventListener('roads', e => { try { window.ROADNET?.setOv(JSON.parse(e.data).ov); } catch (x) {} });   // an owner fixed a road: re-route now
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }

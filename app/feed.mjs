@@ -90,9 +90,9 @@ export class Feed {
     for (const [p, h, cur, L] of adds) { this.lastAt.set(p.Player, taken); h.push(cur); if (h.length > 12) h.shift(); this.hist.set(p.Player, h);
       const tr = this.track.get(p.Player) || []; tr.push([taken, +cur[0].toFixed(2), +cur[1].toFixed(2), L.PostalCode || '']); while (tr.length && taken - tr[0][0] > 900000) tr.shift(); this.track.set(p.Player, tr); }
     return body; }
-  stream(req, res, cal) {
+  stream(req, res, cal, cleared = []) {
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
-    res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(cal)}\n\n`);
+    res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(cal)}\n\n`); res.write(`event: callclears\ndata: ${JSON.stringify(cleared)}\n\n`);   // calls someone already cleared stay off this board
     if (this.snap && Date.now() - this.snap.t < 10000) res.write(`event: server\nid: ${this.snap.taken}\ndata: ${this.snap.body}\n\n`); else if (!this.key) res.write(`event: err\ndata: ${NOKEY}\n\n`);
     this.clients.add(res); this.lastClient = Date.now();
     const ka = setInterval(() => res.write(': ping\n\n'), 15000);

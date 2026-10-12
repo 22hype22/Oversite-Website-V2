@@ -41,6 +41,7 @@ const msg = (res, user, title, text, action, status = 200) => page(res, pages.me
 
 // ── live feeds, one per community ──
 const feeds = new Map();
+const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
 const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id)); feeds.set(c.id, f); } return f; };
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 
@@ -82,7 +83,11 @@ const communityApi = async (req, res, slug, rest) => {
   if (!user.roblox_name) return json(res, { error: 'Link your Roblox account first. Open the dashboard to link it.' }, 403);
   if (req.method !== 'GET' && req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
   const f = feedFor(c), M = req.method;
-  if (rest === 'stream' && M === 'GET') return f.stream(req, res, calOf(c));
+  if (rest === 'stream' && M === 'GET') return f.stream(req, res, calOf(c), Object.keys(clearedCalls(c)));
+  // a game 911 call cleared by anyone in the CAD clears for everyone (and stays cleared after a reload, for as long as ER:LC still lists it)
+  if (rest === 'calls/clear' && M === 'POST') { const k = String((await jsonBody(req)).key || ''); if (!/^[\w .:@#-]{1,120}$/.test(k)) return json(res, { error: 'Bad call.' }, 400);
+    const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
+    communities.saveSettings(c.id, s); c.settings.cleared = s.cleared; f.bcast('callclear', JSON.stringify({ key: k, by: user.roblox_name || user.name || '' })); return json(res, { ok: true }); }
   if (rest.startsWith('v2/server') && M === 'GET') { const s = await f.snapshot(); res.writeHead(s.status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...s.headers }); return res.end(s.body); }
   if (rest === 'cal') { if (M === 'GET') return json(res, calOf(c)); if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner can move the map calibration.' }, 403);
     const j = await jsonBody(req), num = v => typeof v === 'number' && Number.isFinite(v);
