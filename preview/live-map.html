@@ -527,6 +527,9 @@
   .tside button{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r);color:var(--mute);font-size:13px;font-weight:500;text-align:left;transition:color .15s,background .15s}
   .tside button:hover{color:#E9EAEC;background:rgba(255,255,255,.04)}
   .tside button[aria-selected="true"]{color:#fff;background:rgba(255,255,255,.08)}
+  /* on the Map tab after "Show on map": straight back to that call */
+  .dm-back{display:inline-flex;align-items:center;gap:6px;flex:none;max-width:46%;height:32px;padding:0 12px 0 8px;margin-right:10px;border-radius:999px;border:1px solid var(--fd);background:var(--fd-soft);color:#fff;font:600 12.5px inherit;font-family:inherit;cursor:pointer;transition:background .15s}
+  .dm-back[hidden]{display:none}.dm-back:hover{background:var(--fd)}.dm-back span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tside .badge{margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--fd);color:#fff;font-size:11px;font-style:normal;font-weight:600;display:flex;align-items:center;justify-content:center}
   .tside .badge[hidden]{display:none}
   .crest{display:flex;align-items:center;gap:9px;padding:6px 12px 14px;color:#E9EAEC;font-size:12px;font-weight:600}
@@ -1326,7 +1329,7 @@
             <div class="tcard"><div class="rows" id="fdAppRows"></div></div>
           </section>
           <section class="tscreen" data-pane="map">
-            <header class="thead"><h2>Map</h2><div class="dm-f" id="dmF" role="group" aria-label="Show"><button type="button" data-f="dept" aria-pressed="true">My department</button><button type="button" data-f="all" aria-pressed="false">Everyone</button></div></header>
+            <header class="thead"><button type="button" class="dm-back" id="dmBack" hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span>Back to call</span></button><h2>Map</h2><div class="dm-f" id="dmF" role="group" aria-label="Show"><button type="button" data-f="dept" aria-pressed="true">My department</button><button type="button" data-f="all" aria-pressed="false">Everyone</button></div></header>
             <div class="st-mapwrap" id="dmWrap"><div class="st-mapin" id="dmIn"><img alt="" draggable="false" id="dmImg"><svg id="dmRoute" viewBox="0 0 2000 2000" preserveAspectRatio="none" aria-hidden="true"><path class="r2"/><path class="r1"/></svg><div id="dmCalls"></div><div id="dmDots"></div></div>
               <div class="st-mapctl"><button type="button" id="dmMe" title="Center on my unit" aria-label="Center on my unit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg></button><button type="button" id="dmZin" aria-label="Zoom in"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button type="button" id="dmZout" aria-label="Zoom out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><button type="button" id="dmFit" title="Whole county" aria-label="Show the whole county"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
               <div class="dm-empty" id="dmEmpty" hidden></div></div>
@@ -2536,7 +2539,12 @@ body.voice-snap .stage{transition:none!important}
   addEventListener('resize', () => { if (wrap.offsetParent) { fitted = false; followed = false; draw(); } });
   addEventListener('units', draw); addEventListener('calls', draw); addEventListener('roadschange', draw);
   // "Show on map" from a call: open the Map tab framed on you and the call together, the call ringed
+  // "Back to call" shows only when you came from a call, and goes away once you move to another tab
+  const back = document.getElementById('dmBack');
+  back.addEventListener('click', () => { back.hidden = true; document.querySelector('#mdt .tside [data-pane="calls"]')?.click(); });
+  document.querySelectorAll('#mdt .tside [data-pane]').forEach(b => b.addEventListener('click', () => { if (b.dataset.pane !== 'map') back.hidden = true; }));
   addEventListener('dmfocus', e => { const c = e.detail; if (!c || !Number.isFinite(c.x)) return; focusT = c.startedAt; document.querySelector('#mdt .tside [data-pane="map"]')?.click();
+    back.hidden = false; back.querySelector('span').textContent = `Back to ${[c.code, c.type].filter(Boolean).join(' ') || 'call'}`;
     requestAnimationFrame(() => requestAnimationFrame(() => { fit(); followed = true; const me = myUnit(), k0 = fitK(); if (!k0) return;
       const xs = [c.x, ...(me ? [me.x] : [])], ys = [c.y, ...(me ? [me.y] : [])], minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
       const sx = Math.max(60, maxx - minx) / W * MS, sy = Math.max(60, maxy - miny) / W * MS;
