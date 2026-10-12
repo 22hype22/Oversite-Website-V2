@@ -48,7 +48,7 @@ export const save = (c, b) => { const bio = String(b.bio || '').replace(/\r/g, '
   let join_code = old.join_code || ''; if (b.join_code !== undefined) { join_code = String(b.join_code || '').trim();
     if (join_code && !/^[A-Za-z0-9]{3,12}$/.test(join_code)) return { error: 'The ER:LC join code is 3 to 12 letters or numbers, like the code in your ER:LC server settings.' };
     if (join_code && rude(join_code)) return { error: RUDE_MSG }; }
-  s.profile = { ...old, bio, invite, listed: !!b.listed, region, lang, join_code, open_join: !!b.open_join }; communities.saveSettings(c.id, s); return { ok: true }; };
+  s.profile = { ...old, bio, invite, unlisted: !b.listed, region, lang, join_code, open_join: !!b.open_join }; communities.saveSettings(c.id, s); return { ok: true }; };
 
 // a custom icon arrives as a small data URL the browser already cropped and resized
 export const setIcon = (c, dataUrl) => { const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
@@ -87,7 +87,7 @@ const fromFeed = c => { const snap = peek(c.id); if (!snap || snap.status !== 20
 export const startDirectory = (feedPeek) => { let busy = false; if (feedPeek) peek = feedPeek;
   for (const c of communities.all()) { const P = c.settings.profile; if (P && OLD_LANG[P.lang]) { const s = c.settings; s.profile = { ...P, lang: OLD_LANG[P.lang] }; communities.saveSettings(c.id, s); } }
   const pass = async () => { if (busy) return; busy = true;
-    try { for (const c of communities.all()) { if (!c.settings.profile?.listed) continue;
+    try { for (const c of communities.all()) { if (c.settings.profile?.unlisted) continue;
       if (communities.key(c.id) && !fromFeed(c)) { const r = await refresh(c).catch(e => ({ error: e.message }));
         // say why a listed server couldn't be read, at most every half hour per server, so an "Offline" that should be online can be traced
         if (r?.error && Date.now() - (failedAt.get(c.id) || 0) > 30 * 60000) { failedAt.set(c.id, Date.now()); console.log(`directory: ${c.slug} not refreshed: ${r.error}`); } }
@@ -95,7 +95,7 @@ export const startDirectory = (feedPeek) => { let busy = false; if (feedPeek) pe
       const P = communities.byId(c.id).settings.profile || {}, gid = c.settings.discord?.guild_id;   // Discord member count: every half hour is plenty
       if (gid && Date.now() - (P.dc_at || 0) > 30 * 60000) { const n = await discordlink.counts(gid); if (n) { const s = communities.byId(c.id).settings; s.profile = { ...(s.profile || {}), dc_members: n.members, dc_online: n.online, dc_at: Date.now() }; communities.saveSettings(c.id, s); } } } }
     finally { busy = false; stats.prune(); } };
-  const blind = communities.all().filter(c => c.settings.profile?.listed && !c.erlc_key).map(c => c.slug);
+  const blind = communities.all().filter(c => !c.settings.profile?.unlisted && !c.erlc_key).map(c => c.slug);
   if (blind.length) console.log(`directory: listed without an ER:LC key (no live status): ${blind.join(', ')}`);
   setTimeout(pass, 8000); setInterval(pass, 120000); };
 
@@ -103,7 +103,7 @@ export const startDirectory = (feedPeek) => { let busy = false; if (feedPeek) pe
 export const directory = me => { const mine = new Map((me ? communities.forUser(me.id) : []).map(m => [m.id, m.role]));
   const total = votes.totals(), week = votes.since(Date.now() - 7 * 86400000), voted = me ? votes.mine(me.id) : {};
   const vr = users.verifiedRoblox(), rv = reviews.summary(), ph = communityPhotos.byServer(), owners = new Map(), ownerOf = c => { if (!owners.has(c.owner_id)) owners.set(c.owner_id, users.byId(c.owner_id) || {}); return owners.get(c.owner_id); };
-  return communities.all().filter(c => c.settings.profile?.listed && !c.hidden && !c.suspended).map(c => { const P = c.settings.profile, E = P.erlc || {};
+  return communities.all().filter(c => !c.settings.profile?.unlisted && !c.hidden && !c.suspended).map(c => { const P = c.settings.profile || {}, E = P.erlc || {};
     return { slug: c.slug, name: c.name, bio: P.bio || '', invite: P.invite || '', players: E.players ?? null, max: E.max ?? null, join_key: E.join_key || P.join_code || '', open_join: !!P.open_join, ingame: E.name || '',
       owner_id: E.owner_id || ownerOf(c).roblox_id || '', owner_name: E.owner_name || ownerOf(c).roblox_name || ownerOf(c).name || '', co_owners: (E.co_owners || []).map(o => o.name).filter(Boolean), verified: E.verified || '', team_balance: !!E.team_balance,
       depts: ['pd', 'fd', 'dot'].map(d => c.settings.depts?.[d] && { k: d, name: c.settings.depts[d].name, short: c.settings.depts[d].short }).filter(Boolean), discord: c.settings.discord?.guild_name || '', at: E.at || 0, created: c.created || 0,
@@ -113,6 +113,6 @@ export const directory = me => { const mine = new Map((me ? communities.forUser(
       dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, connected: !!c.erlc_key, badge: !!c.verified, owner_badge: !!(E.owner_id || ownerOf(c).roblox_id) && vr.has(String(E.owner_id || ownerOf(c).roblox_id)), rating: rv[c.id] ? Math.round(rv[c.id].avg * 10) / 10 : null, reviews: rv[c.id]?.n || 0, id: c.id }; }); };
 
 // one vote per person per server every 12 hours
-export const vote = (me, slug) => { const c = communities.bySlug(String(slug || '')); if (!c || !c.settings.profile?.listed || c.hidden || c.suspended) return { error: 'That server is not listed.' };
+export const vote = (me, slug) => { const c = communities.bySlug(String(slug || '')); if (!c || c.settings.profile?.unlisted || c.hidden || c.suspended) return { error: 'That server is not listed.' };
   const wait = votes.last(c.id, me.id) + VOTE_GAP - Date.now(); if (wait > 0) return { error: `You can vote for ${c.name} again in ${Math.ceil(wait / 3600000)} h.`, next_vote: wait };
   votes.add(c.id, me.id); return { ok: true, votes: votes.totals()[c.id] || 0, next_vote: VOTE_GAP }; };

@@ -28,8 +28,8 @@ export const DOCS = {
 <li>Every action is signed with the Roblox name of the person who did it, so it can always be traced.</li>
 <li>The owner and co-owners can delete staff records (warnings, kicks, bans and notes). The command history, which lists every command that ran in game, is kept for good and cannot be deleted by anyone on the server. This keeps staff accountable.</li>
 <li>Misusing staff tools to harass players, or banning people without reason, can lead to the server being removed from Oversite.</li></ul>` },
-      { id: 'explore', h: 'Explore, listings and votes', short: 'Listing is optional and public. Keep it honest, and vote fairly: one person, one vote every 12 hours.',
-        body: `<ul><li>Listing a server on the Explore page is optional. A listed server shows its name, icon, bio, Discord invite, owner's Roblox name, player count and ER:LC join code to anyone who is signed in.</li>
+      { id: 'explore', h: 'Explore, listings and votes', short: 'Servers are listed by default and can be taken off. Keep it honest, and vote fairly: one person, one vote every 12 hours.',
+        body: `<ul><li>Every server is listed on the Explore page unless its owner takes it off in Settings. A listed server shows its name, icon, bio, Discord invite, owner's Roblox name, player count and ER:LC join code to anyone who is signed in.</li>
 <li>Listings must be accurate. No misleading names or descriptions, no impersonating other servers, and nothing hateful, sexual or illegal in names, bios or icons.</li>
 <li>Each person can vote for a server once every 12 hours. Using alternate accounts, bots, scripts, or offering rewards in exchange for votes is not allowed. We may remove votes or listings that break this rule.</li>
 <li>We may change how servers are ranked, and we may hide or remove any listing.</li></ul>` },
