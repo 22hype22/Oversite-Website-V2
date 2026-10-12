@@ -137,7 +137,13 @@
   .search:focus-within kbd{display:none}
   .srch-list{position:absolute;top:calc(100% + 8px);right:0;width:min(400px,calc(100vw - 24px));max-height:min(420px,70vh);overflow-y:auto;padding:6px;border-radius:14px;z-index:40;
     background:rgba(22,23,26,.96);border:1px solid var(--hair2);box-shadow:0 18px 44px rgba(0,0,0,.45);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);scrollbar-width:thin}
-  .srch-list[hidden]{display:none}
+  /* Spring: a quick press on the pill, the list springs out of it with a little overshoot, rows slide in from the left */
+  .search{transition:transform .14s ease,border-color .2s}.search.press{transform:scale(.97)}
+  .srch-list{visibility:hidden;opacity:0;pointer-events:none;transform:scale(.9);transform-origin:top right;transition:opacity .16s ease,transform .34s cubic-bezier(.34,1.56,.64,1),visibility 0s .34s}
+  .srch-list.open{visibility:visible;opacity:1;pointer-events:auto;transform:none;transition:opacity .16s ease,transform .34s cubic-bezier(.34,1.56,.64,1),visibility 0s}
+  .srch-list.stagger .srch-i{animation:srchRow .32s cubic-bezier(.34,1.4,.64,1) both;animation-delay:calc(var(--i) * 26ms)}
+  @keyframes srchRow{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.search,.srch-list,.srch-list.open{transition:none}.srch-list.stagger .srch-i{animation:none}}
   .srch-g{padding:8px 10px 4px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
   .srch-i{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:9px;text-align:left;color:var(--ink);font-size:12.5px;cursor:pointer;background:none;border:0}
   .srch-i[aria-selected="true"]{background:rgba(240,242,245,.1)}
@@ -1090,7 +1096,7 @@
   <div class="search" role="search" id="srch">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
     <input id="srchIn" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-label="Search units, players, calls, postals" aria-controls="srchList" aria-expanded="false" role="combobox"><kbd id="srchKey">Ctrl+Shift+F</kbd>
-    <div class="srch-list" id="srchList" role="listbox" hidden></div>
+    <div class="srch-list" id="srchList" role="listbox"></div>
   </div>
   <div class="icons">
     <a id="voiceBtn" class="mdt-btn" aria-label="Proximity voice" title="Proximity voice" target="_blank" rel="noopener" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></svg></a>
@@ -2560,6 +2566,10 @@ body.voice-snap .stage{transition:none!important}
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   if (/Mac|iPhone|iPad/.test(navigator.platform)) document.getElementById('srchKey').textContent = '⇧⌘F';
   let items = [], sel = 0;
+  const isOpen = () => list.classList.contains('open');
+  let staggerT = 0;   // rows cascade in when the list opens (and for the first few letters typed), not on every keystroke after
+  const show = on => { if (on && !isOpen()) { list.classList.add('stagger'); clearTimeout(staggerT); staggerT = setTimeout(() => list.classList.remove('stagger'), 350); } if (!on) { clearTimeout(staggerT); list.classList.remove('stagger'); }
+    list.classList.toggle('open', on); inp.setAttribute('aria-expanded', on ? 'true' : 'false'); };
   const DN = { pd: 'Law Enforcement', fd: 'Fire', dot: 'DOT' };
   const dispatchView = () => { if (document.body.classList.contains('mdt-open') || (document.body.dataset.view && document.body.dataset.view !== 'dispatch')) document.querySelector('.menu [data-view="dispatch"]')?.click(); };
   const flyTo = (x, y) => { dispatchView(); setTimeout(() => { const in3d = document.body.classList.contains('mode-3d'), m = in3d ? window.map3d : window.map2d; if (!m || !m.flyTo) return; in3d ? m.flyTo(x, y, 300, 0.9, true) : m.flyTo(x, y, 2.4); }, 60); };
@@ -2583,13 +2593,13 @@ body.voice-snap .stage{transition:none!important}
       out.push({ g: 'Go to', sc: sc - 0.5, dot: 'pg', t: name, s: 'Open', go: () => b.click() }); }
     const order = ['Units', 'Calls', 'Players', 'Postals', 'Go to'];
     return out.sort((a, b) => order.indexOf(a.g) - order.indexOf(b.g) || b.sc - a.sc || a.t.localeCompare(b.t)).filter((x, i, arr) => arr.slice(0, i).filter(y => y.g === x.g).length < 6); };
-  const draw = () => { const q = inp.value.trim(); if (!q) { list.hidden = true; inp.setAttribute('aria-expanded', 'false'); return; }
-    items = find(q); sel = Math.min(sel, Math.max(0, items.length - 1)); let g = '', h = '';
-    items.forEach((it, i) => { if (it.g !== g) { g = it.g; h += `<div class="srch-g">${esc(g)}</div>`; } h += `<button type="button" class="srch-i" role="option" data-i="${i}" aria-selected="${i === sel}"><i class="${esc(it.dot || '')}"></i><b>${esc(it.t)}</b><small>${esc(it.s || '')}</small></button>`; });
-    list.innerHTML = h || `<div class="srch-none">Nothing matches “${esc(q)}”. Try a callsign, a player, a call number or a postal.</div>`; list.hidden = false; inp.setAttribute('aria-expanded', 'true');
+  const draw = () => { const q = inp.value.trim(); if (!q) { show(false); return; }
+    items = find(q); sel = Math.min(sel, Math.max(0, items.length - 1)); let g = '', h = '', n = 0;
+    items.forEach((it, i) => { if (it.g !== g) { g = it.g; h += `<div class="srch-g">${esc(g)}</div>`; n++; } h += `<button type="button" class="srch-i" role="option" data-i="${i}" style="--i:${n++}" aria-selected="${i === sel}"><i class="${esc(it.dot || '')}"></i><b>${esc(it.t)}</b><small>${esc(it.s || '')}</small></button>`; });
+    list.innerHTML = h || `<div class="srch-none">Nothing matches “${esc(q)}”. Try a callsign, a player, a call number or a postal.</div>`; show(true);
     list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' }); };
   const pick = i => { const it = items[i]; if (!it) return; close(); it.go(); };
-  const close = () => { list.hidden = true; inp.setAttribute('aria-expanded', 'false'); inp.value = ''; inp.blur(); };
+  const close = () => { show(false); inp.value = ''; inp.blur(); };
   inp.addEventListener('input', () => { sel = 0; draw(); });
   inp.addEventListener('keydown', e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!items.length) return; sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length; draw(); }
     else if (e.key === 'Enter') { e.preventDefault(); pick(sel); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } });
@@ -2597,12 +2607,12 @@ body.voice-snap .stage{transition:none!important}
   list.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) pick(+b.dataset.i); });
   list.addEventListener('mousemove', e => { const b = e.target.closest('[data-i]'); if (b && +b.dataset.i !== sel) { sel = +b.dataset.i; for (const x of list.querySelectorAll('[data-i]')) x.setAttribute('aria-selected', +x.dataset.i === sel); } });
   box.addEventListener('click', () => inp.focus());
-  inp.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== inp) list.hidden = true; }, 120));
-  inp.addEventListener('focus', () => { if (inp.value.trim()) draw(); });
+  inp.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== inp) show(false); }, 120));
+  inp.addEventListener('focus', () => { box.classList.add('press'); setTimeout(() => box.classList.remove('press'), 140); if (inp.value.trim()) draw(); });
   // the hot keys work from anywhere, even while typing in another box
   addEventListener('keydown', e => { const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
     if ((mod && e.shiftKey && k === 'f') || (mod && !e.shiftKey && k === 'k')) { e.preventDefault(); if (box.offsetParent === null) return; inp.focus(); inp.select(); } }, true);
-  addEventListener('units', () => { if (!list.hidden) draw(); }); addEventListener('calls', () => { if (!list.hidden) draw(); });
+  addEventListener('units', () => { if (isOpen()) draw(); }); addEventListener('calls', () => { if (isOpen()) draw(); });
 })();
 </script>
 <aside class="admin" id="admin" aria-label="Admin panel" aria-hidden="true">
