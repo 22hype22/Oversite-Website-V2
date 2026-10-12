@@ -214,13 +214,91 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
         const go = g[o].get(nk); if (go < Infinity && g[s].get(nk) + go < best) { best = g[s].get(nk) + go; meet = nk; } } }
     if (meet < 0) return null;
     const out = []; for (let k = meet; k >= 0; k = prev[0].get(k)) out.push(k); out.reverse(); for (let k = prev[1].get(meet); k >= 0; k = prev[1].get(k)) out.push(k); return out; };
-  const roadRoute = (ax, ay, bx, by) => { const A = snap(ax, ay), B = snap(bx, by); if (!A || !B) return [[ax, ay], [bx, by]];
+  let roadRoute = (ax, ay, bx, by) => { const A = snap(ax, ay), B = snap(bx, by); if (!A || !B) return [[ax, ay], [bx, by]];
     const path = meetRoute(A[1] * GN + A[0], B[1] * GN + B[0]); if (!path) return [[ax, ay], [bx, by]];
     const cells = path.map(k => [(k % GN + 0.5) * CELL, (Math.floor(k / GN) + 0.5) * CELL]);
     const pts = [[ax, ay]]; for (let i = 1; i < cells.length - 1; i++) { const [px, py] = cells[i - 1], [cx, cy] = cells[i], [qx, qy] = cells[i + 1]; if ((cx - px) * (qy - cy) !== (cy - py) * (qx - cx)) pts.push(cells[i]); } pts.push([bx, by]);
     const sm = [pts[0]]; for (let i = 1; i < pts.length - 1; i++) { const [a, b, c] = [pts[i - 1], pts[i], pts[i + 1]]; sm.push([b[0] * 0.5 + (a[0] + c[0]) * 0.25, b[1] * 0.5 + (a[1] + c[1]) * 0.25]); } sm.push(pts[pts.length - 1]);
     return sm; };
-  window.roadRoute = roadRoute;
+  // ── GPS on the road network: every junction and road piece traced from the map (preview/newmap/roadnet.json, built by
+  // preview/newmap/roads/build-roadnet.py). Like a satnav it looks for the quickest drive, not the shortest line: each road
+  // piece costs its length at that road's speed, every junction a moment, a right turn a little more and a left turn more
+  // again, and a U-turn is only made where the road ends. One-way carriageways (divided roads: keep right) are only driven
+  // their way, parking lots only when the trip starts or ends in them, and the server owner's fixes (blocked, one-way, not a
+  // road, a lot) apply on top. If the network can't join the two ends, the older road-grid search above answers instead.
+  const NET = __ROADNET__;
+  const gridRoute = roadRoute;
+  (() => {
+    const NV = NET.nodes, V = mph => mph * 0.45, VMAX = V(45);          // map units per second
+    const E = NET.edges.map(([a, b, , mph, lot, ow, f]) => { const p = []; for (let i = 0; i < f.length; i += 2) p.push([f[i], f[i + 1]]);
+      const c = [0]; for (let i = 1; i < p.length; i++) c.push(c[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]));
+      return { a, b, mph, lot0: lot, ow0: ow, lot, ow, off: 0, p, c, L: c[c.length - 1] || 0.01 }; });
+    const at = (e, s) => { const { p, c } = e; let i = 1; while (i < c.length - 1 && c[i] < s) i++; const t = (s - c[i - 1]) / ((c[i] - c[i - 1]) || 1); return [p[i - 1][0] + (p[i][0] - p[i - 1][0]) * t, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * t]; };
+    const key = e => { const [x, y] = at(e, e.L / 2); return Math.round(x) + '_' + Math.round(y); };   // a fix is stored by where the road is, so it survives a rebuilt network
+    const adj = NV.map(() => []); E.forEach((e, i) => { e.key = key(e); adj[e.a].push(i); if (e.b !== e.a) adj[e.b].push(i); });
+    for (const e of E) { const ang = (u, v) => Math.atan2(v[1] - u[1], v[0] - u[0]), k = Math.min(8, e.L / 2); e.ha = ang(e.p[0], at(e, k)); e.hb = ang(e.p[e.p.length - 1], at(e, e.L - k)); }   // heading leaving each end
+    // the owner's fixes: { "x_y": { o: 1 | -1 | 0, b: 1, x: 1, l: 1 | 0 } } = one-way along / against how the piece was traced, blocked, not a road, lot
+    let OVR = {};
+    const setOv = ov => { OVR = ov && typeof ov === 'object' ? ov : {}; const byKey = new Map(E.map((e, i) => [e.key, i])); for (const e of E) { e.ow = e.ow0; e.lot = e.lot0; e.off = 0; }
+      for (const [k, o] of Object.entries(OVR)) { let i = byKey.get(k);
+        if (i === undefined) { const [x, y] = k.split('_').map(Number); let bd = 8; for (let j = 0; j < E.length; j++) { const [mx, my] = at(E[j], E[j].L / 2), d = Math.hypot(mx - x, my - y); if (d < bd) { bd = d; i = j; } } }
+        if (i === undefined || !o) continue; const e = E[i]; if (o.o === 1 || o.o === -1 || o.o === 0) e.ow = o.o; if (o.l === 1) e.lot = e.lot || 99999; if (o.l === 0) e.lot = 0; e.off = o.x ? 2 : o.b ? 1 : 0; }
+      window.ROUTE_GEN = (window.ROUTE_GEN || 0) + 1; dispatchEvent(new CustomEvent('roadschange')); };
+    // nearest road piece to a point, through a coarse grid of the pieces' segments
+    const CS = 25, GW = Math.ceil(2000 / CS), cells = new Map();
+    E.forEach((e, i) => { for (let j = 1; j < e.p.length; j++) { const [x0, y0] = e.p[j - 1], [x1, y1] = e.p[j];
+      for (let cx = Math.floor(Math.min(x0, x1) / CS); cx <= Math.floor(Math.max(x0, x1) / CS); cx++) for (let cy = Math.floor(Math.min(y0, y1) / CS); cy <= Math.floor(Math.max(y0, y1) / CS); cy++) { const k = cy * GW + cx; if (!cells.has(k)) cells.set(k, []); cells.get(k).push(i * 4096 + j); } } });
+    const near = (x, y, maxR = 150, ok = e => !e.off) => { let best = null; const cx0 = Math.floor(x / CS), cy0 = Math.floor(y / CS);
+      for (let r = 0; r * CS <= maxR + CS; r++) { for (let cy = cy0 - r; cy <= cy0 + r; cy++) for (let cx = cx0 - r; cx <= cx0 + r; cx++) { if (Math.max(Math.abs(cx - cx0), Math.abs(cy - cy0)) !== r) continue;
+          for (const v of cells.get(cy * GW + cx) || []) { const i = Math.floor(v / 4096), j = v % 4096, e = E[i]; if (!ok(e)) continue; const [ax, ay] = e.p[j - 1], [bx, by] = e.p[j], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
+            const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)), qx = ax + dx * t, qy = ay + dy * t, d = Math.hypot(x - qx, y - qy);
+            if (d <= maxR && (!best || d < best.d)) best = { i, s: e.c[j - 1] + Math.sqrt(L2) * t, q: [qx, qy], d }; } }
+        if (best && best.d < r * CS) break; }
+      return best; };
+    // ── the search: states are "just drove piece i in direction d" (0 = a->b), so turns and one-ways are known at every junction ──
+    const ok = (e, d) => !e.off && (d === 0 ? e.ow !== -1 : e.ow !== 1);
+    const endOf = (e, d) => d === 0 ? e.b : e.a, inHd = (e, d) => (d === 0 ? e.hb : e.ha) + Math.PI, outHd = (e, d) => d === 0 ? e.ha : e.hb;
+    const turnOf = (e1, d1, e2, d2) => { const t = outHd(e2, d2) - inHd(e1, d1); return Math.atan2(Math.sin(t), Math.cos(t)); };   // > 0 turns right (y grows down)
+    const turnCost = (t, junction) => { const a = Math.abs(t) * 180 / Math.PI; return (junction ? 1 : 0) + (a < 25 ? 0 : a < 60 ? 0.8 : a > 150 ? 6 : t > 0 ? 2 : 3.5); };
+    const S = 2 * E.length, G = new Float64Array(S), P = new Int32Array(S), seen = new Uint32Array(S), done = new Uint32Array(S); let gen = 0;
+    const hpush = (h, f, k) => { h.push([f, k]); let i = h.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; [h[p], h[i]] = [h[i], h[p]]; i = p; } };
+    const hpop = h => { const top = h[0], last = h.pop(); if (h.length) { h[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < h.length && h[l][0] < h[m][0]) m = l; if (r < h.length && h[r][0] < h[m][0]) m = r; if (m === i) break; [h[m], h[i]] = [h[i], h[m]]; i = m; } } return top; };
+    const netRoute = (ax, ay, bx, by) => { const A = near(ax, ay), B = near(bx, by); if (!A || !B) return null;
+      const lots = new Set([E[A.i].lot, E[B.i].lot].filter(Boolean));
+      const cost = (e, len) => { const t = len / V(e.lot ? 10 : e.mph); return e.lot && !lots.has(e.lot) ? t * 4 + 20 : t; };   // other lots: only as a last resort
+      gen++; const heap = [], tx = (NV[E[B.i].a][0] + NV[E[B.i].b][0]) / 2, ty = (NV[E[B.i].a][1] + NV[E[B.i].b][1]) / 2, h = n => Math.max(0, Math.hypot(NV[n][0] - tx, NV[n][1] - ty) - E[B.i].L) / VMAX;
+      const relax = (k, g, from) => { if (seen[k] === gen && G[k] <= g) return; seen[k] = gen; G[k] = g; P[k] = from; hpush(heap, g + h(endOf(E[k >> 1], k & 1)), k); };
+      const ea = E[A.i], eb = E[B.i]; let best = Infinity, bestK = -2, bestEnd = null;
+      if (A.i === B.i) { const d = B.s >= A.s ? 0 : 1; if (ok(ea, d)) { best = cost(ea, Math.abs(B.s - A.s)); bestK = -1; } }
+      if (ok(ea, 0)) relax(A.i * 2, cost(ea, ea.L - A.s), -1); if (ok(ea, 1)) relax(A.i * 2 + 1, cost(ea, A.s), -1);
+      while (heap.length) { const [f, k] = hpop(heap); if (f >= best) break; if (done[k] === gen) continue; done[k] = gen;
+        const e = E[k >> 1], d = k & 1, n = endOf(e, d), g = G[k], junction = adj[n].length > 2;
+        for (const d2 of [0, 1]) { if ((d2 === 0 ? eb.a : eb.b) !== n || !ok(eb, d2) || ((k >> 1) === B.i && d2 !== d)) continue;   // finish along the destination's piece
+          const t = (k >> 1) === B.i ? 0 : turnCost(turnOf(e, d, eb, d2), junction), tot = g + t + cost(eb, d2 === 0 ? B.s : eb.L - B.s); if (tot < best) { best = tot; bestK = k; bestEnd = d2; } }
+        for (const i2 of adj[n]) for (const d2 of [0, 1]) { const e2 = E[i2]; if ((d2 === 0 ? e2.a : e2.b) !== n || !ok(e2, d2)) continue;
+          if (i2 === (k >> 1) && d2 !== d) { if (adj[n].length > 1) continue; }            // U-turns only where the road ends
+          else if (i2 === (k >> 1)) continue;
+          relax(i2 * 2 + d2, g + turnCost(turnOf(e, d, e2, d2), junction) + cost(e2, e2.L), k); } }
+      if (bestK === -2) return null;
+      // the drive as points, with the turns at real junctions marked for spoken directions
+      const chain = []; for (let k = bestK; k >= 0; k = P[k]) chain.push(k); chain.reverse();
+      const pts = [[ax, ay]], turns = [], add = q => { const l = pts[pts.length - 1]; if (Math.hypot(q[0] - l[0], q[1] - l[1]) > 0.3) pts.push(q); };
+      const piece = (e, s0, s1) => { add(at(e, s0)); if (s1 > s0) { for (let j = 0; j < e.c.length; j++) if (e.c[j] > s0 && e.c[j] < s1) add(e.p[j]); } else { for (let j = e.c.length - 1; j >= 0; j--) if (e.c[j] < s0 && e.c[j] > s1) add(e.p[j]); } add(at(e, s1)); };
+      if (bestK === -1) piece(ea, A.s, B.s);
+      else { piece(ea, A.s, (chain[0] & 1) ? 0 : ea.L);
+        const legs = [...chain.map(k => [k >> 1, k & 1]), [B.i, bestEnd]];
+        for (let j = 1; j < legs.length; j++) { const [i1, d1] = legs[j - 1], [i2, d2] = legs[j], e2 = E[i2], n = endOf(E[i1], d1);
+          if (adj[n].length > 2) { const t = turnOf(E[i1], d1, e2, d2), lt = turns[turns.length - 1], here = pts[pts.length - 1];
+            if (lt && Math.hypot(here[0] - pts[lt.i][0], here[1] - pts[lt.i][1]) < 14) { lt.d += t; lt.d = Math.atan2(Math.sin(lt.d), Math.cos(lt.d)); }   // a wide junction traced as two: one turn
+            else turns.push({ i: pts.length - 1, d: t }); }
+          const last = j === legs.length - 1; piece(e2, d2 === 0 ? 0 : e2.L, last ? B.s : d2 === 0 ? e2.L : 0); } }
+      add([bx, by]); pts.turns = turns.filter(t => Math.abs(t.d) * 180 / Math.PI >= 25); pts.secs = best; return pts; };
+    roadRoute = (ax, ay, bx, by) => netRoute(ax, ay, bx, by) || gridRoute(ax, ay, bx, by);
+    window.roadRoute = roadRoute;
+    window.ROADNET = { E, nodes: NV, adj, near, setOv, ov: () => OVR };
+    const OVS = window.OVERSITE; if (OVS && OVS.roads) setOv(OVS.roads.ov);
+    else if (!/^https?:$/.test(location.protocol)) { try { setOv(JSON.parse(localStorage.getItem('oversite-roads') || '{}')); } catch (e) {} }
+  })();
   const HOSTED = window.HOSTED = /^https?:$/.test(location.protocol);   // the hosted site has no demo: units come from the server only
   let units = HOSTED ? [] : JSON.parse(document.getElementById('units').textContent);
   if (HOSTED) { const fl = document.querySelector('.fleet'); if (fl) fl.innerHTML = '<div class="empty" style="padding:18px 6px;color:var(--dim);font-size:12.5px;line-height:1.5">No units on duty. Players on a mapped team appear here as soon as the server link is set up.</div>';
@@ -277,7 +355,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     if (!c || !Number.isFinite(c.x)) { if (svg) svg.remove(); m.view = m.base; m.route = null; m.cx = m.cy = null; return; }
     if (!svg) { svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'gps'); svg.innerHTML = '<path class="r2"/><path class="r1"/><circle class="dst" r="0"/>'; el.insertBefore(svg, el.querySelector('.pin')); }
     const moved = m.route && Math.hypot(u.x - m.route[0][0], u.y - m.route[0][1]);
-    if (!m.route || m.routeFor !== c.startedAt || (moved > 10 && ts - m.routeAt > 500)) { m.route = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; m.routeFor = c.startedAt; m.routeAt = ts; }
+    if (!m.route || m.routeFor !== c.startedAt || m.rGen !== window.ROUTE_GEN || (moved > 10 && ts - m.routeAt > 500)) { m.route = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; m.routeFor = c.startedAt; m.routeAt = ts; m.rGen = window.ROUTE_GEN; }
     const pts = [[u.x, u.y], ...m.route.slice(1)], d = 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
     // frame the whole trip: centre between you and the call, zoomed in until both (and the road between) just fit
     const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), ar = m.w / m.h || 1;
@@ -407,7 +485,7 @@ import re
 s=re.sub(r'<script id="units" type="application/json">.*?shared unit simulation.*?</script>\n', '', s, flags=re.S)
 s=re.sub(r'<script>\n/\* ── Unit Availability: real chart.*?</script>\n', '', s, flags=re.S)
 anchor='<script>\n/* ── bottom panels' if '<script>\n/* ── bottom panels' in s else '<script>\n(() => {'
-s=s.replace(anchor, units_js.replace('__ROUTES__', open('preview/newmap/routes.json').read())+js_add+anchor,1)
+s=s.replace(anchor, units_js.replace('__ROUTES__', open('preview/newmap/routes.json').read()).replace('__ROADNET__', open('preview/newmap/roadnet.json').read())+js_add+anchor,1)
 import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import live_block; s = live_block.apply(s, ICON)
 import staff_block; s = staff_block.apply(s)
 open(p,'w').write(s)

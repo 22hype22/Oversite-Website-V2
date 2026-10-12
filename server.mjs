@@ -47,7 +47,7 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // ── the CAD page, with this community's settings injected ──
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), voice: voice.voiceSettings(c).on, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
+  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), voice: voice.voiceSettings(c).on, roads: c.settings.roads || null, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};</script>`;
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
@@ -114,6 +114,12 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'voice/settings' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change this.' }, 403);
     const j = await jsonBody(req), s = communities.byId(c.id).settings; s.voice = { on: !!j.on, range: ['short', 'normal', 'long'].includes(j.range) ? j.range : 'normal', muffle: j.muffle !== false };
     communities.saveSettings(c.id, s); return json(res, { ok: true }); }
+  // GPS road fixes the owner made on the map (a blocked road, a one-way, not a road, a parking lot); everyone's GPS routes around them
+  if (rest === 'roads') { if (M === 'GET') return json(res, c.settings.roads || { ov: {} }); if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change the roads.' }, 403);
+    const j = await jsonBody(req), ov = {};
+    for (const [k, v] of Object.entries(j.ov && typeof j.ov === 'object' ? j.ov : {}).slice(0, 2500)) { if (!/^\d{1,4}_\d{1,4}$/.test(k) || !v || typeof v !== 'object') continue; const o = {};
+      if ([1, -1, 0].includes(v.o)) o.o = v.o; if (v.b) o.b = 1; if (v.x) o.x = 1; if (v.l === 0 || v.l === 1) o.l = v.l; if (Object.keys(o).length) ov[k] = o; }
+    const s = communities.byId(c.id).settings; s.roads = { ov, at: Date.now() }; communities.saveSettings(c.id, s); c.settings.roads = s.roads; f.bcast('roads', JSON.stringify(s.roads)); return json(res, s.roads); }
   if (rest === 'units' && M === 'GET') return json(res, { of: unitMembers.all(c.id), units: Object.fromEntries(['pd', 'fd', 'dot'].map(d => [d, c.settings.depts?.[d]?.units || []])) });
   if (rest === 'units/me' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     const unit = String((await jsonBody(req)).unit || '').trim(), all = ['pd', 'fd', 'dot'].flatMap(d => c.settings.depts?.[d]?.units || []);

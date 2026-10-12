@@ -6,6 +6,7 @@ SC = sys.argv[1]
 a = np.asarray(Image.open('preview/liberty-county-4k.jpg').convert('RGB')).astype(np.int16)
 mx, mn, mean = a.max(2), a.min(2), a.mean(2)
 grey = ((mx - mn) < 12) & (np.abs(mean - 116) < 11)          # asphalt: one even mid grey; sidewalks and plazas are lighter, roofs textured
+grey &= (a[..., 0] - a[..., 2]) < 5                         # flat brown-grey roofs (r > b) look like asphalt; road grey is neutral or blueish
 # smoothness: local std of brightness in a 5x5 window
 m1 = ndi.uniform_filter(mean, 5); m2 = ndi.uniform_filter(mean * mean, 5); sd = np.sqrt(np.maximum(m2 - m1 * m1, 0))
 cand = grey & (sd < 13)
@@ -17,12 +18,16 @@ cand = ndi.binary_opening(cand, structure=np.ones((3, 3)), iterations=1)   # dro
 green = (a[..., 1] - a[..., 2] > 8) & (a[..., 1] >= a[..., 0] - 2)                                     # grass and trees (the medians of divided roads)
 water = (a[..., 2] - a[..., 0] > 25)
 light = mean >= 128                                                      # light concrete and paint
-cand = (cand | (ndi.binary_closing(cand, structure=np.ones((3, 3)), iterations=4) & ~green & ~water & ~light)   # dark breaks (parked cars, shadows) up to ~8 px
-            | (ndi.binary_closing(cand, structure=np.ones((3, 3)), iterations=2) & ~green & ~water))           # thin light breaks (crosswalk stripes) up to ~4 px; wider concrete medians stay
+# sidewalks: warm grey strips (light, or dark where a building shades them) around blocks, lots and buildings; not yellow paint
+rb = a[..., 0] - a[..., 2]
+kerb = (mean >= 85) & (mean < 170) & (rb >= 3) & (rb <= 14) & ((mx - mn) <= 16)
+cand = (cand | (ndi.binary_closing(cand, structure=np.ones((3, 3)), iterations=4) & ~green & ~water & ~light & ~kerb)   # dark breaks (parked cars, shadows) up to ~8 px
+            | (ndi.binary_closing(cand, structure=np.ones((3, 3)), iterations=2) & ~green & ~water & ~kerb))   # thin light breaks (crosswalk stripes) up to ~4 px; wider concrete medians stay
+cand &= ~kerb                                                             # a sidewalk is always a wall: what it boxes in (a roof, a lot) is not road
 lab, n = ndi.label(cand); sz = ndi.sum(cand, lab, range(1, n + 1))
 keep = lab == (np.argmax(sz) + 1)                                         # the main road network
 # road pieces cut off by wide paint (bridge joints, big crosswalks): join each one within ~30 px to the network with a short
-# straight link, unless the link would cross water or grass
+# straight link, unless the link would cross water, grass or a sidewalk
 water = (a[..., 2] - a[..., 0] > 25)
 for _ in range(3):
     dist, (iy, ix) = ndi.distance_transform_edt(~keep, return_indices=True)
@@ -32,7 +37,7 @@ for _ in range(3):
         dk = np.where(comp, dist, np.inf); p0 = np.unravel_index(np.argmin(dk), dk.shape)
         if dk[p0] > 30: continue
         q0 = (iy[p0], ix[p0]); n = int(dk[p0]) + 2; ys = np.linspace(p0[0], q0[0], n).round().astype(int); xs = np.linspace(p0[1], q0[1], n).round().astype(int)
-        if (water[ys, xs] | green[ys, xs]).mean() > 0.2: continue
+        if (water[ys, xs] | green[ys, xs] | kerb[ys, xs]).mean() > 0.2: continue      # never across a sidewalk: what lies behind one is a lot or a roof
         link = np.zeros_like(keep); link[ys, xs] = True; link = ndi.binary_dilation(link, iterations=3)
         keep |= comp | link
 np.save(SC + '/roads/mask.npy', keep)

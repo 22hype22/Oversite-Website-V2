@@ -3,6 +3,18 @@ admin panel markup/CSS and the live-data script in place (replacing older copies
 import json, re
 
 ADMIN_CSS = r"""  /* admin panel: server link, departments, map calibration */
+  /* road editor: the traced roads drawn over the map, coloured by what they are */
+  #roadEd path{fill:none;stroke-width:4px;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;opacity:.92}
+  #roadEd .r{stroke:#3B82F6}#roadEd .o{stroke:#F97316}#roadEd .l{stroke:#EAB308}#roadEd .b{stroke:#E5484D;stroke-dasharray:6 4}#roadEd .x{stroke:#8B8F98;stroke-dasharray:3 4}
+  #roadEd .sel{stroke-width:8px;opacity:1;filter:drop-shadow(0 0 3px #fff)}#roadEd .ar{fill:#fff;stroke:#F97316;stroke-width:1.5px;vector-effect:non-scaling-stroke}
+  .rd-bar{position:fixed;left:50%;top:calc(var(--barh) + var(--gap) + 8px);transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;padding:8px 8px 8px 16px;border-radius:12px;background:#16171A;color:#F0F2F5;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px);flex-wrap:wrap}
+  .rd-bar[hidden],.rd-menu[hidden]{display:none}
+  .rd-k{font-style:normal;display:flex;align-items:center;gap:6px;color:#A6ABB5;font-size:12px}.rd-k b{width:14px;height:4px;border-radius:2px;margin-left:6px}
+  .rd-k .r{background:#3B82F6}.rd-k .o{background:#F97316}.rd-k .l{background:#EAB308}.rd-k .b{background:#E5484D}.rd-k .x{background:#8B8F98}
+  .rd-bar button{border:0;border-radius:8px;padding:7px 14px;background:#F0F2F5;color:#0B0B0C;font:inherit;font-weight:600;cursor:pointer}
+  .rd-menu{position:fixed;z-index:13;min-width:180px;padding:6px;border-radius:12px;background:#16171A;box-shadow:0 12px 34px rgba(0,0,0,.45);display:flex;flex-direction:column}
+  .rd-h{padding:6px 10px 8px;font-size:12px;color:#A6ABB5;font-weight:600}.rd-h small{font-weight:500;color:#F97316;margin-left:4px}
+  .rd-menu button{border:0;background:none;color:#F0F2F5;font:inherit;font-size:13px;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer}.rd-menu button:hover{background:rgba(240,242,245,.1)}
   :root{--adminw:min(400px,calc(100vw - 2*var(--gap)))}
   .stage{transition:transform .34s cubic-bezier(.32,.72,0,1),opacity .2s,right .24s cubic-bezier(.32,.72,0,1)}
   body.admin-open .stage{right:calc(var(--adminw) + var(--gap))}
@@ -98,6 +110,12 @@ def admin_html():
     <div class="ad-kv"><span>Studs per map unit</span><b id="adScale">3.50 (default)</b></div>
     <div class="ad-kv"><span>Map centre offset</span><b id="adOffset">0, 0</b></div>
     <div class="ad-row"><button type="button" class="ad-btn" id="adClearCal">Clear calibration</button></div>
+  </section>
+  <section id="adRoads">
+    <h3>Roads (GPS)</h3>
+    <p class="ad-note">The GPS drives the roads traced from the map. If it takes a road it shouldn't, or misses one, click Edit roads, then click that road on the map and say what it is. Everyone's GPS re-routes straight away.</p>
+    <div class="ad-kv"><span>Your fixes</span><b id="adRoadCount">none</b></div>
+    <div class="ad-row"><button type="button" class="ad-btn pri" id="adRoadEdit" aria-pressed="false">Edit roads</button><button type="button" class="ad-btn" id="adRoadClear">Remove all fixes</button></div>
   </section>
 </aside>
 """
@@ -430,6 +448,7 @@ LIVE_JS = r"""<script id="live">
     es = new EventSource(`${base()}/stream`);
     es.addEventListener('server', e => { got = true; esFails = 0; let body; try { body = JSON.parse(e.data); } catch (x) { return; } handle(body, null, 'stream', +e.lastEventId || 0); schedule(20000); });
     es.addEventListener('cal', e => { try { takeCal(JSON.parse(e.data)); } catch (x) {} });
+    es.addEventListener('roads', e => { try { window.ROADNET?.setOv(JSON.parse(e.data).ov); } catch (x) {} });   // an owner fixed a road: re-route now
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }
       if (j.status === 429) return status(`Rate limited by the API. Resuming in ${j.retry_after || 30}s.`, 'err');
@@ -440,6 +459,44 @@ LIVE_JS = r"""<script id="live">
   $('adTest').addEventListener('click', async () => { S.key = F.key.value.trim(); S.relay = F.relay.value.trim().replace(/\/+$/, ''); save(); status('Testing…');
     try { const { body, rl } = await fetchServer(); lastPlayers = body.Players || []; status(`OK: ${body.Name}, ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastPlayers.filter(p => p.Callsign).length} with callsigns, ${(body.Vehicles || []).length} vehicles.` + (rl.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : ''), 'ok'); }
     catch (e) { status(e.message, 'err'); } });
+
+  // ── roads: the owner fixes what the GPS got wrong, right on the map. Click a road, say what it is; everyone's GPS follows ──
+  (() => { const RN = window.ROADNET, sec = $('adRoads'); if (!RN || !sec) return; if (OV && !OV.canEdit) { sec.hidden = true; return; }
+    const NS = 'http://www.w3.org/2000/svg', svg = document.querySelector('#world svg'), btn = $('adRoadEdit');
+    let g = null, sel = -1, editing = false;
+    const bar = document.createElement('div'); bar.className = 'rd-bar'; bar.hidden = true; bar.innerHTML = '<span>Editing roads: click a road to fix it</span><i class="rd-k"><b class="r"></b>Road<b class="o"></b>One-way<b class="l"></b>Lot<b class="b"></b>Blocked<b class="x"></b>Not a road</i><button type="button">Done</button>';
+    const menu = document.createElement('div'); menu.className = 'rd-menu'; menu.hidden = true; document.body.append(bar, menu);
+    const count = () => { const n = Object.keys(RN.ov()).length; $('adRoadCount').textContent = n ? `${n} fix${n === 1 ? '' : 'es'}` : 'none'; };
+    const kind = e => e.off === 2 ? 'x' : e.off ? 'b' : e.lot ? 'l' : e.ow ? 'o' : 'r';
+    const mid = e => { const h = e.L / 2; let j = 1; while (j < e.c.length - 1 && e.c[j] < h) j++; const [ax, ay] = e.p[j - 1], [bx, by] = e.p[j], t = (h - e.c[j - 1]) / ((e.c[j] - e.c[j - 1]) || 1); return [ax + (bx - ax) * t, ay + (by - ay) * t, Math.atan2(by - ay, bx - ax)]; };
+    const draw = () => { if (!editing) { g?.remove(); g = null; return; } if (!g) { g = document.createElementNS(NS, 'g'); g.id = 'roadEd'; svg.appendChild(g); }
+      g.innerHTML = RN.E.map((e, i) => { const d = 'M' + e.p.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L'); let ar = '';
+        if (e.ow && !e.off) { const [x, y, a0] = mid(e), a = e.ow < 0 ? a0 + Math.PI : a0, P = (r, t) => (x + r * Math.cos(a + t)).toFixed(1) + ',' + (y + r * Math.sin(a + t)).toFixed(1); ar = `<polygon class="ar" points="${P(4, 0)} ${P(3.2, 2.4)} ${P(3.2, -2.4)}"/>`; }
+        return `<path class="${kind(e)}${i === sel ? ' sel' : ''}" d="${d}"/>${ar}`; }).join(''); };
+    const save = ov => { RN.setOv(ov); if (HOSTED) post('/roads', { ov }).then(r => r.ok ? null : r.json().then(j => status(j.error || 'Could not save the road fix.', 'err'))).catch(() => status('Could not save the road fix.', 'err'));
+      else { try { localStorage.setItem('oversite-roads', JSON.stringify(ov)); } catch (e) {} } };
+    const ACTS = [['road', 'Road, both ways'], ['one', 'One-way'], ['flip', 'Flip direction'], ['lot', 'Parking lot'], ['block', 'Blocked'], ['off', 'Not a road'], ['reset', 'Undo my fix']];
+    const openMenu = (i, cx, cy) => { sel = i; draw(); const e = RN.E[i], has = !!RN.ov()[e.key];
+      menu.innerHTML = `<div class="rd-h">${{ r: 'Road, both ways', o: 'One-way road', l: 'Parking lot', b: 'Blocked', x: 'Not a road' }[kind(e)]}${has ? ' <small>fixed by you</small>' : ''}</div>` +
+        ACTS.filter(([a]) => (a !== 'flip' || e.ow) && (a !== 'reset' || has)).map(([a, t]) => `<button type="button" data-a="${a}">${t}</button>`).join('');
+      menu.hidden = false; const r = menu.getBoundingClientRect(); menu.style.left = Math.min(innerWidth - r.width - 8, Math.max(8, cx + 12)) + 'px'; menu.style.top = Math.min(innerHeight - r.height - 8, Math.max(8, cy - 20)) + 'px'; };
+    const closeMenu = () => { menu.hidden = true; sel = -1; draw(); };
+    menu.addEventListener('click', ev => { const a = ev.target.closest('[data-a]')?.dataset.a; if (!a || sel < 0) return; const e = RN.E[sel], ov = { ...RN.ov() }, o = { ...(ov[e.key] || {}) };
+      if (a === 'road') { delete o.b; delete o.x; o.o = 0; o.l = 0; } else if (a === 'one') { delete o.x; o.o = e.ow || 1; o.l = 0; } else if (a === 'flip') o.o = -(e.ow || 1);
+      else if (a === 'lot') { delete o.x; o.l = 1; o.o = 0; } else if (a === 'block') { delete o.x; o.b = 1; } else if (a === 'off') { delete o.b; o.x = 1; }
+      if (a === 'reset') delete ov[e.key]; else { if (o.o === e.ow0) delete o.o; if (o.l === (e.lot0 ? 1 : 0)) delete o.l; if (Object.keys(o).length) ov[e.key] = o; else delete ov[e.key]; }   // keep only what differs from the traced map
+      save(ov); openMenu(sel, parseFloat(menu.style.left) - 12, parseFloat(menu.style.top) + 20); });
+    const setEdit = on => { editing = on; btn.setAttribute('aria-pressed', on); bar.hidden = !on; if (on) setOpen(false); else closeMenu(); draw(); };
+    btn.addEventListener('click', () => setEdit(!editing)); bar.querySelector('button').addEventListener('click', () => setEdit(false));
+    $('adRoadClear').addEventListener('click', () => { if (!Object.keys(RN.ov()).length || !confirm('Remove every road fix? The GPS goes back to the roads as traced from the map.')) return; save({}); });
+    addEventListener('keydown', e => { if (e.key === 'Escape' && editing) { if (!menu.hidden) closeMenu(); else setEdit(false); } });
+    addEventListener('roadschange', () => { count(); draw(); });
+    let dn = null; const view = document.getElementById('view');
+    view.addEventListener('pointerdown', e => { dn = [e.clientX, e.clientY]; }, true);
+    view.addEventListener('pointerup', e => { if (!editing || !dn || Math.hypot(e.clientX - dn[0], e.clientY - dn[1]) > 5) { dn = null; return; } dn = null;
+      const w = window.map2d?.screenToWorld?.(e.clientX, e.clientY); if (!w) return; const hit = RN.near(w[0], w[1], 14, () => true);
+      if (hit) openMenu(hit.i, e.clientX, e.clientY); else closeMenu(); }, true);
+    count(); })();
 
   renderCal();
   if (S.live) start();
