@@ -290,14 +290,15 @@ export const layout = ({ title, logo, user, body, bg = true, top = true, intro =
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>${intro ? INTRO_HEAD : ''}<script src="/dropdown.js?v=1" defer></script></head><body>${bg ? '<div class="bg"></div>' : ''}
 ${top ? `<header class="top"><a class="brand" href="${user ? '/account' : '/'}"><i><img src="data:image/png;base64,${logo}" alt=""></i><span class="ov">Oversite</span> <span class="cad">CAD</span></a><span class="sp"></span>
-${user ? `${isSiteAdmin(user) ? '<a class="nav" href="/admin">Moderation</a>' : ''}<a class="nav" href="/explore">Explore</a><a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}<span class="nm">${esc(user.roblox_name || user.name)}</span></a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : ''}</header>` : ''}
-${body}${foot ? FOOT : ''}<script>${JS}${script}</script></body></html>`;
+${user ? `${isSiteAdmin(user) ? '<a class="nav" href="/admin">Moderation</a>' : ''}<a class="nav" href="/explore">Explore</a><a class="who" href="/account" title="Your account">${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'av',textContent:${esc(JSON.stringify((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase()))}}))">` : user.avatar ? `<img src="${esc(user.avatar)}" alt="">` : `<span class="av">${esc((user.roblox_name || user.name).slice(0, 1).toUpperCase())}</span>`}<span class="nm">${esc(user.roblox_name || user.name)}</span></a><form method="post" action="/auth/logout" style="margin:0"><button class="btn sm">Sign out</button></form>` : `<a class="nav" href="/explore">Explore</a><a class="btn sm pri" href="/" data-signin>Sign in</a>`}</header>` : ''}
+${body}${foot ? FOOT : ''}<script>${JS}${user ? '' : "document.querySelectorAll('[data-signin]').forEach(a=>a.href='/?next='+encodeURIComponent(location.pathname));"}${script}</script></body></html>`;
 
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '' }) => layout({ title: 'Oversite', logo, top: false, body: `
 <section class="hero wide notop"><div class="box">
 <div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div>
 <h1><span style="font-weight:400">Oversite</span> <b>CAD</b></h1>
 <p class="lead">A live dispatch system for ER:LC private servers. Every unit on a 3D map of Liberty County, live from your server.</p>
+<p class="note" style="margin:-6px 0 18px"><a href="/explore">Explore servers</a> without signing in.</p>
 <div class="paths">
 <form class="card path" id="codeform" autocomplete="off"><h2>Join your server</h2><p class="note">Enter your server's invite code.</p>
 <input id="code" placeholder="Invite code" aria-label="Invite code" autocapitalize="characters" spellcheck="false" required>
@@ -490,7 +491,7 @@ export const explore = ({ logo, user, servers, owned }) => layout({ title: 'Expl
 </main>
 <div class="xp-toast" id="xtoast" role="status" aria-live="polite"></div>
 <dialog class="xp-dlg" id="xd" aria-labelledby="xdT"><div class="xp-dlgin" id="xdB"></div></dialog>`, script: `
-let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};let TAB='trending';
+const ME=${user ? 1 : 0};let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};let TAB='trending';
 // ER:LC's own join links open Roblox straight into a private server by its code
 const JOIN=c=>'https://erlc.gg/join/'+encodeURIComponent(c);
 const g=document.getElementById('xg'),q=document.getElementById('xq'),em=document.getElementById('xe'),dlg=document.getElementById('xd'),tabs=document.getElementById('xt');
@@ -557,6 +558,7 @@ const open=slug=>{ const x=S.find(s=>s.slug===slug); if(!x) return; const fact=(
     +fact('Team balance',x.team_balance?'On':'Off')+fact('Departments',e(x.depts.map(d=>d.name).join(', ')))+fact('Discord server',e([x.discord,x.dc_members!=null?n(x.dc_members)+' members':'',x.dc_online!=null?n(x.dc_online)+' online':''].filter(Boolean).join(' · ')))+'</div><div class="xr-a">'+acts(x)+'</div>'+(x.role==='owner'?'':'<button type="button" class="xd-rep" data-report="'+e(x.slug)+'">Report this server</button>');
   dlg.showModal(); requestAnimationFrame(()=>dlg.classList.add('in')); };
 document.addEventListener('click',async ev=>{
+  if(!ME&&ev.target.closest('[data-vote],[data-report],[data-joincad]')){ ev.preventDefault(); ev.stopPropagation(); location.href='/?next=/explore'; return; }
   const v=ev.target.closest('[data-vote]'); if(v){ ev.preventDefault(); ev.stopPropagation(); const x=S.find(s=>s.slug===v.dataset.vote); if(!x) return;
     if(x.next_vote>0) return toast('You can vote for '+x.name+' again in '+hrs(x.next_vote)+'.');
     v.disabled=true; try{ const j=await api('/api/explore/vote',{slug:x.slug}); x.votes=j.votes; x.next_vote=j.next_vote; x.week++; toast('Thanks for voting for '+x.name+'!'); }catch(err){ toast(err.message); } render(); if(dlg.open) open(x.slug); return; }

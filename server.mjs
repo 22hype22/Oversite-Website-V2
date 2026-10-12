@@ -179,8 +179,8 @@ const legacyKey = id => { if (existsSync(LEGACY_KEY) && !communities.all().some(
 const origin = req => (process.env.PUBLIC_URL || `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers.host}`).replace(/\/$/, '');
 
 const globalApi = async (req, res, rest) => {
-  const user = auth.currentUser(req); if (!user) return json(res, { error: 'Sign in first.' }, 401);
-  if (rest === 'explore' && req.method === 'GET') return json(res, { servers: profile.directory(user) });
+  const user = auth.currentUser(req); if (rest === 'explore' && req.method === 'GET') return json(res, { servers: profile.directory(user) });   // Explore's live refresh: open to everyone
+  if (!user) return json(res, { error: 'Sign in first.' }, 401);
   // the verification page; anyone else gets a plain not-found
   if (rest.startsWith('admin/') && !isSiteAdmin(user)) return json(res, { error: 'Not found.' }, 404);
   if (rest === 'admin/people' && req.method === 'GET') return json(res, { people: users.search(new URL(req.url, 'http://x').searchParams.get('q')) });   // read-only: the server browser's live refresh
@@ -304,8 +304,9 @@ const route = async (req, res) => {
   if (path === '/' || path === '/dashboard') { const user = auth.currentUser(req); if (stranded(user)) return redirect(res, '/', { 'set-cookie': auth.signOut(req) }); }
   // signed in: straight to your account (or the Roblox link step first); signed out: the sign-in page
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, user.roblox_name ? '/account' : '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
-  if (path === '/explore') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/explore'); if (!user.roblox_name) return redirect(res, '/dashboard?link=%2Fexplore');
-    return page(res, pages.explore({ logo: LOGO, user, servers: profile.directory(user), owned: communities.forUser(user.id).filter(m => m.role === 'owner' || m.role === 'co_owner').map(m => m.slug) })); }
+  // anyone can browse, signed in or not; voting, joining and reporting ask them to sign in
+  if (path === '/explore') { const user = auth.currentUser(req);
+    return page(res, pages.explore({ logo: LOGO, user, servers: profile.directory(user), owned: (user ? communities.forUser(user.id) : []).filter(m => m.role === 'owner' || m.role === 'co_owner').map(m => m.slug) })); }
   if (aboutPage && (m0r = path.match(/^\/s\/([a-z0-9-]{3,32})$/))) { const user = auth.currentUser(req), c = communities.bySlug(m0r[1]);
     const all = profile.directory(user), x = c && all.find(y => y.id === c.id);
     if (!x) return msg(res, user, 'Server not found', 'It may have been taken off Explore, or the address is wrong.', { href: '/explore', label: 'Explore servers' }, 404);
