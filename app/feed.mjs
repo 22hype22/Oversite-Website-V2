@@ -1,6 +1,6 @@
 // One live feed per community: polls that community's ER:LC server as fast as its rate limit allows and fans each answer out
 // to every open dashboard of that community over server-sent events. A feed only runs while someone is watching.
-import { siteSettings, unseal } from './db.mjs';
+import { siteSettings, unseal, dutySince } from './db.mjs';
 const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg';
 const QUERY = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true&JoinLogs=true';
 const QUERY_FAST = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true';   // join logs only change on joins: fetched every 20th request and reused
@@ -53,12 +53,24 @@ export class Feed {
       if (up.status === 429) { this.holdUntil = Date.now() + Math.max(1, +headers['retry-after'] || 30) * 1000; this.penaltyUntil = Date.now() + 180000; this.n429++; this.bcast('err', JSON.stringify({ status: 429, retry_after: +headers['retry-after'] || 30 })); }
       else if (up.ok) { if (seq > this.shown) { this.shown = seq; let out = body;
           if (full) { try { this.joins = JSON.parse(body).JoinLogs || []; } catch (e) {} } else if (this.joins) out = body.replace(/}\s*$/, `,"JoinLogs":${JSON.stringify(this.joins)}}`);
-          out = this.steady(out, taken);
+          out = this.steady(out, taken); if (out) out = this.withDuty(out, taken);
           if (out) { this.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; this.bcast('server', out, taken); if (this.lastEv) this.gapEv = ema(this.gapEv, taken - this.lastEv); this.lastEv = taken;
             if (this.moved) { if (this.lastMove && taken - this.lastMove < 10000) this.moveEv = ema(this.moveEv, taken - this.lastMove); this.lastMove = taken; } } } }
       else { let j = {}; try { j = JSON.parse(body); } catch (e) {} this.bcast('err', JSON.stringify({ status: up.status, ...j })); this.holdUntil = Date.now() + (up.status === 403 || up.status === 401 ? 15000 : 3000); }
     } catch (e) { this.bcast('err', JSON.stringify({ status: 502, message: 'could not reach api.erlc.gg: ' + e.message })); this.holdUntil = Date.now() + 3000; }
     finally { this.inflight--; } }
+  // when each player joined the team they are on now (a team change restarts it; rejoining the server after leaving does too), sent
+  // with every update as OversiteDuty { "Name:id": ms }. Kept in the database, so a reload or restart doesn't zero everyone's clock.
+  withDuty(body, taken) { let j; try { j = JSON.parse(body); } catch (e) { return body; }
+    if (!this.duty) this.duty = new Map(dutySince.all(this.id).map(r => [r.player, r]));
+    const joined = new Map(); for (const l of j.JoinLogs || []) if (l.Join && l.Player) joined.set(l.Player, Math.max(joined.get(l.Player) || 0, l.Timestamp * 1000));
+    const out = {}, dirty = [], flush = taken - (this.dutySaved || 0) > 60000;
+    for (const p of j.Players || []) { if (!p.Player) continue; const team = p.Team || '', jt = joined.get(p.Player) || 0; let r = this.duty.get(p.Player);
+      if (!r || r.team !== team || (jt && jt > r.seen + 5000)) { r = { player: p.Player, team, since: r && r.team !== team ? taken : Math.min(taken, jt || taken), seen: taken }; this.duty.set(p.Player, r); dirty.push(r); }
+      else { r.seen = taken; if (flush) dirty.push(r); }
+      out[p.Player] = r.since; }
+    if (dirty.length) { try { dutySince.save(this.id, dirty); } catch (e) {} if (flush) this.dutySaved = taken; }
+    return body.replace(/}\s*$/, `,"OversiteDuty":${JSON.stringify(out)}}`); }
   // drop answers from an old API cache: a player back at a spot they already left, or (for updates under 2 s apart) suddenly behind a moving car
   steady(body, taken) { this.moved = false; let j; try { j = JSON.parse(body); } catch (e) { return body; } let stale = false; const adds = [];
     for (const p of j.Players || []) { const L = p.Location; if (!L || !Number.isFinite(L.LocationX)) continue; const h = this.hist.get(p.Player) || [], cur = [L.LocationX, L.LocationZ];

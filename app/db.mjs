@@ -282,6 +282,13 @@ export const reviews = {
   remove: id => q('DELETE FROM reviews WHERE id = ?').run(id).changes,
 };
 
+// on duty since: when each player joined the in-game team they are on now, so the CAD's duty clocks survive reloads and restarts
+db.exec(`CREATE TABLE IF NOT EXISTS duty_since (
+  community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, player TEXT NOT NULL, team TEXT NOT NULL, since INTEGER NOT NULL, seen INTEGER NOT NULL, PRIMARY KEY (community_id, player));`);
+export const dutySince = {
+  all: cid => q('SELECT player, team, since, seen FROM duty_since WHERE community_id = ? AND seen > ?').all(cid, now() - 864e5),
+  save: (cid, rows) => { const st = q('INSERT OR REPLACE INTO duty_since (community_id, player, team, since, seen) VALUES (?, ?, ?, ?, ?)'); for (const r of rows) st.run(cid, r.player, r.team, r.since, r.seen); },
+  prune: () => q('DELETE FROM duty_since WHERE seen < ?').run(now() - 864e5) };
 // site-wide settings a site admin sets on /admin, such as Oversite's ER:LC application key (stored sealed)
 db.exec(`CREATE TABLE IF NOT EXISTS site_settings (k TEXT PRIMARY KEY, v TEXT NOT NULL, updated INTEGER NOT NULL);`);
 export const siteSettings = { get: k => q('SELECT v FROM site_settings WHERE k = ?').get(k)?.v || '',

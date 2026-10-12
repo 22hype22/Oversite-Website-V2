@@ -400,7 +400,8 @@ LIVE_JS = r"""<script id="live">
   const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const units = new Map();                     // id -> unit object (kept across polls so timers and 3D cars persist)
   const mph = (dx, dz, dt) => dt > 0 ? Math.hypot(dx, dz) / dt * 0.626 : 0;   // 1 stud = 0.28 m
-  const buildUnits = (players, vehicles, joins, tFix = performance.now() / 1000) => {
+  const starts = new Map();                    // unit -> when it came on duty, kept after it goes, so a unit ER:LC drops for a moment keeps its clock
+  const buildUnits = (players, vehicles, joins, tFix = performance.now() / 1000, duty = null) => {
     const now = Date.now(), ids = new Set();
     const joinAt = {}; for (const j of joins || []) if (j.Join) joinAt[j.Player] = Math.max(joinAt[j.Player] || 0, j.Timestamp * 1000);
     const groups = new Map(), R = window.RIDE_WITH || {}, own = new Map();
@@ -412,16 +413,19 @@ LIVE_JS = r"""<script id="live">
     for (const { p, dept, pid, lead } of list) { if (!dept) continue; const cs = (p.Callsign || '').trim(); if (!cs && S.callsignOnly && lead === pid) continue;
       const name = p.Player.split(':')[0]; let id = lead !== pid && own.get(lead); if (!id) id = `${dept}-${slug(cs || name)}`; own.set(pid, id);
       if (!groups.has(id)) groups.set(id, { id, dept, cs, members: [], loc: p.Location, pid });
-      groups.get(id).members.push({ name, pid, perm: p.Permission, join: joinAt[p.Player] }); }
+      groups.get(id).members.push({ name, pid, perm: p.Permission, join: joinAt[p.Player], since: duty && duty[p.Player] }); }
     for (const g of groups.values()) { ids.add(g.id); let u = units.get(g.id);
       const veh = vehicles.find(v => g.members.some(m => m.name === v.Owner));
       const [wx, wy] = g.loc ? toWorldP(g.loc.LocationX, g.loc.LocationZ, g.loc.PostalCode) : [1000, 1000];
       if (!u) { u = { id: g.id, live: true, dept: g.dept, kind: KIND[g.dept], route: 'B', t: 0, dir: 1, speed: 0, x: wx, y: wy, tx: wx, ty: wy, heading: 0, th: 0, mph: 0, sx: g.loc?.LocationX, sz: g.loc?.LocationZ, seen: now,
-          startedAt: Math.min(...g.members.map(m => m.join || now)) }; units.set(g.id, u); motionReset(u, wx, wy, tFix); }
+          startedAt: starts.get(g.id) || Math.min(...g.members.map(m => m.join || now)) }; units.set(g.id, u); motionReset(u, wx, wy, tFix); }
       else if (g.loc) { if (motionFix(u, wx, wy, tFix)) { fixAt = now; u.seen = now; } u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ; u.tx = wx; u.ty = wy; }
       u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.crewIds = g.members.map(m => m.pid); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
+      const ds = g.members.map(m => m.since).filter(Number.isFinite); if (ds.length) u.startedAt = Math.min(...ds);   // the server knows when they came on duty
+      starts.set(g.id, u.startedAt); u.gone = 0;
       u.uid = g.pid; u.model = veh ? veh.Name : 'On foot'; u.postal = g.loc?.PostalCode || ''; u.street = g.loc?.StreetName || ''; }
-    for (const id of [...units.keys()]) if (!ids.has(id)) units.delete(id);
+    for (const [id, u] of [...units]) if (!ids.has(id)) { u.gone = u.gone || now; if (now - u.gone > 15000) units.delete(id); }   // gone for good, not just missing from one answer
+    if (starts.size > 400) for (const id of [...starts.keys()].slice(0, 100)) if (!units.has(id)) starts.delete(id);
     const me = (S.me || '').toLowerCase(); const mine = u => me && u.crew.some(n => n.toLowerCase() === me) ? 0 : 1;
     return [...units.values()].sort((a, b) => mine(a) - mine(b) || a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name));
   };
@@ -458,7 +462,7 @@ LIVE_JS = r"""<script id="live">
   let lastUpdate = 0, updates = 0, source = '', fixAt = 0; const eventTimes = [];                 // fixAt = last time any unit's reported position changed
   const ERR = { 2000: HOSTED ? 'No server key yet. Paste your private server key above, or set ERLC_SERVER_KEY on the server.' : 'No server key sent.', 2001: 'Server key is malformed.', 2002: 'Server key is invalid or expired.', 2004: 'This server key is banned from the API.', 2003: "ER:LC turned down Oversite's application key. This is on our side; it will reconnect shortly.", 2005: "ER:LC needs Oversite's application key to connect this server. This is on our side, not yours.", 3002: 'Server is offline (no players).', 4001: 'Rate limited or blocked.' };
   const handle = (body, rl, src, taken) => { const tFix = fixTime(taken); lastServer = body; lastPlayers = body.Players || []; dispatchEvent(new Event('players')); lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
-    updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs, tFix); publish(lastUnits); pushCalls(body.EmergencyCalls); flyToMe();
+    updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs, tFix, body.OversiteDuty); publish(lastUnits); pushCalls(body.EmergencyCalls); flyToMe();
     const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
     status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
   const paceMs = rl => { let g = 1500; const left = +rl?.left, reset = +rl?.reset;              // spend the API window evenly, never the last two requests
