@@ -585,11 +585,12 @@
   .mdt-dock[data-dept="pd"] .screen{--fd:#4C8DFF;--fd-soft:rgba(76,141,255,.14)}
   .mdt-dock[data-dept="dot"] .screen{--fd:#E9C24C;--fd-soft:rgba(233,194,76,.16)}
   .mdt-dock[data-dept="dot"] .statgrid button[aria-pressed="true"],.mdt-dock[data-dept="dot"] .screen .pill.p1{color:#0B0B0C}
-  .tscreen .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:18px;border-top:1px solid var(--line);flex:none}
-  .tscreen .stat{padding:12px 14px 10px 0}
+  .tscreen .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-top:18px;border-top:1px solid var(--line);flex:none}
+  .tscreen .stat{padding:12px 14px 10px 0;min-width:0}.tscreen .stat small{flex:none;white-space:nowrap}
   .tscreen .stat+.stat{padding-left:14px;border-left:1px solid var(--line)}
   .tscreen .stat small{display:block;font-size:12px;color:var(--mute)}
-  .tscreen .stat b{display:block;font-size:19px;font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tscreen .stat b{display:block;min-width:0;flex:0 1 auto;font-size:19px;font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tscreen .stat.appst{flex-direction:column;align-items:stretch;justify-content:flex-end;gap:2px}.tscreen .stat b#fdApparatus{font-size:15px;margin-top:0}   /* the vehicle name gets the box's whole width */
   .screen .rows{padding:0}
   .app{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:13px}
   .app i{display:none}
@@ -1292,7 +1293,7 @@
             <div class="stats">
               <div class="stat"><small>On duty</small><b id="fdDuty">0:00</b></div>
               <div class="stat"><small>Calls today</small><b id="fdCallsToday">0</b></div>
-              <div class="stat"><small>Apparatus</small><b id="fdApparatus">Pierce Engine</b></div>
+              <div class="stat appst"><small>Apparatus</small><b id="fdApparatus">Pierce Engine</b></div>
               <div class="stat"><small>Pending calls</small><b id="fdPending">0</b></div>
             </div>
             <span id="fdAssigned" hidden></span>
@@ -2060,7 +2061,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       const cur = (window.RIDE_WITH || {})[myRid] || '', k = mates.map(m => m.join(':')).join('|') + '#' + cur;
       if (sel && sel.dataset.k !== k) { sel.dataset.k = k; const has = mates.some(m => m[0] === cur);
         sel.innerHTML = '<option value="">' + (mates.length ? 'Nobody (my own unit)' : 'No teammates on duty') + '</option>' + mates.map(([id, n]) => `<option value="${esc(id)}"${id === cur ? ' selected' : ''}>${esc(n)}</option>`).join('') + (cur && !has ? '<option value="' + esc(cur) + '" selected>Teammate (off duty)</option>' : '');
-        sel.disabled = !O.api || !/^\d+$/.test(myRid) || (!mates.length && !cur); } } $('fdApparatus').textContent = u.model || 'Engine';
+        sel.disabled = !O.api || !/^\d+$/.test(myRid) || (!mates.length && !cur); } } $('fdApparatus').textContent = u.model || 'Engine'; $('fdApparatus').title = u.model || '';   // long vehicle names end in … ; the full name on hover
     const pill = $('fdStatusPill'); pill.textContent = myStatus; pill.className = 'pill st ' + stClass(myStatus);
     for (const b of $('fdStatus').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.st === myStatus);
     const mine = CALLS().find(c => onIt(c, u.name)); $('fdAssigned').textContent = mine ? `${mine.code}, ${mine.where}` : 'None';
