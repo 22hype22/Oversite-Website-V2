@@ -6,11 +6,11 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, RESERVED, token } from './app/db.mjs';
+import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, siteSettings, seal, RESERVED, token } from './app/db.mjs';
 import { serverPage } from './app/serverpage.mjs';
 import * as voice from './app/voice.mjs';
 import { voicePage } from './app/voicepage.mjs';
-import { Feed, testKey, NOKEY } from './app/feed.mjs';
+import { Feed, testKey, NOKEY, appKey, appId, appKeyChanged, authLink, erlcHeaders } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
 import * as staff from './app/staff.mjs';
@@ -183,6 +183,15 @@ const globalApi = async (req, res, rest) => {
   if (rest.startsWith('admin/') && !isSiteAdmin(user)) return json(res, { error: 'Not found.' }, 404);
   if (rest === 'admin/people' && req.method === 'GET') return json(res, { people: users.search(new URL(req.url, 'http://x').searchParams.get('q')) });   // read-only: the server browser's live refresh
   if (req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
+  // Oversite's ER:LC application (needed to serve more than one server): its Global API Key, sealed, and its App ID; then a live check
+  if (rest === 'admin/erlc-app' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req);
+    const k = String(j.key || '').trim(), id = String(j.appId || '').trim();
+    if (id && !/^\d{1,30}$/.test(id)) return json(res, { error: 'The App ID is the number under your app\'s name on the ER:LC dashboard.' }, 400);
+    if (k && (k.length < 16 || k.length > 400 || /\s/.test(k))) return json(res, { error: 'That does not look like a Global API Key. Copy it again from the ER:LC dashboard.' }, 400);
+    if (k) siteSettings.set('erlc_app_key', seal(k)); if (id) siteSettings.set('erlc_app_id', id); if (j.clear) { siteSettings.set('erlc_app_key', ''); siteSettings.set('erlc_app_id', ''); } appKeyChanged();
+    console.log(`erlc app: ${user.discord_id} ${j.clear ? 'cleared' : 'updated'} the application settings`);
+    return json(res, await erlcAppStatus(true)); }
+  if (rest === 'admin/erlc-app' && req.method === 'GET') return json(res, await erlcAppStatus(true));
   if (rest === 'admin/verify' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), id = Number(j.id);
     const n = j.kind === 'server' ? communities.setVerified(id, !!j.on) : j.kind === 'user' ? users.setVerified(id, !!j.on) : 0;
     if (!n) return json(res, { error: 'Not found.' }, 404); console.log(`verify: ${user.discord_id} set ${j.kind} ${id} ${j.on ? 'on' : 'off'}`); return json(res, { ok: true }); }
@@ -259,6 +268,12 @@ const globalApi = async (req, res, rest) => {
 export const REPORT_REASONS = { name: 'Inappropriate name', icon: 'Inappropriate icon', bio: 'Inappropriate bio', fake: 'Fake or misleading', other: 'Something else' };
 const REVIEW_REASON = 'Review';
 // a listed, visible server and its reviews, as the server page shows them
+// is the application key set, and does ER:LC accept it? (checked against a connected server, as a normal read)
+const erlcAppStatus = async live => { const out = { hasKey: !!appKey(), fromEnv: !!(process.env.ERLC_API_KEY || '').trim(), appId: appId(), check: '' };
+  if (!live || !out.hasKey) return out; const c = communities.all().find(x => x.erlc_key); const key = c && communities.key(c.id); if (!key) { out.check = 'No server is connected yet to test with.'; return out; }
+  try { const r = await fetch((process.env.ERLC_UPSTREAM || 'https://api.erlc.gg') + '/v2/server', { headers: erlcHeaders(key) }), j = await r.json().catch(() => ({}));
+    out.ok = r.ok; out.check = r.ok ? 'ER:LC accepts the key.' : j.code === 2003 ? 'ER:LC says this Global API Key is invalid. Copy it again, or regenerate it.' : `ER:LC answered ${r.status}${j.message ? ': ' + j.message : ''}`; out.bucket = r.headers.get('x-ratelimit-bucket') || ''; }
+  catch (e) { out.check = 'Could not reach ER:LC right now.'; } return out; };
 const visible = slug => { const c = communities.bySlug(String(slug || '')); return c && !c.settings.profile?.unlisted && !c.hidden && !c.suspended ? c : null; };
 const reviewList = cid => reviews.forServer(cid).map(r => ({ id: r.id, user_id: r.user_id, rating: r.rating, body: r.body, created: r.created, updated: r.updated, reply: r.reply, reply_name: r.reply_name || '', reply_verified: !!r.reply_verified, roblox_name: r.roblox_name, roblox_id: r.roblox_id, verified: !!r.verified }));
 const runsServer = (cid, uid) => ['owner', 'co_owner'].includes(members.role(cid, uid));
@@ -304,7 +319,7 @@ const route = async (req, res) => {
     const me = user ? { id: user.id, owner: own, admin: isSiteAdmin(user), can: !!user.roblox_name && !own, why: !user.roblox_name ? 'Link your Roblox account to write a review.' : own ? 'Reviews are from players. You can reply to any review below.' : '' } : null;
     return page(res, serverPage({ logo: LOGO, user, x, medals, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me })); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
-    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON } })); }
+    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false) })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/(c\/)?[a-z0-9-]{3,32}$/.test(from) ? from : null;
     return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }
@@ -385,7 +400,7 @@ const route = async (req, res) => {
     if (sub === '/voice') return page(res, voicePage({ logo: LOGO, user, c, settings: voice.voiceSettings(c), keyOk: !!communities.key(c.id), embed: url.searchParams.has('embed') }));
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null })); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null })); }
     return msg(res, user, 'Not found', 'That page does not exist.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
   return serve(req, res, path); };

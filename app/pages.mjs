@@ -189,6 +189,7 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .srv .ic:has(img),.vc-p .av:has(img),.xr-ic:has(img),.sv-ic:has(img),.adm-r .pic:has(img),.rv-av:has(img),.prof .pic:has(img),.sp-icon:has(img){color:transparent}.sp-icon:has(img) i{color:var(--ink)}
 .vb{display:inline-block;vertical-align:-2px;margin-left:6px;flex:none}
 .adm{max-width:1080px}.adm h1{margin:0 0 4px}.adm .lead{margin:0 0 22px}
+.adm-app{margin-bottom:18px}.auth-cmd{display:flex;align-items:center;gap:14px;margin-top:16px;padding:12px 14px;border:1px solid var(--line, rgba(255,255,255,.1));border-radius:12px}.auth-cmd>div{flex:1}.adm-af{display:grid;grid-template-columns:1fr 160px auto;gap:10px;margin-top:12px}.adm-af input{margin:0}@media (max-width:700px){.adm-af{grid-template-columns:1fr}}
 .adm-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}.adm-cols .card+.card{margin-top:0}
 .adm-h{display:flex;align-items:center;gap:10px;margin:0 0 12px}.adm-h h2{margin:0;font-size:17px}.adm-h span{margin-left:auto;font-size:12px;color:var(--faint)}
 .adm-q{width:100%;margin:0 0 10px}
@@ -330,13 +331,19 @@ const tl=[...document.querySelectorAll('.lg-toc a')];const io=new IntersectionOb
 ` }); };
 
 // Site admins only (see admins.mjs): reports from Explore, the blue check, and moderation of servers and people.
-export const admin = ({ logo, user, servers, reports, reasons }) => layout({ title: 'Moderation · Oversite', logo, user, body: `
+export const admin = ({ logo, user, servers, reports, reasons, app = {} }) => layout({ title: 'Moderation · Oversite', logo, user, body: `
 <main class="adm"><h1>Moderation</h1><p class="lead">Reports from Explore, the blue check ${vbadge(18)} and suspensions. Only site admins can see this page.</p>
+<section class="card adm-app"><div class="adm-h"><h2>ER:LC application</h2><span id="aS">${app.hasKey ? (app.fromEnv ? 'Key set in Railway' : 'Key saved') + (app.appId ? ' · App ID ' + esc(app.appId) : ' · no App ID') : 'Not set up'}</span></div>
+<p class="note">ER:LC only lets Oversite serve more than one server as a registered application. Create it once at <a href="https://api.erlc.gg/developers/applications" target="_blank" rel="noopener">api.erlc.gg/developers/applications</a> (privacy policy ${esc('https://www.oversitescad.com/privacy')}, terms ${esc('https://www.oversitescad.com/terms')}), then paste its Global API Key and App ID here. The key is stored encrypted and never shown again. The App ID gives every server owner a one-click link to let Oversite run staff commands.</p>
+<form id="aF" autocomplete="off" class="adm-af"><input id="aK" type="password" placeholder="${app.hasKey ? 'Paste a new Global API Key to replace it' : 'Global API Key'}" aria-label="Global API Key"><input id="aI" inputmode="numeric" placeholder="App ID" value="${esc(app.appId || '')}" aria-label="App ID"><button class="btn pri">Save and test</button></form><p class="msg" id="aM"></p></section>
 <section class="card adm-rep"><div class="adm-h"><h2>Reports</h2><span id="rN"></span></div><div class="adm-l" id="rL"></div></section>
 <div class="adm-cols">
 <section class="card"><div class="adm-h"><h2>Servers</h2><span id="sN"></span></div><input class="adm-q" id="sQ" type="search" placeholder="Search servers" aria-label="Search servers" autocomplete="off"><div class="adm-l" id="sL"></div></section>
 <section class="card"><div class="adm-h"><h2>People</h2><span id="pN"></span></div><input class="adm-q" id="pQ" type="search" placeholder="Search by Roblox or Discord name, or ID" aria-label="Search people" autocomplete="off"><div class="adm-l" id="pL"></div></section>
 </div></main>`, script: `
+document.getElementById('aF').addEventListener('submit',async ev=>{ev.preventDefault();const m=document.getElementById('aM'),k=document.getElementById('aK'),i=document.getElementById('aI');m.className='msg';m.textContent='Saving and checking with ER:LC…';
+  try{const r=await fetch('/api/admin/erlc-app',{method:'POST',headers:{'content-type':'application/json','x-oversite':'1'},body:JSON.stringify({key:k.value.trim(),appId:i.value.trim()})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Could not save.');
+    k.value='';m.className='msg '+(j.ok===false?'err':'ok');m.textContent=j.check||'Saved.';document.getElementById('aS').textContent=(j.hasKey?(j.fromEnv?'Key set in Railway':'Key saved'):'Not set up')+(j.appId?' · App ID '+j.appId:' · no App ID')}catch(x){m.className='msg err';m.textContent=x.message}});
 const VB=${JSON.stringify(vbadge(15))},RS=${JSON.stringify(reasons)};let S=${JSON.stringify(servers).replace(/</g, '\\u003c')},R=${JSON.stringify(reports).replace(/</g, '\\u003c')};
 const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ini=t=>e(String(t||'?').slice(0,1).toUpperCase());
@@ -571,7 +578,7 @@ ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord s
 <section class="card"><h2>ER:LC server</h2>
 <p class="note" id="kstat">${keyStatus.connected ? `Connected${keyStatus.name ? ` to <b>${esc(keyStatus.name)}</b>` : ''}. The key is stored encrypted and is never sent to anyone's browser.` : 'Not connected. In ER:LC open your private server settings, find the API section, and copy the server key.'}</p>
 <form id="key" autocomplete="off"><label for="kin">Server key</label><input id="kin" type="password" placeholder="${keyStatus.connected ? 'Paste a new key to replace it' : 'Paste your server key'}" required>
-<div class="row" style="margin-top:12px"><button class="btn pri">${keyStatus.connected ? 'Replace key' : 'Connect server'}</button>${keyStatus.connected && runs(role) ? '<button type="button" class="btn sm danger" id="kdel">Disconnect</button>' : ''}</div><p class="msg" id="kmsg"></p></form></section>
+<div class="row" style="margin-top:12px"><button class="btn pri">${keyStatus.connected ? 'Replace key' : 'Connect server'}</button>${keyStatus.connected && runs(role) ? '<button type="button" class="btn sm danger" id="kdel">Disconnect</button>' : ''}</div><p class="msg" id="kmsg"></p></form>${keyStatus.authorize ? `<div class="auth-cmd"><div><b>Staff commands</b><p class="note" style="margin:2px 0 0">ER:LC asks you to allow Oversite to run in-game commands (kick, ban, announcements) for your server. One click, once.</p></div><a class="btn sm" href="${esc(keyStatus.authorize)}" target="_blank" rel="noopener">Allow staff commands</a></div>` : ''}</section>
 ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.name.slice(0, 1).toUpperCase());
   const fact = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
   const facts = E.at ? [fact('In-game name', esc(E.name || 'Unknown')), fact('Join code', E.join_key ? `<code>${esc(E.join_key)}</code>` : 'None'), fact('Players', E.max ? `${E.players ?? 0} / ${E.max}` : 'Unknown'),

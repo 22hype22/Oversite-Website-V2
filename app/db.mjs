@@ -282,6 +282,10 @@ export const reviews = {
   remove: id => q('DELETE FROM reviews WHERE id = ?').run(id).changes,
 };
 
+// site-wide settings a site admin sets on /admin, such as Oversite's ER:LC application key (stored sealed)
+db.exec(`CREATE TABLE IF NOT EXISTS site_settings (k TEXT PRIMARY KEY, v TEXT NOT NULL, updated INTEGER NOT NULL);`);
+export const siteSettings = { get: k => q('SELECT v FROM site_settings WHERE k = ?').get(k)?.v || '',
+  set: (k, v) => v ? q('INSERT OR REPLACE INTO site_settings (k, v, updated) VALUES (?, ?, ?)').run(k, v, now()) : q('DELETE FROM site_settings WHERE k = ?').run(k) };
 export const rideWith = {
   all: cid => Object.fromEntries(q('SELECT roblox_id, leader FROM ride_with WHERE community_id = ?').all(cid).map(r => [r.roblox_id, r.leader])),
   set: (cid, rid, leader) => leader ? q('INSERT OR REPLACE INTO ride_with (community_id, roblox_id, leader, updated) VALUES (?, ?, ?, ?)').run(cid, rid, leader, now()) : q('DELETE FROM ride_with WHERE community_id = ? AND roblox_id = ?').run(cid, rid) };

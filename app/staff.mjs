@@ -1,6 +1,6 @@
 // Staff tools for one community: a staff view of the ER:LC server (players, mod calls, command and kill logs, bans) and in-game
 // moderation through the API's command endpoint, with every warning, kick and ban written to the community's records.
-import { erlcHeaders } from './feed.mjs';
+import { erlcHeaders, authLink } from './feed.mjs';
 import { staffRecords, staffSent, commandLog, communities, users } from './db.mjs';
 
 // who did something, by the account behind it rather than the name saved at the time: once someone links Roblox their past
@@ -80,6 +80,7 @@ const run = (c, key, command, by) => { const s = of(c.id);
       r = await send(); s.lastCmd = Date.now(); j = {}; try { j = await r.json(); } catch (e) {} }
     if (!r.ok) console.log(`ER:LC command refused for community ${c.id}: ${r.status} ${JSON.stringify(j).slice(0, 300)}`);
     if (r.ok) { if (by) staffSent.add(c.id, command, by); return { ok: true, message: j.message || 'Sent' }; }
+    if (j.code === 4000 || r.status === 401) { const link = authLink(key); return { ok: false, authorize: link, message: link ? 'ER:LC needs the server owner to allow Oversite to run commands first. The owner can do it in one click from Settings, or here: ' + link : 'ER:LC needs the server owner to allow Oversite to run commands for this server.' }; }
     return { ok: false, message: r.status === 422 ? 'The server is offline or empty, so the command could not run.' : (j.message || `ER:LC answered ${r.status}`) };
   });
   s.queue = job.catch(() => {}); return job; };

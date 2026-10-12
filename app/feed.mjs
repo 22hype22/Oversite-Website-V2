@@ -1,5 +1,6 @@
 // One live feed per community: polls that community's ER:LC server as fast as its rate limit allows and fans each answer out
 // to every open dashboard of that community over server-sent events. A feed only runs while someone is watching.
+import { siteSettings, unseal } from './db.mjs';
 const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg';
 const QUERY = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true&JoinLogs=true';
 const QUERY_FAST = '/v2/server?Players=true&Vehicles=true&EmergencyCalls=true';   // join logs only change on joins: fetched every 20th request and reused
@@ -8,8 +9,16 @@ const RL = ['x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset', '
 // ER:LC refuses a service that speaks for several servers unless it is a registered public application sending its Global API Key
 // in the Authorization header (error 2005). Every request carries it next to that server's own key. Its rate limit is one budget
 // shared by every server (bucket "global"), so the live feeds split it between them instead of each spending all of it.
-const APP_KEY = (process.env.ERLC_API_KEY || '').trim();
-export const erlcHeaders = (key, extra = {}) => ({ 'server-key': key, ...(APP_KEY ? { authorization: APP_KEY } : {}), ...extra });
+// The key comes from the ERLC_API_KEY variable, or else from the site admin page (sealed in the database).
+let appCache = { at: 0, key: '' };
+export const appKey = () => { const env = (process.env.ERLC_API_KEY || '').trim(); if (env) return env;
+  if (Date.now() - appCache.at > 5000) appCache = { at: Date.now(), key: unseal(siteSettings.get('erlc_app_key')) }; return appCache.key; };
+export const appKeyChanged = () => { appCache.at = 0; };
+export const appId = () => (process.env.ERLC_APP_ID || siteSettings.get('erlc_app_id') || '').trim();
+export const erlcHeaders = (key, extra = {}) => { const k = appKey(); return { 'server-key': key, ...(k ? { authorization: k } : {}), ...extra }; };
+// a server key is "<secret>-<internal server id>"; with the app's id that makes the link where the owner lets Oversite run in-game commands
+export const authLink = serverKey => { const i = String(serverKey || '').indexOf('-'), sid = i > 0 ? serverKey.slice(i + 1) : '', id = appId();
+  return sid && /^[A-Za-z0-9]+$/.test(sid) && /^\d+$/.test(id) ? `https://api.erlc.gg/server-owners/server/${sid}/authorize/${id}` : ''; };
 const GL = { left: NaN, reset: 0, at: 0 }, ACTIVE = new Set();
 const pickRL = h => { const out = {}; for (const k of RL) if (h.get(k)) out[k] = h.get(k); return out; };
 export const NOKEY = '{"code":2000,"message":"This community has not connected its ER:LC server yet. An admin can add the server key in Settings."}';
