@@ -64,6 +64,10 @@ try { db.exec('ALTER TABLE users ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0
 try { db.exec('ALTER TABLE communities ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
 try { db.exec('ALTER TABLE reviews ADD COLUMN reply_by INTEGER'); } catch (e) {}   // who answered a review (the owner or a co-owner)
 try { db.exec('ALTER TABLE communities ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+// a player's Liberty County license details for the MDT's card reader (ER:LC's API doesn't share them, so the player fills them in once)
+try { db.exec('ALTER TABLE users ADD COLUMN license TEXT'); } catch (e) {}
+// who is signed in to a department's MDT on a server, and at what rank; stays until they sign out
+db.exec('CREATE TABLE IF NOT EXISTS mdt_signin (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, dept TEXT NOT NULL, rank TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (community_id, user_id, dept))');
 db.exec(`CREATE TABLE IF NOT EXISTS reports (
   id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   reason TEXT NOT NULL, details TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL, resolved INTEGER, outcome TEXT);
@@ -293,6 +297,13 @@ export const dutySince = {
 db.exec(`CREATE TABLE IF NOT EXISTS site_settings (k TEXT PRIMARY KEY, v TEXT NOT NULL, updated INTEGER NOT NULL);`);
 export const siteSettings = { get: k => q('SELECT v FROM site_settings WHERE k = ?').get(k)?.v || '',
   set: (k, v) => v ? q('INSERT OR REPLACE INTO site_settings (k, v, updated) VALUES (?, ?, ?)').run(k, v, now()) : q('DELETE FROM site_settings WHERE k = ?').run(k) };
+export const licenses = {
+  get: uid => { try { return JSON.parse(q('SELECT license FROM users WHERE id = ?').get(uid)?.license || '{}') || {}; } catch (e) { return {}; } },
+  set: (uid, o) => q('UPDATE users SET license = ? WHERE id = ?').run(JSON.stringify(o), uid) };
+export const mdtSignin = {
+  mine: (cid, uid) => Object.fromEntries(q('SELECT dept, rank FROM mdt_signin WHERE community_id = ? AND user_id = ?').all(cid, uid).map(r => [r.dept, r.rank])),
+  set: (cid, uid, dept, rank) => q('INSERT INTO mdt_signin (community_id, user_id, dept, rank, at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(community_id, user_id, dept) DO UPDATE SET rank = excluded.rank, at = excluded.at').run(cid, uid, dept, rank, now()),
+  out: (cid, uid, dept) => q('DELETE FROM mdt_signin WHERE community_id = ? AND user_id = ? AND dept = ?').run(cid, uid, dept) };
 export const rideWith = {
   all: cid => Object.fromEntries(q('SELECT roblox_id, leader FROM ride_with WHERE community_id = ?').all(cid).map(r => [r.roblox_id, r.leader])),
   set: (cid, rid, leader) => leader ? q('INSERT OR REPLACE INTO ride_with (community_id, roblox_id, leader, updated) VALUES (?, ?, ?, ?)').run(cid, rid, leader, now()) : q('DELETE FROM ride_with WHERE community_id = ? AND roblox_id = ?').run(cid, rid) };

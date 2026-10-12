@@ -535,6 +535,56 @@
   .tuser{margin-top:auto;display:flex;align-items:center;gap:9px;padding:10px 12px 0;border-top:1px solid var(--line)}
   .tuser i{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;font-weight:600;color:#E9EAEC;background:#2A2C31}
   .tuser small{font-size:12px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* your name at the bottom of the sidebar opens your MDT menu: status, account, lock, sign out */
+  .tside{position:relative}
+  button.tuser{width:100%;background:none;border:0;border-top:1px solid var(--line);font:inherit;text-align:left;cursor:pointer;padding:10px 6px 4px 8px;border-radius:0 0 8px 8px;transition:background .15s}
+  button.tuser:hover,button.tuser[aria-expanded="true"]{background:rgba(255,255,255,.05)}button.tuser:hover small,button.tuser[aria-expanded="true"] small{color:#E9EAEC}
+  button.tuser svg{margin-left:auto;flex:none;color:var(--mute);transition:transform .2s}button.tuser[aria-expanded="true"] svg{transform:rotate(180deg)}
+  .tmenu{position:absolute;left:10px;bottom:56px;width:240px;padding:6px;border-radius:10px;background:#16171B;border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 40px rgba(0,0,0,.55);z-index:8;
+    transform-origin:bottom left;transform:translateY(6px) scale(.97);opacity:0;visibility:hidden;transition:opacity .15s,transform .18s cubic-bezier(.2,.8,.2,1),visibility 0s .18s}
+  .tmenu.open{opacity:1;transform:none;visibility:visible;transition:opacity .15s,transform .18s cubic-bezier(.2,.8,.2,1),visibility 0s}
+  .tmenu .tm-h{display:flex;align-items:center;gap:10px;padding:8px 8px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+  .tmenu .tm-h i{width:34px;height:34px;flex:none;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:600;background:#2A2C31}
+  .tmenu .tm-h i img{width:100%;height:100%;object-fit:cover}
+  .tmenu .tm-h b{display:block;font-size:13px;color:#E9EAEC}.tmenu .tm-h small{display:block;font-size:11.5px;color:var(--mute)}
+  .tmenu button,.tmenu a{width:100%;display:flex;align-items:center;gap:10px;padding:8px;border:0;border-radius:7px;background:none;color:#E9EAEC;font:13px inherit;font-family:inherit;text-align:left;cursor:pointer;text-decoration:none}
+  .tmenu button:hover,.tmenu a:hover,.tmenu button:focus-visible,.tmenu a:focus-visible{background:rgba(255,255,255,.07);outline:none}
+  .tmenu small.r{margin-left:auto;font-size:11px;color:var(--mute);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tmenu hr{border:0;border-top:1px solid var(--line);margin:4px 0}.tmenu .tm-out{color:#FF8A82}
+  /* the MDT locks until you sign in: tap your license on the reader, pick your rank, type a password */
+  .screen.locked .tbody{display:none}
+  .tlock{flex:1;min-height:0;display:grid;grid-template-columns:1.12fr 1fr;border-top:1px solid var(--line)}
+  .tl-rd{position:relative;overflow:hidden;border-right:1px solid var(--line);background:#0A0B0C}
+  .tl-h{position:absolute;left:18px;right:18px;top:12px;display:flex;justify-content:space-between;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mute);z-index:2}
+  .tl-pad{position:absolute;left:50%;top:50%;width:min(300px,76%);aspect-ratio:300/190;transform:translate(-50%,-50%);border-radius:12px;border:1px dashed rgba(255,255,255,.16);display:grid;place-items:center}
+  .tl-rings{position:relative;width:90px;height:90px}
+  .tl-rings i{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--fd);opacity:0;animation:tlRing 2.4s ease-out infinite}
+  .tl-rings i:nth-child(2){animation-delay:.8s}.tl-rings i:nth-child(3){animation-delay:1.6s}.tl-rings b{position:absolute;inset:32px;border-radius:50%;background:var(--fd)}
+  @keyframes tlRing{from{transform:scale(.35);opacity:.9}to{transform:scale(1.25);opacity:0}}
+  .tl-card{position:absolute;left:50%;top:50%;width:400px;height:250px;margin:-125px 0 0 -200px;transform:scale(var(--ks,1))}
+  .tl-card .lcard{transform:translateY(130%) rotate(-5deg);transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+  .tl-card.in .lcard{transform:none}
+  .tl-msg{position:absolute;left:12px;right:12px;bottom:12px;text-align:center;font-size:12.5px;color:var(--mute)}
+  .tl-msg.ok{color:#46D07C}.tl-msg a{color:#E9EAEC}
+  .tl-si{display:flex;flex-direction:column;gap:12px;padding:16px 20px;min-width:0;overflow-y:auto}
+  .tl-step{display:grid;grid-template-columns:18px 1fr;gap:4px 10px}
+  .tl-step>i{font:500 11px ui-monospace,SFMono-Regular,Menlo,monospace;font-style:normal;color:#5B5F66;padding-top:1px}
+  .tl-step h5{margin:0;font-size:12px;font-weight:600;color:var(--mute)}.tl-step .c{grid-column:2;min-width:0}
+  .tl-step.on>i,.tl-step.on h5,.tl-step.done>i,.tl-step.done h5{color:#E9EAEC}
+  .tl-who{font-size:12.5px;color:#5B5F66}.tl-who b{color:#E9EAEC;font-weight:600}
+  .tl-ranks{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .tl-rk{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--mute);font:12px inherit;font-family:inherit;text-align:left;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+  .tl-rk:hover{color:#E9EAEC}.tl-rk[aria-pressed="true"]{border-color:var(--fd);background:var(--fd-soft);color:#E9EAEC}
+  .tl-rk s{width:3px;height:10px;border-radius:1px;background:#C9A54A;text-decoration:none}.tl-rk s:first-of-type{margin-left:auto}
+  .tl-ranks.off{opacity:.4;pointer-events:none}
+  .tl-pw{width:100%;height:34px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14);color:#E9EAEC;padding:0 10px;font:15px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.15em;outline:none}
+  .tl-pw:focus{border-color:var(--fd)}.tl-pw::placeholder{letter-spacing:0;font-size:12px;color:#5B5F66}.tl-pw:disabled{opacity:.4}
+  .tl-note{font-size:11px;color:#5B5F66;margin-top:4px}
+  .tl-go{margin-top:auto;height:38px;border:0;border-radius:6px;background:var(--fd);color:#fff;font:600 13px inherit;font-family:inherit;cursor:pointer;transition:opacity .2s,transform .12s}
+  .tl-go:disabled{opacity:.4;cursor:default}.tl-go:active:not(:disabled){transform:scale(.98)}
+  .tl-st{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mute);min-height:16px}.tl-st.bad{color:#FF8A82}
+  @media (max-width:760px){.tlock{grid-template-columns:1fr;grid-template-rows:minmax(190px,42%) 1fr}.tl-rd{border-right:0;border-bottom:1px solid var(--line)}}
+  @media (prefers-reduced-motion:reduce){.tl-rings i{animation:none}.tl-card .lcard{transition:none}}
   .tscreens{flex:1;min-height:0;position:relative}
   .tscreen{position:absolute;inset:0;overflow-y:auto;padding:8px 24px 20px;display:none;scrollbar-width:none}
   .tscreen::-webkit-scrollbar{display:none}
@@ -973,6 +1023,7 @@
   .loading.off{opacity:0}
 </style>
 <script src="/dropdown.js?v=1" defer></script>
+<script src="/license-card.js?v=1" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
   .mtabs{display:none}
@@ -1265,6 +1316,15 @@
     <span class="cam"></span>
     <div class="screen">
       <div class="sbar"><span id="tbClock">00:00</span><span class="sb-mid" id="tbDept">Fire Department</span><span class="sb-r"><svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="3" y="4" width="2" height="6" rx=".5"/><rect x="6" y="2" width="2" height="8" rx=".5"/><rect x="9" y="0" width="2" height="10" rx=".5"/></svg><svg width="22" height="10" viewBox="0 0 22 10" fill="none" stroke="currentColor"><rect x=".5" y=".5" width="18" height="9" rx="2.5"/><rect x="2" y="2" width="13" height="6" rx="1.2" fill="currentColor" stroke="none"/><path d="M20 3.5v3" stroke-width="1.5"/></svg></span></div>
+      <div class="tlock" id="tLock" hidden>
+        <div class="tl-rd" id="tlRd"><div class="tl-h"><span>CARD READER</span><span id="tlState">READY</span></div><div class="tl-pad" id="tlPad"><div class="tl-rings"><i></i><i></i><i></i><b></b></div></div><div class="tl-card" id="tlCard"></div><div class="tl-msg" id="tlMsg">Hold your license to the reader</div></div>
+        <form class="tl-si" id="tlForm" autocomplete="off">
+          <div class="tl-step on" id="tlS1"><i>1</i><h5>License</h5><div class="c tl-who" id="tlWho">Reading your card…</div></div>
+          <div class="tl-step" id="tlS2"><i>2</i><h5>Rank</h5><div class="c"><div class="tl-ranks off" id="tlRanks"></div></div></div>
+          <div class="tl-step" id="tlS3"><i>3</i><h5>Password</h5><div class="c"><input class="tl-pw" id="tlPw" type="password" autocomplete="off" aria-label="Password" placeholder="Password" disabled><div class="tl-note">Roleplay only: type anything. It isn't saved or sent anywhere.</div></div></div>
+          <button class="tl-go" id="tlGo" type="submit" disabled>Sign in</button><div class="tl-st" id="tlSt" role="status"></div>
+        </form>
+      </div>
       <div class="tbody">
         <nav class="tside" role="tablist" aria-label="MDT apps">
           <div class="crest" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 1-3s0 2 2 2c1 0 2-1 2-3 0-2-2-3-2-6 0 0 2 0 2 0z"/></svg>MDT</div>
@@ -1273,7 +1333,8 @@
           <button role="tab" data-pane="units" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17V8h11l4 4h3v5h-2M3 17h2m4 0h6"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg><span>Units</span></button>
           <button role="tab" data-pane="map" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg><span>Map</span></button>
           <button role="tab" data-pane="reports" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>Reports</span></button>
-          <div class="tuser" aria-hidden="true"><i id="tuserAv">MJ</i><small id="tuserName">marlowe_j</small></div>
+          <div class="tmenu" id="tMenu" role="menu" aria-label="Your MDT"></div>
+          <button type="button" class="tuser" id="tuserBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="tMenu"><i id="tuserAv">MJ</i><small id="tuserName">marlowe_j</small><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
         </nav>
         <div class="tscreens">
           <section class="tscreen on" data-pane="home">
@@ -2201,7 +2262,65 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     else if (mine) msg = `On scene at ${mine.where}. Clear the call when finished.`;
     else if (pend.length) { const c = pend.sort((a, b) => a.pri - b.pri)[0]; const d = Math.hypot(u.x - c.x, u.y - c.y) / 1609 * 1.2; msg = `Unassigned P${c.pri} ${c.code} at ${c.where}, ${d.toFixed(1)} mi away.`; }
     $('fdAssistText').textContent = msg; const b = $('tnavCalls'); b.hidden = !pend.length; b.textContent = pend.length; };
-  addEventListener('calls', assist); addEventListener('mdt', e => { if (e.detail) { applyDept(); if (!LOG.length) logIt('Logged on, 10-8'); renderUnit(); renderApp(); renderCalls(); renderReports(); assist(); } });
+  // ── signing in: the MDT stays locked until you tap your license, pick your rank and type a password (roleplay; never saved or sent) ──
+  const OVS = window.OVERSITE, LOCKS = !!(OVS && OVS.ranks), screen = document.querySelector('#mdt .screen'), signed = { ...(OVS?.mdt || {}) };
+  const LK = 'oversite.mdtlock.' + (OVS?.slug || ''), locked = new Set(); try { JSON.parse(sessionStorage.getItem(LK) || '[]').forEach(d => locked.add(d)); } catch (e) {}
+  const saveLocks = () => { try { sessionStorage.setItem(LK, JSON.stringify([...locked])); } catch (e) {} };
+  const lastRank = d => { try { return localStorage.getItem('oversite.rank.' + d) || ''; } catch (e) { return ''; } };
+  const isLocked = d => LOCKS && (!signed[d] || locked.has(d));
+  let lic = null, lockRun = 0, pick = '';
+  const loadLic = () => lic || (lic = fetch('/api/me/license', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))).then(j => j);
+  const myTeam = () => { const P = window.live?.players ? window.live.players() : [], n = (OVS?.me || '').toLowerCase(); return (P.find(p => (p.Player || '').split(':')[0].toLowerCase() === n) || {}).Team || ''; };
+  const DEF_OCC = { fd: 'Firefighter', pd: 'Police Officer', dot: 'DOT Worker' };
+  const fitCard = () => { const rd = $('tlRd'), card = $('tlCard'); if (!rd || !card) return; card.style.setProperty('--ks', Math.min(1, (rd.clientWidth - 36) / 400, (rd.clientHeight - 80) / 250).toFixed(3)); };
+  new ResizeObserver(fitCard).observe($('tlRd'));
+  const showLock = async () => { const d = DEPT(), run = ++lockRun, wait = ms => new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms)), live = () => run === lockRun && !$('tLock').hidden;
+    closeMenu(); screen.classList.add('locked'); $('tLock').hidden = false; fitCard();
+    pick = signed[d] || lastRank(d); $('tlRanks').innerHTML = (OVS.ranks[d] || []).map(([n, m]) => `<button type="button" class="tl-rk" data-r="${esc(n)}" aria-pressed="${n === pick}">${esc(n)}${'<s></s>'.repeat(m)}</button>`).join('');
+    $('tlRanks').classList.add('off'); $('tlPw').value = ''; $('tlPw').disabled = true; $('tlGo').disabled = true; $('tlSt').textContent = ''; $('tlSt').className = 'tl-st';
+    ['tlS1', 'tlS2', 'tlS3'].forEach((id, i) => { $(id).className = 'tl-step' + (i ? '' : ' on'); });
+    $('tlState').textContent = 'READY'; $('tlPad').style.visibility = ''; $('tlMsg').className = 'tl-msg'; $('tlMsg').textContent = locked.has(d) && signed[d] ? 'MDT locked. Tap your license to unlock.' : 'Hold your license to the reader';
+    $('tlWho').textContent = 'Waiting for your card';
+    const L = await loadLic(); if (!live()) return; const team = myTeam();
+    $('tlCard').className = 'tl-card'; $('tlCard').innerHTML = window.LicenseCard ? window.LicenseCard.html({ ...L, occ: (window.LicenseCard.occ(team)) || DEF_OCC[d] || '' }) : '';
+    await wait(500); if (!live()) return; $('tlCard').classList.add('in'); await wait(850); if (!live()) return;
+    const card = $('tlCard').querySelector('.lcard'); $('tlState').textContent = 'READING'; $('tlMsg').textContent = 'Reading…'; card?.classList.add('reading'); await wait(1500); if (!live()) return;
+    card?.classList.add('ok'); $('tlState').textContent = 'OK'; $('tlPad').style.visibility = 'hidden'; $('tlMsg').className = 'tl-msg ok';
+    $('tlMsg').innerHTML = L.saved ? 'License verified' : `License verified · <a href="/account?from=${encodeURIComponent('/' + OVS.slug)}#license">fill in your license details</a>`;
+    $('tlS1').className = 'tl-step done'; $('tlWho').innerHTML = `<b>@${esc(L.user || OVS.me || '')}</b>${L.display && L.display !== L.user ? ' · ' + esc(L.display) : ''}`;
+    $('tlS2').className = 'tl-step on'; $('tlRanks').classList.remove('off'); if (pick) { $('tlS3').className = 'tl-step on'; $('tlPw').disabled = false; $('tlPw').focus({ preventScroll: true }); }
+    else $('tlRanks').querySelector('.tl-rk')?.focus({ preventScroll: true });
+    syncGo(); };
+  const syncGo = () => { $('tlGo').disabled = !pick || $('tlPw').disabled || $('tlPw').value.length < 1; };
+  const hideLock = () => { ++lockRun; screen.classList.remove('locked'); $('tLock').hidden = true; };
+  $('tlRanks').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (!b) return; pick = b.dataset.r;
+    for (const x of $('tlRanks').children) x.setAttribute('aria-pressed', x === b); $('tlS3').className = 'tl-step on'; $('tlPw').disabled = false; $('tlPw').focus(); syncGo(); });
+  $('tlPw').addEventListener('input', syncGo);
+  $('tlForm').addEventListener('submit', async e => { e.preventDefault(); if ($('tlGo').disabled) return; const d = DEPT(), st = $('tlSt'); $('tlGo').disabled = true; st.className = 'tl-st'; st.textContent = 'Checking password…';
+    try { const r = await fetch(OVS.api + '/mdt/signin', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d, rank: pick }) }), j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Could not sign in.');
+      const u = me(); st.textContent = `Linking ${u ? u.name : 'your unit'}…`; await new Promise(res => setTimeout(res, 500));
+      const was = locked.has(d) && signed[d] === pick; signed[d] = pick; locked.delete(d); saveLocks(); try { localStorage.setItem('oversite.rank.' + d, pick); } catch (x) {}
+      $('tlPw').value = ''; hideLock(); logIt(was ? `Unlocked MDT, ${pick}` : `Signed on as ${pick}, 10-8`); renderUnit(); renderApp(); }
+    catch (x) { st.className = 'tl-st bad'; st.textContent = x.message || 'Could not sign in.'; $('tlGo').disabled = false; } });
+  // your name opens your MDT menu
+  const menu = $('tMenu'), ubtn = $('tuserBtn');
+  const closeMenu = () => { menu.classList.remove('open'); ubtn.setAttribute('aria-expanded', 'false'); };
+  const openMenu = () => { const d = DEPT(), u = me(), status = (u && unitStatus[u.name]) || '10-8';
+    menu.innerHTML = `<div class="tm-h"><i>${$('tuserAv').innerHTML}</i><div><b>${esc(OVS?.me || $('tuserName').textContent)}</b><small>${esc([signed[d], u && u.name].filter(Boolean).join(' · ') || DEPT_NAME[d])}</small></div></div>
+      <button type="button" role="menuitem" data-m="status">Status<small class="r">${esc(status)}</small></button>
+      ${OVS ? `<a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}">Account settings</a><a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}#license">Your license</a>` : ''}
+      ${LOCKS ? '<button type="button" role="menuitem" data-m="lock">Lock MDT</button><hr><button type="button" role="menuitem" class="tm-out" data-m="out">Sign out</button>' : ''}`;
+    menu.classList.add('open'); ubtn.setAttribute('aria-expanded', 'true'); menu.querySelector('[role="menuitem"]')?.focus({ preventScroll: true }); };
+  ubtn.addEventListener('click', () => menu.classList.contains('open') ? closeMenu() : openMenu());
+  document.addEventListener('pointerdown', e => { if (menu.classList.contains('open') && !e.target.closest('#tMenu,#tuserBtn')) closeMenu(); });
+  menu.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); ubtn.focus(); } });
+  menu.addEventListener('click', async e => { const m = e.target.closest('[data-m]')?.dataset.m; if (!m) return; const d = DEPT(); closeMenu();
+    if (m === 'status') { showPane && showPane('home'); return; }
+    if (m === 'lock') { locked.add(d); saveLocks(); logIt('Locked MDT'); showLock(); return; }
+    if (m === 'out') { try { await fetch(OVS.api + '/mdt/signout', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d }) }); } catch (x) {}
+      logIt(`Signed off${signed[d] ? ', ' + signed[d] : ''}`); delete signed[d]; locked.delete(d); saveLocks(); showLock(); } });
+  addEventListener('calls', assist); addEventListener('mdt', e => { if (!e.detail) { closeMenu(); return; } applyDept(); if (isLocked(DEPT())) showLock(); else { hideLock(); if (!LOG.length) logIt(signed[DEPT()] ? `Signed on as ${signed[DEPT()]}, 10-8` : 'Logged on, 10-8'); } renderUnit(); renderApp(); renderCalls(); renderReports(); assist(); });
   addEventListener('units', () => { if (document.body.classList.contains('mdt-open')) { applyDept(); renderUnit(); renderApp(); renderCalls(); } });
   setInterval(() => { if (!document.body.classList.contains('mdt-open')) return; const mu = me(); if (mu && mu.heading != null) { const deg = ((mu.heading * 180 / Math.PI) + 90 + 360) % 360; $('fdHeading').textContent = `${Math.round(deg)}° ${['N','NE','E','SE','S','SW','W','NW'][Math.round(deg / 45) % 8]}`; $('fdPostal').textContent = mu.postal ? 'Postal ' + mu.postal : 'Liberty County'; } const u = me(); if (u) { const s = Math.floor((Date.now() - u.startedAt) / 1000); $('fdDuty').textContent = `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}`; } renderCalls(); }, 5000);
   newReport(); renderReports(); assist();

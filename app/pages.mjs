@@ -475,8 +475,32 @@ ${user.roblox_name ? `<button class="btn sm" id="switch">Switch</button>` : `<a 
 <div class="lrow"><span class="ico" style="color:#fff"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg></span><div class="tx"><b>Discord</b><small>${user.discord_id ? `Connected as ${esc(user.name)}` : 'Not connected. Lets you sign in with Discord and get staff roles from your server\'s Discord.'}</small></div>
 ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a class="btn sm discord" href="/auth/discord?next=/account">Connect</a>` : ''}</div>
 </section>
+<section class="card" id="license"><h2>Your license</h2>${user.roblox_id ? `<p class="note">The Liberty County driver's license the MDT's card reader shows when you sign in. Your photo, username and display name come from Roblox; copy the rest from your license in ER:LC.</p>
+<div class="licw" id="licw"></div>
+<form id="licf" class="licf" autocomplete="off">
+<label>Age<input id="lAge" list="lAges" maxlength="16" placeholder="Young Adult"></label><datalist id="lAges"><option>Young Adult</option><option>Adult</option><option>Middle Aged</option><option>Senior</option></datalist>
+<label>Gender<select id="lGndr"><option value="">–</option><option>M</option><option>F</option><option>O</option></select></label>
+<label>Hair<select id="lHair"><option value="">–</option><option value="BLK">Black</option><option value="BRN">Brown</option><option value="BLN">Blond</option><option value="RED">Red</option><option value="GRY">Grey</option><option value="WHT">White</option><option value="BLD">Bald</option></select></label>
+<label>Eyes<select id="lEyes"><option value="">–</option><option value="BRN">Brown</option><option value="BLU">Blue</option><option value="GRN">Green</option><option value="HZL">Hazel</option><option value="GRY">Grey</option><option value="BLK">Black</option></select></label>
+<label>Height<span class="lh"><select id="lFt" aria-label="Feet"><option value="">ft</option>${[3, 4, 5, 6, 7, 8].map(n => `<option value="${n}">${n} ft</option>`).join('')}</select><select id="lIn" aria-label="Inches"><option value="">in</option>${Array.from({ length: 12 }, (_, n) => `<option value="${n}">${n} in</option>`).join('')}</select></span></label>
+<label>Weight (lbs)<input id="lWgt" type="number" min="50" max="600" step="1" placeholder="150"></label>
+<label class="wide">Address<input id="lAddr" maxlength="34" placeholder="N/A"></label>
+<label>Issued<input id="lIss" type="date"></label>
+<div class="row wide"><button class="btn pri">Save license</button><span class="msg" id="licmsg"></span></div></form>` : '<p class="note">Link your Roblox account first. Your license uses your Roblox photo and username.</p>'}</section>
 <section class="card"><h2>Sign out</h2><p class="note">Signs you out on this device. You'll need your sign-in again to get back in.</p><form method="post" action="/auth/logout" style="margin:0"><button class="btn danger">Sign out</button></form></section>
-</div></div></main>`, script: `
+</div></div></main><script src="/license-card.js?v=1"></script>
+<style>.licw{position:relative;width:100%;max-width:400px;aspect-ratio:400/250;margin:6px 0 14px}.licw .lcard{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(var(--ls,1))}
+.licf{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.licf label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim);min-width:0}.licf .wide{grid-column:1/-1}
+.licf input,.licf select{width:100%;min-width:0}.licf .lh{display:grid;grid-template-columns:1fr 1fr;gap:6px}.licf .row{align-items:center;gap:12px}</style>`, script: `
+(()=>{const w=document.getElementById('licw');if(!w||!window.LicenseCard)return;const $=id=>document.getElementById(id);let L={};
+const fit=()=>{const c=w.querySelector('.lcard');if(c)c.style.setProperty('--ls',(w.clientWidth/400).toFixed(4))};new ResizeObserver(fit).observe(w);
+const vals=()=>({age:$('lAge').value.trim(),gndr:$('lGndr').value,hair:$('lHair').value,eyes:$('lEyes').value,ft:$('lFt').value,in:$('lIn').value,wgt:$('lWgt').value,addr:$('lAddr').value.trim(),iss:$('lIss').value});
+const draw=()=>{const v=vals(),h=v.ft!==''&&v.in!==''?v.ft+"' "+v.in+'"':'';w.innerHTML=LicenseCard.html({...L,age:v.age,gndr:v.gndr,hair:v.hair,eyes:v.eyes,hgt:h,wgt:v.wgt?Math.round(v.wgt)+' lbs':'',addr:v.addr,iss:v.iss,occ:L.occ||'Firefighter'});fit()};
+const fill=j=>{L=j;$('lAge').value=j.age||'';$('lGndr').value=j.gndr||'';$('lHair').value=j.hair||'';$('lEyes').value=j.eyes||'';const m=/^(\\d)' (\\d+)"$/.exec(j.hgt||'');$('lFt').value=m?m[1]:'';$('lIn').value=m?m[2]:'';$('lWgt').value=parseInt(j.wgt)||'';$('lAddr').value=j.addr||'';$('lIss').value=j.iss||'';draw()};
+fetch('/api/me/license',{cache:'no-store'}).then(r=>r.json()).then(fill).catch(()=>draw());
+$('licf').addEventListener('input',draw);$('licf').addEventListener('change',draw);
+$('licf').addEventListener('submit',async e=>{e.preventDefault();const m=$('licmsg');try{fill(await api('/api/me/license',vals()));say(m,'License saved.',true)}catch(x){say(m,x.message)}});
+if(location.hash==='#license')setTimeout(()=>$('license').scrollIntoView({block:'start'}),50)})();
 const cn=document.getElementById('cname'),cs=document.getElementById('cslug'),sp=document.getElementById('slugp');let touched=false;
 const slugify=x=>x.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
 cn.addEventListener('input',()=>{if(!touched){cs.value=slugify(cn.value);sp.textContent=cs.value||'liberty-county'}});

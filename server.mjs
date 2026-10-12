@@ -6,7 +6,8 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, siteSettings, seal, RESERVED, token } from './app/db.mjs';
+import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, mdtSignin, siteSettings, seal, RESERVED, token } from './app/db.mjs';
+import { RANKS, validRank, licenseOf, saveLicense } from './app/license.mjs';
 import { serverPage } from './app/serverpage.mjs';
 import * as voice from './app/voice.mjs';
 import { voicePage } from './app/voicepage.mjs';
@@ -48,16 +49,16 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // ── the CAD page, with this community's settings injected ──
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on, roads: c.settings.roads || null, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
+  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: RANKS, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};</script>`;
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
 // ── Roblox headshots ──
 const heads = new Map();
-const headshot = async id => { const hit = heads.get(id); if (hit && Date.now() - hit.at < (hit.url ? 6 * 3600e3 : 600e3)) return hit.url;
-  let url = null; try { const j = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${id}&size=150x150&format=Png&isCircular=false`).then(r => r.json());
+const headshot = async (id, kind = 'headshot') => { const ck = kind + id, hit = heads.get(ck); if (hit && Date.now() - hit.at < (hit.url ? 6 * 3600e3 : 600e3)) return hit.url;   // kind 'bust' = head and shoulders, for the license photo
+  let url = null; try { const j = await fetch(kind === 'bust' ? `https://thumbnails.roblox.com/v1/users/avatar-bust?userIds=${id}&size=420x420&format=Png&isCircular=false` : `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${id}&size=150x150&format=Png&isCircular=false`).then(r => r.json());
     const d = j.data && j.data[0]; if (d && d.state === 'Completed' && /^https:\/\/[a-z0-9.-]+\.rbxcdn\.com\//.test(d.imageUrl || '')) url = d.imageUrl; } catch (e) {}
-  if (heads.size > 5000) heads.clear(); heads.set(id, { url, at: Date.now() }); return url; };
+  if (heads.size > 5000) heads.clear(); heads.set(ck, { url, at: Date.now() }); return url; };
 
 // ── community access ──
 // owner > co-owner > admin > mod > member. Co-owners run Settings (not deleting the server); admins and mods get the Staff MDT
@@ -132,6 +133,10 @@ const communityApi = async (req, res, slug, rest) => {
     const unit = String((await jsonBody(req)).unit || '').trim(), all = ['pd', 'fd', 'dot'].flatMap(d => c.settings.depts?.[d]?.units || []);
     if (unit && !all.includes(unit)) return json(res, { error: 'That unit no longer exists. Pick another one.' }, 400);
     unitMembers.set(c.id, String(user.roblox_id), unit); const out = { of: unitMembers.all(c.id), ride: rideWith.all(c.id) }; f.bcast('unitsof', JSON.stringify(out)); return json(res, { ok: true, ...out }); }
+  // signing in to a department's MDT with your license and rank; it stays until you sign out
+  if (rest === 'mdt/signin' && M === 'POST') { const j = await jsonBody(req); if (!validRank(j.dept, j.rank)) return json(res, { error: 'Pick your rank.' }, 400);
+    mdtSignin.set(c.id, user.id, j.dept, j.rank); return json(res, { ok: true, mdt: mdtSignin.mine(c.id, user.id) }); }
+  if (rest === 'mdt/signout' && M === 'POST') { const j = await jsonBody(req); if (!RANKS[j.dept]) return json(res, { error: 'Bad request.' }, 400); mdtSignin.out(c.id, user.id, j.dept); return json(res, { ok: true, mdt: mdtSignin.mine(c.id, user.id) }); }
   // ride with a teammate: you join their unit on the map and in dispatch (empty to ride alone again)
   if (rest === 'units/ride' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     const w = String((await jsonBody(req)).with || '').trim(); if (w && (!/^\d{1,20}$/.test(w) || w === String(user.roblox_id))) return json(res, { error: 'Pick a teammate to ride with.' }, 400);
@@ -189,6 +194,10 @@ const globalApi = async (req, res, rest) => {
   const user = auth.currentUser(req); if (rest === 'explore' && req.method === 'GET') return json(res, { servers: profile.directory(user) });   // Explore's live refresh: open to everyone
   if (!user) return json(res, { error: 'Sign in first.' }, 401);
   // the verification page; anyone else gets a plain not-found
+  // your Liberty County license for the MDT card reader
+  if (rest === 'me/license' && req.method === 'GET') return json(res, await licenseOf(user));
+  if (rest === 'me/license' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
+    return json(res, await saveLicense(user, await jsonBody(req))); }
   if (rest.startsWith('admin/') && !isSiteAdmin(user)) return json(res, { error: 'Not found.' }, 404);
   if (rest === 'admin/people' && req.method === 'GET') return json(res, { people: users.search(new URL(req.url, 'http://x').searchParams.get('q')) });   // read-only: the server browser's live refresh
   if (req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
@@ -286,7 +295,7 @@ const erlcAppStatus = async live => { const out = { hasKey: !!appKey(), fromEnv:
 const visible = slug => { const c = communities.bySlug(String(slug || '')); return c && !c.settings.profile?.unlisted && !c.hidden && !c.suspended ? c : null; };
 const reviewList = cid => reviews.forServer(cid).map(r => ({ id: r.id, user_id: r.user_id, rating: r.rating, body: r.body, created: r.created, updated: r.updated, reply: r.reply, reply_name: r.reply_name || '', reply_verified: !!r.reply_verified, roblox_name: r.roblox_name, roblox_id: r.roblox_id, verified: !!r.verified }));
 const runsServer = (cid, uid) => ['owner', 'co_owner'].includes(members.role(cid, uid));
-const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.(png|svg)|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/avatar\/\d+)$/;
+const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.(png|svg)|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/(avatar|bust)\/\d+)$/;
 // ── routes ──
 const route = async (req, res) => {
   const url = new URL(req.url, 'http://x'); let path = decodeURIComponent(url.pathname), m0, m0r, aboutPage = false;
@@ -350,6 +359,8 @@ const route = async (req, res) => {
   if ((m0r = path.match(/^\/c\/([a-z0-9-]{3,32})\/photos\/(\d{1,12})$/))) { const c = communities.bySlug(m0r[1]), ph = c && !c.suspended && communityPhotos.get(c.id, Number(m0r[2]));
     if (!ph) { res.writeHead(404, { 'cache-control': 'public, max-age=60' }); return res.end(); }
     res.writeHead(200, { 'content-type': ph.mime, 'cache-control': 'public, max-age=86400', 'content-length': ph.data.length, 'x-content-type-options': 'nosniff' }); return res.end(ph.data); }
+  if ((m0r = path.match(/^\/rbx\/bust\/(\d{1,20})$/))) { const url = await headshot(m0r[1], 'bust'); if (!url) { res.writeHead(404, { 'cache-control': 'public, max-age=600' }); return res.end(); }
+    res.writeHead(302, { location: url, 'cache-control': 'public, max-age=3600' }); return res.end(); }
   if ((m0r = path.match(/^\/rbx\/avatar\/(\d{1,20})$/))) { const url = await headshot(m0r[1]); if (!url) { res.writeHead(404, { 'cache-control': 'public, max-age=600' }); return res.end(); }
     res.writeHead(302, { location: url, 'cache-control': 'public, max-age=3600' }); return res.end(); }
   if (path === '/privacy' || path === '/terms' || path === '/refunds') return page(res, pages.legal({ logo: LOGO, user: auth.currentUser(req), doc: path.slice(1) }));
