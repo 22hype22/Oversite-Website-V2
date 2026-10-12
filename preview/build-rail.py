@@ -178,9 +178,28 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const N = GN * GN, D8 = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414]];
   const hpush = (h, d, k) => { h.push([d, k]); let i = h.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; const t = h[p]; h[p] = h[i]; h[i] = t; i = p; } };
   const hpop = h => { const top = h[0], last = h.pop(); if (h.length) { h[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < h.length && h[l][0] < h[m][0]) m = l; if (r < h.length && h[r][0] < h[m][0]) m = r; if (m === i) break; const t = h[m]; h[m] = h[i]; h[i] = t; i = m; } } return top; };
+  // open asphalt (parking lots, plazas, wide forecourts): how far each road cell is from the nearest edge, in cells. Ordinary roads
+  // are at most ~5 cells from an edge; deeper than that costs 3x, so routes keep to the streets and only enter a lot to reach it
+  let WD = null; const wideness = () => { if (WD) return WD; const d = new Uint8Array(N);
+    for (let y = 0; y < GN; y++) for (let x = 0; x < GN; x++) d[y * GN + x] = road(x, y) ? 255 : 0;
+    for (let y = 0; y < GN; y++) for (let x = 0; x < GN; x++) { const k = y * GN + x; if (!d[k]) continue; let m = d[k];
+      m = Math.min(m, x > 0 ? d[k - 1] + 1 : 1, y > 0 ? d[k - GN] + 1 : 1, x > 0 && y > 0 ? d[k - GN - 1] + 1 : 1, x < GN - 1 && y > 0 ? d[k - GN + 1] + 1 : 1); d[k] = m; }
+    for (let y = GN - 1; y >= 0; y--) for (let x = GN - 1; x >= 0; x--) { const k = y * GN + x; if (!d[k]) continue; let m = d[k];
+      m = Math.min(m, x < GN - 1 ? d[k + 1] + 1 : 1, y < GN - 1 ? d[k + GN] + 1 : 1, x < GN - 1 && y < GN - 1 ? d[k + GN + 1] + 1 : 1, x > 0 && y < GN - 1 ? d[k + GN - 1] + 1 : 1); d[k] = m; }
+    return (WD = d); };
+  // keep right: ER:LC drives on the right, so on a divided road the median belongs on your left. Looking to the right of the way
+  // you're heading, a short gap with more road just past it means a median on your right: you're on the wrong side (cost 4x).
+  // Ordinary two-way roads have no such gap, so they are never penalised. Worked out once per cell and heading, then cached.
+  const DIRS = D8.map(([dx, dy]) => { const L = Math.hypot(dx, dy); return [-dy / L, dx / L]; });
+  let WW = null; const wrongWay = (x, y, di) => { if (!WW) WW = new Uint8Array(N * 8); const c = (y * GN + x) * 8 + di; if (WW[c]) return WW[c] === 2;
+    const [rx, ry] = DIRS[di]; let gap = -1, wrong = false;
+    for (let o = 1; o <= 14; o++) { const on = road(Math.round(x + rx * o), Math.round(y + ry * o)); if (gap < 0) { if (!on) gap = o; } else if (on) { wrong = o - gap <= 7; break; } }
+    WW[c] = wrong ? 2 : 1; return wrong; };
   let RT = null, gen = 0;   // search arrays are made once and reused; a cell counts only if it was touched in this search (gen)
+  // direction index of each step: the forward search travels the step as it is, the backward search travels it in reverse
+  const D8i = [0, 1].map(s => [-1, 0, 1].map(dx => [-1, 0, 1].map(dy => D8.findIndex(([ex, ey]) => ex === (s ? -dx : dx) && ey === (s ? -dy : dy)))));
   const meetRoute = (a, b) => { if (!RT) RT = { g: [new Float32Array(N), new Float32Array(N)], p: [new Int32Array(N), new Int32Array(N)], seen: [new Uint32Array(N), new Uint32Array(N)], fin: [new Uint32Array(N), new Uint32Array(N)] };
-    gen++; const { seen, fin } = RT, heap = [[], []];
+    gen++; const { seen, fin } = RT, heap = [[], []], WDc = wideness();
     const g = [0, 1].map(s => ({ get: k => seen[s][k] === gen ? RT.g[s][k] : Infinity })), prev = [0, 1].map(s => ({ get: k => seen[s][k] === gen ? RT.p[s][k] : -1 }));
     const set = (s, k, d, p) => { seen[s][k] = gen; RT.g[s][k] = d; RT.p[s][k] = p; };
     set(0, a, 0, -1); set(1, b, 0, -1); hpush(heap[0], 0, a); hpush(heap[1], 0, b); let best = a === b ? 0 : Infinity, meet = a === b ? a : -1, steps = 0;
@@ -188,7 +207,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       if (heap[0][0][0] + heap[1][0][0] >= best) break;                       // neither side can find a shorter join any more
       const s = heap[0][0][0] <= heap[1][0][0] ? 0 : 1, o = 1 - s, [d, k] = hpop(heap[s]); if (fin[s][k] === gen) continue; fin[s][k] = gen;
       const x = k % GN, y = (k - x) / GN;
-      for (const [dx, dy, w] of D8) { const nx = x + dx, ny = y + dy; if (!road(nx, ny)) continue; const nk = ny * GN + nx, nd = d + w;
+      for (const [dx, dy, w] of D8) { const nx = x + dx, ny = y + dy; if (!road(nx, ny)) continue; const nk = ny * GN + nx, di = D8i[s][dx + 1][dy + 1], nd = d + (WDc[nk] > 6 ? w * 3 : w) * (wrongWay(x, y, di) ? 4 : 1);
         if (nd < g[s].get(nk)) { set(s, nk, nd, k); hpush(heap[s], nd, nk); }
         const go = g[o].get(nk); if (go < Infinity && g[s].get(nk) + go < best) { best = g[s].get(nk) + go; meet = nk; } } }
     if (meet < 0) return null;
