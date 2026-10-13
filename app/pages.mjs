@@ -49,7 +49,7 @@ a{color:inherit}
 .sp-erlch .lnk{background:none;border:0;color:var(--dim);font:inherit;font-size:11.5px;letter-spacing:0;text-transform:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
 .sp-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-top:10px}
 .sp-facts small{display:block;color:var(--faint);font-size:11px}.sp-facts b{display:block;font-size:13px;font-weight:500;margin-top:2px;overflow-wrap:anywhere}
-.sp-facts code{font-family:ui-monospace,"Geist Mono",monospace;font-size:12.5px}
+.sp-facts code{font-family:inherit;font-weight:700;letter-spacing:.05em}
 .sp-inv{display:flex;align-items:center;background:var(--field);border:1px solid var(--hair2);border-radius:10px;transition:border-color .15s}.sp-inv:focus-within{border-color:rgba(240,242,245,.45)}
 .sp-inv span{padding:0 0 0 12px;color:var(--faint);white-space:nowrap}.sp-inv input{border:0;background:none;padding-left:1px}
 .sp-who{display:inline-flex;align-items:center;gap:6px}.sp-who img{width:18px;height:18px;border-radius:50%;background:#2a2d33}
@@ -79,7 +79,8 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xs b{color:#fff;font-weight:600}.xs.full b{color:#F2C46E}
 .xr-badge{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#0B0B0C;background:#F0F2F5;padding:4px 10px;border-radius:999px}
 .xr-rank{font-size:11.5px;font-weight:600;color:#E9EAEC;padding:4px 9px;border-radius:999px;background:rgba(8,9,11,.72);border:1px solid rgba(255,255,255,.08)}
-.xr-code{position:absolute;right:14px;bottom:12px;z-index:1;font:600 11.5px/1 ui-monospace,"Geist Mono",Menlo,monospace;letter-spacing:.06em;color:#E9EAEC;padding:5px 8px;border-radius:7px;background:rgba(8,9,11,.6);border:1px solid rgba(255,255,255,.12)}
+.xr-code{position:absolute;right:14px;bottom:12px;z-index:3;display:flex;align-items:center;gap:7px;font:700 15px/1 inherit;font-family:inherit;letter-spacing:.05em;color:#fff;padding:7px 11px;border-radius:9px;background:rgba(8,9,11,.78);border:1px solid rgba(255,255,255,.2);box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .15s,border-color .15s}
+.xr-code small{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.6)}.xr-code:hover{background:rgba(8,9,11,.9);border-color:rgba(255,255,255,.4)}
 .xr-bar{position:absolute;left:0;right:0;bottom:0;z-index:1;height:2px;background:rgba(255,255,255,.06)}.xr-bar i{display:block;height:100%;background:var(--sc,#46D07C);box-shadow:0 0 10px var(--sc,#46D07C)}
 .xr-b{display:flex;flex-direction:column;gap:12px;padding:0 18px 18px;flex:1}
 .xr-h{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px;margin-top:-30px;position:relative;z-index:1}
@@ -112,7 +113,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .rp textarea{width:100%;resize:vertical}.rp label small{color:var(--faint);font-weight:400}
 .xd-bio{margin:0;color:#C9CDD3;line-height:1.55;white-space:pre-line}
 .xd-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;padding:14px;border-radius:12px;border:1px solid var(--hair);background:rgba(255,255,255,.02)}
-.xd-facts small{display:block;color:var(--faint);font-size:11px}.xd-facts b{display:block;font-size:13px;font-weight:500;margin-top:2px;overflow-wrap:anywhere}.xd-facts code{font-family:ui-monospace,"Geist Mono",monospace}
+.xd-facts small{display:block;color:var(--faint);font-size:11px}.xd-facts b{display:block;font-size:13px;font-weight:500;margin-top:2px;overflow-wrap:anywhere}.xd-facts code{font-family:inherit;font-weight:700;letter-spacing:.05em}
 @media (max-width:900px){.xp-list{grid-template-columns:1fr}.xp-tabs button{flex:none}}
 @media (max-width:640px){.xp-search{min-width:0;flex:1 1 100%}.xd-facts{grid-template-columns:1fr}.xp-tabs button{padding:8px 13px}.xr-n{flex-basis:calc(100% - 78px)}.xr-mine{margin:0 0 0 78px;align-self:auto}.xr h3{white-space:normal;overflow-wrap:anywhere}}
 @media (prefers-reduced-motion:reduce){.xp-dlgin,.xp-dlg::backdrop,.xr,.xb,.xp-toast,.xr-map{transition:none}}
@@ -564,13 +565,13 @@ const meta=x=>(x.rating!=null?'<span class="xr-rt" title="'+x.reviews+' review'+
 const by=x=>x.owner_name?'<span class="by">by '+e(x.owner_name)+(x.owner_badge?VBS:'')+'</span>':'';
 const voteBtn=x=>x.next_vote>0?'<button class="xb ghost voted" data-vote="'+e(x.slug)+'" title="You can vote again in '+hrs(x.next_vote)+'">'+STAR+'Voted · '+hrs(x.next_vote)+'</button>'
   :'<button class="xb ghost" data-vote="'+e(x.slug)+'">'+STO+'Vote'+(x.votes?' <small>'+n(x.votes)+'</small>':'')+'</button>';
-const acts=x=>(x.join_key?'<a class="xb pri" href="'+e(JOIN(x.join_key))+'" target="_blank" rel="noopener" data-play="'+e(x.join_key)+'" title="Join '+e(x.name)+' in ER:LC">'+PLAY+'Join</a>':'')+(x.open_join&&!x.role?'<button class="xb" data-joincad="'+e(x.slug)+'" title="Join this server on Oversite">'+CADI+'Join CAD</button>':'')+voteBtn(x)
+const acts=x=>(x.join_key?'<a class="xb pri" href="'+e(JOIN(x.join_key))+'" target="_blank" rel="noopener" data-play="'+e(x.join_key)+'" title="Join '+e(x.name)+' in ER:LC">'+PLAY+'Join</a>':'')+(x.role?'<a class="xb" href="/'+e(x.slug)+'" title="Open the CAD for '+e(x.name)+'">'+CADI+'Open CAD</a>':x.open_join?'<button class="xb" data-joincad="'+e(x.slug)+'" title="Join this server on Oversite">'+CADI+'Join CAD</button>':'')+voteBtn(x)
   +(x.invite?'<a class="xb ghost" href="'+e(x.invite)+'" target="_blank" rel="noopener" title="Join their Discord">'+DC+'Discord</a>':'');
 const pct=x=>x.live&&x.max?Math.min(100,Math.round(x.players/x.max*100)):0;
 const card=(x,i)=>'<article class="xr st-'+state(x)+(i===0?' is-top':'')+'" tabindex="0" data-slug="'+e(x.slug)+'"'+(x.role?' data-mine="1"':'')+' aria-label="'+e(x.name)+'">'
   +'<div class="xr-map'+(x.photos&&x.photos.length?' ph':'')+'" style="--pos:'+spot(x)+(x.photos&&x.photos.length?';background-image:url(/c/'+e(x.slug)+'/photos/'+x.photos[0]+')'+(x.ppos&&x.ppos[0]?';background-position:'+(+x.ppos[0][0])+'% '+(+x.ppos[0][1])+'%':''):'')+'"><div class="xr-mt">'+status(x)+(i===0?'<span class="xr-badge">'+(TAB==='new'?'Newest':TAB==='voted'?'Most voted':TAB==='popular'?'Most popular':'Most active')+'</span>':i<3?'<span class="xr-rank">#'+(i+1)+'</span>':'')+'</div>'
-  +(x.join_key?'<span class="xr-code" title="Join code">'+e(x.join_key)+'</span>':'')+'<div class="xr-bar"><i style="width:'+pct(x)+'%"></i></div></div>'
-  +'<div class="xr-b"><div class="xr-h">'+ic(x)+'<div class="xr-n"><h3>'+e(x.name)+(x.badge?VB:'')+'</h3>'+by(x)+'</div>'+(x.role?'<a class="xr-mine" href="/'+e(x.slug)+'">'+e(RN[x.role]||'Member')+' · Open CAD</a>':'')+'</div>'
+  +(x.join_key?'<button type="button" class="xr-code" data-copycode="'+e(x.join_key)+'" title="Copy the join code"><small>Code</small>'+e(x.join_key)+'</button>':'')+'<div class="xr-bar"><i style="width:'+pct(x)+'%"></i></div></div>'
+  +'<div class="xr-b"><div class="xr-h">'+ic(x)+'<div class="xr-n"><h3>'+e(x.name)+(x.badge?VB:'')+'</h3>'+by(x)+'</div>'+'</div>'
   +'<div class="xr-m">'+meta(x)+'</div><p class="'+(x.bio?'':'none')+'">'+e(x.bio||'No description yet.')+'</p>'
   +'<div class="xr-f"><div class="xr-a">'+acts(x)+'</div></div></div></article>';
 const row=card;
@@ -608,6 +609,7 @@ document.addEventListener('click',async ev=>{
     v.disabled=true; try{ const j=await api('/api/explore/vote',{slug:x.slug}); x.votes=j.votes; x.next_vote=j.next_vote; x.week++; toast('Thanks for voting for '+x.name+'!'); }catch(err){ toast(err.message); } render(); if(dlg.open) open(x.slug); return; }
   const rp=ev.target.closest('[data-report]'); if(rp){ const x=S.find(s=>s.slug===rp.dataset.report); if(x){ dlg.close(); report(x); } return; }
   const jc=ev.target.closest('[data-joincad]'); if(jc){ ev.preventDefault(); ev.stopPropagation(); jc.disabled=true; try{ const j=await api('/api/explore/join',{slug:jc.dataset.joincad}); location.href=j.next; }catch(err){ toast(err.message); jc.disabled=false; } return; }
+  const cc=ev.target.closest('[data-copycode]'); if(cc){ ev.preventDefault(); ev.stopPropagation(); const k=cc.dataset.copycode; navigator.clipboard?.writeText(k).then(()=>toast('Join code '+k+' copied.'),()=>toast('Join code: '+k)); return; }
   const pl=ev.target.closest('[data-play]'); if(pl){ navigator.clipboard?.writeText(pl.dataset.play).catch(()=>{}); toast('Opening ER:LC and joining '+pl.dataset.play+'. If Roblox does not start, the code is copied: paste it in Servers.'); return; }
   if(ev.target.closest('a,button')) return; const c=ev.target.closest('.xr'); if(c&&g.contains(c)) location.href='/'+encodeURIComponent(c.dataset.slug)+(c.dataset.mine?'/about':''); });
 g.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList.contains('xr')){ ev.preventDefault(); location.href='/'+encodeURIComponent(ev.target.dataset.slug)+(ev.target.dataset.mine?'/about':''); } });

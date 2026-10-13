@@ -55,7 +55,7 @@ const CSS = `
 .chart-e{height:190px;display:grid;place-items:center;text-align:center;color:var(--faint);font-size:13px;border:1px dashed var(--hair2);border-radius:12px;padding:0 24px}
 .sv-bio{margin:10px 0 0;color:#C9CDD3;line-height:1.6;white-space:pre-line}.sv-bio.none{color:var(--faint)}
 .sv-facts{display:grid;gap:12px;margin-top:12px}.sv-facts div{display:flex;justify-content:space-between;gap:14px;font-size:13px;padding-bottom:12px;border-bottom:1px solid var(--hair)}.sv-facts div:last-child{border:0;padding:0}
-.sv-facts small{color:var(--faint);font-size:13px;flex:none}.sv-facts b{font-weight:500;text-align:right;overflow-wrap:anywhere}.sv-facts code{font-family:ui-monospace,"Geist Mono",monospace}
+.sv-facts small{color:var(--faint);font-size:13px;flex:none}.sv-facts b{font-weight:500;text-align:right;overflow-wrap:anywhere}.sv-facts code{font-family:inherit;font-weight:700;letter-spacing:.05em}
 .sv-rep{background:none;border:0;padding:10px 0 0;color:var(--faint);font:inherit;font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.sv-rep:hover{color:var(--dim)}
 .sv-rv{margin-top:18px}
 .rv-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:center;margin:14px 0 18px}
