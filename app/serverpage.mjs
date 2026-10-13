@@ -84,6 +84,38 @@ const CSS = `
 .sv-toast{position:fixed;left:50%;bottom:74px;transform:translate(-50%,12px);z-index:50;max-width:calc(100vw - 32px);padding:11px 16px;border-radius:12px;background:#1A1B1F;border:1px solid var(--hair2);font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}.sv-toast.on{opacity:1;transform:translate(-50%,0)}
 @media (max-width:980px){.sv-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.sv-grid{grid-template-columns:1fr}}
 @media (max-width:620px){.sv-hero{height:150px}.sv-hero.gal{height:56vw}.gal-d{bottom:56px}.sv-head{padding:0 6px;margin-top:-26px}.sv-id{padding-top:0;flex-basis:100%}.sv-acts{padding-top:0}.sv-ic{width:104px;height:104px;border-radius:27px;font-size:40px}.sv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.sv-st:last-child{grid-column:span 2}.sv-st b{font-size:24px}.rv-top{grid-template-columns:1fr}.sv-acts{width:100%}}
+/* the vote prompt: what /<server>/vote opens on */
+.vp{width:min(440px,calc(100vw - 32px));overflow:hidden}.vp:focus{outline:none}
+.vp-top{position:relative;height:118px;background:#3E6973 url(/liberty-county.jpg) var(--pos)/620% no-repeat}
+.vp-top img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vp-top::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,12,.1),rgba(20,21,24,.97))}
+.vp-x{position:absolute;top:12px;right:12px;z-index:2;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(240,242,245,.18);background:rgba(10,11,13,.55);color:var(--ink);cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.vp-x:hover{background:rgba(20,22,26,.85)}
+.vp-b{position:relative;padding:0 22px 20px}
+.vp-ic{position:relative;z-index:1;width:74px;height:74px;margin:-46px 0 12px;border-radius:21px;overflow:hidden;display:grid;place-items:center;font-size:28px;font-weight:700;background:linear-gradient(160deg,#2d3440,#1b1f26);border:4px solid #141518;box-shadow:0 12px 28px rgba(0,0,0,.5)}
+.vp-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.dlg .vp-b h2{font-size:21px;letter-spacing:-.015em;line-height:1.25;margin:0 0 6px;text-wrap:balance}.vp-b h2 .vb{vertical-align:-3px;margin-left:6px}
+.dlg .vp-b>p{font-size:13.5px;line-height:1.5}
+.vp-n{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:18px 0;border:1px solid var(--hair);border-radius:14px}
+.vp-n>div{padding:11px 12px}.vp-n>div+div{border-left:1px solid var(--hair)}
+.vp-n small{display:block;color:var(--faint);font-size:11.5px}.vp-n b{display:block;font-size:19px;font-weight:650;margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vp-n b.up{animation:vpUp .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes vpUp{0%{transform:translateY(8px);opacity:0}100%{transform:none;opacity:1}}
+.vp-go{width:100%;justify-content:center;gap:9px;padding:13px 18px;font-size:15px;border-radius:14px}
+.vp-go:active:not(:disabled){transform:scale(.98)}
+.vp-go:disabled{cursor:default}
+.vp-go.done{background:rgba(233,194,76,.12);border-color:rgba(233,194,76,.4);color:#F2D37A}
+.vp-go.done svg{fill:#E9C24C;stroke:#E9C24C;animation:vpPop .55s cubic-bezier(.34,1.56,.64,1)}
+.vp-go.wait{background:rgba(240,242,245,.05);border-color:var(--hair2);color:var(--dim);font-weight:500}
+.vp-go.wait svg{fill:#E9C24C;stroke:#E9C24C}
+@keyframes vpPop{0%{transform:scale(.4) rotate(-30deg)}60%{transform:scale(1.35) rotate(8deg)}100%{transform:none}}
+.vp-later{display:block;margin:10px auto 0;font:inherit;font-size:13px;color:var(--dim);background:none;border:0;cursor:pointer;padding:4px 8px}.vp-later:hover{color:var(--ink)}
+.vp-sh{margin-top:16px;padding-top:14px;border-top:1px solid var(--hair)}
+.vp-sh[hidden]{display:none}
+.vp-sh small{display:block;color:var(--dim);font-size:12.5px;margin-bottom:8px}
+.vp-sh div{display:flex;gap:8px;align-items:center}
+.vp-sh code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:inherit;font-size:13px;padding:8px 11px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--hair);user-select:all}
+@media (prefers-reduced-motion:reduce){.vp-n b.up,.vp-go.done svg{animation:none}}
 `;
 
 const I = {
@@ -103,13 +135,28 @@ const starsText = r => '★★★★★'.slice(0, Math.round(r)) + '☆☆☆☆
 // a medal: the place and the Explore tab, tinted gold, silver or bronze
 const medal = (place, label) => `<span class="md p${place}" title="#${place} ${label} on Explore"><b>#${place}</b>${label}</span>`;
 
-export const serverPage = ({ logo, user, x, medals = [], players, voteTimes, list, me }) => {
+// the prompt /<server>/vote opens with: who the server is, where it stands, and one button
+const votePrompt = (x, me, p) => { const ph = x.photos?.[0], pos = x.ppos?.[0];
+  const can = !!(me && p.roblox), href = !me ? `/?next=${encodeURIComponent('/' + x.slug + '/vote')}` : `/dashboard?link=${encodeURIComponent('/' + x.slug + '/vote')}`;
+  const host = String(p.origin || '').replace(/^https?:\/\//, '');
+  return `<dialog class="dlg vp" id="vp" aria-labelledby="vpT" tabindex="-1">
+<div class="vp-top" style="--pos:${spot(x.slug)}">${ph ? `<img src="/c/${esc(x.slug)}/photos/${ph}" alt=""${pos ? ` style="object-position:${+pos[0]}% ${+pos[1]}%"` : ''}>` : ''}<button type="button" class="vp-x" data-close aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+<div class="vp-b"><span class="vp-ic">${esc(x.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(x.slug)}/icon" alt="" onerror="this.remove()"></span>
+<h2 id="vpT">Vote for ${esc(x.name)}${x.badge ? vbadge(18) : ''}</h2>
+<p data-msg>${can ? `Votes move ${esc(x.name)} up the Trending and Most voted lists on Explore, so more players find it. You can vote once every 12 hours.` : !me ? `Sign in to vote for ${esc(x.name)}. It takes a few seconds, and you come straight back here.` : `Link your Roblox account to vote. Every vote is tied to one Roblox account, so votes stay fair. You come straight back here after.`}</p>
+<div class="vp-n"><div><small>Votes</small><b data-tot>${n(x.votes)}</b></div><div><small>This week</small><b data-wk>+${n(x.week)}</b></div><div><small>Most voted</small><b>${p.rank ? '#' + p.rank : '–'}</b></div></div>
+${can ? `<button type="button" class="xb pri vp-go">${I.star}Vote for ${esc(x.name)}</button>` : `<a class="xb pri vp-go" href="${esc(href)}">${I.star}${!me ? 'Sign in to vote' : 'Link Roblox to vote'}</a>`}
+<button type="button" class="vp-later" data-close>Not now</button>
+<div class="vp-sh" hidden><small>Share this link to get ${esc(x.name)} more votes</small><div><code>${esc(host)}/${esc(x.slug)}/vote</code><button type="button" class="xb" data-copy>Copy</button></div></div>
+</div></dialog>`; };
+
+export const serverPage = ({ logo, user, x, medals = [], players, voteTimes, list, me, prompt = null }) => {
   const live = x.live && x.players != null, full = live && x.max && x.players >= x.max;
   const status = !x.connected ? '' : !live ? '<span class="xs off">Offline</span>' : `<span class="xs ${full ? 'full' : 'open'}"><b>${x.players}</b>${x.max ? ' / ' + x.max : ''} in game${full ? ' · Full' : ''}</span>`;
   const peak = players.reduce((m, p) => Math.max(m, p[1] ?? 0), 0);
   const lang = x.lang ? (x.region && x.lang.name.endsWith('(' + x.region.name + ')') ? x.lang.name.split(' (')[0] : x.lang.name) : '';
   const fact = (k, v) => v ? `<div><small>${k}</small><b>${v}</b></div>` : '';
-  const data = { slug: x.slug, name: x.name, max: x.max, players, voteTimes, list, me, rating: x.rating, count: x.reviews };
+  const data = { slug: x.slug, name: x.name, max: x.max, players, voteTimes, list, me, rating: x.rating, count: x.reviews, member: !!x.role, votes: x.votes, week: x.week, next_vote: x.next_vote, vp: prompt && { can: !!(me && prompt.roblox) } };
   return layout({ title: `${x.name} · Oversite`, logo, user, body: `<style>${CSS}</style>
 <main class="sv">
 <a class="sv-back" href="/explore">${I.back}Explore</a>
@@ -119,7 +166,7 @@ export const serverPage = ({ logo, user, x, medals = [], players, voteTimes, lis
 <div class="sv-tags">${x.region ? `<span class="sv-tag">${I.pin}${esc(x.region.name)}</span>` : ''}${lang ? `<span class="sv-tag">${I.lang}${esc(lang)}</span>` : ''}${x.discord ? `<span class="sv-tag">${I.dc}${esc(x.discord)}</span>` : ''}</div>${medals.length ? `<div class="sv-md sv-md2">${medals.map(m => medal(m.place, m.label)).join('')}</div>` : ''}</div>
 <div class="sv-acts">${x.join_key ? `<a class="xb pri" href="${esc(JOIN(x.join_key))}" target="_blank" rel="noopener" data-play="${esc(x.join_key)}" title="Join ${esc(x.name)} in ER:LC">${I.play}Join</a>` : ''}
 ${me ? `<button class="xb${x.next_vote > 0 ? ' voted' : ''}" id="vote"${x.next_vote > 0 ? ` data-wait="${x.next_vote}" title="You can vote again in ${Math.max(1, Math.ceil(x.next_vote / 3600000))}h"` : ''}>${I.star}<span>${x.next_vote > 0 ? `Voted · ${Math.max(1, Math.ceil(x.next_vote / 3600000))}h` : 'Vote'}</span></button>` : `<a class="xb" href="/?next=${encodeURIComponent('/' + x.slug)}">${I.star}Sign in to vote</a>`}
-${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopener">${I.dc}Discord</a>` : ''}${x.role ? `<a class="xb" href="/${esc(x.slug)}">Open CAD</a>` : x.open_join && me ? '<button class="xb" id="joinCad">Join CAD</button>' : ''}</div></div>
+${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopener">${I.dc}Discord</a>` : ''}${me?.owner ? `<button class="xb" id="voteLink" title="Copy the link that asks people to vote for ${esc(x.name)}">Vote link</button>` : ''}${x.role ? `<a class="xb" href="/${esc(x.slug)}">Open CAD</a>` : x.open_join && me ? '<button class="xb" id="joinCad">Join CAD</button>' : ''}</div></div>
 
 <div class="sv-stats">
 <div class="sv-st"><small>In game now</small><b>${live ? x.players : '–'}${live && x.max ? `<span>/ ${x.max}</span>` : ''}</b>${live && x.max ? `<div class="bar"><i style="width:${Math.min(100, Math.round(x.players / x.max * 100))}%"></i></div>` : `<p>${live ? 'Live' : x.connected ? 'Server is offline' : 'Not linked to ER:LC'}</p>`}</div>
@@ -137,7 +184,8 @@ ${x.invite ? `<a class="xb" href="${esc(x.invite)}" target="_blank" rel="noopene
 <aside class="sv-side"><section class="card"><h2>About</h2><p class="sv-bio${x.bio ? '' : ' none'}">${esc(x.bio || 'The owner has not written a description yet.')}</p></section>
 <section class="card"><h2>Details</h2><div class="sv-facts">${fact('In-game name', esc(x.ingame))}${fact('Join code', x.join_key ? `<code>${esc(x.join_key)}</code>` : '')}${fact('Co-owners', x.co_owners.map((n, i) => `<span class="sv-co">${esc(n)}${x.co_badge?.[i] ? vbadge(14) : ''}</span>`).join(', '))}
 ${fact('Account verification', esc(x.verified))}${fact('Team balance', x.at ? (x.team_balance ? 'On' : 'Off') : '')}${fact('Departments', esc(x.depts.map(d => d.name).join(', ')))}${fact('On Oversite since', new Date(x.created).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))}</div>
-${me && x.role !== 'owner' ? '<button class="sv-rep" id="repS">Report this server</button>' : ''}</section></aside></div></main><div class="sv-toast" id="toast" role="status"></div>`, script: `
+${me && x.role !== 'owner' ? '<button class="sv-rep" id="repS">Report this server</button>' : ''}</section></aside></div></main><div class="sv-toast" id="toast" role="status"></div>
+${prompt?.vote ? votePrompt(x, me, prompt) : ''}`, script: `
 // photos: swipe or scroll the strip, or use the arrows; the dots follow, and it moves on by itself every 6 seconds until someone touches it
 (()=>{const t=document.getElementById('gal');if(!t)return;const n=t.children.length,dots=[...document.querySelectorAll('.gal-d i')],hero=t.parentElement;
   const at=()=>Math.round(t.scrollLeft/t.clientWidth),go=i=>t.scrollTo({left:((i+n)%n)*t.clientWidth,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
@@ -237,8 +285,34 @@ document.getElementById('rvL').addEventListener('submit',async ev=>{const f=ev.t
 
 /* join the CAD, vote, play, report */
 const jcb=document.getElementById('joinCad');if(jcb)jcb.onclick=async()=>{jcb.disabled=true;try{const j=await api('/api/explore/join',{slug:D.slug});location.href=j.next}catch(err){toast(err.message);jcb.disabled=false}};
-const v=document.getElementById('vote');if(v)v.onclick=async()=>{if(v.dataset.wait)return toast('You can vote for '+D.name+' again in '+hrs(+v.dataset.wait)+'.');v.disabled=true;
-  try{const j=await api('/api/explore/vote',{slug:D.slug});document.getElementById('vN').textContent=Number(j.votes).toLocaleString('en-US');v.dataset.wait=j.next_vote;v.classList.add('voted');v.title='You can vote again in '+hrs(+j.next_vote);v.querySelector('span').textContent='Voted · '+hrs(+j.next_vote);toast('Thanks for voting for '+D.name+'!')}catch(err){toast(err.message)}v.disabled=false};
+const v=document.getElementById('vote');
+const left=ms=>{const m=Math.max(1,Math.ceil(ms/60000));return m<60?m+'m':Math.floor(m/60)+'h'+(m%60?' '+(m%60)+'m':'')};
+// after a vote (here or in the prompt) the Vote button, the count and the prompt all show it
+const voted=j=>{D.next_vote=j.next_vote;D.until=Date.now()+(+j.next_vote);const vn=document.getElementById('vN');if(vn&&j.votes!=null)vn.textContent=Number(j.votes).toLocaleString('en-US');
+  if(v){v.dataset.wait=j.next_vote;v.classList.add('voted');v.title='You can vote again in '+hrs(+j.next_vote);v.querySelector('span').textContent='Voted · '+hrs(+j.next_vote)}};
+const vote=async()=>{const j=await api('/api/explore/vote',{slug:D.slug});voted(j);return j};
+if(v)v.onclick=async()=>{if(v.dataset.wait)return toast('You can vote for '+D.name+' again in '+hrs(+v.dataset.wait)+'.');v.disabled=true;
+  try{await vote();toast('Thanks for voting for '+D.name+'!')}catch(err){toast(err.message)}v.disabled=false};
+const share=location.origin+'/'+D.slug+'/vote',copy=async(b)=>{await navigator.clipboard?.writeText(share).catch(()=>{});toast('Vote link copied. Send it to anyone you want to vote for '+D.name+'.');if(b){const t=b.textContent;b.textContent='Copied';setTimeout(()=>b.textContent=t,1600)}};
+const vlk=document.getElementById('voteLink');if(vlk)vlk.onclick=()=>copy();
+/* the vote prompt (/<server>/vote): one big button; signed out or no Roblox, it sends them to do that first and brings them back */
+(()=>{const d=document.getElementById('vp');if(!d)return;
+  const go=d.querySelector('.vp-go'),msg=d.querySelector('[data-msg]'),sh=d.querySelector('.vp-sh'),tot=d.querySelector('[data-tot]'),wk=d.querySelector('[data-wk]');
+  const STAR=go.querySelector('svg').outerHTML;let tick;
+  const close=()=>{clearInterval(tick);d.classList.remove('in');setTimeout(()=>{d.close();d.remove()},180);history.replaceState(null,'',D.member?'/'+D.slug+'/about':'/'+D.slug)};
+  d.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);d.addEventListener('click',ev=>{if(ev.target===d)close()});d.addEventListener('cancel',ev=>{ev.preventDefault();close()});
+  d.querySelector('[data-copy]').onclick=ev=>copy(ev.currentTarget);
+  const waiting=()=>{const ms=D.until-Date.now();if(ms<=0){clearInterval(tick);go.disabled=false;go.className='xb pri vp-go';go.innerHTML=STAR+'Vote for '+e(D.name);return}
+    go.disabled=true;go.className='xb vp-go wait';go.innerHTML=STAR+'Vote again in '+left(ms)};
+  const wait=(text)=>{msg.textContent=text;sh.hidden=false;waiting();clearInterval(tick);tick=setInterval(waiting,30000)};
+  if(D.vp.can&&D.next_vote>0){D.until=Date.now()+D.next_vote;wait('You already voted for '+D.name+' in the last 12 hours. Share the link below so others can vote too.')}
+  if(D.vp.can)go.onclick=async()=>{if(go.disabled)return;go.disabled=true;
+    try{const j=await vote();go.className='xb vp-go done';go.innerHTML=STAR+'Voted';
+      tot.textContent=Number(j.votes).toLocaleString('en-US');wk.textContent='+'+(D.week+1).toLocaleString('en-US');[tot,wk].forEach(b=>{b.classList.remove('up');void b.offsetWidth;b.classList.add('up')});
+      msg.textContent='Thanks for voting! '+D.name+' moves up on Explore. Share the link so your friends can vote too.';sh.hidden=false;d.querySelector('.vp-later').textContent='Done';
+      setTimeout(()=>{if(d.open)wait(msg.textContent)},2400)}
+    catch(err){const h=/again in (\\d+)/.exec(err.message);if(h){D.until=Date.now()+h[1]*3600000;wait(err.message)}else{toast(err.message);go.disabled=false}}};
+  d.showModal();requestAnimationFrame(()=>d.classList.add('in'));(go.disabled?d:go).focus({preventScroll:true})})();
 document.querySelectorAll('[data-play]').forEach(p=>p.addEventListener('click',()=>{navigator.clipboard?.writeText(p.dataset.play).catch(()=>{});toast('Opening ER:LC and joining '+p.dataset.play+'. If Roblox does not start, the code is copied: paste it in Servers.')}));
 const rs=document.getElementById('repS');if(rs)rs.onclick=()=>{const d=document.createElement('dialog');d.className='dlg';
   const R=[['name','Inappropriate name'],['icon','Inappropriate icon'],['bio','Inappropriate bio'],['fake','Fake or misleading'],['other','Something else']];

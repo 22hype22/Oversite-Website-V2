@@ -324,9 +324,15 @@ const route = async (req, res) => {
   // The old /c/<server> and /s/<server> addresses still work and move to the short ones.
   const old = req.method === 'GET' && path.match(/^\/(c|s)\/([a-z0-9-]{3,32})(\/(?:settings|voice))?\/?$/);
   if (old && !RESERVED.has(old[2])) return redirect(res, `/${old[2]}${old[1] === 's' ? '' : old[3] === '/voice' ? '/prox' : old[3] || ''}${url.search}`, { 'cache-control': 'no-store' }, 301);
-  const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|prox|about))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
+  // /<server>/vote is the link servers share to get votes: their page, opened on the vote prompt. The invite code works in place of the address.
+  const vl = req.method === 'GET' && path.match(/^\/([A-Za-z0-9-]{2,32})\/vote\/?$/), vs = vl && vl[1].toLowerCase();
+  if (vl && (vs !== vl[1] || !communities.bySlug(vs) || RESERVED.has(vs))) { const bySlug = !RESERVED.has(vs) && communities.bySlug(vs), hit = bySlug ? { c: bySlug } : auth.inviteByCode(req, vl[1]);
+    if (hit?.c) return redirect(res, `/${hit.c.slug}/vote`, { 'cache-control': 'no-store' });
+    return msg(res, auth.currentUser(req), hit?.error ? 'Too many tries' : 'Server not found', hit?.error || 'Check the vote link, or find the server on Explore.', { href: '/explore', label: 'Explore servers' }, hit?.error ? 429 : 404); }
+  const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|prox|about|vote))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
   if (sc) { const sub = short[2] || '', u = auth.currentUser(req); if (u) staffRole(sc, u);
-    if (sub === '/about' || (!sub && !(u && members.role(sc.id, u.id)) && visible(sc.slug))) { path = `/s/${sc.slug}`; aboutPage = true; }
+    if (sub === '/vote') { path = `/s/${sc.slug}`; aboutPage = true; req.votePrompt = true; }
+    else if (sub === '/about' || (!sub && !(u && members.role(sc.id, u.id)) && visible(sc.slug))) { path = `/s/${sc.slug}`; aboutPage = true; }
     else if (sub === '/prox') { path = `/c/${sc.slug}/voice`; req.prox = true; }
     else path = `/c/${sc.slug}${sub}`; }
   const me0 = auth.currentUser(req);
@@ -356,7 +362,7 @@ const route = async (req, res) => {
       return place && place <= 3 ? { k, label, place } : null; }).filter(Boolean).sort((a, b) => a.place - b.place);
     const own = user && runsServer(c.id, user.id);
     const me = user ? { id: user.id, owner: own, admin: isSiteAdmin(user), can: !!user.roblox_name && !own, why: !user.roblox_name ? 'Link your Roblox account to write a review.' : own ? 'Reviews are from players. You can reply to any review below.' : '' } : null;
-    return page(res, serverPage({ logo: LOGO, user, x, medals, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me })); }
+    return page(res, serverPage({ logo: LOGO, user, x, medals, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me, prompt: req.votePrompt ? { vote: true, roblox: !!user?.roblox_name, origin: origin(req), rank: x.votes > 0 ? [...all].sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name)).findIndex(y => y.id === x.id) + 1 : 0 } : null })); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
     return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open() })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
