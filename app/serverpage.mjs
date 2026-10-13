@@ -110,6 +110,20 @@ const CSS = `
 .vp-go.wait svg{fill:#E9C24C;stroke:#E9C24C}
 @keyframes vpPop{0%{transform:scale(.4) rotate(-30deg)}60%{transform:scale(1.35) rotate(8deg)}100%{transform:none}}
 .vp-later{display:block;margin:10px auto 0;font:inherit;font-size:13px;color:var(--dim);background:none;border:0;cursor:pointer;padding:4px 8px}.vp-later:hover{color:var(--ink)}
+.vp{max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
+/* no blur behind the vote prompt: blurring the whole page (and its frosted cards) under it made every hover and keypress repaint everything */
+.vp::backdrop{background:rgba(6,7,8,.8);backdrop-filter:none;-webkit-backdrop-filter:none}
+body.vp-on main *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.vp .vp-x{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(10,11,13,.72)}
+.vp-rv{margin-top:12px;padding:13px 14px;border-radius:14px;border:1px solid var(--hair);background:rgba(255,255,255,.02);transition:border-color .3s}
+.vp-rv[hidden]{display:none}.vp-rv.nudge{border-color:rgba(242,196,110,.5)}
+.vp-rvh{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.vp-rvh b{display:block;font-size:14px}.vp-rvh small{display:block;color:var(--dim);font-size:12px;margin-top:2px;line-height:1.4}
+.vp-rv .rv-pick{margin:0;flex:none}.vp-rv .rv-pick svg{width:24px;height:24px}
+.vp-rv textarea{display:block;width:100%;min-height:80px;margin-top:12px;resize:vertical;font:inherit;font-size:13.5px}
+.vp-rv .row{display:flex;align-items:center;gap:8px;margin-top:8px}.vp-rv .row .hint{margin:0 auto 0 0;font-size:12px}
+.dlg .vp-rvq{margin:10px 0 0;font-size:13px;line-height:1.5;color:var(--ink);opacity:.85;white-space:pre-wrap}
+@media (max-width:420px){.vp-rvh{flex-direction:column;align-items:flex-start;gap:8px}}
 .vp-sh{margin-top:16px;padding-top:14px;border-top:1px solid var(--hair)}
 .vp-sh[hidden]{display:none}
 .vp-sh small{display:block;color:var(--dim);font-size:12.5px;margin-bottom:8px}
@@ -146,6 +160,7 @@ const votePrompt = (x, me, p) => { const ph = x.photos?.[0], pos = x.ppos?.[0];
 <p data-msg>${can ? `Votes move ${esc(x.name)} up the Trending and Most voted lists on Explore, so more players find it. You can vote once every 12 hours.` : !me ? `Sign in to vote for ${esc(x.name)}. It takes a few seconds, and you come straight back here.` : `Link your Roblox account to vote. Every vote is tied to one Roblox account, so votes stay fair. You come straight back here after.`}</p>
 <div class="vp-n"><div><small>Votes</small><b data-tot>${n(x.votes)}</b></div><div><small>This week</small><b data-wk>+${n(x.week)}</b></div><div><small>Most voted</small><b>${p.rank ? '#' + p.rank : '–'}</b></div></div>
 ${can ? `<button type="button" class="xb pri vp-go">${I.star}Vote for ${esc(x.name)}</button>` : `<a class="xb pri vp-go" href="${esc(href)}">${I.star}${!me ? 'Sign in to vote' : 'Link Roblox to vote'}</a>`}
+<div class="vp-rv" hidden></div>
 <button type="button" class="vp-later" data-close>Not now</button>
 <div class="vp-sh" hidden><small>Share this link to get ${esc(x.name)} more votes</small><div><code>${esc(host)}/${esc(x.slug)}/vote</code><button type="button" class="xb" data-copy>Copy</button></div></div>
 </div></dialog>`; };
@@ -194,7 +209,7 @@ ${prompt?.vote ? votePrompt(x, me, prompt) : ''}`, script: `
   hero.querySelectorAll('.gal-b').forEach(b=>b.addEventListener('click',()=>{hold();go(at()+(b.classList.contains('next')?1:-1))}));
   t.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();hold();go(at()+(e.key==='ArrowRight'?1:-1))}});
   ['pointerdown','wheel','touchstart'].forEach(ev=>t.addEventListener(ev,hold,{passive:true}));
-  setInterval(()=>{if(!stop&&!document.hidden&&!hero.matches(':hover'))go(at()+1)},6000);})();
+  setInterval(()=>{if(!stop&&!window.galHold&&!document.hidden&&!hero.matches(':hover'))go(at()+1)},6000);})();
 
 const D=${JSON.stringify(data).replace(/</g, '\\u003c')},VB=${JSON.stringify(vbadge(13))};
 const e=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -298,21 +313,41 @@ const vlk=document.getElementById('voteLink');if(vlk)vlk.onclick=()=>copy();
 /* the vote prompt (/<server>/vote): one big button; signed out or no Roblox, it sends them to do that first and brings them back */
 (()=>{const d=document.getElementById('vp');if(!d)return;
   const go=d.querySelector('.vp-go'),msg=d.querySelector('[data-msg]'),sh=d.querySelector('.vp-sh'),tot=d.querySelector('[data-tot]'),wk=d.querySelector('[data-wk]');
-  const STAR=go.querySelector('svg').outerHTML;let tick;
-  const close=()=>{clearInterval(tick);d.classList.remove('in');setTimeout(()=>{d.close();d.remove()},180);history.replaceState(null,'',D.member?'/'+D.slug+'/about':'/'+D.slug)};
+  const VSTAR=go.querySelector('svg').outerHTML;let tick;
+  const close=()=>{clearInterval(tick);document.body.classList.remove('vp-on');window.galHold=false;d.classList.remove('in');setTimeout(()=>{d.close();d.remove()},180);history.replaceState(null,'',D.member?'/'+D.slug+'/about':'/'+D.slug)};
   d.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);d.addEventListener('click',ev=>{if(ev.target===d)close()});d.addEventListener('cancel',ev=>{ev.preventDefault();close()});
   d.querySelector('[data-copy]').onclick=ev=>copy(ev.currentTarget);
-  const waiting=()=>{const ms=D.until-Date.now();if(ms<=0){clearInterval(tick);go.disabled=false;go.className='xb pri vp-go';go.innerHTML=STAR+'Vote for '+e(D.name);return}
-    go.disabled=true;go.className='xb vp-go wait';go.innerHTML=STAR+'Vote again in '+left(ms)};
+  const waiting=()=>{const ms=D.until-Date.now();if(ms<=0){clearInterval(tick);go.disabled=false;go.className='xb pri vp-go';go.innerHTML=VSTAR+'Vote for '+e(D.name);return}
+    go.disabled=true;go.className='xb vp-go wait';go.innerHTML=VSTAR+'Vote again in '+left(ms)};
   const wait=(text)=>{msg.textContent=text;sh.hidden=false;waiting();clearInterval(tick);tick=setInterval(waiting,30000)};
   if(D.vp.can&&D.next_vote>0){D.until=Date.now()+D.next_vote;wait('You already voted for '+D.name+' in the last 12 hours. Share the link below so others can vote too.')}
   if(D.vp.can)go.onclick=async()=>{if(go.disabled)return;go.disabled=true;
-    try{const j=await vote();go.className='xb vp-go done';go.innerHTML=STAR+'Voted';
+    try{const j=await vote();go.className='xb vp-go done';go.innerHTML=VSTAR+'Voted';
       tot.textContent=Number(j.votes).toLocaleString('en-US');wk.textContent='+'+(D.week+1).toLocaleString('en-US');[tot,wk].forEach(b=>{b.classList.remove('up');void b.offsetWidth;b.classList.add('up')});
-      msg.textContent='Thanks for voting! '+D.name+' moves up on Explore. Share the link so your friends can vote too.';sh.hidden=false;d.querySelector('.vp-later').textContent='Done';
+      msg.textContent='Thanks for voting! '+D.name+' moves up on Explore. Share the link so your friends can vote too.';if(rvb&&!rvb.hidden&&!mine())rvb.classList.add('nudge');sh.hidden=false;d.querySelector('.vp-later').textContent='Done';
       setTimeout(()=>{if(d.open)wait(msg.textContent)},2400)}
     catch(err){const h=/again in (\\d+)/.exec(err.message);if(h){D.until=Date.now()+h[1]*3600000;wait(err.message)}else{toast(err.message);go.disabled=false}}};
-  d.showModal();requestAnimationFrame(()=>d.classList.add('in'));(go.disabled?d:go).focus({preventScroll:true})})();
+  /* a review, right in the prompt: tap a star and a short note opens; anyone who already wrote one sees it and can change it */
+  const rvb=d.querySelector('.vp-rv');
+  if(rvb&&D.me&&D.me.can){rvb.hidden=false;let open=false,pick=0,thanks=false;
+    const paint=n=>rvb.querySelectorAll('[data-s]').forEach(b=>{b.classList.toggle('on',+b.dataset.s<=(n??pick));b.setAttribute('aria-checked',+b.dataset.s===pick)});
+    const drawRv=()=>{const m=mine();if(!open)pick=m?m.rating:0;
+      rvb.innerHTML='<div class="vp-rvh"><div><b>'+(thanks?'Thanks for the review!':m&&!open?'Your review':'Rate '+e(D.name))+'</b><small>'+(open?'Tap the stars, then say a sentence or two.':m?'Tap the stars to change it.':'Tell other players what it is like to play here.')+'</small></div>'
+        +'<div class="rv-pick" role="radiogroup" aria-label="Your rating for '+e(D.name)+'">'+[1,2,3,4,5].map(s=>'<button type="button" data-s="'+s+'" role="radio" aria-label="'+s+' star'+(s>1?'s':'')+'">'+STAR+'</button>').join('')+'</div></div>'
+        +(open?'<textarea maxlength="600" aria-label="Your review" placeholder="What is it like to play here? Staff, roleplay, community…">'+e(m?m.body:'')+'</textarea><div class="row"><p class="hint" data-rm>'+(m?m.body.length:0)+' / 600</p><button type="button" class="btn sm" data-rx>Cancel</button><button type="button" class="btn sm pri" data-rp>'+(m?'Save':'Post review')+'</button></div>'
+          :m?'<p class="vp-rvq">'+e(m.body.length>160?m.body.slice(0,160)+'…':m.body)+'</p>':'');
+      paint()};
+    rvb.addEventListener('mouseover',ev=>{const b=ev.target.closest('[data-s]');if(b)paint(+b.dataset.s)});rvb.addEventListener('mouseleave',()=>paint());
+    rvb.addEventListener('input',ev=>{const t=ev.target.closest('textarea');if(t){const h=rvb.querySelector('[data-rm]');h.textContent=t.value.length+' / 600';h.className='hint'}});
+    rvb.addEventListener('click',async ev=>{const s=ev.target.closest('[data-s]');
+      if(s){pick=+s.dataset.s;thanks=false;rvb.classList.remove('nudge');if(!open){open=true;drawRv();rvb.querySelector('textarea').focus()}else paint();return}
+      if(ev.target.closest('[data-rx]')){open=false;drawRv();return}
+      const p=ev.target.closest('[data-rp]');if(!p)return;const t=rvb.querySelector('textarea'),h=rvb.querySelector('[data-rm]'),had=!!mine();
+      if(t.value.trim().length<10){h.textContent='Write at least a sentence.';h.className='hint err';t.focus();return}
+      p.disabled=true;try{const j=await api('/api/reviews',{slug:D.slug,rating:pick,body:t.value});L=j.list;editing=false;drawAll();open=false;thanks=true;drawRv();toast(had?'Review updated.':'Thanks for the review!')}
+      catch(err){h.textContent=err.message;h.className='hint err';p.disabled=false}});
+    drawRv()}
+  document.body.classList.add('vp-on');window.galHold=true;d.showModal();requestAnimationFrame(()=>d.classList.add('in'));(go.disabled?d:go).focus({preventScroll:true})})();
 document.querySelectorAll('[data-play]').forEach(p=>p.addEventListener('click',()=>{navigator.clipboard?.writeText(p.dataset.play).catch(()=>{});toast('Opening ER:LC and joining '+p.dataset.play+'. If Roblox does not start, the code is copied: paste it in Servers.')}));
 const rs=document.getElementById('repS');if(rs)rs.onclick=()=>{const d=document.createElement('dialog');d.className='dlg';
   const R=[['name','Inappropriate name'],['icon','Inappropriate icon'],['bio','Inappropriate bio'],['fake','Fake or misleading'],['other','Something else']];
