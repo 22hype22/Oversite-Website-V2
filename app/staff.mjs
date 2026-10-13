@@ -143,7 +143,7 @@ export const removeRecord = (c, id) => staffRecords.remove(c.id, +id);
 // ── the Team tab: who's staff in game (ER:LC's owner, co-owners, admins, mods) and in the CAD (Oversite roles), side by side,
 // and giving or taking a role in both at once: ER:LC's :admin / :mod commands in game, the member's role in the CAD ──
 const RANK = { none: 0, member: 0, mod: 1, admin: 2, co_owner: 3, owner: 4 }, top = (...r) => r.filter(Boolean).sort((a, b) => RANK[b] - RANK[a])[0] || null;
-const rbxNames = new Map();
+const rbxNames = new Map(), sending = new Map();   // community:robloxId -> { to, at }: in-game changes on their way
 const namesFor = async ids => { const want = ids.filter(id => id && !rbxNames.has(id)); if (want.length) try {
     const j = await fetch('https://users.roblox.com/v1/users', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ userIds: want.map(Number), excludeBannedUsers: false }) }).then(r => r.json());
     for (const u of j.data || []) rbxNames.set(String(u.id), u.name); } catch (e) {}
@@ -159,6 +159,9 @@ export const team = async (c, key) => {
     const s2 = communities.byId(c.id).settings; s2.ingameStaff = { owner: String(raw.OwnerId || ''), co: (raw.CoOwnerIds || []).map(String), admins: Object.keys(S.Admins || {}), mods: Object.keys(S.Mods || {}), at: Date.now() }; communities.saveSettings(c.id, s2); }
   for (const m of members.staffOf(c.id)) { const r = row(m.roblox_id || 'u' + m.id, m.roblox_name || m.name); r.cad = m.role; r.uid = m.id; if (c.owner_id === m.id) { r.cad = 'owner'; r.creator = true; } }
   for (const g of staffGrants.list(c.id)) { const r = row(g.roblox_id, g.roblox_name); r.pending = g.role; }
+  for (const [k, x] of sending) { const [cid, rid] = k.split(':'); if (+cid !== c.id) continue; const r = rows.get(rid) || row(rid, x.name), want = x.to === 'none' ? null : x.to;
+    if (Date.now() - x.at > 120000 || (!v.error && (r.game || null) === want && !x.busy)) { sending.delete(k); continue; }   // ER:LC shows it now (or we gave up waiting)
+    r.game = want; r.sending = true; }
   const name = await namesFor([...rows.values()].filter(r => !r.name && /^\d+$/.test(r.rid)).map(r => r.rid)); for (const r of rows.values()) if (!r.name) r.name = name(r.rid) || 'ID ' + r.rid;
   return { inGame: !v.error, why: v.error || null, people: [...rows.values()].map(r => ({ ...r, role: top(r.game, r.cad, r.pending) })).filter(r => r.role).sort((a, b) => RANK[b.role] - RANK[a.role] || a.name.localeCompare(b.name)) }; };
 
@@ -191,10 +194,12 @@ export const setTeam = async (c, key, actor, body) => {
   if (u) { const has = members.role(c.id, u.id); if (to === 'none') { if (has && RANK[has] > 0) members.setRole(c.id, u.id, 'member'); }
     else if (has) members.setRole(c.id, u.id, to); else members.add(c.id, u.id, to); staffGrants.del(c.id, who.id); cad = to === 'none' ? 'removed' : 'set'; }
   else if (to === 'none') { staffGrants.del(c.id, who.id); cad = 'removed'; } else { staffGrants.set(c.id, who.id, who.name, to, actor.name); cad = 'pending'; }
-  // in game: ER:LC's staff commands, one at a time
-  const game = { sent: [], failed: null, note: null }, gTo = to === 'co_owner' ? null : to;
-  if (gTo && t.inGame) for (const cmd of gameSteps(who.name, cur.game === 'co_owner' ? null : cur.game, gTo)) { const r = await run(c, key, cmd, { id: actor.uid, name: actor.name }); if (r.ok) game.sent.push(cmd); else { game.failed = r.message; break; } }
+  // in game: ER:LC's staff commands, one at a time (ER:LC wants a few seconds between them), sent in the background so the answer comes back at once
+  const game = { sent: [], failed: null, note: null }, gTo = to === 'co_owner' ? null : to, steps = gTo && t.inGame ? gameSteps(who.name, cur.game === 'co_owner' ? null : cur.game, gTo) : [];
+  if (steps.length) { const k = c.id + ':' + who.id, x = { to: gTo, at: Date.now(), name: who.name, busy: true }; sending.set(k, x); game.sent = steps;
+    (async () => { for (const cmd of steps) { const r = await run(c, key, cmd, { id: actor.uid, name: actor.name }); if (!r.ok) { console.log(`team: ${c.slug} in-game ${cmd} failed: ${r.message}`); sending.delete(k); return; } }
+      x.busy = false; x.at = Date.now(); of(c.id).viewAt = 0; })(); }
   if (to === 'co_owner') game.note = cur.game === 'co_owner' ? null : 'ER:LC doesn\'t let apps add co-owners. Add them in game: your private server\'s settings, Co-Owners.';
   if (gTo && !t.inGame) game.note = 'Couldn\'t reach your ER:LC server, so nothing changed in game. Try again when it\'s up.';
-  of(c.id).viewAt = 0; console.log(`team: ${c.slug} ${actor.name} set ${who.name} to ${to} (cad ${cad}, game ${game.sent.join(' + ') || game.failed || game.note || 'no change'})`);
+  console.log(`team: ${c.slug} ${actor.name} set ${who.name} to ${to} (cad ${cad}, game ${game.sent.join(' + ') || game.note || 'no change'})`);
   return { ok: true, who: who.name, role: to, cad, game, team: await team(c, key) }; };
