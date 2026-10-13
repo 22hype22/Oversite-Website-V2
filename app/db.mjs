@@ -165,6 +165,7 @@ export const members = {
     if (!cur) q('INSERT INTO members (community_id, user_id, role, joined) VALUES (?, ?, ?, ?)').run(cid, uid, role, now()); else if (rank(role) > rank(cur)) q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ?').run(role, cid, uid); },
   setRole: (cid, uid, role) => q('UPDATE members SET role = ? WHERE community_id = ? AND user_id = ? AND user_id != (SELECT owner_id FROM communities WHERE id = ?)').run(role, cid, uid, cid),   // never the server's creator
   remove: (cid, uid) => q('DELETE FROM members WHERE community_id = ? AND user_id = ? AND user_id != (SELECT owner_id FROM communities WHERE id = ?)').run(cid, uid, cid),
+  staffOf: cid => q("SELECT u.id, u.name, u.roblox_id, u.roblox_name, m.role FROM members m JOIN users u ON u.id = m.user_id WHERE m.community_id = ? AND m.role IN ('owner', 'co_owner', 'admin', 'mod')").all(cid),
 };
 export const invites = {
   create: (cid, by, days = 7) => { const code = token(5); q('INSERT INTO invites (code, community_id, created_by, created, expires) VALUES (?, ?, ?, ?, ?)').run(code, cid, by, now(), days ? now() + days * 864e5 : null); return code; },
@@ -303,6 +304,13 @@ export const support = {
   open: () => q('SELECT t.id, t.topic, t.email, t.body, t.page, t.created, u.roblox_name, u.roblox_id, u.name, u.discord_id, u.suspended FROM support_tickets t LEFT JOIN users u ON u.id = t.user_id WHERE t.closed IS NULL ORDER BY t.created DESC LIMIT 200').all(),
   close: id => q('UPDATE support_tickets SET closed = ? WHERE id = ? AND closed IS NULL').run(now(), id).changes,
   recent: (uid, since) => q('SELECT COUNT(*) AS n FROM support_tickets WHERE user_id = ? AND created > ?').get(uid, since).n };
+// staff roles given from the Staff CAD's Team tab to someone who isn't on Oversite yet: applied the first time they open the server
+db.exec('CREATE TABLE IF NOT EXISTS staff_grants (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, roblox_id TEXT NOT NULL, roblox_name TEXT NOT NULL, role TEXT NOT NULL, by_name TEXT, at INTEGER NOT NULL, PRIMARY KEY (community_id, roblox_id))');
+export const staffGrants = {
+  list: cid => q('SELECT * FROM staff_grants WHERE community_id = ?').all(cid),
+  set: (cid, rid, name, role, by) => q('INSERT OR REPLACE INTO staff_grants (community_id, roblox_id, roblox_name, role, by_name, at) VALUES (?, ?, ?, ?, ?, ?)').run(cid, rid, name, role, by, now()),
+  del: (cid, rid) => q('DELETE FROM staff_grants WHERE community_id = ? AND roblox_id = ?').run(cid, rid),
+  take: (cid, rid) => { const g = q('SELECT * FROM staff_grants WHERE community_id = ? AND roblox_id = ?').get(cid, String(rid)); if (g) q('DELETE FROM staff_grants WHERE community_id = ? AND roblox_id = ?').run(cid, String(rid)); return g || null; } };
 export const licenses = {
   get: uid => { try { return JSON.parse(q('SELECT license FROM users WHERE id = ?').get(uid)?.license || '{}') || {}; } catch (e) { return {}; } },
   set: (uid, o) => q('UPDATE users SET license = ? WHERE id = ?').run(JSON.stringify(o), uid) };

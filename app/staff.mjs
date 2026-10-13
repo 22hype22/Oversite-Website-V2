@@ -1,7 +1,7 @@
 // Staff tools for one community: a staff view of the ER:LC server (players, mod calls, command and kill logs, bans) and in-game
 // moderation through the API's command endpoint, with every warning, kick and ban written to the community's records.
 import { erlcHeaders, authLink } from './feed.mjs';
-import { staffRecords, staffSent, commandLog, communities, users } from './db.mjs';
+import { staffRecords, staffSent, commandLog, communities, users, members, staffGrants } from './db.mjs';
 
 // who did something, by the account behind it rather than the name saved at the time: once someone links Roblox their past
 // actions show their Roblox name; an account with nothing linked is marked, with its number, so it can still be told apart
@@ -139,3 +139,56 @@ export const lookup = (c, q) => { const name = String(q || '').trim().slice(0, 6
 
 export const records = (c, q) => named(q.id || q.name ? staffRecords.forPlayer(c.id, q.id, q.name) : q.q ? staffRecords.search(c.id, q.q) : staffRecords.recent(c.id, 100));
 export const removeRecord = (c, id) => staffRecords.remove(c.id, +id);
+
+// ── the Team tab: who's staff in game (ER:LC's owner, co-owners, admins, mods) and in the CAD (Oversite roles), side by side,
+// and giving or taking a role in both at once: ER:LC's :admin / :mod commands in game, the member's role in the CAD ──
+const RANK = { none: 0, member: 0, mod: 1, admin: 2, co_owner: 3, owner: 4 }, top = (...r) => r.filter(Boolean).sort((a, b) => RANK[b] - RANK[a])[0] || null;
+const rbxNames = new Map();
+const namesFor = async ids => { const want = ids.filter(id => id && !rbxNames.has(id)); if (want.length) try {
+    const j = await fetch('https://users.roblox.com/v1/users', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ userIds: want.map(Number), excludeBannedUsers: false }) }).then(r => r.json());
+    for (const u of j.data || []) rbxNames.set(String(u.id), u.name); } catch (e) {}
+  return id => rbxNames.get(String(id)) || ''; };
+const userByName = async name => { try { const j = await fetch('https://users.roblox.com/v1/usernames/users', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ usernames: [name], excludeBannedUsers: true }) }).then(r => r.json());
+  const u = j.data && j.data[0]; return u ? { id: String(u.id), name: u.name } : null; } catch (e) { return null; } };
+
+export const team = async (c, key) => {
+  const v = key ? await view(c, key) : { error: 'no key' }, raw = of(c.id).view || {}, S = raw.Staff || {}, rows = new Map();
+  const row = (rid, name) => { rid = String(rid || ''); if (!rows.has(rid)) rows.set(rid, { rid, name: name || '', game: null, cad: null, pending: null, uid: null }); const r = rows.get(rid); if (name && !r.name) r.name = name; return r; };
+  if (!v.error) { if (raw.OwnerId) row(raw.OwnerId).game = 'owner'; for (const id of raw.CoOwnerIds || []) row(id).game = 'co_owner';
+    for (const [id, n] of Object.entries(S.Admins || {})) { const r = row(id, n); r.game = top(r.game, 'admin'); } for (const [id, n] of Object.entries(S.Mods || {})) { const r = row(id, n); r.game = top(r.game, 'mod'); }
+    const s2 = communities.byId(c.id).settings; s2.ingameStaff = { owner: String(raw.OwnerId || ''), co: (raw.CoOwnerIds || []).map(String), admins: Object.keys(S.Admins || {}), mods: Object.keys(S.Mods || {}), at: Date.now() }; communities.saveSettings(c.id, s2); }
+  for (const m of members.staffOf(c.id)) { const r = row(m.roblox_id || 'u' + m.id, m.roblox_name || m.name); r.cad = c.owner_id === m.id ? 'owner' : m.role; r.uid = m.id; }
+  for (const g of staffGrants.list(c.id)) { const r = row(g.roblox_id, g.roblox_name); r.pending = g.role; }
+  const name = await namesFor([...rows.values()].filter(r => !r.name && /^\d+$/.test(r.rid)).map(r => r.rid)); for (const r of rows.values()) if (!r.name) r.name = name(r.rid) || 'ID ' + r.rid;
+  return { inGame: !v.error, why: v.error || null, people: [...rows.values()].map(r => ({ ...r, role: top(r.game, r.cad, r.pending) })).filter(r => r.role).sort((a, b) => RANK[b.role] - RANK[a.role] || a.name.localeCompare(b.name)) }; };
+
+// what the in-game commands are for a change; co-owners can't be added through ER:LC's API, so that part is the owner's to do in game
+const gameSteps = (name, from, to) => { const out = [];
+  if (to === 'admin') { if (from === 'mod') out.push(`:unmod ${name}`); if (from !== 'admin') out.push(`:admin ${name}`); }
+  if (to === 'mod') { if (from === 'admin') out.push(`:unadmin ${name}`); if (from !== 'mod') out.push(`:mod ${name}`); }
+  if (to === 'none') { if (from === 'admin') out.push(`:unadmin ${name}`); if (from === 'mod') out.push(`:unmod ${name}`); }
+  return out; };
+
+export const setTeam = async (c, key, actor, body) => {
+  const to = String(body.role || ''); if (!['co_owner', 'admin', 'mod', 'none'].includes(to)) return { error: 'Pick a role.' };
+  const mine = actor.role === 'owner' || actor.uid === c.owner_id ? 'owner' : actor.role;
+  if (RANK[mine] < RANK.co_owner) return { error: 'Only the owner and co-owners can change staff.' };
+  if (to === 'co_owner' && mine !== 'owner') return { error: 'Only the owner can make someone a co-owner.' };
+  const raw = String(body.name || '').trim(); if (!/^[A-Za-z0-9_]{3,20}$/.test(raw)) return { error: 'Type their Roblox username.' };
+  const who = await userByName(raw); if (!who) return { error: `There's no Roblox account called ${raw}.` };
+  const t = await team(c, key), cur = t.people.find(p => p.rid === who.id) || { game: null, cad: null, pending: null, role: null };
+  if (cur.role === 'owner' || cur.cad === 'owner' || cur.game === 'owner') return { error: 'The owner\'s role can\'t be changed.' };
+  if (who.id === String(actor.rid || '')) return { error: 'You can\'t change your own role.' };
+  if (mine !== 'owner' && RANK[cur.role] >= RANK.co_owner) return { error: 'Only the owner can change a co-owner.' };
+  // in the CAD: their Oversite role now, or waiting for them if they aren't on Oversite yet
+  const u = users.byRoblox(who.id); if (u && u.id === c.owner_id) return { error: 'The owner\'s role can\'t be changed.' }; let cad;
+  if (u) { const has = members.role(c.id, u.id); if (to === 'none') { if (has && RANK[has] > 0) members.setRole(c.id, u.id, 'member'); }
+    else if (has) members.setRole(c.id, u.id, to); else members.add(c.id, u.id, to); staffGrants.del(c.id, who.id); cad = to === 'none' ? 'removed' : 'set'; }
+  else if (to === 'none') { staffGrants.del(c.id, who.id); cad = 'removed'; } else { staffGrants.set(c.id, who.id, who.name, to, actor.name); cad = 'pending'; }
+  // in game: ER:LC's staff commands, one at a time
+  const game = { sent: [], failed: null, note: null }, gTo = to === 'co_owner' ? null : to;
+  if (gTo && t.inGame) for (const cmd of gameSteps(who.name, cur.game === 'co_owner' ? null : cur.game, gTo)) { const r = await run(c, key, cmd, { id: actor.uid, name: actor.name }); if (r.ok) game.sent.push(cmd); else { game.failed = r.message; break; } }
+  if (to === 'co_owner') game.note = cur.game === 'co_owner' ? null : 'ER:LC doesn\'t let apps add co-owners. Add them in game: your private server\'s settings, Co-Owners.';
+  if (gTo && !t.inGame) game.note = 'Couldn\'t reach your ER:LC server, so nothing changed in game. Try again when it\'s up.';
+  of(c.id).viewAt = 0; console.log(`team: ${c.slug} ${actor.name} set ${who.name} to ${to} (cad ${cad}, game ${game.sent.join(' + ') || game.failed || game.note || 'no change'})`);
+  return { ok: true, who: who.name, role: to, cad, game, team: await team(c, key) }; };

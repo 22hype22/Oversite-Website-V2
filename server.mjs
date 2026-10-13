@@ -6,7 +6,7 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, mdtSignin, support, siteSettings, seal, RESERVED, token } from './app/db.mjs';
+import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, mdtSignin, support, staffGrants, siteSettings, seal, RESERVED, token } from './app/db.mjs';
 import { RANKS, validRank, licenseOf, saveLicense } from './app/license.mjs';
 import { serverPage } from './app/serverpage.mjs';
 import * as voice from './app/voice.mjs';
@@ -64,8 +64,14 @@ const headshot = async (id, kind = 'headshot') => { const ck = kind + id, hit = 
 // owner > co-owner > admin > mod > member. Co-owners run Settings (not deleting the server); admins and mods get the Staff MDT
 const ROLE_RANK = { member: 1, mod: 2, admin: 3, co_owner: 4, owner: 5 };
 // access = the stored membership, raised by the person's roles in the community's linked Discord server (checked live)
+// staff from the Team tab and from the game: a role given before they were on Oversite is theirs the first time they open the server,
+// and ER:LC co-owners, admins and mods are staff in the CAD too, at least at that rank
+const staffRole = (c, user) => { if (!user) return null; let role = members.role(c.id, user.id); if (!user.roblox_id) return role;
+  const g = staffGrants.take(c.id, user.roblox_id); if (g) { if (!role) members.add(c.id, user.id, g.role); else if (role !== 'owner') members.setRole(c.id, user.id, g.role); role = members.role(c.id, user.id); }
+  const G = c.settings.ingameStaff, rid = String(user.roblox_id), lvl = !G || role === 'owner' ? null : G.co?.includes(rid) ? 'co_owner' : G.admins?.includes(rid) ? 'admin' : G.mods?.includes(rid) ? 'mod' : null;
+  if (lvl) { if (!role) members.add(c.id, user.id, 'member'); role = discordlink.higher(role || 'member', lvl); } return role; };
 const access = async (req, slug) => { const user = auth.currentUser(req), c = communities.bySlug(slug); if (!c) return { c: null, user };
-  let role = user ? members.role(c.id, user.id) : null;
+  let role = staffRole(c, user);
   if (user && user.discord_id && role !== 'owner') { const lvl = await discordlink.levelFor(c, user.discord_id).catch(() => null); if (lvl) { if (!role) members.add(c.id, user.id, 'member'); role = discordlink.higher(role, lvl); } }
   return { c, user, role }; };
 // new servers must connect a Discord server before they can be used; servers made before this rule are left alone
@@ -109,6 +115,9 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); return json(res, v, v.error ? 502 : 200); }
     if (sub === 'action' && M === 'POST' && !can(role, 'admin') && !staff.MOD_KINDS.includes(String((req._body = await jsonBody(req)).kind))) return json(res, { error: 'Mods can warn, message, kick and add notes. Bans, unbans and announcements need an admin.' }, 403);
     if (sub === 'action' && M === 'POST') { const r = await staff.act(c, communities.key(c.id), by, req._body || await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
+    // the Team tab: staff in game and in the CAD; the owner and co-owners give and take roles in both
+    if (sub === 'team' && M === 'GET') return json(res, await staff.team(c, communities.key(c.id)));
+    if (sub === 'team' && M === 'POST') { const r = await staff.setTeam(c, communities.key(c.id), { uid: user.id, rid: user.roblox_id, name: by.name, role }, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'logs' && M === 'GET') return json(res, staff.lookup(c, new URL(req.url, 'http://x').searchParams.get('user')));
     if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can delete records.' }, 403); staff.removeRecord(c, (await jsonBody(req)).id); return json(res, { ok: true }); }   // records can go; the command log never can
     if (sub === 'records' && M === 'GET') return json(res, { records: staff.records(c, Object.fromEntries(new URL(req.url, 'http://x').searchParams)) });
@@ -316,7 +325,7 @@ const route = async (req, res) => {
   const old = req.method === 'GET' && path.match(/^\/(c|s)\/([a-z0-9-]{3,32})(\/(?:settings|voice))?\/?$/);
   if (old && !RESERVED.has(old[2])) return redirect(res, `/${old[2]}${old[1] === 's' ? '' : old[3] === '/voice' ? '/prox' : old[3] || ''}${url.search}`, { 'cache-control': 'no-store' }, 301);
   const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|prox|about))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
-  if (sc) { const sub = short[2] || '', u = auth.currentUser(req);
+  if (sc) { const sub = short[2] || '', u = auth.currentUser(req); if (u) staffRole(sc, u);
     if (sub === '/about' || (!sub && !(u && members.role(sc.id, u.id)) && visible(sc.slug))) { path = `/s/${sc.slug}`; aboutPage = true; }
     else if (sub === '/prox') { path = `/c/${sc.slug}/voice`; req.prox = true; }
     else path = `/c/${sc.slug}${sub}`; }
