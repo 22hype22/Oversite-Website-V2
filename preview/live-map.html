@@ -2621,18 +2621,24 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const render = () => { bar.innerHTML = [...P.values()].map(({ p }) => `<div class="pb${muted.has(p.id) || mine(p) ? ' mute' : ''}" data-id="${esc(p.id)}"><b>PANIC</b>
       <div class="pt"><strong>${esc(p.unit || p.by)}${mine(p) ? ' (you)' : ''} needs help</strong>${esc([DN[p.dept], p.crew && p.crew.length ? p.crew.join(', ') : p.by, p.where || 'Location unknown', ago(p.at)].filter(Boolean).join(' · '))}</div>
       ${Number.isFinite(p.x) ? '<button type="button" data-a="map">Show on map</button>' : ''}${mine(p) || muted.has(p.id) ? '' : '<button type="button" data-a="mute">Mute alarm</button>'}<button type="button" class="pc" data-a="clear">Clear panic</button></div>`).join(''); };
-  // the alarm: a two-tone siren every few seconds while any panic you haven't muted is open (panics override the sound switch)
+  // the alarm: ER:LC's panic beeping every couple of seconds while any panic you haven't muted is open (panics override the sound switch)
   let actx = null, sirenT = 0;
   const siren = () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state !== 'running') actx.resume(); const t0 = actx.currentTime;
       for (let i = 0; i < 4; i++) { const o = actx.createOscillator(), g = actx.createGain(); o.type = 'square'; o.frequency.setValueAtTime(i % 2 ? 660 : 990, t0 + i * .32);
         g.gain.setValueAtTime(0.0001, t0 + i * .32); g.gain.exponentialRampToValueAtTime(0.12, t0 + i * .32 + .02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * .32 + .3); o.connect(g).connect(actx.destination); o.start(t0 + i * .32); o.stop(t0 + i * .32 + .31); } } catch (e) {} };
+  // the panic alarm, like ER:LC's: a burst of fast high beeps, again and again while the panic is open
+  const beeps = (n = 8) => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state !== 'running') actx.resume(); const t0 = actx.currentTime + .02;
+      for (let i = 0; i < n; i++) { const t = t0 + i * .13, o = actx.createOscillator(), g = actx.createGain(); o.type = 'square'; o.frequency.setValueAtTime(1180, t);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + .006); g.gain.setValueAtTime(0.09, t + .07); g.gain.exponentialRampToValueAtTime(0.0001, t + .08);
+        o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .09); } } catch (e) {} };
   const loud = () => [...P.values()].some(({ p }) => !muted.has(p.id) && !mine(p));
   window.playPanicTone = () => { let on = true; try { on = localStorage.getItem('oversite.sound') !== 'off'; } catch (e) {} if (on) siren(); };   // a Code 3 backup call: one siren, if sound is on
-  const alarm = () => { clearInterval(sirenT); if (!loud()) return; siren(); sirenT = setInterval(() => loud() ? siren() : clearInterval(sirenT), 3500); };
+  const alarm = () => { clearInterval(sirenT); if (!loud()) return; beeps(); sirenT = setInterval(() => loud() ? beeps() : clearInterval(sirenT), 1700); };
   const add = p => { if (!p || !p.id || P.has(p.id)) return;
     const call = { pri: 1, code: '10-99', type: `PANIC: ${p.unit || p.by} needs help`, where: p.where || 'Unknown location', unit: p.unit || '', dept: p.dept, stage: 2, startedAt: p.at, x: Number.isFinite(p.x) ? p.x : 1000, y: Number.isFinite(p.y) ? p.y : 1000, live: !mine(p), panic: p.id };
     const added = Number.isFinite(p.x) && !mine(p);   // your own panic isn't a call assigned to you
-    P.set(p.id, { p, call, added }); if (added) window.addCall?.(call); render(); alarm(); };
+    P.set(p.id, { p, call, added }); if (added) window.addCall?.(call); render(); alarm();
+    if (mine(p) && Date.now() - p.at < 15000) { beeps(); setTimeout(() => P.has(p.id) && beeps(), 1700); } };   // you pressed it: you hear it go out, like in game
   const drop = id => { const e = P.get(id); if (!e) return; P.delete(id); muted.delete(id); if (e.added) window.removeCall?.(e.call); render(); alarm(); };
   const clear = id => { drop(id); if (O.api) fetch(O.api + '/panic/clear', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ id }) }).catch(() => {}); };
   addEventListener('panic', e => add(e.detail)); addEventListener('panicclear', e => e.detail && drop(e.detail.id));
