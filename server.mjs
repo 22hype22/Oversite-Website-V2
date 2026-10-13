@@ -532,5 +532,12 @@ http.createServer((req, res) => {
   gate(req, res).catch(e => { console.error(e); if (!res.headersSent) json(res, { error: 'Server error.' }, 500); else res.end(); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
 staff.startHistory(); profile.startDirectory(id => feeds.get(id)?.snap);
+// once: the old owner link left extra "Owner" members behind; on servers a site admin made, they go back to plain members
+// (in-game staff still get their in-game rank in the CAD), and the server's creator can sort out anyone else from the Team tab
+if (!siteSettings.get('fix_extra_owners_1')) { let n = 0;
+  for (const c of communities.all()) { if (!isSiteAdmin(users.byId(c.owner_id))) continue; for (const m of members.list(c.id)) { if (m.role !== 'owner' || m.id === c.owner_id || isSiteAdmin(m)) continue;
+      const u = users.byId(m.id), to = u?.roblox_id && c.settings.ingameStaff?.co?.includes(String(u.roblox_id)) ? 'co_owner' : 'member';   // a co-owner in game stays co-owner
+      members.setRole(c.id, m.id, to); n++; console.log(`owners: ${c.slug} ${m.roblox_name || m.name} is ${to === 'member' ? 'a member' : 'a co-owner'} now (was an extra Owner from the old owner link)`); } }
+  siteSettings.set('fix_extra_owners_1', String(Date.now())); console.log(`owners: ${n} extra owner${n === 1 ? '' : 's'} removed`); }
 // the address ER:LC sees our commands come from, for checking against the server owner's allowlist
 fetch('https://api.ipify.org?format=json').then(r => r.json()).then(j => console.log('Outbound IP:', j.ip)).catch(e => console.log('Outbound IP check failed:', e.message));

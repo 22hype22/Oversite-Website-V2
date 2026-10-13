@@ -3439,28 +3439,28 @@ body.voice-snap .stage{transition:none!important}
   const RN = { owner: 'Owner', co_owner: 'Co-owner', admin: 'Admin', mod: 'Mod' }, RR = { none: 0, mod: 1, admin: 2, co_owner: 3, owner: 4 };
   const myRank = OV.role === 'owner' ? 4 : OV.role === 'co_owner' ? 3 : 0;   // 4 owner, 3 co-owner; admins and mods can look
   let T = null, teamBusy = false;
-  const canEdit = p => myRank >= 3 && p.role !== 'owner' && p.rid !== String(OV.rid || '') && (myRank === 4 || RR[p.role] < 3);
+  const canEdit = p => myRank >= 3 && !p.creator && p.game !== 'owner' && p.rid !== String(OV.rid || '') && (myRank === 4 || RR[p.role] < 3);   // extra owners (from the old owner link) can be changed by the creator
   const roleOpts = cur => [...(myRank === 4 ? ['co_owner'] : []), 'admin', 'mod'].map(r => `<option value="${r}"${r === cur ? ' selected' : ''}>${RN[r]}</option>`).join('');
   const drawTeam = () => { if (!T) return; const P = T.people || [];
     const line = p => `<div class="tm-r">${av(p.rid, p.name)}<div><b>${esc(p.name)}</b><small>`
       + `<i class="${p.game === p.role || (p.role === 'co_owner' && p.game === 'co_owner') ? '' : 'off'}">${T.inGame ? (p.game ? 'In game: ' + RN[p.game] : 'Not staff in game') : 'In game: unknown'}</i>`
       + `<i class="${p.cad === p.role ? '' : 'off'}">${p.cad ? 'CAD: ' + RN[p.cad] : p.pending ? 'CAD: ' + RN[p.pending] + ' once they join Oversite' : 'Not on Oversite'}</i></small></div>`
-      + (canEdit(p) ? `<div class="tm-a"><select data-tm-role="${esc(p.name)}" aria-label="Role for ${esc(p.name)}">${roleOpts(p.role)}</select><button type="button" class="st-btn" data-tm-out="${esc(p.name)}">Remove</button></div>` : '<span></span>') + '</div>';
+      + (canEdit(p) ? (k => `<div class="tm-a"><select ${k} aria-label="Role for ${esc(p.name)}">${roleOpts(p.role === 'owner' ? '' : p.role)}${p.role === 'owner' ? '<option value="" selected disabled>Owner</option>' : ''}</select><button type="button" class="st-btn" ${k.replace('data-tm-role', 'data-tm-out')}>Remove</button></div>`)(/^\d+$/.test(p.rid) ? `data-tm-role="${esc(p.name)}"` : `data-tm-role="" data-tm-uid="${p.uid}"`) : '<span></span>') + '</div>';
     $('stTeam').innerHTML = (T.inGame ? '' : `<p class="tm-msg bad">Couldn't read ER:LC's staff list right now, so only CAD roles show.</p>`)
       + ['owner', 'co_owner', 'admin', 'mod'].map(r => { const L = P.filter(p => p.role === r); return L.length ? `<div class="tm-g"><h3>${RN[r]}${L.length > 1 && r !== 'owner' ? 's' : ''}</h3>${L.map(line).join('')}</div>` : ''; }).join('')
       || '<div class="st-empty">No staff yet.</div>'; };
   const renderTeam = async () => { if (!T) $('stTeam').innerHTML = '<div class="st-empty">Loading…</div>';
     try { const r = await fetch(API + '/team'), j = await r.json(); if (!r.ok) throw new Error(j.error || 'Could not load the team.'); T = j; drawTeam(); } catch (x) { $('stTeam').innerHTML = `<div class="st-empty">${esc(x.message)}</div>`; } };
   const tmSay = (m, k) => { const el = $('tmMsg'); el.textContent = m; el.className = 'tm-msg' + (k ? ' ' + k : ''); };
-  const setRole = async (name, role) => { if (teamBusy) return; teamBusy = true; tmSay(`Saving${role === 'none' ? '' : ''}… in-game commands take a few seconds each.`);
-    try { const j = await post('/team', { name, role }); T = j.team; drawTeam();
+  const setRole = async (name, role, uid) => { if (teamBusy) return; teamBusy = true; tmSay('Saving… in-game commands take a few seconds each.');
+    try { const j = await post('/team', name ? { name, role } : { uid, role }); T = j.team; drawTeam();
       const g = j.game, game = g.failed ? ` In game it didn't go through: ${g.failed}` : g.sent.length ? ` In game: ${g.sent.join(', ')}.` : '';
       tmSay((role === 'none' ? `${j.who} is no longer staff.` : `${j.who} is now ${RN[role]}.`) + (j.cad === 'pending' ? ' They get the CAD role when they first open this server on Oversite.' : '') + game + (g.note ? ' ' + g.note : ''), g.failed ? 'bad' : 'ok'); }
     catch (x) { tmSay(x.message, 'bad'); } finally { teamBusy = false; } };
   if (myRank >= 3) { $('tmAdd').hidden = false; $('tmRole').innerHTML = roleOpts('mod'); }
   $('tmAdd').addEventListener('submit', async e => { e.preventDefault(); const n = $('tmName').value.trim(); if (!n) return tmSay('Type their Roblox username.', 'bad'); await setRole(n, $('tmRole').value); $('tmName').value = ''; });
-  $('stTeam').addEventListener('change', e => { const s2 = e.target.closest('[data-tm-role]'); if (s2) setRole(s2.dataset.tmRole, s2.value); });
-  $('stTeam').addEventListener('click', e => { const b = e.target.closest('[data-tm-out]'); if (b) setRole(b.dataset.tmOut, 'none'); });
+  $('stTeam').addEventListener('change', e => { const s2 = e.target.closest('[data-tm-role]'); if (s2 && s2.value) setRole(s2.dataset.tmRole, s2.value, s2.dataset.tmUid); });
+  $('stTeam').addEventListener('click', e => { const b = e.target.closest('[data-tm-out]'); if (b) setRole(b.dataset.tmOut, 'none', b.dataset.tmUid); });
   $('tmPerm').innerHTML = '<table><tr><th></th><th>Co-owner</th><th>Admin</th><th>Mod</th></tr>' + [['Warn, kick, message, notes', 1, 1, 1], ['Ban, unban, announce', 1, 1, 0], ['Delete records', 1, 0, 0], ['Server settings and ER:LC key', 1, 0, 0], ['Give admin and mod', 1, 0, 0], ['Give co-owner', 0, 0, 0]]
     .map(([k, ...v]) => `<tr><td>${k}</td>${v.map(x => `<td class="${x ? 'y' : 'n'}">${x ? '✓' : '–'}</td>`).join('')}</tr>`).join('') + '</table><p style="margin:8px 0 0">The owner can do everything, including making co-owners.</p>';
 

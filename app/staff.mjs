@@ -157,7 +157,7 @@ export const team = async (c, key) => {
   if (!v.error) { if (raw.OwnerId) row(raw.OwnerId).game = 'owner'; for (const id of raw.CoOwnerIds || []) row(id).game = 'co_owner';
     for (const [id, n] of Object.entries(S.Admins || {})) { const r = row(id, n); r.game = top(r.game, 'admin'); } for (const [id, n] of Object.entries(S.Mods || {})) { const r = row(id, n); r.game = top(r.game, 'mod'); }
     const s2 = communities.byId(c.id).settings; s2.ingameStaff = { owner: String(raw.OwnerId || ''), co: (raw.CoOwnerIds || []).map(String), admins: Object.keys(S.Admins || {}), mods: Object.keys(S.Mods || {}), at: Date.now() }; communities.saveSettings(c.id, s2); }
-  for (const m of members.staffOf(c.id)) { const r = row(m.roblox_id || 'u' + m.id, m.roblox_name || m.name); r.cad = c.owner_id === m.id ? 'owner' : m.role; r.uid = m.id; }
+  for (const m of members.staffOf(c.id)) { const r = row(m.roblox_id || 'u' + m.id, m.roblox_name || m.name); r.cad = m.role; r.uid = m.id; if (c.owner_id === m.id) { r.cad = 'owner'; r.creator = true; } }
   for (const g of staffGrants.list(c.id)) { const r = row(g.roblox_id, g.roblox_name); r.pending = g.role; }
   const name = await namesFor([...rows.values()].filter(r => !r.name && /^\d+$/.test(r.rid)).map(r => r.rid)); for (const r of rows.values()) if (!r.name) r.name = name(r.rid) || 'ID ' + r.rid;
   return { inGame: !v.error, why: v.error || null, people: [...rows.values()].map(r => ({ ...r, role: top(r.game, r.cad, r.pending) })).filter(r => r.role).sort((a, b) => RANK[b.role] - RANK[a.role] || a.name.localeCompare(b.name)) }; };
@@ -174,10 +174,16 @@ export const setTeam = async (c, key, actor, body) => {
   const mine = actor.role === 'owner' || actor.uid === c.owner_id ? 'owner' : actor.role;
   if (RANK[mine] < RANK.co_owner) return { error: 'Only the owner and co-owners can change staff.' };
   if (to === 'co_owner' && mine !== 'owner') return { error: 'Only the owner can make someone a co-owner.' };
+  // someone on Oversite with no Roblox account linked (an old server-code account): only their CAD role can change
+  if (body.uid != null && !body.name) { const uid = Number(body.uid), m = members.role(c.id, uid); if (!m) return { error: 'They aren\'t in this server.' };
+    if (uid === c.owner_id) return { error: 'The owner\'s role can\'t be changed.' }; if (uid === actor.uid) return { error: 'You can\'t change your own role.' };
+    if (mine !== 'owner' && RANK[m] >= RANK.co_owner) return { error: 'Only the owner can change a co-owner.' };
+    members.setRole(c.id, uid, to === 'none' ? 'member' : to); const u0 = users.byId(uid); console.log(`team: ${c.slug} ${actor.name} set ${u0?.name || uid} to ${to} (cad only)`);
+    return { ok: true, who: u0?.roblox_name || u0?.name || 'They', role: to, cad: to === 'none' ? 'removed' : 'set', game: { sent: [], failed: null, note: null }, team: await team(c, key) }; }
   const raw = String(body.name || '').trim(); if (!/^[A-Za-z0-9_]{3,20}$/.test(raw)) return { error: 'Type their Roblox username.' };
   const who = await userByName(raw); if (!who) return { error: `There's no Roblox account called ${raw}.` };
   const t = await team(c, key), cur = t.people.find(p => p.rid === who.id) || { game: null, cad: null, pending: null, role: null };
-  if (cur.role === 'owner' || cur.cad === 'owner' || cur.game === 'owner') return { error: 'The owner\'s role can\'t be changed.' };
+  if (cur.creator || cur.game === 'owner') return { error: 'The owner\'s role can\'t be changed.' };
   if (who.id === String(actor.rid || '')) return { error: 'You can\'t change your own role.' };
   if (mine !== 'owner' && RANK[cur.role] >= RANK.co_owner) return { error: 'Only the owner can change a co-owner.' };
   // in the CAD: their Oversite role now, or waiting for them if they aren't on Oversite yet
