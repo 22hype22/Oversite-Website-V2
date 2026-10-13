@@ -15,6 +15,7 @@ import { Feed, testKey, appSide, NOKEY, appKey, appId, appKeyChanged, authLink, 
 import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
 import * as staff from './app/staff.mjs';
+import * as police from './app/police.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin } from './app/admins.mjs';
@@ -43,7 +44,9 @@ const msg = (res, user, title, text, action, status = 200) => page(res, pages.me
 // ── live feeds, one per community ──
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
-const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f); } return f; };
+const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f);
+  f.onSnap = body => police.observe(c.id, body);                                                          // plates, owners and players for the PD lookups
+  f.onStream = res => res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 
 // ── the CAD page, with this community's settings injected ──
@@ -150,6 +153,21 @@ const communityApi = async (req, res, slug, rest) => {
       x: num(j.x), y: num(j.y), where: T(j.where, 80), at: Date.now() };
     f.panic(p); console.log(`panic: ${c.slug} ${p.unit || p.by} (${p.dept}) at ${p.where || 'unknown'}`); return json(res, { ok: true, panic: p }); }
   if (rest === 'panic/clear' && M === 'POST') { const j = await jsonBody(req); const ok = f.panicClear(String(j.id || ''), user.roblox_name || user.name); return json(res, { ok }); }
+  // unit status: the 10-code a unit picks shows on every MDT and on dispatch
+  if (rest === 'status' && M === 'POST') { const j = await jsonBody(req), r = police.setStatus(c.id, j.unit, String(j.st || ''), user.roblox_name || user.name);
+    if (r.ok) f.bcast('unitstatus', JSON.stringify({ unit: r.unit, st: r.st })); return json(res, r, r.error ? 400 : 200); }
+  // the law enforcement MDT: lookups, warrants, BOLOs, citations, warnings, arrests and traffic stops, shared by the whole server
+  if (rest.startsWith('pd/')) { const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, by = { uid: user.id, name: user.roblox_name || user.name, supervisor: police.isSupervisor(c.id, user.id, can(role, 'admin')) };
+    if (sub === 'config' && M === 'GET') return json(res, { penal: police.PENAL, rank: police.pdRank(c.id, user.id), supervisor: by.supervisor, admin: can(role, 'admin'), me: by.name });
+    if (sub === 'search' && M === 'GET') return json(res, police.search(c.id, qs.get('q')));
+    if (sub === 'person' && M === 'GET') { const r = await police.person(c.id, qs.get('id') || qs.get('name'), licenseOf); return json(res, r, r.error ? 404 : 200); }
+    if (sub === 'vehicle' && M === 'GET') { const r = police.vehicle(c.id, qs.get('plate')); return json(res, r, r.error ? 404 : 200); }
+    if (sub === 'vehicle' && M === 'POST') { const j = await jsonBody(req), r = police.setVehicle(c.id, j.plate, j); return json(res, r, r.error ? 400 : 200); }
+    if (sub === 'records' && M === 'GET') return json(res, { records: police.list(c.id, { kind: qs.get('kind') || '', status: qs.get('status') || '', mine: qs.get('mine') === '1' }, user.id) });
+    if (sub === 'records' && M === 'POST') { const r = police.create(c.id, by, await jsonBody(req)); if (r.ok) f.bcast('pdrec', JSON.stringify(r.record)); return json(res, r, r.error ? 400 : 200); }
+    if (sub === 'records/act' && M === 'POST') { const j = await jsonBody(req), r = police.act(c.id, by, j); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: String(j.action || ''), _by: by.name })); return json(res, r, r.error ? 400 : 200); }
+    if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only an admin can delete records.' }, 403); const id = +(await jsonBody(req)).id || 0; police.remove(c.id, id); f.bcast('pdrec', JSON.stringify({ id, _deleted: true })); return json(res, { ok: true }); }
+    return json(res, { error: 'Not found.' }, 404); }
   // signing in to a department's MDT with your license and rank; it stays until you sign out
   if (rest === 'mdt/signin' && M === 'POST') { const j = await jsonBody(req); if (!validRank(j.dept, j.rank)) return json(res, { error: 'Pick your rank.' }, 400);
     mdtSignin.set(c.id, user.id, j.dept, j.rank); return json(res, { ok: true, mdt: mdtSignin.mine(c.id, user.id) }); }

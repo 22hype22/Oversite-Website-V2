@@ -450,17 +450,19 @@ LIVE_JS = r"""<script id="live">
   const cardHTML = (u, sel) => { const crew = esc(u.crew.join(', '));
     return `<button class="card veh dept-${u.dept}" role="listitem" data-unit="${u.id}" aria-pressed="${sel ? 'true' : 'false'}">
   <div class="hd"><div><b>${esc(u.name)}</b><small class="crew" title="${crew}">${crew}</small></div><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>${esc(u.uid)}</span></div>
-  <div class="pic">${badge(u.kind)}<div class="vinfo"><b>${esc(u.model)}</b><small><span class="code">${esc(u.postal ? 'Postal ' + u.postal : '10-8')}</span> · <span class="spd" data-unit="${u.id}">0</span> mph</small></div></div>
+  <div class="pic">${badge(u.kind)}<div class="vinfo"><b>${esc(u.model)}</b><small><span class="code">${esc(codeText(u))}</span> · <span class="spd" data-unit="${u.id}">0</span> mph</small></div></div>
   <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
   <div class="mini live" data-unit="${u.id}" aria-label="Live position of ${esc(u.name)}"><span class="ring"></span><span class="pin"></span></div>
   <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="${u.id}">0:00:00</span></div>
 </button>`; };
+  // the unit card's small line: the 10-code the unit picked in its MDT, then where it is
+  const codeText = u => { const st = (window.UNIT_STATUS || {})[u.name]; return [st, u.postal ? 'Postal ' + u.postal : ''].filter(Boolean).join(' · ') || '10-8'; };
   let shownIds = '', demoCleared = false;
   const publish = list => { const ids = list.map(u => u.id).join('|');
     if (ids !== shownIds) { shownIds = ids; const sel = fleet?.querySelector('[aria-pressed="true"]')?.dataset.unit;
       if (fleet) fleet.innerHTML = list.length ? list.map((u, i) => cardHTML(u, sel ? u.id === sel : i === 0)).join('') : '<div class="empty" style="padding:18px 6px;color:var(--dim)">No units on duty. Players need a callsign on a mapped team.</div>';
       window.UNITS = list; if (!demoCleared) { demoCleared = true; clearDemo(); } dispatchEvent(new CustomEvent('units', { detail: { live: true } })); }
-    else for (const u of list) { const card = fleet?.querySelector(`[data-unit="${u.id}"]`); if (!card) continue; const code = card.querySelector('.code'); if (code) code.textContent = u.postal ? 'Postal ' + u.postal : '10-8';
+    else for (const u of list) { const card = fleet?.querySelector(`[data-unit="${u.id}"]`); if (!card) continue; const code = card.querySelector('.code'); if (code) code.textContent = codeText(u);
       const vb = card.querySelector('.vinfo b'); if (vb && vb.textContent !== u.model) vb.textContent = u.model; }   // the vehicle changes as they get in and out
     dispatchEvent(new CustomEvent('unitsupdate')); };                 // every snapshot: labels that show postal or street refresh
   const clearDemo = () => { const C = window.CALLS || []; for (let i = C.length - 1; i >= 0; i--) if (!C[i].live) C.splice(i, 1); window.demoCalls?.stop(); dispatchEvent(new CustomEvent('calls')); };
@@ -489,7 +491,7 @@ LIVE_JS = r"""<script id="live">
   const appSideMsg = j => j && (j.code === 2005 || j.code === 2003 || /multiple servers|application|global api key/i.test(String(j.message || ''))) ? "Your server key is saved. ER:LC is holding the live data until Oversite finishes its ER:LC application setup. Nothing to do on your side: it starts by itself once that's done." : '';
   const showDown = msg => { if (!HOSTED || (lastUnits && lastUnits.length)) return; const fl = document.querySelector('.fleet'); if (!fl) return;
     fl.innerHTML = `<div class="empty" style="padding:18px 6px;color:var(--dim);font-size:12.5px;line-height:1.5"><b style="color:var(--ink)">Live data is paused.</b><br>${esc(msg)}</div>`; shownIds = null; };
-  const handle = (body, rl, src, taken) => { const tFix = fixTime(taken); lastServer = body; lastPlayers = body.Players || []; dispatchEvent(new Event('players')); lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
+  const handle = (body, rl, src, taken) => { const tFix = fixTime(taken); lastServer = body; lastPlayers = body.Players || []; dispatchEvent(new Event('players')); lastVehicles = body.Vehicles || []; window.ERLC = { players: lastPlayers, vehicles: lastVehicles }; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
     updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs, tFix, body.OversiteDuty); publish(lastUnits); pushCalls(body.EmergencyCalls); flyToMe();
     const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
     status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
@@ -525,6 +527,8 @@ LIVE_JS = r"""<script id="live">
     es.addEventListener('panic', e => { try { dispatchEvent(new CustomEvent('panic', { detail: JSON.parse(e.data) })); } catch (x) {} });            // someone pressed their panic button
     es.addEventListener('panics', e => { try { for (const p of JSON.parse(e.data) || []) dispatchEvent(new CustomEvent('panic', { detail: p })); } catch (x) {} });
     es.addEventListener('panicclear', e => { try { dispatchEvent(new CustomEvent('panicclear', { detail: JSON.parse(e.data) })); } catch (x) {} });   // suspended (you or this server): reload straight into the notice
+    // the law enforcement MDT: 10-codes, and records (warrants, BOLOs, stops and backup calls) as officers write them
+    for (const ev of ['unitstatus', 'unitstatuses', 'pdrec']) es.addEventListener(ev, e => { try { dispatchEvent(new CustomEvent('ov:' + ev, { detail: JSON.parse(e.data) })); } catch (x) {} });
     es.addEventListener('roads', e => { try { window.ROADNET?.setOv(JSON.parse(e.data).ov); } catch (x) {} });   // an owner fixed a road: re-route now
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }

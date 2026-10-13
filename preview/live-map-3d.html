@@ -797,6 +797,114 @@
   .mini.nohead .pin::after{display:none}
   /* dim the map with a plain overlay: a CSS filter on the map would re-process the whole screen every frame */
   .view::after{content:"";position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:5;transition:opacity .2s ease}
+  /* ───────── law enforcement MDT: lookup, warrants, BOLOs, records, traffic stops ───────── */
+  .mdt-dock:not([data-dept="pd"]) .tside [data-only="pd"],.mdt-dock:not([data-dept="pd"]) .pdonly{display:none!important}
+  .mdt-dock[data-dept="pd"] .tside [data-pane="reports"]{display:none}
+  .mdt-dock[data-dept="pd"] .tside{gap:1px}.mdt-dock[data-dept="pd"] .tside button{padding:8px 12px}.mdt-dock[data-dept="pd"] .crest{padding-bottom:8px}
+  .mdt-dock[data-dept="pd"] .statgrid{grid-template-columns:repeat(4,1fr)}.mdt-dock[data-dept="pd"] .statgrid button{padding:10px 4px 8px;font-size:14px}
+  .screen .pill.st.emer{color:#fff;background:#E0453B}
+  .pd-q{display:flex;align-items:center;gap:10px;padding:0 6px 0 12px;height:42px;border-radius:var(--r);background:#141518;border:1px solid var(--line);margin-bottom:12px}
+  .pd-q:focus-within{border-color:rgba(255,255,255,.3)}
+  .pd-q svg{color:var(--mute);flex:none}.pd-q input{flex:1;min-width:0;height:100%;background:none;border:0;outline:0;color:#E9EAEC;font:inherit;font-size:14px}
+  .pd-q input::-webkit-search-cancel-button{display:none}
+  .pd-seg{display:inline-flex;gap:2px;padding:3px;border-radius:9px;background:rgba(255,255,255,.05);flex:none}
+  .pd-seg button{padding:5px 10px;border-radius:7px;font:500 12px inherit;font-family:inherit;color:var(--mute);background:none;border:0;cursor:pointer;white-space:nowrap}
+  .pd-seg button:hover{color:#E9EAEC}.pd-seg button[aria-pressed="true"]{background:rgba(255,255,255,.1);color:#fff}
+  .pd-seg.wide{margin-bottom:12px}
+  .pd-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}.pd-bar .pd-seg.wide{margin:0}
+  .pd-mine{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mute);cursor:pointer}.pd-mine input{accent-color:var(--fd)}
+  .pd-new,.pd-acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .pd-split{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:18px;align-items:start}
+  .pd-res{display:grid;gap:2px}.pd-res h4,.pd-det h4{margin:10px 0 6px;font-size:11.5px;font-weight:600;color:var(--mute);letter-spacing:.02em}
+  .pd-res h4:first-child{margin-top:0}
+  .pd-r{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px;width:100%;padding:8px 9px;border-radius:var(--r);border:1px solid transparent;background:none;color:#E9EAEC;font:inherit;text-align:left;cursor:pointer}
+  .pd-r:hover{background:rgba(255,255,255,.04)}.pd-r[aria-current="true"]{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}
+  .pd-r b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pd-r small{display:block;font-size:11.5px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .pd-r .tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+  .pd-av{position:relative;width:32px;height:32px;flex:none;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#24262B;font-size:12px;font-weight:600;color:#C9CCD2}
+  .pd-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.pd-av.big{width:64px;height:64px;font-size:20px}
+  .pd-tag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 7px;border-radius:5px;background:rgba(255,255,255,.08);color:#C9CCD2;white-space:nowrap;line-height:1.2}
+  .pd-tag.r{background:rgba(224,69,59,.16);color:#FF8A82}.pd-tag.R{background:#E0453B;color:#fff}.pd-tag.a{background:rgba(242,193,78,.15);color:#F2C14E}.pd-tag.b{background:rgba(76,141,255,.16);color:#8DB6FF}.pd-tag.g{background:rgba(70,208,124,.14);color:#7EDCA3}
+  .plate{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:none;min-width:80px;padding:3px 7px 3px;border-radius:5px;background:#F1F2EE;color:#16264A;border:1.5px solid #16264A;box-shadow:inset 0 0 0 1px #F1F2EE;font:700 14px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;white-space:nowrap}
+  #mdt .plate small{display:block;font:800 6px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;color:#38542A;margin:0 0 2px;white-space:nowrap}
+  .plate.big{min-width:150px;padding:6px 14px 7px;border-radius:8px;border-width:2px;font-size:26px}#mdt .plate.big small{font-size:9px;margin-bottom:4px}
+  .pd-sw{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(255,255,255,.25);vertical-align:-1px;margin-right:5px}
+  .pd-det{min-width:0}
+  .pd-hd{display:flex;align-items:center;gap:14px;padding:4px 0 14px}
+  .pd-hd h3{margin:0;font-size:22px;font-weight:600;letter-spacing:-.01em}.pd-hd p{margin:3px 0 0;font-size:12.5px;color:var(--mute)}
+  .pd-hd .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+  .pd-kv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:var(--r);margin-bottom:14px}
+  .pd-kv>div{padding:9px 11px;min-width:0;border-top:1px solid var(--line)}.pd-kv>div:nth-child(-n+4){border-top:0}.pd-kv>div:not(:nth-child(4n+1)){border-left:1px solid var(--line)}
+  .pd-kv span{display:block;font-size:11px;color:var(--mute)}.pd-kv b{display:block;font-size:13.5px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pd-kv select{margin-top:2px;width:100%;font:600 13px inherit;font-family:inherit;color:#E9EAEC;background:#141518;border:1px solid var(--line);border-radius:7px;padding:4px 6px}
+  .pd-kv.w2{grid-template-columns:repeat(2,minmax(0,1fr))}.pd-kv.w2>div:nth-child(-n+4){border-top:1px solid var(--line)}.pd-kv.w2>div:nth-child(-n+2){border-top:0}.pd-kv.w2>div{border-left:0}.pd-kv.w2>div:nth-child(2n){border-left:1px solid var(--line)}
+  .pd-sum{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}.pd-sum span{font-size:12px;color:var(--mute);padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04)}.pd-sum b{color:#E9EAEC;font-weight:600;margin-right:4px}
+  .pd-list{display:grid}
+  .pd-it{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;padding:11px 8px;border-top:1px solid var(--line);cursor:pointer;border-radius:0;background:none;width:100%;text-align:left;color:#E9EAEC;font:inherit}
+  .pd-it:hover{background:rgba(255,255,255,.03)}.pd-list .pd-it:first-child{border-top:0}
+  .pd-it b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pd-it small{display:block;font-size:12px;color:var(--mute);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pd-it .when{font-size:12px;color:var(--mute);text-align:right;white-space:nowrap}
+  .pd-it.bolo{grid-template-columns:4px 1fr auto;padding-left:0}.pd-it.bolo::before{content:"";align-self:stretch;border-radius:2px;background:#F2C14E}.pd-it.bolo.armed::before{background:#E0453B}
+  .pd-acts-row{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 16px}
+  .screen .btn.sm{padding:6px 11px;font-size:12px}
+  .pd-empty{padding:26px 12px;text-align:center;color:var(--mute);font-size:13px;line-height:1.5}.pd-empty b{display:block;color:#E9EAEC;font-size:14px;margin-bottom:3px}
+  /* forms */
+  #pdForm .grid2{gap:0 14px}
+  #pdForm label,.pd-f{display:block;font-size:12px;font-weight:500;color:var(--mute);margin-bottom:12px;position:relative}
+  #pdForm input:not([type=checkbox]),#pdForm select,#pdForm textarea{display:block;width:100%;margin-top:5px;font:inherit;font-size:14px;color:#E9EAEC;background:#141518;border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;outline:0;resize:vertical}
+  #pdForm input:focus,#pdForm select:focus,#pdForm textarea:focus{border-color:rgba(255,255,255,.35)}
+  #pdForm select option{background:#1C1C1F}
+  #pdForm .chk{display:flex;align-items:center;gap:8px;color:#E9EAEC;font-size:13px}#pdForm .chk input{accent-color:var(--fd);width:16px;height:16px}
+  .pd-ac{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;max-height:240px;overflow-y:auto;padding:4px;border-radius:10px;background:#18191D;border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 40px rgba(0,0,0,.5)}
+  .pd-ac[hidden]{display:none}
+  .pd-ac button{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;width:100%;padding:7px 8px;border:0;border-radius:7px;background:none;color:#E9EAEC;font:inherit;font-size:13px;text-align:left;cursor:pointer}
+  .pd-ac button:hover,.pd-ac button.on{background:rgba(255,255,255,.07)}.pd-ac small{color:var(--mute);font-size:11.5px;white-space:nowrap}
+  .pd-ac code{font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mute)}
+  .pd-ch{border:1px solid var(--line);border-radius:var(--r);margin:6px 0 12px}
+  .pd-ch .row{display:grid;grid-template-columns:52px 1fr auto 78px 26px;gap:10px;align-items:center;padding:8px 10px;border-top:1px solid var(--line);font-size:13px;color:#E9EAEC}
+  .pd-ch .row:first-child{border-top:0}.pd-ch code{font:600 11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mute)}
+  .pd-ch .cnt2{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:7px}
+  .pd-ch .cnt2 button{width:22px;height:22px;border:0;background:none;color:#E9EAEC;cursor:pointer;font-size:14px;line-height:1}.pd-ch .cnt2 span{min-width:14px;text-align:center;font-size:12px}
+  .pd-ch .amt{text-align:right;font-weight:600}.pd-ch .amt small{display:block;font-weight:400;font-size:11px;color:var(--mute)}
+  .pd-ch .x{width:24px;height:24px;border:0;border-radius:6px;background:none;color:var(--mute);cursor:pointer}.pd-ch .x:hover{background:rgba(224,69,59,.16);color:#FF8A82}
+  .pd-ch .none{padding:12px;color:var(--mute);font-size:12.5px;text-align:center}
+  .pd-tot{position:sticky;bottom:-20px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px -24px -20px;padding:12px 24px;background:rgba(12,13,15,.94);border-top:1px solid var(--line);backdrop-filter:blur(8px)}
+  .pd-tot div{display:flex;gap:22px}.pd-tot span{display:block;font-size:11px;color:var(--mute)}.pd-tot b{font-size:20px;font-weight:600}
+  .pd-note{font-size:12.5px;color:var(--mute);margin:-4px 0 12px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);border-left:2px solid var(--fd)}
+  .pd-type{display:flex;gap:8px;margin:5px 0 14px}.pd-type button{flex:1;padding:10px;border-radius:var(--r);border:1px solid var(--line);background:none;color:var(--mute);font:600 13px inherit;font-family:inherit;cursor:pointer}
+  .pd-type button[aria-pressed="true"]{border-color:var(--fd);background:var(--fd-soft);color:#fff}
+  /* record view */
+  .pd-doc{max-width:760px}
+  .pd-doc .pd-hd{padding-top:0}
+  .pd-doc table{width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 14px}.pd-doc th{text-align:left;font-size:11px;font-weight:600;color:var(--mute);padding:0 8px 6px}
+  .pd-doc td{padding:8px;border-top:1px solid var(--line)}.pd-doc td.n{text-align:right;white-space:nowrap}.pd-doc tfoot td{font-weight:700}
+  .pd-doc .txt{white-space:pre-wrap;font-size:13.5px;line-height:1.55;padding:10px 12px;border-radius:var(--r);background:rgba(255,255,255,.03);margin:0 0 14px}
+  /* traffic stop on Home */
+  .stopcard .tch h3 .pd-tag{margin-left:6px}
+  .stopcard .go{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;padding:13px;border-radius:var(--r);border:1px dashed rgba(255,255,255,.2);background:none;color:#E9EAEC;font:600 13.5px inherit;font-family:inherit;cursor:pointer}
+  .stopcard .go:hover{border-color:var(--fd);background:var(--fd-soft)}
+  .stopcard .sv{display:flex;align-items:center;gap:12px;margin:2px 0 10px}.stopcard .sv b{display:block;font-size:14px}.stopcard .sv small{display:block;font-size:12px;color:var(--mute);margin-top:2px}
+  .stopcard .chk{display:grid;gap:4px;margin:0 0 10px}.stopcard .chk div{display:flex;align-items:center;gap:8px;font-size:12.5px}
+  .stopcard .chk i{width:7px;height:7px;border-radius:50%;background:#46D07C;flex:none}.stopcard .chk .c-bad i{background:#E0453B}.stopcard .chk .c-bad{color:#FF8A82;font-weight:600}.stopcard .chk .c-warn i{background:#F2C14E}.stopcard .chk .c-wait i{background:var(--mute)}
+  .stopcard .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.stopcard .acts .btn{padding:8px 6px;font-size:12px}
+  .stopcard .bk{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+  .screen .btn.bk2{background:rgba(242,193,78,.16);color:#F2C14E;border-color:rgba(242,193,78,.3)}.screen .btn.bk3{background:var(--fd);color:#fff}
+  .pd-pick{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 8px;border-top:1px solid var(--line);cursor:pointer;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;color:#E9EAEC;font:inherit;text-align:left;border-radius:0}
+  .pd-pick:first-child{border-top:0}.pd-pick:hover{background:rgba(255,255,255,.03)}.pd-pick[aria-pressed="true"]{background:var(--fd-soft);box-shadow:inset 2px 0 0 var(--fd)}
+  .pd-pick b{display:block;font-size:13.5px}.pd-pick small{display:block;color:var(--mute);font-size:12px;margin-top:2px}.pd-pick .d{font-size:12px;color:var(--mute)}
+  /* alerts for every officer and dispatch: backup requests and new BOLOs */
+  .pdalerts{position:fixed;left:50%;top:calc(var(--barh,58px) + 10px);transform:translateX(-50%);z-index:69;width:min(620px,calc(100vw - 24px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+  .panicbar:not(:empty)~.pdalerts{top:calc(var(--barh,58px) + 96px)}
+  .pda{pointer-events:auto;display:grid;grid-template-columns:4px 1fr auto;gap:0 14px;align-items:center;padding:12px 12px 12px 0;border-radius:12px;background:rgba(18,19,22,.96);border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 40px rgba(0,0,0,.5);backdrop-filter:blur(10px);color:#E9EAEC;overflow:hidden;animation:pdaIn .32s cubic-bezier(.32,.72,0,1)}
+  .pda::before{content:"";align-self:stretch;margin:-12px 0;background:#4C8DFF}.pda.c3::before{background:#E0453B}.pda.bolo::before{background:#F2C14E}
+  .pda b{display:block;font-size:14px}.pda small{display:block;font-size:12.5px;color:#A9ADB5;margin-top:2px}
+  .pda .a{display:flex;gap:6px}.pda button{font:600 12.5px inherit;font-family:inherit;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:none;color:#E9EAEC;cursor:pointer}
+  .pda button.p{background:#E9EAEC;color:#0C0D0F;border-color:#E9EAEC}.pda button:hover{background:rgba(255,255,255,.08)}.pda button.p:hover{background:#fff}
+  .pda.out{opacity:0;transform:translateY(-6px);transition:opacity .2s,transform .2s}
+  @keyframes pdaIn{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}
+  @media (max-width:980px){.pd-split{grid-template-columns:1fr}.pd-kv{grid-template-columns:repeat(2,minmax(0,1fr))}.pd-kv>div:nth-child(-n+4){border-top:1px solid var(--line)}.pd-kv>div:nth-child(-n+2){border-top:0}.pd-kv>div{border-left:0!important}.pd-kv>div:nth-child(2n){border-left:1px solid var(--line)!important}}
+  @media (max-width:760px){.mdt-dock[data-dept="pd"] .statgrid{grid-template-columns:repeat(2,1fr)}.pd-ch .row{grid-template-columns:44px 1fr auto 26px}.pd-ch .row .cnt2{display:none}.stopcard .acts{grid-template-columns:1fr 1fr}.pd-tot{margin:4px -14px -20px;padding:12px 14px}}
+  @media (prefers-reduced-motion:reduce){.pda{animation:none}}
   /* admin panel: server link, departments, map calibration */
   /* road editor: the traced roads drawn over the map, coloured by what they are */
   #roadEd path{fill:none;stroke-width:4px;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;opacity:.92}
@@ -986,17 +1094,6 @@
   .st-gate{display:flex;align-items:center;gap:12px;margin:0 16px 10px;padding:11px 14px;border-radius:12px;border:1px solid rgba(242,153,74,.35);background:rgba(242,153,74,.1);color:#F6C08F;font-size:12.5px;line-height:1.45}
   .st-gate span{flex:1;min-width:0}.st-gate b{color:#FFE0C2}
   .st-gate a{flex:none;font-weight:600;font-size:12px;padding:7px 13px;border-radius:999px;background:#F6C08F;color:#1A1208;text-decoration:none}
-  .tm-add{display:grid;grid-template-columns:1fr 150px auto;gap:8px;margin:12px 18px 0}.tm-add input,.tm-add select{min-width:0;height:36px;border-radius:9px;border:1px solid var(--hair2);background:rgba(240,242,245,.05);color:var(--ink);font:inherit;font-size:13px;padding:0 11px}
-  .tm-add .tm-go{height:36px;padding:0 16px;font-size:13px;background:var(--ink);color:#0B0B0C;border-color:var(--ink)}
-  .tm-msg{margin:8px 18px 0;min-height:16px;font-size:12px;color:var(--dim);line-height:1.45}.tm-msg.ok{color:#46D07C}.tm-msg.bad{color:#FF8A82}
-  .tm-g{margin:14px 18px 0}.tm-g>h3{margin:0 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
-  .tm-r{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:10px;padding:8px 10px;border-radius:11px;border:1px solid var(--hair)}.tm-r+.tm-r{margin-top:6px}
-  .tm-r b{display:block;font-size:13px;font-weight:600}.tm-r small{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px;color:var(--dim);margin-top:2px}
-  .tm-r small i{font-style:normal}.tm-r small i.off{color:#E9A24C}
-  .tm-a{display:flex;align-items:center;gap:6px}.tm-a select{height:30px;border-radius:8px;border:1px solid var(--hair2);background:rgba(240,242,245,.05);color:var(--ink);font:inherit;font-size:12px;padding:0 8px}
-  .tm-perm{margin:16px 18px 18px;font-size:12px;color:var(--dim)}.tm-perm summary{cursor:pointer;color:var(--ink);font-size:12.5px}
-  .tm-perm table{width:100%;border-collapse:collapse;margin-top:8px}.tm-perm th,.tm-perm td{padding:7px 6px;border-bottom:1px solid var(--hair);text-align:center}.tm-perm th:first-child,.tm-perm td:first-child{text-align:left}
-  .tm-perm td.y{color:#46D07C}.tm-perm td.n{color:var(--faint)}
   .st-empty{padding:28px 6px;text-align:center;color:var(--faint);font-size:12px;line-height:1.5}
   .st-gate{display:grid;place-items:center;text-align:center;padding:40px 20px;color:var(--dim);font-size:13px;grid-column:1/-1}
   .st-gate b{display:block;color:var(--ink);font-size:16px;font-weight:500;margin-bottom:6px}
@@ -1321,7 +1418,6 @@
           <button role="tab" data-p="records" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg>Records</button>
           <button role="tab" data-p="bans" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></svg>Bans<i class="badge" id="stBansN" hidden>0</i></button>
           <button role="tab" data-p="logs" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Logs</button>
-          <button role="tab" data-p="team" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></svg>Team</button>
           <button class="ann" id="stAnnounce" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7"/></svg>Announce</button>
           <div class="tuser" aria-hidden="true"><i id="stMeAv">ST</i><small id="stMe">Staff</small></div>
         </nav>
@@ -1340,10 +1436,6 @@
           <section class="tscreen st-pane" data-p="calls"><div class="thead"><div><h2>Mod calls</h2><small>Players calling for staff in game</small></div></div><div id="stCalls"></div></section>
           <section class="tscreen st-pane" data-p="records"><div class="thead"><div><h2>Records</h2><small>Every warning, kick, ban and note</small></div></div><label class="st-search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stRecFind" placeholder="Search records by player" autocomplete="off" spellcheck="false"></label><div id="stRecords"></div></section>
           <section class="tscreen st-pane" data-p="bans"><div class="thead"><div><h2>Bans</h2><small>Banned from the server</small></div></div><div id="stBans"></div></section>
-          <section class="tscreen st-pane" data-p="team"><div class="thead"><div><h2>Team</h2><small>Staff in game and in the CAD, kept the same</small></div></div>
-            <form class="tm-add" id="tmAdd" autocomplete="off" hidden><input id="tmName" maxlength="20" placeholder="Roblox username" aria-label="Roblox username" spellcheck="false"><select id="tmRole" aria-label="Role"></select><button class="st-btn tm-go" type="submit">Add</button></form>
-            <p class="tm-msg" id="tmMsg" role="status"></p><div id="stTeam"></div>
-            <details class="tm-perm"><summary>What each role can do</summary><div id="tmPerm"></div></details></section>
           <section class="tscreen st-pane" data-p="logs"><div class="thead"><div><h2>Logs</h2><small>In-game commands and kills. Commands are kept for good.</small></div></div><form class="st-search" id="stLookF" autocomplete="off"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stLookQ" list="stLookL" placeholder="Look up a player or staff member to see every command they used" spellcheck="false"><datalist id="stLookL"></datalist><button class="st-btn">Look up</button></form><div id="stLook" hidden></div><div id="stLogs"></div></section>
         </div>
       </div>
@@ -1376,6 +1468,10 @@
           <button role="tab" data-pane="calls" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 17.5v.5" stroke-linecap="round"/></svg><span>Calls</span><i class="badge" id="tnavCalls" hidden></i></button>
           <button role="tab" data-pane="units" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17V8h11l4 4h3v5h-2M3 17h2m4 0h6"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg><span>Units</span></button>
           <button role="tab" data-pane="map" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg><span>Map</span></button>
+          <button role="tab" data-pane="lookup" data-only="pd" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span>Lookup</span></button>
+          <button role="tab" data-pane="warrants" data-only="pd" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/><path d="m9.5 12 1.8 1.8L15 10" stroke-linecap="round"/></svg><span>Warrants</span><i class="badge" id="tnavWar" hidden></i></button>
+          <button role="tab" data-pane="bolos" data-only="pd" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>BOLOs</span><i class="badge" id="tnavBolo" hidden></i></button>
+          <button role="tab" data-pane="pdrecs" data-only="pd" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg><span>Records</span></button>
           <button role="tab" data-pane="reports" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>Reports</span></button>
           <button type="button" class="tpanic" id="tPanic" aria-label="Panic button: press and hold to send"><span>Panic</span></button>
           <div class="tmenu" id="tMenu" role="menu" aria-label="Your MDT"></div>
@@ -1460,6 +1556,38 @@
             </form>
             <span class="cnt" id="rptCount" hidden>0</span>
           </section>
+          <section class="tscreen" data-pane="lookup">
+            <header class="thead"><div><h2>Lookup</h2><p>People and vehicles seen in this server</p></div></header>
+            <div class="pd-q"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="pdQ" type="search" placeholder="Name, Roblox ID, plate, model or address" autocomplete="off" spellcheck="false" aria-label="Search people and vehicles"><div class="pd-seg" id="pdSeg" role="group" aria-label="Show"><button type="button" data-k="all" aria-pressed="true">All</button><button type="button" data-k="people" aria-pressed="false">People</button><button type="button" data-k="veh" aria-pressed="false">Vehicles</button></div></div>
+            <div class="pd-split"><div class="pd-res" id="pdRes"></div><div class="pd-det" id="pdDet"></div></div>
+          </section>
+          <section class="tscreen" data-pane="warrants">
+            <header class="thead"><div><h2>Warrants</h2><p id="pdWarSub">Arrest and search warrants for this server</p></div><button class="btn" type="button" data-new="warrant">New warrant</button></header>
+            <div class="pd-seg wide" id="pdWarSeg" role="group" aria-label="Show"><button type="button" data-k="Active" aria-pressed="true">Active</button><button type="button" data-k="Pending" aria-pressed="false">Waiting approval</button><button type="button" data-k="closed" aria-pressed="false">Closed</button></div>
+            <div id="pdWarList" class="pd-list"></div>
+          </section>
+          <section class="tscreen" data-pane="bolos">
+            <header class="thead"><div><h2>BOLOs</h2><p>Be on the lookout. Every officer and dispatch gets new ones right away.</p></div><button class="btn" type="button" data-new="bolo">New BOLO</button></header>
+            <div id="pdBoloList" class="pd-list"></div>
+          </section>
+          <section class="tscreen" data-pane="pdrecs">
+            <header class="thead"><div><h2>Records</h2><p>Citations, warnings, arrests and traffic stops</p></div><div class="pd-new"><button class="btn ghost" type="button" data-new="warning">Warning</button><button class="btn ghost" type="button" data-new="citation">Citation</button><button class="btn" type="button" data-new="arrest">Arrest report</button></div></header>
+            <div class="pd-bar"><div class="pd-seg wide" id="pdRecSeg" role="group" aria-label="Show"><button type="button" data-k="" aria-pressed="true">All</button><button type="button" data-k="citation" aria-pressed="false">Citations</button><button type="button" data-k="warning" aria-pressed="false">Warnings</button><button type="button" data-k="arrest" aria-pressed="false">Arrests</button><button type="button" data-k="stop" aria-pressed="false">Stops</button></div><label class="pd-mine"><input type="checkbox" id="pdRecMine"> Only mine</label></div>
+            <div id="pdRecList" class="pd-list"></div>
+          </section>
+          <section class="tscreen" data-pane="pdform">
+            <header class="thead"><div><button class="back" id="pdFormBack" type="button">‹ Back</button><h2 id="pdFormT">Citation</h2></div><button class="btn" id="pdFormGo" type="submit" form="pdForm">Issue citation</button></header>
+            <form id="pdForm" autocomplete="off" novalidate></form>
+          </section>
+          <section class="tscreen" data-pane="pdview">
+            <header class="thead"><div><button class="back" id="pdViewBack" type="button">‹ Back</button><h2 id="pdViewT">Record</h2></div><div class="pd-acts" id="pdViewActs"></div></header>
+            <div id="pdView"></div>
+          </section>
+          <section class="tscreen" data-pane="stop">
+            <header class="thead"><div><button class="back" id="pdStopBack" type="button">‹ Home</button><h2>Start a traffic stop</h2><p>Pick the vehicle you pulled over. Dispatch sees the stop and you go 10-11.</p></div><button class="btn" id="pdStopGo" type="button" disabled>Start stop</button></header>
+            <div class="pd-q"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="pdStopQ" placeholder="Filter, or type the plate you see" autocomplete="off" spellcheck="false" aria-label="Plate"></div>
+            <div id="pdStopList" class="pd-list"></div>
+          </section>
         </div>
       </div>
       <span class="homebar"></span>
@@ -1527,7 +1655,7 @@ window.unitOf = u => (u && u.uid && window.UNIT_OF[String(u.uid)]) || '';
 window.tagHTML = u => { if (!u) return ''; const e = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const unit = window.unitOf(u), dn = (window.OVERSITE && window.OVERSITE.depts && window.OVERSITE.depts[u.dept] && window.OVERSITE.depts[u.dept].name) || ({ pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' })[u.dept] || '';
   const call = (window.CALLS || []).find(k => onIt(k, u.name)), st = (window.UNIT_STATUS || {})[u.name];   // the status the unit set in its MDT, e.g. 10-76
-  const ST = { '10-8': 'Available', '10-76': 'En route', '10-23': 'On scene', '10-19': 'Returning', '10-7': 'Out of service', '10-6': 'Busy' };
+  const ST = { '10-8': 'Available', '10-76': 'En route', '10-23': 'On scene', '10-19': 'Returning', '10-7': 'Out of service', '10-6': 'Busy', '10-11': 'Traffic stop', '10-80': 'Pursuit', '10-15': 'Prisoner in custody', '10-97': 'On scene', '10-99': 'Panic' };
   const label = st && ST[st] ? ST[st] + (call && st !== '10-8' ? ' · ' + e(call.code) : '') : call ? 'On call · ' + e(call.code) : 'Available', busy = st ? st !== '10-8' : !!call;
   return `<div class="k">${e(u.name)}</div><div class="s">${e((u.crew || []).join(', '))}</div><div class="v un${unit ? '' : ' none'}">${e(unit || dn)}</div><div class="av${busy ? ' busy' : ''}">${label}</div>`; };
 if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(window.OVERSITE.api + '/units', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; window.UNIT_OF = j.of || {}; window.RIDE_WITH = j.ride || {};
@@ -2163,7 +2291,12 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const fdCall = c => c.dept === DEPT() || (!c.unit && CODES[DEPT()].has(c.code));
   const applyDept = () => { const d = DEPT(); const sb = document.querySelector('#mdt .sb-mid'); if (sb) sb.textContent = DEPT_NAME[d];
     $('fdAppLbl').textContent = d === 'fd' ? 'Apparatus' : 'Vehicle'; $('fdAppH').textContent = d === 'fd' ? 'Apparatus' : 'Units';   // fire has apparatus; police and DOT have vehicles   // the department's own name from Settings, e.g. New York Fire Department
-    const u = me(); const id = u ? u.id : ''; for (const el of document.querySelectorAll('#mdt [data-unit]')) el.dataset.unit = id; dispatchEvent(new CustomEvent('rebind')); };
+    const u = me(); const id = u ? u.id : ''; for (const el of document.querySelectorAll('#mdt [data-unit]')) el.dataset.unit = id; dispatchEvent(new CustomEvent('rebind'));
+    const set = d === 'pd' ? 'pd' : 'fd', g = $('fdStatus'); if (g.dataset.set !== set) { g.dataset.set = set; g.innerHTML = STATUS_SETS[set].map(([c, l]) => `<button data-st="${c}">${c}<small>${l}</small></button>`).join(''); }
+    if (d !== window._mdtDeptShown) { window._mdtDeptShown = d; dispatchEvent(new CustomEvent('mdtdept')); } };
+  // the 10-codes each department picks from on Home; police get traffic stops, pursuits and prisoner transport
+  const STATUS_SETS = { fd: [['10-8', 'Available'], ['10-76', 'En route'], ['10-23', 'On scene'], ['10-19', 'Returning'], ['10-7', 'Out of service'], ['10-6', 'Busy']],
+    pd: [['10-8', 'Available'], ['10-6', 'Busy'], ['10-7', 'Out of service'], ['10-11', 'Traffic stop'], ['10-80', 'Pursuit'], ['10-76', 'En route'], ['10-23', 'On scene'], ['10-15', 'Prisoner']] };
   const fmtAge = s => s < 60 ? 'now' : s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h ${Math.floor(s / 60) % 60}m`;
   const hhmm = t => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
   const toast = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1800); };
@@ -2171,12 +2304,22 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   // ── unit status ──
   const unitStatus = window.UNIT_STATUS = window.UNIT_STATUS || {};   // shared with the map tags, so the 10-code you pick shows everywhere                                   // callsign → 10-code
   let myStatus = '10-8', selected = null;
-  const stClass = st => st === '10-8' ? '' : (st === '10-7' ? 'oos' : 'busy');
+  const stClass = st => st === '10-8' ? '' : st === '10-7' ? 'oos' : st === '10-80' || st === '10-99' ? 'emer' : 'busy';
+  // your 10-code goes to everyone: dispatch and every MDT on this server show the same one
+  const myUnitStrict = () => { const d = DEPT(), n = myName(); return n ? UN().find(u => u.dept === d && u.crew.some(c => c.toLowerCase() === n)) || null : null; };
+  const sentSt = {};
+  const syncStatus = () => { const u = myUnitStrict(), api = window.OVERSITE?.api; if (!u || !api) return; const st = unitStatus[u.name]; if (!st || sentSt[u.name] === st) return; sentSt[u.name] = st;
+    fetch(api + '/status', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ unit: u.name, st }) }).catch(() => { delete sentSt[u.name]; }); };
+  const takeStatus = (unit, st) => { sentSt[unit] = st; unitStatus[unit] = st; const u = myUnitStrict(); if (u && u.name === unit) myStatus = st; };
+  addEventListener('ov:unitstatus', e => { const d = e.detail || {}; if (!d.unit) return; takeStatus(d.unit, d.st); dispatchEvent(new CustomEvent('calls')); });
+  addEventListener('ov:unitstatuses', e => { for (const [k, v] of Object.entries(e.detail || {})) takeStatus(k, v); dispatchEvent(new CustomEvent('calls')); });
+  window.mdtMe = myUnitStrict;
+  window.mdtSetStatus = st => { myStatus = st; const u = me(); if (u) unitStatus[u.name] = st; logIt(`Status ${st}`); renderUnit(); renderApp(); };
   const LOG = []; const logTime = t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   const renderLog = () => { const el = $('fdLog'); if (!el) return; el.innerHTML = LOG.length ? LOG.map(l => `<div class="row-l"><span>${logTime(l.t)}</span><div>${esc(l.m)}</div></div>`).join('') : '<div class="empty">Nothing logged this shift.</div>'; };
   const logIt = m => { if (LOG[0] && LOG[0].m === m) return; LOG.unshift({ t: Date.now(), m }); if (LOG.length > 12) LOG.length = 12; renderLog(); };
   let lastAssigned = null;
-  const renderUnit = () => { const u = me(); if (!u) return;
+  let renderUnit = () => { const u = me(); if (!u) return;
     $('fdUnitName').textContent = u.name; $('fdUnitCrew').textContent = u.crew.join(', ');
     { const sel = $('fdMyUnit'), list = (window.OVERSITE && window.OVERSITE.depts && window.OVERSITE.depts[u.dept] && window.OVERSITE.depts[u.dept].units) || [], cur = (window.UNIT_OF || {})[String((window.OVERSITE && window.OVERSITE.rid) || '')] || '', k = list.join('|') + '#' + cur;
       if (sel && sel.dataset.k !== k) { sel.dataset.k = k; sel.innerHTML = '<option value="">' + (list.length ? 'No unit' : 'None set up yet') + '</option>' + list.map(n => `<option${n === cur ? ' selected' : ''}>${esc(n)}</option>`).join(''); sel.disabled = !list.length || !(window.OVERSITE && window.OVERSITE.api); } }
@@ -2199,6 +2342,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     $('fdHomePostal').textContent = u.postal ? 'Postal ' + u.postal : 'Liberty County'; const fp = $('fdPostal'); if (fp) fp.textContent = u.postal ? 'Postal ' + u.postal : 'Liberty County';
     const av = $('tuserAv'), nm = $('tuserName'); if (av) { av.textContent = (u.crew[0] || 'FD').replace(/[^a-z0-9]/gi, ' ').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase(); nm.textContent = u.crew[0] || '';
       const O = window.OVERSITE; if (O && /^\d+$/.test(O.rid || '') && (u.crew[0] || '').toLowerCase() === (O.me || '').toLowerCase()) av.insertAdjacentHTML('beforeend', `<img src="/rbx/avatar/${O.rid}" alt="" onerror="this.remove()">`); } };   // your Roblox headshot over the initials
+  { const r0 = renderUnit; renderUnit = () => { r0(); syncStatus(); }; }
   let reportsCount = null;
   $('fdHomeCall').addEventListener('click', e => { const b = e.target.closest('[data-home]'); if (!b) return; const u = me(); const mine = CALLS().find(c => onIt(c, u?.name)); if (!mine) return;
     const a = b.dataset.home; if (a === 'open') { selected = key(mine); window.mdtShow && window.mdtShow('calls'); renderCalls(); return; }
@@ -2306,7 +2450,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   addEventListener('calls', () => { renderCalls(); renderUnit(); renderApp(); });
   // tablet navigation
   const panes = [...document.querySelectorAll('.tscreen')], navs = [...document.querySelectorAll('.tside [data-pane]')];
-  const showPane = name => { panes.forEach(p => p.classList.toggle('on', p.dataset.pane === name)); const navName = name === 'report' ? 'reports' : name; navs.forEach(n => n.setAttribute('aria-selected', n.dataset.pane === navName)); };
+  const showPane = name => { panes.forEach(p => p.classList.toggle('on', p.dataset.pane === name)); const navName = name === 'report' ? 'reports' : (window.mdtSubNav && window.mdtSubNav[name]) || name; navs.forEach(n => n.setAttribute('aria-selected', n.dataset.pane === navName)); };
   $('rptBack').addEventListener('click', () => showPane('reports'));
   navs.forEach(n => n.addEventListener('click', () => showPane(n.dataset.pane)));
   window.mdtShow = showPane;
@@ -2549,6 +2693,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       for (let i = 0; i < 4; i++) { const o = actx.createOscillator(), g = actx.createGain(); o.type = 'square'; o.frequency.setValueAtTime(i % 2 ? 660 : 990, t0 + i * .32);
         g.gain.setValueAtTime(0.0001, t0 + i * .32); g.gain.exponentialRampToValueAtTime(0.12, t0 + i * .32 + .02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * .32 + .3); o.connect(g).connect(actx.destination); o.start(t0 + i * .32); o.stop(t0 + i * .32 + .31); } } catch (e) {} };
   const loud = () => [...P.values()].some(({ p }) => !muted.has(p.id) && !mine(p));
+  window.playPanicTone = () => { let on = true; try { on = localStorage.getItem('oversite.sound') !== 'off'; } catch (e) {} if (on) siren(); };   // a Code 3 backup call: one siren, if sound is on
   const alarm = () => { clearInterval(sirenT); if (!loud()) return; siren(); sirenT = setInterval(() => loud() ? siren() : clearInterval(sirenT), 3500); };
   const add = p => { if (!p || !p.id || P.has(p.id)) return;
     const call = { pri: 1, code: '10-99', type: `PANIC: ${p.unit || p.by} needs help`, where: p.where || 'Unknown location', unit: p.unit || '', dept: p.dept, stage: 2, startedAt: p.at, x: Number.isFinite(p.x) ? p.x : 1000, y: Number.isFinite(p.y) ? p.y : 1000, live: !mine(p), panic: p.id };
@@ -2580,6 +2725,300 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const mark = document.querySelector('.bar .mark') || document.querySelector('.mark'); if (mark) { mark.style.cursor = 'pointer'; mark.title = O.name + ' · your account'; mark.addEventListener('click', () => { location.href = '/account'; }); }
   dispatchEvent(new Event('resize')); })();
 </script>
+<script>
+/* ── Law enforcement MDT: lookup, warrants, BOLOs, citations, warnings, arrests and traffic stops ──
+   Everything is kept by Oversite per server (app/police.mjs), so dispatch and every officer see the same records. People and
+   plates come from ER:LC: whoever has been in the server, and every vehicle spawned there with its plate, color and owner. */
+(() => {
+  const $ = id => document.getElementById(id), mdt = $('mdt'), O = window.OVERSITE || {}, API = O.api;
+  if (!mdt || !$('pdQ')) return;
+  const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const isPD = () => (window.mdtDept || '') === 'pd';
+  const toast = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); };
+  const req = async (path, body) => { if (!API) throw new Error('Records need your server\'s live CAD. Open it from your dashboard.');
+    const r = await fetch(API + '/pd/' + path, body ? { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(body) } : { headers: { 'x-oversite': '1' } });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong. Try again.'); return j; };
+  const money = n => '$' + Number(n || 0).toLocaleString('en-US');
+  const ago = t => { if (!t) return ''; const m = Math.round((Date.now() - t) / 60000); if (m < 1) return 'just now'; if (m < 60) return m + 'm ago'; if (m < 1440) return Math.round(m / 60) + 'h ago'; const d = Math.round(m / 1440); return d < 31 ? d + 'd ago' : new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+  const stamp = t => new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const ini = n => String(n || '?').replace(/[^a-z0-9]/gi, ' ').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+  const av = (rid, name, big) => `<span class="pd-av${big ? ' big' : ''}">${esc(ini(name))}${/^\d+$/.test(rid || '') ? `<img src="/rbx/avatar/${esc(rid)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</span>`;
+  const plate = (p, big) => `<span class="plate${big ? ' big' : ''}"><small>LIBERTY COUNTY</small>${esc(p)}</span>`;
+  const KIND = { warrant: ['Warrant', 'r'], citation: ['Citation', 'a'], warning: ['Warning', ''], arrest: ['Arrest', 'r'], bolo: ['BOLO', 'a'], stop: ['Traffic stop', 'b'] };
+  const tag = (t, c = '') => `<span class="pd-tag ${c}">${esc(t)}</span>`;
+  const flagTags = flags => { const f = new Set(flags.map(x => typeof x === 'string' ? x : x.kind + (x.status === 'Pending' ? ':p' : '')));
+    return (f.has('warrant') ? tag('Active warrant', 'R') : '') + (f.has('warrant:p') ? tag('Warrant pending', 'a') : '') + (f.has('bolo') ? tag('BOLO', 'a') : '') + (f.has('stolen') ? tag('Stolen', 'R') : ''); };
+  const wanted = rid => { const p = (window.ERLC?.players || []).find(p => String(p.Player || '').split(':')[1] === String(rid)); return p ? +p.WantedStars || 0 : 0; };
+  const myName = () => O.me || '';
+  const myUnit = () => window.mdtMe?.() || null;
+  const where = () => { const u = myUnit(); return u ? [u.street, u.postal ? 'postal ' + u.postal : ''].filter(Boolean).join(', ') : ''; };
+  const seg = (id, on) => { const el = $(id); el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); on(b.dataset.k); }); };
+  const segVal = id => $(id).querySelector('[aria-pressed="true"]')?.dataset.k ?? '';
+
+  let CFG = { penal: [], supervisor: false, admin: false, rank: '', me: '' }, cfgAt = 0;
+  const loadCfg = async () => { if (!API || Date.now() - cfgAt < 60000) return; try { CFG = await req('config'); cfgAt = Date.now(); } catch (e) {} };
+  const PEN = code => CFG.penal.find(p => p[0] === code);
+
+  // pane navigation: forms and record pages keep the sidebar on the tab they came from
+  let back = 'lookup';
+  const show = (pane, nav) => { window.mdtSubNav = window.mdtSubNav || {}; if (nav) window.mdtSubNav[pane] = nav; window.mdtShow(pane); mdt.querySelector('.tscreens .tscreen.on')?.scrollTo?.(0, 0); };
+  const curNav = () => mdt.querySelector('.tside [aria-selected="true"]')?.dataset.pane || 'home';
+
+  // ───────── lookup ─────────
+  let res = { people: [], vehicles: [] }, qT, cur = null;
+  const live = () => { const P = window.ERLC?.players || [], V = window.ERLC?.vehicles || [];
+    return { people: P.map(p => { const [name, rid] = String(p.Player || '').split(':'); return { rid, name, team: p.Team || '', live: true }; }).filter(p => p.name),
+      vehicles: V.filter(v => v.Plate).map(v => ({ plate: String(v.Plate).toUpperCase(), model: v.Name || '', color: v.ColorName || '', hex: v.ColorHex || '', owner: String(v.Owner || '').split(':')[0], live: true })) }; };
+  const drawRes = () => { const k = segVal('pdSeg'), q = $('pdQ').value.trim(), src = q ? res : live(), sel = cur ? (cur.t === 'p' ? 'p:' + (cur.id || cur.name) : 'v:' + cur.plate) : '';
+    const ppl = k === 'veh' ? [] : src.people, veh = k === 'people' ? [] : src.vehicles;
+    let h = '';
+    if (ppl.length) h += `<h4>${q ? 'People' : 'In the server now'}</h4>` + ppl.slice(0, 25).map(p => { const id = p.rid || p.name, ws = wanted(p.rid);
+      return `<button type="button" class="pd-r" data-p="${esc(p.rid || '')}" data-n="${esc(p.name)}" aria-current="${sel === 'p:' + id}">${av(p.rid, p.name)}<div><b>${esc(p.name)}</b><small>${esc([p.team, p.live ? 'in game' : p.last_seen ? 'seen ' + ago(p.last_seen) : 'from a record', p.addr ? 'address match' : ''].filter(Boolean).join(' · '))}</small>${(p.flags?.length || ws) ? `<div class="tags">${flagTags(p.flags || [])}${ws ? tag('Wanted ' + '★'.repeat(Math.min(ws, 5)), 'r') : ''}</div>` : ''}</div></button>`; }).join('');
+    if (veh.length) h += `<h4>${q ? 'Vehicles' : 'Vehicles out now'}</h4>` + veh.slice(0, 25).map(v => `<button type="button" class="pd-r" data-v="${esc(v.plate)}" aria-current="${sel === 'v:' + v.plate}">${plate(v.plate)}<div><b>${esc(v.model || 'Vehicle')}</b><small>${v.hex ? `<span class="pd-sw" style="background:${esc(v.hex)}"></span>` : ''}${esc([v.color, v.owner ? 'owner ' + v.owner : ''].filter(Boolean).join(' · '))}</small>${v.flags?.length ? `<div class="tags">${flagTags(v.flags)}</div>` : ''}</div></button>`).join('');
+    $('pdRes').innerHTML = h || `<div class="pd-empty">${q ? `<b>No matches</b>Nobody or nothing called “${esc(q)}” has been seen in this server.` : '<b>Search to begin</b>Players and vehicles in the server show here while it is live.'}</div>`; };
+  const search = async () => { const q = $('pdQ').value.trim(); if (!q) { drawRes(); return; } try { res = await req('search?q=' + encodeURIComponent(q)); } catch (e) { res = { people: [], vehicles: [] }; $('pdRes').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; return; } drawRes(); };
+  $('pdQ').addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(search, 220); });
+  $('pdQ').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(qT); search().then(() => $('pdRes').querySelector('.pd-r')?.click()); } });
+  seg('pdSeg', drawRes);
+  $('pdRes').addEventListener('click', e => { const b = e.target.closest('.pd-r'); if (!b) return; if (b.dataset.v) openVehicle(b.dataset.v); else openPerson(b.dataset.p, b.dataset.n); });
+
+  const histRow = r => { const [k, c] = KIND[r.kind] || [r.kind, ''], open = r.status === 'Active' || r.status === 'Pending';
+    const what = r.charges?.length ? r.charges.map(x => x.title + (x.count > 1 ? ' ×' + x.count : '')).join(', ') : r.reason || r.desc || r.outcome || r.vehicle || '';
+    return `<button type="button" class="pd-it" data-rec="${r.id}">${tag(k, open && r.kind !== 'stop' ? c || 'b' : c)}<div><b>${esc(what || k)}</b><small>${esc([r.status, r.plate, r.by ? 'by ' + r.by : '', r.location].filter(Boolean).join(' · '))}</small></div><span class="when">${esc(ago(r.at))}</span></button>`; };
+  const actions = (subj, rid, plateNo) => `<div class="pd-acts-row">${['citation', 'warning', 'arrest', 'warrant', 'bolo'].map(k => `<button type="button" class="btn ${k === 'arrest' ? '' : 'ghost'} sm" data-new="${k}" data-subject="${esc(subj || '')}" data-rid="${esc(rid || '')}" data-plate="${esc(plateNo || '')}">${{ citation: 'Citation', warning: 'Warning', arrest: 'Arrest report', warrant: 'Warrant', bolo: 'BOLO' }[k]}</button>`).join('')}</div>`;
+
+  const openPerson = async (rid, name) => { cur = { t: 'p', id: rid, name }; drawRes(); $('pdDet').innerHTML = '<div class="pd-empty">Running…</div>'; if (!mdt.querySelector('[data-pane="lookup"].on')) show('lookup', 'lookup');
+    let j; try { j = await req('person?' + (rid ? 'id=' + encodeURIComponent(rid) : 'name=' + encodeURIComponent(name))); } catch (e) { $('pdDet').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; return; }
+    const p = j.person, L = j.license, ws = wanted(p.rid), H = keep(j.history), n = k => H.filter(r => r.kind === k).length; keep(j.flags);
+    const lic = !j.account ? tag('No Oversite account', '') : !L || L.none ? tag('No license on file', 'a') : tag('License valid', 'g');
+    $('pdDet').innerHTML = `<div class="pd-hd">${av(p.rid, p.name, true)}<div><h3>${esc(p.name)}</h3><p>${esc([L?.display && L.display !== p.name ? L.display : '', p.rid ? 'Roblox ID ' + p.rid : '', p.team ? 'last on ' + p.team : '', p.last_seen ? 'seen ' + ago(p.last_seen) : ''].filter(Boolean).join(' · '))}</p>
+      <div class="tags">${flagTags(j.flags)}${ws ? tag('Wanted in game ' + '★'.repeat(Math.min(ws, 5)), 'r') : ''}${lic}</div></div></div>
+      ${actions(p.name, p.rid, '')}
+      ${L && !L.none ? `<h4>Driver's license</h4><div class="pd-kv"><div><span>License no.</span><b>${esc(L.num)}</b></div><div><span>Age</span><b>${esc(L.age || '–')}</b></div><div><span>Sex</span><b>${esc(L.gndr || '–')}</b></div><div><span>Issued</span><b>${esc(L.iss || '–')}</b></div>
+        <div><span>Height</span><b>${esc(L.hgt || '–')}</b></div><div><span>Weight</span><b>${esc(L.wgt || '–')}</b></div><div><span>Hair / eyes</span><b>${esc([L.hair, L.eyes].filter(Boolean).join(' / ') || '–')}</b></div><div><span>Address</span><b title="${esc(L.addr)}">${esc(L.addr || '–')}</b></div></div>` : ''}
+      ${j.flags.length ? `<h4>Open warrants and BOLOs</h4><div class="pd-list">${j.flags.map(histRow).join('')}</div>` : ''}
+      <h4>Vehicles</h4>${j.vehicles.length ? `<div class="pd-list">${j.vehicles.map(v => `<button type="button" class="pd-it" data-plate="${esc(v.plate)}">${plate(v.plate)}<div><b>${esc(v.model)}</b><small>${v.hex ? `<span class="pd-sw" style="background:${esc(v.hex)}"></span>` : ''}${esc([v.color, 'reg ' + v.reg, 'ins ' + v.ins].join(' · '))}</small></div><span class="when">${v.stolen ? tag('Stolen', 'R') : esc(ago(v.last_seen))}</span></button>`).join('')}</div>` : '<p class="pd-empty" style="padding:10px 0;text-align:left">No vehicles seen under this name.</p>'}
+      <h4>Criminal history</h4><div class="pd-sum"><span><b>${n('arrest')}</b>arrests</span><span><b>${n('citation')}</b>citations</span><span><b>${n('warning')}</b>warnings</span><span><b>${n('stop')}</b>stops</span><span><b>${n('warrant')}</b>warrants</span></div>
+      ${H.length ? `<div class="pd-list">${H.map(histRow).join('')}</div>` : '<p class="pd-empty" style="padding:10px 0;text-align:left">Clean record.</p>'}`; };
+
+  const openVehicle = async plateNo => { cur = { t: 'v', plate: plateNo }; drawRes(); $('pdDet').innerHTML = '<div class="pd-empty">Running plate…</div>'; if (!mdt.querySelector('[data-pane="lookup"].on')) show('lookup', 'lookup');
+    let j; try { j = await req('vehicle?plate=' + encodeURIComponent(plateNo)); } catch (e) { $('pdDet').innerHTML = `<div class="pd-empty"><b>Not on file</b>${esc(e.message)}</div>`; return; } drawVehicle(j); };
+  const drawVehicle = j => { keep(j.history); keep(j.flags); keep(j.owner_flags); const v = j.vehicle, opt = (name, list, val) => `<select data-vset="${name}">${list.map(o => `<option${o === val ? ' selected' : ''}>${o}</option>`).join('')}</select>`;
+    $('pdDet').innerHTML = `<div class="pd-hd">${plate(v.plate, true)}<div><h3>${esc(v.model || 'Vehicle')}</h3><p>${v.hex ? `<span class="pd-sw" style="background:${esc(v.hex)}"></span>` : ''}${esc([v.color, 'first seen ' + ago(v.first_seen), 'last seen ' + ago(v.last_seen)].filter(Boolean).join(' · '))}</p>
+      <div class="tags">${flagTags([...j.flags, ...(v.stolen ? ['stolen'] : [])])}${j.owner_flags.some(f => f.kind === 'warrant' && f.status === 'Active') ? tag('Owner has a warrant', 'R') : ''}${v.reg !== 'Valid' ? tag('Registration ' + v.reg, 'a') : ''}${v.ins !== 'Active' ? tag('Insurance ' + v.ins, 'a') : ''}</div></div></div>
+      <div class="pd-acts-row"><button type="button" class="btn sm" data-stopv="${esc(v.plate)}">Start traffic stop</button><button type="button" class="btn ghost sm" data-new="citation" data-subject="${esc(v.owner)}" data-rid="${esc(v.owner_rid)}" data-plate="${esc(v.plate)}">Citation</button><button type="button" class="btn ghost sm" data-new="bolo" data-plate="${esc(v.plate)}" data-model="${esc(v.model)}" data-color="${esc(v.color)}">BOLO</button><button type="button" class="btn ghost sm" data-stolen="${v.stolen ? 0 : 1}">${v.stolen ? 'Recovered' : 'Report stolen'}</button></div>
+      <h4>Registration</h4><div class="pd-kv"><div><span>Registered owner</span><b>${v.owner ? `<a href="#" data-owner="${esc(v.owner_rid)}" data-on="${esc(v.owner)}" style="color:inherit">${esc(v.owner)}</a>` : '–'}</b></div><div><span>Registration</span>${opt('reg', ['Valid', 'Expired', 'Suspended'], v.reg)}</div><div><span>Insurance</span>${opt('ins', ['Active', 'Lapsed', 'None'], v.ins)}</div><div><span>Status</span><b>${v.stolen ? 'Reported stolen' : 'Not reported stolen'}</b></div></div>
+      ${j.owner_flags.length ? `<h4>Owner's warrants and BOLOs</h4><div class="pd-list">${j.owner_flags.map(histRow).join('')}</div>` : ''}
+      <h4>History</h4>${j.history.length ? `<div class="pd-list">${j.history.map(histRow).join('')}</div>` : '<p class="pd-empty" style="padding:10px 0;text-align:left">Nothing on file for this plate.</p>'}`;
+    $('pdDet').dataset.cur = v.plate; };
+  $('pdDet').addEventListener('change', async e => { const s = e.target.closest('[data-vset]'); if (!s) return; try { drawVehicle(await req('vehicle', { plate: $('pdDet').dataset.cur, [s.dataset.vset]: s.value })); toast('Saved'); } catch (x) { toast(x.message); } });
+  $('pdDet').addEventListener('click', async e => { const t = e.target.closest('[data-plate]:not([data-new]),[data-owner],[data-stolen],[data-stopv]'); if (!t) return; e.preventDefault();
+    if (t.dataset.stolen != null) { try { drawVehicle(await req('vehicle', { plate: $('pdDet').dataset.cur, stolen: t.dataset.stolen === '1' })); toast(t.dataset.stolen === '1' ? 'Marked stolen. Officers see it on every lookup.' : 'Marked recovered'); } catch (x) { toast(x.message); } return; }
+    if (t.dataset.stopv) return openStop(t.dataset.stopv);
+    if (t.dataset.owner != null) return openPerson(t.dataset.owner, t.dataset.on);
+    openVehicle(t.dataset.plate); });
+
+  // ───────── forms: citation, warning, arrest report, warrant, BOLO ─────────
+  let F = null;   // the form being written: { kind, charges: [{code,count}], ... }
+  const TITLES = { citation: ['Citation', 'Issue citation'], warning: ['Written warning', 'Issue warning'], arrest: ['Arrest report', 'Book arrest'], warrant: ['Warrant request', 'Request warrant'], bolo: ['New BOLO', 'Send BOLO'] };
+  const subjectField = (v = '', rid = '') => `<label>Person<input name="subject" value="${esc(v)}" placeholder="Roblox username" data-ac="person" autocomplete="off"><input type="hidden" name="subject_rid" value="${esc(rid)}"><div class="pd-ac" hidden></div></label>`;
+  const plateField = (v = '') => `<label>Plate <span style="color:var(--faint)">(optional)</span><input name="plate" value="${esc(v)}" placeholder="7KDX204" data-ac="plate" autocomplete="off" style="text-transform:uppercase"><div class="pd-ac" hidden></div></label>`;
+  const chargeBox = () => `<div class="pd-f">Charges<label style="margin:5px 0 0"><input data-ac="charge" placeholder="Search the penal code: speeding, F-303, theft…" autocomplete="off"><div class="pd-ac" hidden></div></label><div class="pd-ch" id="pdCh"></div></div>`;
+  const openForm = async (kind, pre = {}) => { if (!API) return toast('Records need your server\'s live CAD.'); await loadCfg(); back = curNav() === 'home' ? 'home' : curNav();
+    F = { kind, charges: [], type: kind === 'bolo' ? (pre.plate ? 'vehicle' : 'person') : 'Arrest' }; const [t, go] = TITLES[kind]; $('pdFormT').textContent = t; $('pdFormGo').textContent = go;
+    const loc = esc(pre.location || where()), unit = myUnit();
+    let h = '';
+    if (kind === 'bolo') h = `<div class="pd-type" id="pdBType"><button type="button" data-t="person" aria-pressed="${F.type === 'person'}">Person</button><button type="button" data-t="vehicle" aria-pressed="${F.type === 'vehicle'}">Vehicle</button></div>
+      <div class="grid2"><div data-for="person">${subjectField(pre.subject, pre.rid)}</div><div data-for="vehicle">${plateField(pre.plate)}</div><label data-for="vehicle">Make and model<input name="model" value="${esc(pre.model || '')}" placeholder="Chevlon Camion"></label><label data-for="vehicle">Color<input name="color" value="${esc(pre.color || '')}" placeholder="Red"></label><label>Last seen<input name="location" value="${loc}" placeholder="Street, postal"></label><label>Reason<input name="reason" placeholder="Robbery suspect, fled on foot" maxlength="200"></label></div>
+      <label>Description<textarea name="desc" rows="3" placeholder="What to look for: clothing, damage, direction of travel…" maxlength="300"></textarea></label><label class="chk"><input type="checkbox" name="armed"> Armed and dangerous</label>`;
+    else { h = `<div class="grid2">${subjectField(pre.subject, pre.rid)}${kind === 'warrant' ? `<label>Type<select name="type"><option>Arrest</option><option>Search</option></select></label>` : plateField(pre.plate)}<label>Location<input name="location" value="${loc}" placeholder="Street, postal"></label>${kind === 'citation' ? `<label>Vehicle<input name="vehicle" value="${esc(pre.model || '')}" placeholder="Make and model"></label>` : kind === 'arrest' ? `<label>Arresting officers<input name="officers" value="${esc([myName(), ...((unit?.crew) || []).filter(c => c.toLowerCase() !== myName().toLowerCase())].filter(Boolean).join(', '))}"></label>` : '<span></span>'}</div>`;
+      if (kind === 'warning') h += `<label>Warned for<input name="reason" placeholder="Speeding in a school zone" maxlength="200"></label>`;
+      else h += chargeBox();
+      if (kind === 'warrant') h += `<label>Probable cause<textarea name="reason" rows="3" placeholder="Why this person should be arrested or searched" maxlength="600"></textarea></label>${CFG.supervisor ? '<p class="pd-note">You are a supervisor, so this warrant is active as soon as you send it.</p>' : '<p class="pd-note">A Sergeant or above approves it before it goes active. You see it under Warrants, Waiting approval.</p>'}`;
+      if (kind === 'arrest') h += `<div class="grid2"><label>Booked at<select name="facility"><option>Liberty County Jail</option><option>Sheriff's Office holding</option><option>State Prison</option></select></label><label>Property taken<input name="property" placeholder="Wallet, phone, pistol (evidence)" maxlength="300"></label></div><label class="chk" style="margin-bottom:14px"><input type="checkbox" name="miranda" checked> Miranda rights read</label>`;
+      h += `<label>${kind === 'arrest' ? 'Narrative' : 'Notes'}<textarea name="notes" rows="${kind === 'arrest' ? 6 : 3}" placeholder="${kind === 'arrest' ? 'What happened, in order: the stop or call, what you saw, the arrest.' : 'Anything else the next officer should know'}" maxlength="1500"></textarea></label>`;
+      if (kind !== 'warning') h += `<div class="pd-tot"><div><div><span>Fine</span><b id="pdTF">$0</b></div>${kind === 'citation' ? '' : '<div><span>Jail</span><b id="pdTJ">0 min</b></div>'}</div><span style="font-size:12px;color:var(--mute)">Worked out from the penal code</span></div>`; }
+    $('pdForm').innerHTML = h; if (kind === 'bolo') boloType(); drawCharges(); show('pdform', back === 'home' ? 'home' : back); setTimeout(() => $('pdForm').querySelector('input:not([type=hidden]):not([value]),textarea')?.focus(), 60); };
+  const boloType = () => $('pdForm').querySelectorAll('[data-for]').forEach(el => el.hidden = el.dataset.for !== F.type);
+  const drawCharges = () => { const box = $('pdCh'); if (!box) return; const L = F.charges.map(c => ({ ...c, p: PEN(c.code) })).filter(c => c.p);
+    box.innerHTML = L.length ? L.map((c, i) => `<div class="row"><code>${esc(c.code)}</code><span>${esc(c.p[1])} ${tag(c.p[4], c.p[4] === 'Felony' ? 'r' : c.p[4] === 'Misdemeanor' ? 'a' : '')}</span><span class="cnt2"><button type="button" data-cc="${i}" data-d="-1" aria-label="One fewer">−</button><span>${c.count}</span><button type="button" data-cc="${i}" data-d="1" aria-label="One more">+</button></span><span class="amt">${money(c.p[2] * c.count)}${c.p[3] && F.kind !== 'citation' ? `<small>${c.p[3] * c.count} min</small>` : ''}</span><button type="button" class="x" data-cx="${i}" aria-label="Remove ${esc(c.p[1])}">×</button></div>`).join('') : '<div class="none">No charges yet. Search above and pick one.</div>';
+    const fine = L.reduce((a, c) => a + c.p[2] * c.count, 0), jail = L.reduce((a, c) => a + c.p[3] * c.count, 0); if ($('pdTF')) $('pdTF').textContent = money(fine); if ($('pdTJ')) $('pdTJ').textContent = jail + ' min'; };
+  // autocomplete: people and plates from the server's records, charges from the penal code
+  let acT;
+  const acOpen = async inp => { const box = inp.parentElement.querySelector('.pd-ac'), k = inp.dataset.ac, q = inp.value.trim(); let items = [];
+    if (k === 'charge') { const s = q.toLowerCase(); items = CFG.penal.filter(p => !s || p[0].toLowerCase().includes(s) || p[1].toLowerCase().includes(s) || p[4].toLowerCase().startsWith(s)).filter(p => F.kind !== 'citation' || p[4] !== 'Felony').slice(0, 30)
+        .map(p => `<button type="button" data-pick="${esc(p[0])}"><code>${esc(p[0])}</code><span>${esc(p[1])}</span><small>${money(p[2])}${p[3] ? ' · ' + p[3] + ' min' : ''}</small></button>`); }
+    else if (q.length >= 2) { try { const j = await req('search?q=' + encodeURIComponent(q)); if (inp.value.trim() !== q) return;
+        items = k === 'person' ? j.people.slice(0, 8).map(p => `<button type="button" data-pick="${esc(p.name)}" data-rid="${esc(p.rid)}">${av(p.rid, p.name)}<span>${esc(p.name)}</span><small>${flagTags(p.flags) || esc(p.team)}</small></button>`)
+          : j.vehicles.slice(0, 8).map(v => `<button type="button" data-pick="${esc(v.plate)}" data-model="${esc(v.model)}" data-owner="${esc(v.owner)}" data-orid="${esc(v.owner_rid)}">${plate(v.plate)}<span>${esc(v.model)}</span><small>${esc(v.owner)}</small></button>`); } catch (e) {} }
+    box.innerHTML = items.join(''); box.hidden = !items.length; };
+  $('pdForm').addEventListener('input', e => { const inp = e.target.closest('[data-ac]'); if (!inp) return; if (inp.name === 'subject') $('pdForm').subject_rid.value = ''; clearTimeout(acT); acT = setTimeout(() => acOpen(inp), inp.dataset.ac === 'charge' ? 0 : 200); });
+  $('pdForm').addEventListener('focusin', e => { const inp = e.target.closest('[data-ac="charge"]'); if (inp) acOpen(inp); });
+  $('pdForm').addEventListener('focusout', e => { const inp = e.target.closest('[data-ac]'); if (inp) setTimeout(() => { const b = inp.parentElement.querySelector('.pd-ac'); if (b && !b.contains(document.activeElement)) b.hidden = true; }, 160); });
+  $('pdForm').addEventListener('keydown', e => { const inp = e.target.closest('[data-ac]'); if (!inp) return; const box = inp.parentElement.querySelector('.pd-ac');
+    if (e.key === 'Escape') { box.hidden = true; return; } if (e.key !== 'Enter' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return; if (box.hidden && e.key !== 'Enter') return;
+    const bs = [...box.querySelectorAll('button')], i = bs.findIndex(b => b.classList.contains('on'));
+    if (e.key === 'Enter') { if (!box.hidden && bs.length) { e.preventDefault(); (bs[i] || bs[0]).click(); } else if (inp.dataset.ac === 'charge') e.preventDefault(); return; }
+    e.preventDefault(); bs.forEach(b => b.classList.remove('on')); const n = bs[(i + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length]; n?.classList.add('on'); n?.scrollIntoView({ block: 'nearest' }); });
+  $('pdForm').addEventListener('click', e => { const t = e.target;
+    const pick = t.closest('[data-pick]'); if (pick) { const box = pick.closest('.pd-ac'), inp = box.parentElement.querySelector('[data-ac]'), f = $('pdForm');
+      if (inp.dataset.ac === 'charge') { const ex = F.charges.find(c => c.code === pick.dataset.pick); if (ex) ex.count = Math.min(9, ex.count + 1); else F.charges.push({ code: pick.dataset.pick, count: 1 }); inp.value = ''; drawCharges(); inp.focus(); acOpen(inp); return; }
+      inp.value = pick.dataset.pick; box.hidden = true;
+      if (inp.dataset.ac === 'person') f.subject_rid.value = pick.dataset.rid || '';
+      if (inp.dataset.ac === 'plate') { if (f.vehicle && !f.vehicle.value) f.vehicle.value = pick.dataset.model || ''; if (f.model && !f.model.value) f.model.value = pick.dataset.model || ''; if (f.subject && !f.subject.value && pick.dataset.owner) { f.subject.value = pick.dataset.owner; f.subject_rid.value = pick.dataset.orid || ''; } }
+      return; }
+    const cc = t.closest('[data-cc]'); if (cc) { const c = F.charges[+cc.dataset.cc]; c.count = Math.max(1, Math.min(9, c.count + +cc.dataset.d)); drawCharges(); return; }
+    const cx = t.closest('[data-cx]'); if (cx) { F.charges.splice(+cx.dataset.cx, 1); drawCharges(); return; }
+    const bt = t.closest('#pdBType button'); if (bt) { F.type = bt.dataset.t; $('pdBType').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === bt)); boloType(); } });
+  $('pdForm').addEventListener('submit', async e => { e.preventDefault(); const f = $('pdForm'), v = n => f[n] ? (f[n].type === 'checkbox' ? f[n].checked : f[n].value) : undefined, go = $('pdFormGo'), unit = myUnit();
+    const body = { kind: F.kind, subject: v('subject'), subject_rid: v('subject_rid'), plate: v('plate'), location: v('location'), notes: v('notes'), unit: unit?.name || '', charges: F.charges,
+      vehicle: v('vehicle'), reason: v('reason'), officers: v('officers'), facility: v('facility'), property: v('property'), miranda: v('miranda'), type: F.kind === 'bolo' ? F.type : v('type'), desc: v('desc'), model: v('model'), color: v('color'), armed: v('armed') };
+    if (F.kind === 'bolo' && F.type === 'person') body.plate = ''; if (F.kind === 'bolo' && F.type === 'vehicle') { body.subject = ''; body.subject_rid = ''; }
+    if (F.stop) body.stop = F.stop;
+    go.disabled = true; try { const j = await req('records', body); const r = j.record;
+      toast({ citation: `Citation issued to ${r.subject}: ${money(r.fine)}`, warning: `Warning issued to ${r.subject}`, arrest: `${r.subject} booked, ${r.booking?.num}`, warrant: r.status === 'Active' ? `Warrant active for ${r.subject}` : 'Warrant sent for approval', bolo: 'BOLO sent to every officer and dispatch' }[r.kind]);
+      if (F.stop && myStop && ['citation', 'warning', 'arrest'].includes(r.kind)) myStop.done = [...new Set([...(myStop.done || []), r.kind])];
+      if (r.kind === 'arrest') window.mdtSetStatus?.('10-15');
+      F = null; openRecord(r, back); refresh(); }
+    catch (x) { toast(x.message); } go.disabled = false; });
+  $('pdFormBack').addEventListener('click', () => { F = null; show(back); });
+
+  // ───────── one record ─────────
+  let viewing = null, viewBack = 'pdrecs';
+  const openRecord = (r, from) => { viewing = r; viewBack = from || (curNav() === 'home' ? 'home' : curNav()); const [k, c] = KIND[r.kind] || [r.kind, ''];
+    $('pdViewT').textContent = k + (r.booking?.num ? ' ' + r.booking.num : ' #' + r.id);
+    const ch = r.charges?.length ? `<table><thead><tr><th>Code</th><th>Charge</th><th style="text-align:right">Count</th><th style="text-align:right">Fine</th>${r.kind !== 'citation' ? '<th style="text-align:right">Jail</th>' : ''}</tr></thead><tbody>${r.charges.map(x => `<tr><td><code>${esc(x.code)}</code></td><td>${esc(x.title)} ${tag(x.cls, x.cls === 'Felony' ? 'r' : x.cls === 'Misdemeanor' ? 'a' : '')}</td><td class="n">${x.count}</td><td class="n">${money(x.fine * x.count)}</td>${r.kind !== 'citation' ? `<td class="n">${x.jail * x.count} min</td>` : ''}</tr>`).join('')}</tbody>
+      <tfoot><tr><td></td><td>Total</td><td></td><td class="n">${money(r.charges.reduce((a, x) => a + x.fine * x.count, 0))}</td>${r.kind !== 'citation' ? `<td class="n">${r.charges.reduce((a, x) => a + x.jail * x.count, 0)} min</td>` : ''}</tr></tfoot></table>` : '';
+    const kv = [['Status', r.status], ['Person', r.subject ? `<a href="#" data-person="${esc(r.subject_rid)}" data-pn="${esc(r.subject)}" style="color:inherit">${esc(r.subject)}</a>` : ''], ['Plate', r.plate ? `<a href="#" data-vp="${esc(r.plate)}" style="color:inherit">${esc(r.plate)}</a>` : ''], ['Vehicle', esc([r.color, r.vehicle || r.model].filter(Boolean).join(' '))],
+      ['Location', esc(r.location)], ['Unit', esc(r.unit)], ['Written by', esc(r.by)], ['When', esc(stamp(r.at))], ['Type', r.kind === 'warrant' || r.kind === 'bolo' ? esc(r.type) : ''], ['Approved by', esc(r.approved_by)], ['Closed by', esc(r.closed_by)], ['Outcome', esc(r.outcome)],
+      ['Booked at', esc(r.booking?.facility)], ['Miranda', r.booking ? (r.booking.miranda ? 'Read' : 'Not read') : ''], ['Officers', esc((r.officers || []).join(', '))], ['Backup', esc((r.backup || []).map(b => b.by + ' (Code ' + b.code + ')').join(', '))]].filter(x => x[1]);
+    $('pdView').innerHTML = `<div class="pd-doc"><div class="pd-hd"><div><div class="tags" style="margin:0 0 6px">${tag(k, c)}${r.armed ? tag('Armed and dangerous', 'R') : ''}</div><h3>${esc(r.kind === 'bolo' ? (r.type === 'vehicle' ? [r.color, r.model, r.plate].filter(Boolean).join(' ') || 'Vehicle' : r.subject || 'Person') : r.subject || r.plate || k)}</h3><p>${esc(r.reason || r.desc || '')}</p></div></div>
+      <div class="pd-kv">${kv.map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('')}</div>${ch}
+      ${r.desc && r.reason ? `<h4>Description</h4><div class="txt">${esc(r.desc)}</div>` : ''}${r.booking?.property ? `<h4>Property</h4><div class="txt">${esc(r.booking.property)}</div>` : ''}${r.notes ? `<h4>${r.kind === 'arrest' ? 'Narrative' : 'Notes'}</h4><div class="txt">${esc(r.notes)}</div>` : ''}</div>`;
+    const A = []; const open = r.status === 'Active' || r.status === 'Pending';
+    if (r.kind === 'warrant' && r.status === 'Pending' && CFG.supervisor) A.push(['deny', 'Deny', 'ghost'], ['approve', 'Approve', '']);
+    if (r.kind === 'warrant' && r.status === 'Active') A.push(['recall', 'Recall', 'ghost'], ['serve', 'Mark served', '']);
+    if (r.kind === 'bolo' && open) A.push(['clear', 'Clear BOLO', '']);
+    if (r.kind === 'stop' && open && r.by === CFG.me) A.push(['end', 'End stop', '']);
+    if (CFG.admin) A.push(['delete', 'Delete', 'ghost']);
+    $('pdViewActs').innerHTML = A.map(([a, l, c]) => `<button type="button" class="btn ${c}" data-act="${a}">${l}</button>`).join('');
+    show('pdview', viewBack === 'home' ? 'home' : viewBack); };
+  $('pdViewActs').addEventListener('click', async e => { const b = e.target.closest('[data-act]'); if (!b || !viewing) return; const a = b.dataset.act; b.disabled = true;
+    try { if (a === 'delete') { await req('records/delete', { id: viewing.id }); toast('Deleted'); show(viewBack); refresh(); return; }
+      if (a === 'end') { endStop(); return; }
+      const j = await req('records/act', { id: viewing.id, action: a }); toast({ approve: 'Warrant approved. It is active now.', deny: 'Warrant denied', serve: 'Warrant served', recall: 'Warrant recalled', clear: 'BOLO cleared' }[a] || 'Done'); openRecord(j.record, viewBack); refresh(); }
+    catch (x) { toast(x.message); b.disabled = false; } });
+  $('pdView').addEventListener('click', e => { const p = e.target.closest('[data-person]'), v = e.target.closest('[data-vp]'); if (!p && !v) return; e.preventDefault(); if (p) openPerson(p.dataset.person, p.dataset.pn); else openVehicle(v.dataset.vp); });
+  $('pdViewBack').addEventListener('click', () => show(viewBack));
+  const recCache = new Map();
+  mdt.addEventListener('click', e => { const r = e.target.closest('[data-rec]'); if (r) { const rec = recCache.get(+r.dataset.rec); if (rec) openRecord(rec); return; }
+    const n = e.target.closest('[data-new]'); if (n && mdt.contains(n)) openForm(n.dataset.new, { subject: n.dataset.subject, rid: n.dataset.rid, plate: n.dataset.plate, model: n.dataset.model, color: n.dataset.color }); });
+
+  // ───────── lists: warrants, BOLOs, records ─────────
+  const keep = L => { L.forEach(r => recCache.set(r.id, r)); return L; };
+  const warRow = r => `<button type="button" class="pd-it" data-rec="${r.id}">${av(r.subject_rid, r.subject)}<div><b>${esc(r.subject)} ${r.type === 'Search' ? tag('Search', 'b') : ''}</b><small>${esc((r.charges || []).map(c => c.title).join(', '))}${r.reason ? ' · ' + esc(r.reason) : ''}</small></div><span class="when">${r.status === 'Pending' ? tag('Needs approval', 'a') : r.status === 'Active' ? tag('Active', 'R') : esc(r.status)}<small>${esc(ago(r.at))} · ${esc(r.by)}</small></span></button>`;
+  const boloRow = r => `<button type="button" class="pd-it bolo${r.armed ? ' armed' : ''}" data-rec="${r.id}"><div>${r.type === 'vehicle' ? `<b>${r.plate ? plate(r.plate) + ' ' : ''}${esc([r.color, r.model].filter(Boolean).join(' ') || 'Vehicle')}</b>` : `<b>${esc(r.subject || 'Unknown person')}</b>`}<small>${esc([r.reason, r.desc].filter(Boolean).join(' · ') || 'No description')}</small><small>${esc(['Last seen ' + (r.location || 'unknown'), 'by ' + r.by].join(' · '))}</small></div><span class="when">${r.armed ? tag('Armed', 'R') + ' ' : ''}${esc(ago(r.at))}</span></button>`;
+  const drawWar = async () => { const k = segVal('pdWarSeg'); try { const j = await req('records?kind=warrant&status=' + (k === 'closed' ? 'closed' : 'open')); const L = keep(j.records).filter(r => k === 'closed' || r.status === k);
+      $('pdWarList').innerHTML = L.map(warRow).join('') || `<div class="pd-empty"><b>${k === 'Active' ? 'No active warrants' : k === 'Pending' ? 'Nothing waiting for approval' : 'No closed warrants yet'}</b>${k === 'Pending' && !CFG.supervisor ? 'A Sergeant or above approves warrant requests.' : ''}</div>`; } catch (e) { $('pdWarList').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; } };
+  const drawBolo = async () => { try { const j = await req('records?kind=bolo&status=open'); $('pdBoloList').innerHTML = keep(j.records).map(boloRow).join('') || '<div class="pd-empty"><b>No active BOLOs</b>Send one when a suspect or vehicle gets away.</div>'; } catch (e) { $('pdBoloList').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; } };
+  const drawRecs = async () => { const k = segVal('pdRecSeg'); try { const j = await req('records?kind=' + k + '&mine=' + ($('pdRecMine').checked ? 1 : 0)); const L = keep(j.records).filter(r => k || ['citation', 'warning', 'arrest', 'stop'].includes(r.kind));
+      $('pdRecList').innerHTML = L.map(histRow).join('') || '<div class="pd-empty"><b>Nothing written yet</b>Citations, warnings, arrests and stops show here.</div>'; } catch (e) { $('pdRecList').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; } };
+  seg('pdWarSeg', drawWar); seg('pdRecSeg', drawRecs); $('pdRecMine').addEventListener('change', drawRecs);
+  // badges: active BOLOs, and warrants waiting for a supervisor
+  const badges = async () => { if (!API || !isPD()) return; try { const [w, b] = await Promise.all([req('records?kind=warrant&status=open'), req('records?kind=bolo&status=open')]); keep(w.records); keep(b.records);
+      const pend = w.records.filter(r => r.status === 'Pending').length, wb = $('tnavWar'), bb = $('tnavBolo'); wb.hidden = !(CFG.supervisor && pend); wb.textContent = pend; bb.hidden = !b.records.length; bb.textContent = b.records.length; } catch (e) {} };
+  const refresh = () => { if (!isPD()) return; badges(); const on = mdt.querySelector('.tscreen.on')?.dataset.pane;
+    if (on === 'warrants') drawWar(); if (on === 'bolos') drawBolo(); if (on === 'pdrecs') drawRecs(); if (on === 'lookup' && cur) (cur.t === 'p' ? openPerson(cur.id, cur.name) : openVehicle(cur.plate)); drawStop(); };
+  mdt.querySelectorAll('.tside [data-only="pd"]').forEach(n => n.addEventListener('click', () => { loadCfg().then(() => { if (n.dataset.pane === 'warrants') drawWar(); if (n.dataset.pane === 'bolos') drawBolo(); if (n.dataset.pane === 'pdrecs') drawRecs(); if (n.dataset.pane === 'lookup') { drawRes(); setTimeout(() => $('pdQ').focus(), 40); } }); }));
+
+  // ───────── traffic stops ─────────
+  let myStop = null, stopPick = null, stopChecks = null;
+  const card = document.createElement('div'); card.className = 'tcard pdonly stopcard'; card.id = 'pdStop';
+  document.querySelector('#mdt .hcol')?.prepend(card);
+  const nearVehicles = () => { const P = window.ERLC?.players || [], V = window.ERLC?.vehicles || [], meP = P.find(p => String(p.Player || '').split(':')[0].toLowerCase() === myName().toLowerCase()), L = meP?.Location;
+    const pos = new Map(P.map(p => [String(p.Player || '').split(':')[0].toLowerCase(), p.Location]));
+    return V.filter(v => v.Plate && String(v.Owner || '').split(':')[0].toLowerCase() !== myName().toLowerCase()).map(v => { const o = String(v.Owner || '').split(':')[0], q = pos.get(o.toLowerCase());
+      return { plate: String(v.Plate).toUpperCase(), model: v.Name || '', color: v.ColorName || '', hex: v.ColorHex || '', owner: o, d: L && q ? Math.hypot(L.LocationX - q.LocationX, L.LocationZ - q.LocationZ) : null }; })
+      .sort((a, b) => (a.d ?? 1e9) - (b.d ?? 1e9)); };
+  const drawPick = () => { const q = $('pdStopQ').value.trim().toUpperCase(), L = nearVehicles().filter(v => !q || v.plate.includes(q) || v.model.toUpperCase().includes(q) || v.owner.toUpperCase().includes(q));
+    const typed = q && !L.some(v => v.plate === q) ? `<button type="button" class="pd-pick" data-sp="${esc(q)}" aria-pressed="${stopPick?.plate === q}">${plate(q)}<div><b>Use plate ${esc(q)}</b><small>Not in the server's vehicle list right now</small></div><span class="d"></span></button>` : '';
+    $('pdStopList').innerHTML = typed + L.map(v => `<button type="button" class="pd-pick" data-sp="${esc(v.plate)}" aria-pressed="${stopPick?.plate === v.plate}">${plate(v.plate)}<div><b>${esc(v.model)}</b><small>${v.hex ? `<span class="pd-sw" style="background:${esc(v.hex)}"></span>` : ''}${esc([v.color, 'driver ' + (v.owner || 'unknown')].filter(Boolean).join(' · '))}</small></div><span class="d">${v.d != null ? Math.round(v.d) + ' studs' : ''}</span></button>`).join('')
+      || (typed ? '' : '<div class="pd-empty"><b>No vehicles out</b>Type the plate you see on the car.</div>');
+    $('pdStopGo').disabled = !stopPick; };
+  const openStop = pre => { if (!API) return toast('Traffic stops need your server\'s live CAD.'); if (myStop) { show('home'); return toast('You are already on a stop. End it first.'); }
+    stopPick = null; $('pdStopQ').value = pre || ''; drawPick(); if (pre) { const v = nearVehicles().find(x => x.plate === pre); stopPick = v || { plate: pre }; drawPick(); } show('stop', 'home'); setTimeout(() => $('pdStopQ').focus(), 50); };
+  $('pdStopQ').addEventListener('input', () => { stopPick = null; drawPick(); });
+  $('pdStopList').addEventListener('click', e => { const b = e.target.closest('[data-sp]'); if (!b) return; stopPick = nearVehicles().find(v => v.plate === b.dataset.sp) || { plate: b.dataset.sp }; drawPick(); });
+  $('pdStopBack').addEventListener('click', () => show('home'));
+  $('pdStopGo').addEventListener('click', async () => { if (!stopPick) return; const u = myUnit(), b = $('pdStopGo'); b.disabled = true;
+    try { let owner = stopPick.owner || '', orid = '', model = stopPick.model || '', color = stopPick.color || '';
+      try { const v = await req('vehicle?plate=' + encodeURIComponent(stopPick.plate)); owner = owner || v.vehicle.owner; orid = v.vehicle.owner_rid; model = model || v.vehicle.model; color = color || v.vehicle.color; } catch (e) {}
+      const j = await req('records', { kind: 'stop', plate: stopPick.plate, vehicle: model, color, subject: owner, subject_rid: orid, location: where(), unit: u?.name || '', x: u?.x, y: u?.y });
+      myStop = j.record; window.mdtSetStatus?.('10-11'); show('home'); runChecks(); drawStop(); toast(`10-11 on ${myStop.plate}. Dispatch can see your stop.`); }
+    catch (x) { toast(x.message); b.disabled = false; } });
+  const runChecks = async () => { if (!myStop) return; stopChecks = null; drawStop(); const s = myStop; let v = null, p = null;
+    try { v = await req('vehicle?plate=' + encodeURIComponent(s.plate)); } catch (e) {}
+    if (s.subject) try { p = await req('person?' + (s.subject_rid ? 'id=' + s.subject_rid : 'name=' + encodeURIComponent(s.subject))); } catch (e) {}
+    if (myStop !== s) return; const C = [];
+    if (!v) C.push(['warn', 'Plate not on file']); else { const V = v.vehicle;
+      C.push(V.stolen ? ['bad', 'Reported stolen'] : ['ok', 'Not reported stolen']); C.push(V.reg === 'Valid' ? ['ok', 'Registration valid'] : ['bad', 'Registration ' + V.reg.toLowerCase()]); C.push(V.ins === 'Active' ? ['ok', 'Insured'] : ['bad', 'Insurance ' + V.ins.toLowerCase()]);
+      if (v.flags.some(f => f.kind === 'bolo')) C.push(['bad', 'BOLO out on this vehicle']); }
+    if (p) { const w = p.flags.filter(f => f.kind === 'warrant' && f.status === 'Active'); C.push(w.length ? ['bad', `Owner ${s.subject} has ${w.length === 1 ? 'an active warrant' : w.length + ' active warrants'}`] : ['ok', `No warrants for ${s.subject}`]);
+      if (p.flags.some(f => f.kind === 'bolo')) C.push(['bad', `BOLO out on ${s.subject}`]); C.push(p.license && !p.license.none ? ['ok', 'Owner has a license on file'] : ['warn', 'No license on file for the owner']);
+      const ws = wanted(p.person.rid); if (ws) C.push(['bad', `Wanted in game ${'★'.repeat(Math.min(ws, 5))}`]); }
+    stopChecks = C; drawStop(); };
+  const dur = t => { const s = Math.max(0, Math.floor((Date.now() - t) / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const drawStop = () => { if (!isPD()) return; if (!myStop) { card.innerHTML = `<div class="tch"><h3>Traffic stop</h3></div><button type="button" class="go" id="pdStopNew"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14l-1.5-6.5A2 2 0 0 0 15.6 9H8.4a2 2 0 0 0-1.9 1.5z"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/><path d="M9 5h6"/></svg>Start a traffic stop</button>`; return; }
+    const s = myStop, bk = (s.backup || []).length;
+    card.innerHTML = `<div class="tch"><h3>Traffic stop ${tag('10-11', 'b')}</h3><span class="pill" data-stopt="${s.at}">${dur(s.at)}</span></div>
+      <div class="sv">${plate(s.plate)}<div><b>${esc([s.color, s.vehicle].filter(Boolean).join(' ') || 'Vehicle')}</b><small>${s.subject ? `Owner <a href="#" data-sowner style="color:inherit">${esc(s.subject)}</a>` : 'Owner unknown'}${s.location ? ' · ' + esc(s.location) : ''}</small></div></div>
+      <div class="chk">${stopChecks ? stopChecks.map(([c, t]) => `<div class="c-${c}"><i></i>${esc(t)}</div>`).join('') : '<div class="c-wait"><i></i>Running the plate and owner…</div>'}</div>
+      <div class="bk"><button type="button" class="btn bk2" data-bk="2">${bk ? 'Backup again' : 'Backup'}, Code 2</button><button type="button" class="btn bk3" data-bk="3">Backup, Code 3</button></div>
+      <div class="acts"><button type="button" class="btn ghost" data-snew="warning">Warning</button><button type="button" class="btn ghost" data-snew="citation">Citation</button><button type="button" class="btn ghost" data-snew="arrest">Arrest</button><button type="button" class="btn ghost" data-srun>Run plate</button><button type="button" class="btn ghost" data-sview>Details</button><button type="button" class="btn" data-send>End stop</button></div>`; };
+  setInterval(() => { const t = card.querySelector('[data-stopt]'); if (t) t.textContent = dur(+t.dataset.stopt); }, 1000);
+  card.addEventListener('click', async e => { const t = e.target;
+    if (t.closest('#pdStopNew')) return openStop();
+    if (!myStop) return; const s = myStop;
+    const bk = t.closest('[data-bk]'); if (bk) { bk.disabled = true; try { const j = await req('records/act', { id: s.id, action: 'backup', code: +bk.dataset.bk }); myStop = j.record; drawStop(); toast(`Backup requested, Code ${bk.dataset.bk}. Every officer and dispatch got it.`); } catch (x) { toast(x.message); bk.disabled = false; } return; }
+    const sn = t.closest('[data-snew]'); if (sn) { await openForm(sn.dataset.snew, { subject: s.subject, rid: s.subject_rid, plate: s.plate, model: s.vehicle, location: s.location }); if (F) F.stop = s.id; return; }
+    if (t.closest('[data-srun]')) return openVehicle(s.plate);
+    if (t.closest('[data-sowner]')) { e.preventDefault(); return openPerson(s.subject_rid, s.subject); }
+    if (t.closest('[data-sview]')) return openRecord(s, 'home');
+    if (t.closest('[data-send]')) return endStop(); });
+  const endStop = async () => { const s = myStop; if (!s) return; const done = s.done || [], outcome = done.includes('arrest') ? 'Arrest made' : done.includes('citation') ? 'Citation issued' : done.includes('warning') ? 'Warning given' : 'No action';
+    try { await req('records/act', { id: s.id, action: 'end', outcome }); toast(`Stop on ${s.plate} ended: ${outcome.toLowerCase()}`); myStop = null; stopChecks = null; window.mdtSetStatus?.('10-8'); drawStop(); show('home'); refresh(); } catch (x) { toast(x.message); } };
+  const loadStop = async () => { if (!API || !isPD()) return; try { const j = await req('records?kind=stop&status=open&mine=1'); myStop = j.records[0] || null; if (myStop) runChecks(); drawStop(); } catch (e) {} };
+
+  // ───────── alerts on every MDT and dispatch: backup requests and new BOLOs ─────────
+  const alerts = document.createElement('div'); alerts.className = 'pdalerts'; alerts.setAttribute('role', 'alert'); alerts.setAttribute('aria-live', 'assertive'); document.body.appendChild(alerts);
+  const otherDept = () => document.body.classList.contains('mdt-open') && !isPD();   // a firefighter's MDT doesn't need police backup calls
+  const shown = new Set();
+  const alert = (id, cls, title, sub, btns, ttl) => { if (shown.has(id) || otherDept()) return; shown.add(id); const el = document.createElement('div'); el.className = 'pda ' + cls; el.dataset.id = id;
+    el.innerHTML = `<div><b>${esc(title)}</b><small>${esc(sub)}</small></div><div class="a">${btns.map(([k, l, p]) => `<button type="button" data-k="${k}" class="${p ? 'p' : ''}">${esc(l)}</button>`).join('')}</div>`;
+    const bye = () => { el.classList.add('out'); setTimeout(() => el.remove(), 220); }; el._bye = bye; alerts.prepend(el); while (alerts.children.length > 3) alerts.lastChild.remove(); if (ttl) setTimeout(bye, ttl); return el; };
+  alerts.addEventListener('click', async e => { const b = e.target.closest('button'); if (!b) return; const el = b.closest('.pda'), k = b.dataset.k, id = +el.dataset.id.split(':')[1];
+    if (k === 'x') return el._bye();
+    if (k === 'respond') { try { await req('records/act', { id, action: 'respond', unit: myUnit()?.name || '' }); window.mdtSetStatus?.('10-76'); toast('Responding. Dispatch and the officer can see you are on the way.'); } catch (x) { toast(x.message); } el._bye(); return; }
+    if (k === 'view') { const r = recCache.get(id); el._bye(); if (r) { if (!document.body.classList.contains('mdt-open') && window.openMdtFor) window.openMdt?.(true, 'pd'); openRecord(r, 'bolos'); } } });
+  addEventListener('ov:pdrec', e => { const r = e.detail || {}; if (r._deleted) { recCache.delete(r.id); refresh(); return; } recCache.set(r.id, r);
+    const mine = r._by && r._by === CFG.me || (!r._act && r.by === myName());
+    if (r.kind === 'stop' && r._act === 'backup' && !mine) { const b = (r.backup || []).slice(-1)[0] || {}; const el = alert('bk:' + r.id + ':' + (r.backup || []).length, b.code === 3 ? 'c3' : '', `${r.unit || r.by} needs backup, Code ${b.code || 2}`, ['Traffic stop', r.plate, [r.color, r.vehicle].filter(Boolean).join(' '), r.location].filter(Boolean).join(' · '), [['respond', 'Respond', true], ['x', 'Dismiss']], 180000);
+      if (el && b.code === 3) window.playPanicTone?.(); }
+    if (r.kind === 'stop' && r._act === 'end') document.querySelectorAll(`.pda[data-id^="bk:${r.id}:"]`).forEach(el => el._bye?.());
+    if (r.kind === 'bolo' && !r._act && !mine) alert('bolo:' + r.id, 'bolo', `BOLO${r.armed ? ', armed and dangerous' : ''}: ${r.type === 'vehicle' ? [r.color, r.model, r.plate].filter(Boolean).join(' ') || 'vehicle' : r.subject || 'person'}`, [r.reason, r.desc, r.location ? 'last seen ' + r.location : ''].filter(Boolean).join(' · '), [['view', 'View', true], ['x', 'Dismiss']], 20000);
+    if (r.kind === 'warrant' && !r._act && r.status === 'Pending' && CFG.supervisor && !mine) alert('war:' + r.id, '', `Warrant waiting for your approval: ${r.subject}`, `${(r.charges || []).map(c => c.title).join(', ')} · from ${r.by}`, [['view', 'Review', true], ['x', 'Later']], 30000);
+    if (myStop && r.id === myStop.id) { myStop = r.status === 'Active' ? { ...r, done: myStop.done } : null; drawStop(); }
+    if (isPD()) refresh(); });
+
+  // the MDT switched department, or opened: PD loads its records; the others never see PD panes
+  addEventListener('mdtdept', () => { if (isPD()) { loadCfg().then(() => { badges(); loadStop(); }); drawStop(); } else if (mdt.querySelector('.tscreen.on')?.matches('[data-pane="lookup"],[data-pane="warrants"],[data-pane="bolos"],[data-pane="pdrecs"],[data-pane="pdform"],[data-pane="pdview"],[data-pane="stop"]')) window.mdtShow('home'); });
+  addEventListener('players', () => { if (isPD() && mdt.querySelector('[data-pane="lookup"].on') && !$('pdQ').value.trim()) drawRes(); if (mdt.querySelector('[data-pane="stop"].on') && !stopPick) drawPick(); });
+  setInterval(() => { if (isPD() && document.body.classList.contains('mdt-open')) badges(); }, 60000);
+  if (isPD()) { loadCfg().then(() => { badges(); loadStop(); }); drawStop(); }
+  drawRes();
+})();
+</script>
+
 <script>
 // Proximity voice runs in a panel on the CAD itself, so the CAD stays usable and voice keeps going when the panel is hidden.
 // Ctrl-click (or middle-click) still opens it in its own tab.
@@ -3248,17 +3687,19 @@ body.voice-snap .stage{transition:none!important}
   const cardHTML = (u, sel) => { const crew = esc(u.crew.join(', '));
     return `<button class="card veh dept-${u.dept}" role="listitem" data-unit="${u.id}" aria-pressed="${sel ? 'true' : 'false'}">
   <div class="hd"><div><b>${esc(u.name)}</b><small class="crew" title="${crew}">${crew}</small></div><span class="id"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 12h6"/></svg>${esc(u.uid)}</span></div>
-  <div class="pic">${badge(u.kind)}<div class="vinfo"><b>${esc(u.model)}</b><small><span class="code">${esc(u.postal ? 'Postal ' + u.postal : '10-8')}</span> · <span class="spd" data-unit="${u.id}">0</span> mph</small></div></div>
+  <div class="pic">${badge(u.kind)}<div class="vinfo"><b>${esc(u.model)}</b><small><span class="code">${esc(codeText(u))}</span> · <span class="spd" data-unit="${u.id}">0</span> mph</small></div></div>
   <div class="meta"><span class="on">Online</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/><circle cx="12" cy="12" r="5"/></svg>GPS</span><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h4v-4H2zM9 20h4v-8H9zM16 20h4V6h-4z"/></svg>LTE</span></div>
   <div class="mini live" data-unit="${u.id}" aria-label="Live position of ${esc(u.name)}"><span class="ring"></span><span class="pin"></span></div>
   <div class="tl"><span>Active</span><span class="bar2"></span><span class="timer" data-unit="${u.id}">0:00:00</span></div>
 </button>`; };
+  // the unit card's small line: the 10-code the unit picked in its MDT, then where it is
+  const codeText = u => { const st = (window.UNIT_STATUS || {})[u.name]; return [st, u.postal ? 'Postal ' + u.postal : ''].filter(Boolean).join(' · ') || '10-8'; };
   let shownIds = '', demoCleared = false;
   const publish = list => { const ids = list.map(u => u.id).join('|');
     if (ids !== shownIds) { shownIds = ids; const sel = fleet?.querySelector('[aria-pressed="true"]')?.dataset.unit;
       if (fleet) fleet.innerHTML = list.length ? list.map((u, i) => cardHTML(u, sel ? u.id === sel : i === 0)).join('') : '<div class="empty" style="padding:18px 6px;color:var(--dim)">No units on duty. Players need a callsign on a mapped team.</div>';
       window.UNITS = list; if (!demoCleared) { demoCleared = true; clearDemo(); } dispatchEvent(new CustomEvent('units', { detail: { live: true } })); }
-    else for (const u of list) { const card = fleet?.querySelector(`[data-unit="${u.id}"]`); if (!card) continue; const code = card.querySelector('.code'); if (code) code.textContent = u.postal ? 'Postal ' + u.postal : '10-8';
+    else for (const u of list) { const card = fleet?.querySelector(`[data-unit="${u.id}"]`); if (!card) continue; const code = card.querySelector('.code'); if (code) code.textContent = codeText(u);
       const vb = card.querySelector('.vinfo b'); if (vb && vb.textContent !== u.model) vb.textContent = u.model; }   // the vehicle changes as they get in and out
     dispatchEvent(new CustomEvent('unitsupdate')); };                 // every snapshot: labels that show postal or street refresh
   const clearDemo = () => { const C = window.CALLS || []; for (let i = C.length - 1; i >= 0; i--) if (!C[i].live) C.splice(i, 1); window.demoCalls?.stop(); dispatchEvent(new CustomEvent('calls')); };
@@ -3287,7 +3728,7 @@ body.voice-snap .stage{transition:none!important}
   const appSideMsg = j => j && (j.code === 2005 || j.code === 2003 || /multiple servers|application|global api key/i.test(String(j.message || ''))) ? "Your server key is saved. ER:LC is holding the live data until Oversite finishes its ER:LC application setup. Nothing to do on your side: it starts by itself once that's done." : '';
   const showDown = msg => { if (!HOSTED || (lastUnits && lastUnits.length)) return; const fl = document.querySelector('.fleet'); if (!fl) return;
     fl.innerHTML = `<div class="empty" style="padding:18px 6px;color:var(--dim);font-size:12.5px;line-height:1.5"><b style="color:var(--ink)">Live data is paused.</b><br>${esc(msg)}</div>`; shownIds = null; };
-  const handle = (body, rl, src, taken) => { const tFix = fixTime(taken); lastServer = body; lastPlayers = body.Players || []; dispatchEvent(new Event('players')); lastVehicles = body.Vehicles || []; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
+  const handle = (body, rl, src, taken) => { const tFix = fixTime(taken); lastServer = body; lastPlayers = body.Players || []; dispatchEvent(new Event('players')); lastVehicles = body.Vehicles || []; window.ERLC = { players: lastPlayers, vehicles: lastVehicles }; lastUpdate = Date.now(); updates++; source = src; eventTimes.push(lastUpdate); while (eventTimes.length && lastUpdate - eventTimes[0] > 10000) eventTimes.shift();
     updateMe(lastPlayers); learnPostals(lastPlayers); addSamples(lastPlayers); roadFit(); lastUnits = buildUnits(lastPlayers, lastVehicles, body.JoinLogs, tFix, body.OversiteDuty); publish(lastUnits); pushCalls(body.EmergencyCalls); flyToMe();
     const on = $('statOnline'); if (on) on.textContent = body.CurrentPlayers ?? lastPlayers.length;
     status(`${src === 'stream' ? 'Streaming live from' : 'Connected to'} ${body.Name}. ${body.CurrentPlayers}/${body.MaxPlayers} players, ${lastUnits.length} units on duty.` + (rl?.limit ? ` Rate limit ${rl.left}/${rl.limit}.` : '') + ` Updated ${new Date().toLocaleTimeString()}.`, 'ok'); };
@@ -3323,6 +3764,8 @@ body.voice-snap .stage{transition:none!important}
     es.addEventListener('panic', e => { try { dispatchEvent(new CustomEvent('panic', { detail: JSON.parse(e.data) })); } catch (x) {} });            // someone pressed their panic button
     es.addEventListener('panics', e => { try { for (const p of JSON.parse(e.data) || []) dispatchEvent(new CustomEvent('panic', { detail: p })); } catch (x) {} });
     es.addEventListener('panicclear', e => { try { dispatchEvent(new CustomEvent('panicclear', { detail: JSON.parse(e.data) })); } catch (x) {} });   // suspended (you or this server): reload straight into the notice
+    // the law enforcement MDT: 10-codes, and records (warrants, BOLOs, stops and backup calls) as officers write them
+    for (const ev of ['unitstatus', 'unitstatuses', 'pdrec']) es.addEventListener(ev, e => { try { dispatchEvent(new CustomEvent('ov:' + ev, { detail: JSON.parse(e.data) })); } catch (x) {} });
     es.addEventListener('roads', e => { try { window.ROADNET?.setOv(JSON.parse(e.data).ov); } catch (x) {} });   // an owner fixed a road: re-route now
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }
@@ -3501,39 +3944,9 @@ body.voice-snap .stage{transition:none!important}
   let render = () => { if (!D) return; $('stLive').style.background = 'var(--green)'; $('stServer').textContent = `${D.server.name || 'Server'} · ${D.server.players ?? D.players.length}/${D.server.max ?? '?'}`;
     renderPlayers(); renderCalls(); renderBans(); renderLogs(); if (pane === 'player') renderPlayer(); };
 
-  // ── team: staff in game and in the CAD; the owner and co-owners give and take roles in both at once ──
-  const RN = { owner: 'Owner', co_owner: 'Co-owner', admin: 'Admin', mod: 'Mod' }, RR = { none: 0, mod: 1, admin: 2, co_owner: 3, owner: 4 };
-  const myRank = OV.role === 'owner' ? 4 : OV.role === 'co_owner' ? 3 : 0;   // 4 owner, 3 co-owner; admins and mods can look
-  let T = null, teamBusy = false, teamPoll = 0;
-  const canEdit = p => myRank >= 3 && !p.creator && p.game !== 'owner' && p.rid !== String(OV.rid || '') && (myRank === 4 || RR[p.role] < 3);   // extra owners (from the old owner link) can be changed by the creator
-  const roleOpts = cur => [...(myRank === 4 ? ['co_owner'] : []), 'admin', 'mod'].map(r => `<option value="${r}"${r === cur ? ' selected' : ''}>${RN[r]}</option>`).join('');
-  const drawTeam = () => { if (!T) return; const P = T.people || [];
-    const line = p => `<div class="tm-r">${av(p.rid, p.name)}<div><b>${esc(p.name)}</b><small>`
-      + `<i class="${p.sending || !(p.game === p.role) ? 'off' : ''}">${T.inGame ? (p.game ? 'In game: ' + RN[p.game] : 'Not staff in game') + (p.sending ? ' (sending…)' : '') : 'In game: unknown'}</i>`
-      + `<i class="${p.cad === p.role ? '' : 'off'}">${p.cad ? 'CAD: ' + RN[p.cad] : p.pending ? 'CAD: ' + RN[p.pending] + ' once they join Oversite' : 'Not on Oversite'}</i></small></div>`
-      + (canEdit(p) ? (k => `<div class="tm-a"><select ${k} aria-label="Role for ${esc(p.name)}">${roleOpts(p.role === 'owner' ? '' : p.role)}${p.role === 'owner' ? '<option value="" selected disabled>Owner</option>' : ''}</select><button type="button" class="st-btn" ${k.replace('data-tm-role', 'data-tm-out')}>Remove</button></div>`)(/^\d+$/.test(p.rid) ? `data-tm-role="${esc(p.name)}"` : `data-tm-role="" data-tm-uid="${p.uid}"`) : '<span></span>') + '</div>';
-    $('stTeam').innerHTML = (T.inGame ? '' : `<p class="tm-msg bad">Couldn't read ER:LC's staff list right now, so only CAD roles show.</p>`)
-      + ['owner', 'co_owner', 'admin', 'mod'].map(r => { const L = P.filter(p => p.role === r); return L.length ? `<div class="tm-g"><h3>${RN[r]}${L.length > 1 && r !== 'owner' ? 's' : ''}</h3>${L.map(line).join('')}</div>` : ''; }).join('')
-      || '<div class="st-empty">No staff yet.</div>'; };
-  const renderTeam = async () => { if (!T) $('stTeam').innerHTML = '<div class="st-empty">Loading…</div>';
-    try { const r = await fetch(API + '/team'), j = await r.json(); if (!r.ok) throw new Error(j.error || 'Could not load the team.'); T = j; drawTeam(); } catch (x) { $('stTeam').innerHTML = `<div class="st-empty">${esc(x.message)}</div>`; } };
-  const tmSay = (m, k) => { const el = $('tmMsg'); el.textContent = m; el.className = 'tm-msg' + (k ? ' ' + k : ''); };
-  const setRole = async (name, role, uid) => { if (teamBusy) return; teamBusy = true; tmSay('Saving…'); $('stTeam').querySelectorAll('select,button').forEach(x => { x.disabled = true; }); $('tmAdd').querySelector('button').disabled = true;
-    try { const j = await post('/team', name ? { name, role } : { uid, role }); T = j.team; drawTeam();
-      const g = j.game, game = g.sent.length ? ` Sending ${g.sent.join(' then ')} in game; the list updates when ER:LC confirms it.` : '';
-      if (g.sent.length) { clearTimeout(teamPoll); let tries = 0; const again = () => { teamPoll = setTimeout(async () => { await renderTeam(); if ((T.people || []).some(p => p.sending) && ++tries < 8) again(); }, 4000); }; again(); }
-      tmSay((role === 'none' ? `${j.who} is no longer staff.` : `${j.who} is now ${RN[role]}.`) + (j.cad === 'pending' ? ' They get the CAD role when they first open this server on Oversite.' : '') + game + (g.note ? ' ' + g.note : ''), g.failed ? 'bad' : 'ok'); }
-    catch (x) { tmSay(x.message, 'bad'); drawTeam(); } finally { teamBusy = false; $('tmAdd').querySelector('button').disabled = false; } };
-  if (myRank >= 3) { $('tmAdd').hidden = false; $('tmRole').innerHTML = roleOpts('mod'); }
-  $('tmAdd').addEventListener('submit', async e => { e.preventDefault(); const n = $('tmName').value.trim(); if (!n) return tmSay('Type their Roblox username.', 'bad'); await setRole(n, $('tmRole').value); $('tmName').value = ''; });
-  $('stTeam').addEventListener('change', e => { const s2 = e.target.closest('[data-tm-role]'); if (s2 && s2.value) setRole(s2.dataset.tmRole, s2.value, s2.dataset.tmUid); });
-  $('stTeam').addEventListener('click', e => { const b = e.target.closest('[data-tm-out]'); if (b) setRole(b.dataset.tmOut, 'none', b.dataset.tmUid); });
-  $('tmPerm').innerHTML = '<table><tr><th></th><th>Co-owner</th><th>Admin</th><th>Mod</th></tr>' + [['Warn, kick, message, notes', 1, 1, 1], ['Ban, unban, announce', 1, 1, 0], ['Delete records', 1, 0, 0], ['Server settings and ER:LC key', 1, 0, 0], ['Give admin and mod', 1, 0, 0], ['Give co-owner', 0, 0, 0]]
-    .map(([k, ...v]) => `<tr><td>${k}</td>${v.map(x => `<td class="${x ? 'y' : 'n'}">${x ? '✓' : '–'}</td>`).join('')}</tr>`).join('') + '</table><p style="margin:8px 0 0">The owner can do everything, including making co-owners.</p>';
-
   // ── navigation ──
   let show = p => { pane = p; document.querySelectorAll('#stTabs [data-p]').forEach(b => b.setAttribute('aria-selected', b.dataset.p === p)); document.querySelectorAll('#staffMdt .st-pane').forEach(x => x.classList.toggle('on', x.dataset.p === p));
-    if (p === 'records') renderRecords(); if (p === 'player') renderPlayer(); if (p === 'team') renderTeam(); };
+    if (p === 'records') renderRecords(); if (p === 'player') renderPlayer(); };
   const open = (id, name) => { const live = D && D.players.find(p => p.id === id); sel = live || { id, name, team: '', callsign: '', permission: '' }; show('player'); if (D) renderPlayers(); };
   $('stTabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) show(b.dataset.p); });
   $('stFind').addEventListener('input', () => D && renderPlayers());

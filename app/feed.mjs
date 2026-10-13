@@ -65,7 +65,7 @@ export class Feed {
       else if (up.ok) { if (seq > this.shown) { this.shown = seq; let out = body;
           if (full) { try { this.joins = JSON.parse(body).JoinLogs || []; } catch (e) {} } else if (this.joins) out = body.replace(/}\s*$/, `,"JoinLogs":${JSON.stringify(this.joins)}}`);
           out = this.steady(out, taken); if (out) out = this.withDuty(out, taken);
-          if (out) { this.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; this.bcast('server', out, taken); if (this.lastEv) this.gapEv = ema(this.gapEv, taken - this.lastEv); this.lastEv = taken;
+          if (out) { this.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; this.bcast('server', out, taken); try { this.onSnap?.(out); } catch (e) {} if (this.lastEv) this.gapEv = ema(this.gapEv, taken - this.lastEv); this.lastEv = taken;
             if (this.moved) { if (this.lastMove && taken - this.lastMove < 10000) this.moveEv = ema(this.moveEv, taken - this.lastMove); this.lastMove = taken; } } } }
       else { let j = {}; try { j = JSON.parse(body); } catch (e) {} this.bcast('err', JSON.stringify({ status: up.status, ...j })); this.noteErr(up.status, j); this.holdUntil = Date.now() + (up.status === 403 || up.status === 401 ? 15000 : 3000); }
     } catch (e) { this.bcast('err', JSON.stringify({ status: 502, message: 'could not reach api.erlc.gg: ' + e.message })); this.holdUntil = Date.now() + 3000; }
@@ -102,7 +102,7 @@ export class Feed {
     return body; }
   stream(req, res, cal, cleared = [], uid = null) { res.uid = uid; const panics = this.activePanics();
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
-    res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(cal)}\n\n`); res.write(`event: callclears\ndata: ${JSON.stringify(cleared)}\n\n`); if (panics.length) res.write(`event: panics\ndata: ${JSON.stringify(panics)}\n\n`);   // anyone opening the CAD sees panics still going   // calls someone already cleared stay off this board
+    res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(cal)}\n\n`); res.write(`event: callclears\ndata: ${JSON.stringify(cleared)}\n\n`); if (panics.length) res.write(`event: panics\ndata: ${JSON.stringify(panics)}\n\n`); try { this.onStream?.(res); } catch (e) {}   // anyone opening the CAD sees panics still going   // calls someone already cleared stay off this board
     if (this.snap && Date.now() - this.snap.t < 10000) res.write(`event: server\nid: ${this.snap.taken}\ndata: ${this.snap.body}\n\n`); else if (!this.key) res.write(`event: err\ndata: ${NOKEY}\n\n`);
     this.clients.add(res); this.lastClient = Date.now();
     const ka = setInterval(() => res.write(': ping\n\n'), 15000);
@@ -117,7 +117,7 @@ export class Feed {
   kick(uid = null) { for (const r of this.clients) if (uid == null || r.uid === uid) r.write('event: reload\ndata: {}\n\n'); }
   async snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return this.snap; if (!this.key) return { status: 401, body: NOKEY, headers: {} };
     if (!appKey() && !this.soloOk()) return { status: 403, body: SOLO_WAIT, headers: {} };
-    try { const up = await fetch(UPSTREAM + QUERY, { headers: erlcHeaders(this.key) }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) this.snap = out; return out; }
+    try { const up = await fetch(UPSTREAM + QUERY, { headers: erlcHeaders(this.key) }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) { this.snap = out; try { this.onSnap?.(body); } catch (e) {} } return out; }
     catch (e) { return { status: 502, body: JSON.stringify({ message: 'could not reach api.erlc.gg: ' + e.message }), headers: {} }; } }
   stats() { return { watching: this.clients.size, perMin: this.sent.length, left: this.rl?.left ?? null, limited: this.n429, stale: this.reverts, rtt: Math.round(this.rtt), every: Math.round(this.gapEv), moves: Math.round(this.moveEv), err: this.lastErr && Date.now() - this.lastErr.at < 120000 ? this.lastErr.code ?? this.lastErr.status : null }; }
 }

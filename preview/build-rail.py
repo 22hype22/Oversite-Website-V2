@@ -156,7 +156,7 @@ window.unitOf = u => (u && u.uid && window.UNIT_OF[String(u.uid)]) || '';
 window.tagHTML = u => { if (!u) return ''; const e = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const unit = window.unitOf(u), dn = (window.OVERSITE && window.OVERSITE.depts && window.OVERSITE.depts[u.dept] && window.OVERSITE.depts[u.dept].name) || ({ pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' })[u.dept] || '';
   const call = (window.CALLS || []).find(k => onIt(k, u.name)), st = (window.UNIT_STATUS || {})[u.name];   // the status the unit set in its MDT, e.g. 10-76
-  const ST = { '10-8': 'Available', '10-76': 'En route', '10-23': 'On scene', '10-19': 'Returning', '10-7': 'Out of service', '10-6': 'Busy' };
+  const ST = { '10-8': 'Available', '10-76': 'En route', '10-23': 'On scene', '10-19': 'Returning', '10-7': 'Out of service', '10-6': 'Busy', '10-11': 'Traffic stop', '10-80': 'Pursuit', '10-15': 'Prisoner in custody', '10-97': 'On scene', '10-99': 'Panic' };
   const label = st && ST[st] ? ST[st] + (call && st !== '10-8' ? ' · ' + e(call.code) : '') : call ? 'On call · ' + e(call.code) : 'Available', busy = st ? st !== '10-8' : !!call;
   return `<div class="k">${e(u.name)}</div><div class="s">${e((u.crew || []).join(', '))}</div><div class="v un${unit ? '' : ' none'}">${e(unit || dn)}</div><div class="av${busy ? ' busy' : ''}">${label}</div>`; };
 if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(window.OVERSITE.api + '/units', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; window.UNIT_OF = j.of || {}; window.RIDE_WITH = j.ride || {};
