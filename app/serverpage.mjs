@@ -111,6 +111,7 @@ const CSS = `
 @keyframes vpPop{0%{transform:scale(.4) rotate(-30deg)}60%{transform:scale(1.35) rotate(8deg)}100%{transform:none}}
 .vp-later{display:block;margin:10px auto 0;font:inherit;font-size:13px;color:var(--dim);background:none;border:0;cursor:pointer;padding:4px 8px}.vp-later:hover{color:var(--ink)}
 .vp{max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
+.dlg.vp,.dlg.vp[open].in{transform:none}
 /* no blur behind the vote prompt: blurring the whole page (and its frosted cards) under it made every hover and keypress repaint everything */
 .vp::backdrop{background:rgba(6,7,8,.8);backdrop-filter:none;-webkit-backdrop-filter:none}
 body.vp-on main *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
@@ -172,7 +173,7 @@ export const serverPage = ({ logo, user, x, medals = [], players, voteTimes, lis
   const lang = x.lang ? (x.region && x.lang.name.endsWith('(' + x.region.name + ')') ? x.lang.name.split(' (')[0] : x.lang.name) : '';
   const fact = (k, v) => v ? `<div><small>${k}</small><b>${v}</b></div>` : '';
   const data = { slug: x.slug, name: x.name, max: x.max, players, voteTimes, list, me, rating: x.rating, count: x.reviews, member: !!x.role, votes: x.votes, week: x.week, next_vote: x.next_vote, vp: prompt && { can: !!(me && prompt.roblox) } };
-  return layout({ title: `${x.name} · Oversite`, logo, user, body: `<style>${CSS}</style>
+  return layout({ title: `${x.name} · Oversite`, logo, user, intro: !prompt?.vote, body: `<style>${CSS}</style>
 <main class="sv">
 <a class="sv-back" href="/explore">${I.back}Explore</a>
 <section class="sv-hero${x.photos?.length ? ' gal' : ''}" style="--pos:${spot(x.slug)}"${x.photos?.length ? ` aria-roledescription="carousel" aria-label="Photos of ${esc(x.name)}"` : ''}>${x.photos?.length ? `<div class="sv-track" id="gal" tabindex="0">${x.photos.map((id, i) => `<img src="/c/${esc(x.slug)}/photos/${id}" alt="Photo ${i + 1} of ${x.photos.length}"${x.ppos?.[i] ? ` style="object-position:${+x.ppos[i][0]}% ${+x.ppos[i][1]}%"` : ''}${i ? ' loading="lazy"' : ''} draggable="false">`).join('')}</div>${x.photos.length > 1 ? `<button type="button" class="gal-b prev" aria-label="Previous photo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button type="button" class="gal-b next" aria-label="Next photo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button><div class="gal-d" aria-hidden="true">${x.photos.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</div>` : ''}` : ''}<div class="sv-ht">${status}${medals.length ? `<div class="sv-md">${medals.map(m => medal(m.place, m.label)).join('')}</div>` : ''}</div></section>
