@@ -18,7 +18,7 @@ export const appId = () => (process.env.ERLC_APP_ID || siteSettings.get('erlc_ap
 export const erlcHeaders = (key, extra = {}) => { const k = appKey(); return { 'server-key': key, ...(k ? { authorization: k } : {}), ...extra }; };
 // a server key is "<secret>-<internal server id>"; with the app's id that makes the link where the owner lets Oversite run in-game commands
 export const authLink = serverKey => { const i = String(serverKey || '').indexOf('-'), sid = i > 0 ? serverKey.slice(i + 1) : '', id = appId();
-  return sid && /^[A-Za-z0-9]+$/.test(sid) && /^\d+$/.test(id) ? `https://api.erlc.gg/server-owners/server/${sid}/authorize/${id}` : ''; };
+  return sid && /^[A-Za-z0-9]+$/.test(sid) && /^[A-Za-z0-9_-]+$/.test(id) ? `https://api.erlc.gg/server-owners/server/${sid}/authorize/${id}` : ''; };
 const GL = { left: NaN, reset: 0, at: 0 }, ACTIVE = new Set();
 // Without Oversite's ER:LC application key, ER:LC blocks every server as soon as one machine reads more than one ("multiple servers", 2005).
 // So until the key is added, only one server's feed reads ER:LC at a time; a server run by a site admin goes first, the rest wait their turn.

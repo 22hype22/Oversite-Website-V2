@@ -240,7 +240,7 @@ const globalApi = async (req, res, rest) => {
   // Oversite's ER:LC application (needed to serve more than one server): its Global API Key, sealed, and its App ID; then a live check
   if (rest === 'admin/erlc-app' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req);
     const k = String(j.key || '').trim(), id = String(j.appId || '').trim();
-    if (id && !/^\d{1,30}$/.test(id)) return json(res, { error: 'The App ID is the number under your app\'s name on the ER:LC dashboard.' }, 400);
+    if (id && !/^[A-Za-z0-9_-]{1,64}$/.test(id)) return json(res, { error: 'Paste the Client ID shown on your app\'s page on the ER:LC dashboard.' }, 400);
     if (k && (k.length < 16 || k.length > 400 || /\s/.test(k))) return json(res, { error: 'That does not look like a Global API Key. Copy it again from the ER:LC dashboard.' }, 400);
     if (k) siteSettings.set('erlc_app_key', seal(k)); if (id) siteSettings.set('erlc_app_id', id); if (j.clear) { siteSettings.set('erlc_app_key', ''); siteSettings.set('erlc_app_id', ''); } appKeyChanged();
     console.log(`erlc app: ${user.discord_id} ${j.clear ? 'cleared' : 'updated'} the application settings`);
