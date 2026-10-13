@@ -117,7 +117,7 @@ const CSS = `
 body.vp-on main *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .vp .vp-x{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(10,11,13,.72)}
 .vp-rv{margin-top:12px;padding:13px 14px;border-radius:14px;border:1px solid var(--hair);background:rgba(255,255,255,.02);transition:border-color .3s}
-.vp-rv[hidden]{display:none}.vp-rv.nudge{border-color:rgba(242,196,110,.5)}
+.vp-rv[hidden]{display:none}.vp-rv.own .rv-pick{opacity:.35}.vp-rv.own .rv-pick button{cursor:default}.vp-rv.own .rv-pick button:hover{transform:none}.vp-rv.nudge{border-color:rgba(242,196,110,.5)}
 .vp-rvh{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .vp-rvh b{display:block;font-size:14px}.vp-rvh small{display:block;color:var(--dim);font-size:12px;margin-top:2px;line-height:1.4}
 .vp-rv .rv-pick{margin:0;flex:none}.vp-rv .rv-pick svg{width:24px;height:24px}
@@ -330,6 +330,8 @@ const vlk=document.getElementById('voteLink');if(vlk)vlk.onclick=()=>copy();
     catch(err){const h=/again in (\\d+)/.exec(err.message);if(h){D.until=Date.now()+h[1]*3600000;wait(err.message)}else{toast(err.message);go.disabled=false}}};
   /* a review, right in the prompt: tap a star and a short note opens; anyone who already wrote one sees it and can change it */
   const rvb=d.querySelector('.vp-rv');
+  // owners can't review their own server: they see where the review box is for their players instead
+  if(rvb&&D.me&&!D.me.can&&D.me.owner){rvb.hidden=false;rvb.classList.add('own');rvb.innerHTML='<div class="vp-rvh"><div><b>Reviews</b><small>Players who open this link can rate '+e(D.name)+' and write a review right here. You run it, so you can’t review it yourself.</small></div><div class="rv-pick" aria-hidden="true">'+[1,2,3,4,5].map(()=>'<button type="button" tabindex="-1" disabled>'+STAR+'</button>').join('')+'</div></div>'}
   if(rvb&&D.me&&D.me.can){rvb.hidden=false;let open=false,pick=0,thanks=false;
     const paint=n=>rvb.querySelectorAll('[data-s]').forEach(b=>{b.classList.toggle('on',+b.dataset.s<=(n??pick));b.setAttribute('aria-checked',+b.dataset.s===pick)});
     const drawRv=()=>{const m=mine();if(!open)pick=m?m.rating:0;
