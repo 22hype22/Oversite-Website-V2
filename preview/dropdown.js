@@ -78,7 +78,7 @@
       menu.style.left = Math.max(8, Math.min(r.left, innerWidth - menu.offsetWidth - 8)) + 'px';
       if (up) { menu.classList.add('up'); menu.style.bottom = (innerHeight - r.top + 6) + 'px'; menu.style.maxHeight = Math.min(300, r.top - 14) + 'px'; }
       else { menu.style.top = (r.bottom + 6) + 'px'; menu.style.maxHeight = Math.min(300, below - 6) + 'px'; }
-      open = { sel, btn, menu, items, active: -1, choose }; btn.setAttribute('aria-expanded', 'true'); setActive(open, Math.max(0, sel.selectedIndex));
+      open = { sel, btn, menu, items, active: -1, choose, at: Date.now() }; btn.setAttribute('aria-expanded', 'true'); setActive(open, Math.max(0, sel.selectedIndex));
     };
     btn.addEventListener('click', () => (open && open.btn === btn ? close() : show()));
     let typed = '', typedAt = 0;
@@ -99,7 +99,8 @@
 
   document.addEventListener('pointerdown', e => { if (open && !open.menu.contains(e.target) && !open.btn.contains(e.target)) close(); }, true);
   addEventListener('resize', () => close()); addEventListener('blur', () => close());
-  document.addEventListener('scroll', e => { if (open && !open.menu.contains(e.target)) close(); }, true);
+  // a scroll closes the menu, except the small one the page does by itself while a menu opens near the edge of the screen
+  document.addEventListener('scroll', e => { if (open && !open.menu.contains(e.target) && Date.now() - open.at > 400) close(); }, true);
 
   const scan = root => { if (root.tagName === 'SELECT') enhance(root); else if (root.querySelectorAll) root.querySelectorAll('select').forEach(enhance); };
   const start = () => { scan(document.body); new MutationObserver(ms => { for (const m of ms) m.addedNodes.forEach(n => n.nodeType === 1 && scan(n)); }).observe(document.body, { childList: true, subtree: true }); };

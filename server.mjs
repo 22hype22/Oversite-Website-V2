@@ -120,6 +120,7 @@ const communityApi = async (req, res, slug, rest) => {
     const sub = rest.slice(8), j = await jsonBody(req);
     try { const r = sub === 'checkout' ? await premium.checkout(c, user, String(j.plan || ''), origin(req)) : sub === 'portal' ? await premium.portal(c, origin(req)) : sub === 'boost' ? premium.boost(c)
         : sub === 'botkey' ? premium.newBotKey(c) : sub === 'botkey/delete' ? premium.dropBotKey(c) : sub === 'license' ? saveLicenseStyle(c, j)
+        : sub === 'boost-server' ? premium.boostServer(c, user) : sub === 'unboost-server' ? premium.unboostServer(c, user)
         : sub === 'ranks' ? (premium.isPremium(c) ? saveRanks(c, j, () => communities.saveSettings(c.id, c.settings)) : { error: 'Custom ranks come with Premium.' }) : { error: 'Not found.' };
       return json(res, r, r.error ? 400 : 200); } catch (e) { console.log(`premium ${sub}: ${c.slug}: ${e.message}`); return json(res, { error: 'Payments could not be reached. Try again in a minute.' }, 502); } }
   // staff tools: Staff and up, on Premium servers
@@ -291,11 +292,11 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'admin/erlc-app' && req.method === 'GET') return json(res, await erlcAppStatus(true));
   // Premium by hand: days (30, 90, 365), forever, or off
   if (rest === 'admin/premium' && req.method === 'POST' && (req._body = await jsonBody(req)).user) { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = req._body, u = users.byId(Number(j.user)); if (!u) return json(res, { error: 'No such person.' }, 404);
-    const until = j.off ? premium.revokeUser(u.id) : premium.grantUser(u.id, j.forever ? 0 : Math.min(3650, Math.max(1, Number(j.days) || 30)));
-    console.log(`premium: person ${u.roblox_name || u.id} ${j.off ? 'turned off' : j.forever ? 'granted forever' : 'granted ' + j.days + ' days'} by ${user.roblox_name || user.name}`); return json(res, { ok: true, until }); }
+    const until = premium.setUserUntil(u.id, j.off ? 0 : j.forever ? 4102444800000 : Number(j.until) || 0);
+    console.log(`premium: person ${u.roblox_name || u.id} ${until ? 'has Premium until ' + new Date(until).toISOString().slice(0, 10) : 'turned off'} by ${user.roblox_name || user.name}`); return json(res, { ok: true, until }); }
   if (rest === 'admin/premium' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = req._body || await jsonBody(req), c = communities.byId(Number(j.id)); if (!c) return json(res, { error: 'No such server.' }, 404);
-    if (j.off) premium.revoke(c.id); else premium.grant(c.id, j.forever ? 0 : Math.min(3650, Math.max(1, Number(j.days) || 30)), user.roblox_name || user.name);
-    console.log(`premium: ${c.slug} ${j.off ? 'turned off' : j.forever ? 'granted forever' : 'granted ' + j.days + ' days'} by ${user.roblox_name || user.name}`); return json(res, { ok: true, premium: premium.info(c) }); }
+    if (j.off) premium.revoke(c.id); else if (j.until || j.forever) premium.setUntil(c.id, j.forever ? 4102444800000 : Number(j.until), user.roblox_name || user.name); else premium.grant(c.id, Math.min(3650, Math.max(1, Number(j.days) || 30)), user.roblox_name || user.name);
+    console.log(`premium: ${c.slug} ${j.off ? 'turned off' : j.forever ? 'granted forever' : j.until ? 'granted until ' + new Date(+j.until).toISOString().slice(0, 10) : 'granted ' + j.days + ' days'} by ${user.roblox_name || user.name}`); return json(res, { ok: true, premium: premium.info(c) }); }
   // Stripe keys for selling Premium, sealed like the ER:LC key
   if (rest === 'admin/stripe' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), k = String(j.key || '').trim(), w = String(j.whsec || '').trim();
     if (k && !/^(sk|rk)_(live|test)_[A-Za-z0-9]{10,200}$/.test(k)) return json(res, { error: 'That is not a Stripe secret key. It starts with sk_live_ or sk_test_.' }, 400);
@@ -538,7 +539,7 @@ const route = async (req, res) => {
     if (sub === '/voice') return page(res, voicePage({ logo: LOGO, user, c, settings: voice.voiceSettings(c), keyOk: !!communities.key(c.id), embed: url.searchParams.has('embed') }));
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c), ranks: ranksFor(c, premium.isPremium(c))})); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c), ranks: ranksFor(c, premium.isPremium(c)), boost: premium.boostInfo(c, user)})); }
     return msg(res, user, 'Page not found', 'That page does not exist in this server.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path === '/premium') { const user = auth.currentUser(req), owned = user ? communities.forUser(user.id).filter(x => x.role === 'owner' || x.role === 'co_owner').map(x => ({ slug: x.slug, name: x.name, premium: premium.isPremium(x) })) : [];
     return page(res, pages.premiumPage({ logo: LOGO, user, owned, payments: premium.stripeReady() })); }
@@ -626,7 +627,8 @@ http.createServer((req, res) => {
     let u = null; try { u = auth.currentUser(req); } catch {}   // the database may be what broke
     msg(res, u, 'Something went wrong', 'Oversite hit an error loading this page. Try again in a moment. If it keeps happening, let us know.', { href: '/', label: 'Home' }, 500); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
-staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); profile.startDirectory(id => feeds.get(id)?.snap);
+staff.startHistory(); bounds.start(feedFor, id => communities.key(id));
+premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);
 // once: the old owner link left extra "Owner" members behind; on servers a site admin made, they go back to plain members
 // (in-game staff still get their in-game rank in the CAD), and the server's creator can sort out anyone else from the Team tab
 // Premium launch: servers Oversite's own team runs get it for good; every server that existed before gets 30 days free, so nobody loses the Staff CAD or voice overnight

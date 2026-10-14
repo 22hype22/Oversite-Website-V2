@@ -9,24 +9,38 @@ export const CREDITS_PER_MONTH = 3, BOOST_HOURS = 24, FREE_RECORD_DAYS = 30;
 const FOREVER = 4102444800000;   // 2100-01-01: a grant with no end
 
 const P = c => communities.byId(c.id)?.settings.premium || {};
-// a server is Premium on its own (bought or granted), or because a site admin gave its owner Premium personally
-const ownerUntil = c => { const o = communities.byId(c.id)?.owner_id; return o ? users.premiumUntil(o) : 0; };
-const untilOf = c => Math.max(P(c).until || 0, ownerUntil(c));
+// a server is Premium on its own (bought or granted), or while it is boosted: a person with personal Premium (given by a site
+// admin) picks one server they own or co-own to share it with. The boost ends by itself when that person's Premium does.
+export const BOOSTS = 1;
+const boostUntil = c => { const by = P(c).boost?.by; return by ? users.premiumUntil(by) : 0; };
+const untilOf = c => Math.max(P(c).until || 0, boostUntil(c));
 export const isPremium = c => !!c && untilOf(c) > Date.now();
 const save = (cid, fn) => { const c = communities.byId(cid); if (!c) return null; const s = c.settings; s.premium = fn({ ...(s.premium || {}) }); communities.saveSettings(cid, s); return s.premium; };
 const month = () => new Date().toISOString().slice(0, 7);
 
 // what the owner sees in Settings and on the Premium page
-export const info = c => { const p = P(c), on = isPremium(c), used = p.credits?.m === month() ? p.credits.used || 0 : 0, own = ownerUntil(c), until = untilOf(c), viaOwner = own > Date.now() && own >= (p.until || 0);
-  return { on, until: on ? until : 0, forever: on && until >= FOREVER, source: viaOwner ? 'owner' : p.source || '', plan: viaOwner ? 'owner' : p.plan || '', cancelling: !!p.cancel, billing: !!p.customer,
+export const info = c => { const p = P(c), on = isPremium(c), used = p.credits?.m === month() ? p.credits.used || 0 : 0, bu = boostUntil(c), until = untilOf(c), viaBoost = bu > Date.now() && bu >= (p.until || 0);
+  return { on, until: on ? until : 0, forever: on && until >= FOREVER, source: viaBoost ? 'boost' : p.source || '', plan: viaBoost ? 'boost' : p.plan || '', boostBy: viaBoost ? p.boost.by : 0, boostName: viaBoost ? users.byId(p.boost.by)?.roblox_name || '' : '', cancelling: !!p.cancel, billing: !!p.customer,
     credits: on ? Math.max(0, CREDITS_PER_MONTH - used) : 0, featured: (communities.byId(c.id)?.settings.profile?.featured_until || 0) > Date.now() ? communities.byId(c.id).settings.profile.featured_until : 0,
     botKey: !!p.bot, botHint: p.botHint || '' }; };
 
 // a site admin turns Premium on (for N days, or for good) or off
 export const grant = (cid, days, by) => save(cid, p => ({ ...p, until: days ? Math.max(Date.now(), Math.min(p.until || 0, FOREVER - 1)) + days * 864e5 : FOREVER, source: p.source === 'stripe' && days ? 'stripe' : 'grant', plan: days ? p.plan || `${days} days` : 'forever', by }));   // extending adds to what's left
-// Premium for a person (every account on their Roblox): all the servers they own have it, now and later
-export const grantUser = (uid, days) => { const cur = users.premiumUntil(uid); const until = days ? Math.max(Date.now(), Math.min(cur, FOREVER - 1)) + days * 864e5 : FOREVER; users.setPremium(uid, until); return until; };
-export const revokeUser = uid => { users.setPremium(uid, 0); return 0; };
+// Premium for a person (every account on their Roblox), until a date or for good; 0 takes it away (and their boost with it)
+export const setUserUntil = (uid, until) => { until = until ? Math.min(FOREVER, Math.max(Date.now() + 3600e3, +until)) : 0; users.setPremium(uid, until); if (!until) sweepBoosts(); return until; };
+// a server's own Premium ends on a set date (the admin picks it), or never
+export const setUntil = (cid, until, by) => save(cid, p => ({ ...p, until: until ? Math.min(FOREVER, Math.max(Date.now() + 3600e3, +until)) : 0, source: until ? (p.source === 'stripe' ? 'stripe' : 'grant') : '', plan: until >= FOREVER ? 'forever' : until ? 'until' : '', by }));
+// boosting: the servers this person is boosting (theirs by user id, any of their accounts on the same Roblox)
+const sameRoblox = uid => { const u = users.byId(uid); return u?.roblox_id ? new Set(users.allByRoblox(u.roblox_id).map(x => x.id)) : new Set([uid]); };
+export const boosted = uid => { const ids = sameRoblox(uid); return communities.all().filter(c => ids.has(c.settings.premium?.boost?.by)); };
+export const boostInfo = (c, user) => { const has = users.premiumUntil(user.id) > Date.now(), mine = boosted(user.id);
+  return { has, until: has ? users.premiumUntil(user.id) : 0, here: mine.some(x => x.id === c.id), elsewhere: mine.filter(x => x.id !== c.id).map(x => ({ slug: x.slug, name: x.name })), left: Math.max(0, BOOSTS - mine.length) }; };
+// a boost ends for good when the booster's Premium does (taken away, or run out): it doesn't come back if they get Premium again later
+export const sweepBoosts = () => { let n = 0; for (const c of communities.all()) { const by = c.settings.premium?.boost?.by; if (by && users.premiumUntil(by) <= Date.now()) { save(c.id, p => { const { boost, ...rest } = p; return rest; }); n++; } } return n; };
+export const boostServer = (c, user) => { if (users.premiumUntil(user.id) <= Date.now()) return { error: 'Boosting comes with personal Premium.' };
+  for (const x of boosted(user.id)) if (x.id !== c.id) save(x.id, p => { const { boost, ...rest } = p; return rest; });   // one boost: moving it takes it off the other server
+  save(c.id, p => ({ ...p, boost: { by: user.id, at: Date.now() } })); return { ok: true, ...info(c), boost: boostInfo(c, user) }; };
+export const unboostServer = (c, user) => { save(c.id, p => { if (!sameRoblox(user.id).has(p.boost?.by)) return p; const { boost, ...rest } = p; return rest; }); return { ok: true, ...info(c), boost: boostInfo(c, user) }; };
 export const revoke = cid => save(cid, p => ({ ...p, until: 0, source: '', plan: '', cancel: false }));
 
 // ── Explore ads: a credit puts the server at the top of Explore, marked Featured, for 24 hours ──
