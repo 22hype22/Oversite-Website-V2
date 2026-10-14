@@ -337,6 +337,11 @@ const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-coun
 // ── routes ──
 const route = async (req, res) => {
   const url = new URL(req.url, 'http://x'); let path = decodeURIComponent(url.pathname), m0, m0r, aboutPage = false;
+  // One-time hand-over of Oversite's ER:LC application to the bots' database. Answers only while
+  // OVERSITE_APP_EXPORT is set (a long random value), and is removed once the hand-over is done.
+  if (path === '/internal/erlc-app' && req.method === 'POST') { const want = process.env.OVERSITE_APP_EXPORT || '', got = String(req.headers['x-export-secret'] || '');
+    if (want.length < 32 || got.length !== want.length || !timingSafeEqual(Buffer.from(got), Buffer.from(want))) { res.writeHead(404); return res.end(); }
+    return json(res, { appId: appId(), key: appKey() }); }
   // short addresses: oversitescad.com/<server> is the CAD for its members and the server's page for everyone else;
   // /<server>/about is always the server page, /<server>/settings is its settings and /<server>/prox its proximity voice.
   // The old /c/<server> and /s/<server> addresses still work and move to the short ones.
