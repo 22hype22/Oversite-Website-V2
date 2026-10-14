@@ -20,7 +20,7 @@ export const info = c => { const p = P(c), on = isPremium(c), used = p.credits?.
     botKey: !!p.bot, botHint: p.botHint || '' }; };
 
 // a site admin turns Premium on (for N days, or for good) or off
-export const grant = (cid, days, by) => save(cid, p => ({ ...p, until: days ? Date.now() + days * 864e5 : FOREVER, source: 'grant', plan: days ? `${days} days` : 'forever', by }));
+export const grant = (cid, days, by) => save(cid, p => ({ ...p, until: days ? Math.max(Date.now(), Math.min(p.until || 0, FOREVER - 1)) + days * 864e5 : FOREVER, source: p.source === 'stripe' && days ? 'stripe' : 'grant', plan: days ? p.plan || `${days} days` : 'forever', by }));   // extending adds to what's left
 export const revoke = cid => save(cid, p => ({ ...p, until: 0, source: '', plan: '', cancel: false }));
 
 // ── Explore ads: a credit puts the server at the top of Explore, marked Featured, for 24 hours ──

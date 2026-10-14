@@ -40,7 +40,7 @@ const jsonBody = async req => { try { return JSON.parse(await body(req) || '{}')
 const formBody = async req => new URLSearchParams(await body(req));
 const sameOrigin = req => { const o = req.headers.origin || req.headers.referer; if (!o) return true; try { return new URL(o).host === req.headers.host; } catch (e) { return false; } };
 const page = (res, p, status) => html(res, p, status);
-const msg = (res, user, title, text, action, status = 200) => page(res, pages.message({ logo: LOGO, user, title, text, action }), status);
+const msg = (res, user, title, text, action, status = 200) => page(res, pages.message({ logo: LOGO, user, title, text, action, code: status }), status);
 
 // ── live feeds, one per community ──
 const feeds = new Map();
@@ -529,7 +529,7 @@ const route = async (req, res) => {
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
       return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium')})); }
-    return msg(res, user, 'Not found', 'That page does not exist.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
+    return msg(res, user, 'Page not found', 'That page does not exist in this server.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path === '/premium') { const user = auth.currentUser(req), owned = user ? communities.forUser(user.id).filter(x => x.role === 'owner' || x.role === 'co_owner').map(x => ({ slug: x.slug, name: x.name, premium: premium.isPremium(x) })) : [];
     return page(res, pages.premiumPage({ logo: LOGO, user, owned, payments: premium.stripeReady() })); }
   if (path === '/support') return page(res, pages.support({ logo: LOGO, user: auth.currentUser(req), topic: url.searchParams.get('topic') || '' }));
@@ -547,7 +547,7 @@ const route = async (req, res) => {
 
 const serve = (req, res, url) => {
   const file = normalize(join(ROOT, url));
-  if (!file.startsWith(ROOT) || /\.(py|md)$/i.test(file) || !existsSync(file) || !statSync(file).isFile()) return msg(res, auth.currentUser(req), 'Not found', 'That page does not exist.', { href: '/', label: 'Home' }, 404);
+  if (!file.startsWith(ROOT) || /\.(py|md)$/i.test(file) || !existsSync(file) || !statSync(file).isFile()) return msg(res, auth.currentUser(req), 'Page not found', 'That page does not exist, or it has moved. Check the address.', { href: '/', label: 'Home' }, 404);
   const ext = extname(file).toLowerCase();
   res.writeHead(200, { 'content-type': TYPES[ext] || 'application/octet-stream', 'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=86400' }); createReadStream(file).pipe(res); };
 
@@ -611,7 +611,10 @@ const gate = async (req, res) => {
 http.createServer((req, res) => {
   const host = (req.headers.host || '').toLowerCase().replace(/:\d+$/, '');
   if (CANON.startsWith('www.') && host === CANON.slice(4)) { res.writeHead(301, { location: `https://${CANON}${req.url}`, 'cache-control': 'no-store' }); return res.end(); }
-  gate(req, res).catch(e => { console.error(e); if (!res.headersSent) json(res, { error: 'Server error.' }, 500); else res.end(); }); })
+  gate(req, res).catch(e => { console.error(e); if (res.headersSent) return res.end();
+    if ((req.url || '').startsWith('/api/') || /json/.test(req.headers.accept || '') && !/html/.test(req.headers.accept || '')) return json(res, { error: 'Server error.' }, 500);
+    let u = null; try { u = auth.currentUser(req); } catch {}   // the database may be what broke
+    msg(res, u, 'Something went wrong', 'Oversite hit an error loading this page. Try again in a moment. If it keeps happening, let us know.', { href: '/', label: 'Home' }, 500); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
 staff.startHistory(); profile.startDirectory(id => feeds.get(id)?.snap);
 // once: the old owner link left extra "Owner" members behind; on servers a site admin made, they go back to plain members
