@@ -432,7 +432,7 @@ const route = async (req, res) => {
   if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, user.roblox_name ? '/account' : '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
   // anyone can browse, signed in or not; voting, joining and reporting ask them to sign in
   if (path === '/explore') { const user = auth.currentUser(req);
-    return page(res, pages.explore({ logo: LOGO, user, servers: profile.directory(user), owned: (user ? communities.forUser(user.id) : []).filter(m => m.role === 'owner' || m.role === 'co_owner').map(m => m.slug) })); }
+    return page(res, pages.explore({ logo: LOGO, user, servers: profile.directory(user), owned: (user ? communities.forUser(user.id) : []).filter(m => m.role === 'owner' || m.role === 'co_owner').map(m => m.slug), prem: !!user && premium.userInfo(user).on })); }
   if (aboutPage && (m0r = path.match(/^\/s\/([a-z0-9-]{3,32})$/))) { const user = auth.currentUser(req), c = communities.bySlug(m0r[1]);
     const all = profile.directory(user), x = c && all.find(y => y.id === c.id);
     if (!x) return msg(res, user, 'Server not found', 'It may have been taken off Explore, or the address is wrong.', { href: '/explore', label: 'Explore servers' }, 404);

@@ -602,10 +602,16 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-leav
 ` });
 
 // the server browser: every server whose owner listed it (Settings, Server profile), with live player counts, votes and Discord size
-export const explore = ({ logo, user, servers, owned }) => layout({ title: 'Explore servers · Oversite CAD', logo, user, body: `
+export const explore = ({ logo, user, servers, owned, prem = false }) => layout({ title: 'Explore servers · Oversite CAD', logo, user, body: `
 <main class="xp"><div class="xp-head"><div><h1><span style="font-weight:400">Explore</span> <b>servers</b></h1><p class="lead">ER:LC servers running Oversite CAD. Vote for your favourites, jump in game, or join their Discord.</p></div>
 <div class="xp-tools"><label class="xp-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="xq" placeholder="Search servers" autocomplete="off" spellcheck="false" aria-label="Search servers"></label>
 </div></div>
+${prem ? '' : `<style>.xpp{display:flex;align-items:center;gap:14px;margin:0 0 18px;padding:12px 12px 12px 16px;border-radius:14px;border:1px solid rgba(232,179,58,.22);background:linear-gradient(100deg,#19130a,#110e0a 55%,#0f0e0c);box-shadow:inset 0 1px 0 rgba(240,190,74,.08)}
+.xpp[hidden]{display:none}.xpp .vb{flex:none;margin:0;filter:drop-shadow(0 0 10px rgba(232,179,58,.35))}.xpp p{flex:1;min-width:0;margin:0;font-size:13.5px;line-height:1.45;color:#B9B2A4}.xpp p b{color:#F4F1EA;font-weight:600}
+.xpp a.go{flex:none;padding:8px 16px;border-radius:999px;background:linear-gradient(180deg,#F3C556,#DEA126);color:#1E1503;font-weight:700;font-size:13px;text-decoration:none;box-shadow:0 4px 16px rgba(232,179,58,.22)}.xpp a.go:hover{filter:brightness(1.06)}
+.xpp button{flex:none;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#6F6A60;font-size:18px;line-height:1;cursor:pointer}.xpp button:hover{color:#F4F1EA;background:rgba(255,255,255,.06)}
+@media (max-width:640px){.xpp{position:relative;flex-wrap:wrap;gap:10px 12px;padding-right:40px}.xpp p{flex-basis:calc(100% - 40px)}.xpp a.go{margin-left:34px}.xpp button{position:absolute;top:8px;right:8px}}</style>
+<aside class="xpp" id="xpp" aria-label="Oversite Premium" hidden>${pbadge(22)}<p><b>Oversite Premium</b>: the gold check next to your name, and every Premium feature for a server you boost. From $5 a month.</p><a class="go" href="${user ? '/account#premium' : '/premium'}">Get Premium</a><button type="button" aria-label="Hide this">&times;</button></aside>`}
 <nav class="xp-tabs" id="xt" role="tablist" aria-label="Sort servers">
 <button role="tab" data-t="trending" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Trending</button>
 <button role="tab" data-t="active" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 4v16l13-8z"/></svg>Active now</button>
@@ -618,6 +624,8 @@ export const explore = ({ logo, user, servers, owned }) => layout({ title: 'Expl
 </main>
 <div class="xp-toast" id="xtoast" role="status" aria-live="polite"></div>
 <dialog class="xp-dlg" id="xd" aria-labelledby="xdT"><div class="xp-dlgin" id="xdB"></div></dialog>`, script: `
+{const x=document.getElementById('xpp');if(x){let t=0;try{t=+localStorage.getItem('ov.xpp.hide')||0}catch(e){}if(Date.now()-t>14*864e5)x.hidden=false;x.querySelector('button').onclick=()=>{x.hidden=true;try{localStorage.setItem('ov.xpp.hide',String(Date.now()))}catch(e){}}}}
+
 const ME=${user ? 1 : 0};let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};let TAB='trending',TOPI=0;
 // ER:LC's own join links open Roblox straight into a private server by its code
 const JOIN=c=>'https://erlc.gg/join/'+encodeURIComponent(c);
