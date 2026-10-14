@@ -16,7 +16,7 @@
   const px = () => vb[2] / (svg.clientWidth || 600);                       // map units per screen pixel
 
   // ── layers: map image, other areas (faint), this scope's areas, the area being drawn, players ──
-  const img = el('image', { href: '/liberty-county-darkmode.jpg', width: SIZE, height: SIZE, preserveAspectRatio: 'none' }, svg);
+  const img = el('image', { href: '/liberty-county.jpg', width: SIZE, height: SIZE, preserveAspectRatio: 'none' }, svg);
   const gOther = el('g', {}, svg), gMine = el('g', {}, svg), gDraft = el('g', {}, svg), gPl = el('g', { 'pointer-events': 'none' }, svg);   // player dots never block a click on a corner
   const setVB = () => svg.setAttribute('viewBox', vb.map(v => v.toFixed(1)).join(' '));
   const toMap = e => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse()); return [q.x, q.y]; };
@@ -26,10 +26,10 @@
   const poly = (pts, at, parent) => el('polygon', { points: pts.map(p => p.join(',')).join(' '), 'vector-effect': 'non-scaling-stroke', ...at }, parent);
   const draw = () => { if (!B) return; for (const g of [gOther, gMine, gDraft, gPl]) g.textContent = '';
     const Z = zones(), r = 6 * px();
-    for (const [s, list] of Object.entries(Z)) if (s !== scope) for (const p of list) poly(p, { fill: colorOf(s), 'fill-opacity': .06, stroke: colorOf(s), 'stroke-opacity': .45, 'stroke-width': 1.5, 'stroke-dasharray': '6 5', 'pointer-events': 'none' }, gOther);
+    for (const [s, list] of Object.entries(Z)) if (s !== scope) for (const p of list) poly(p, { fill: colorOf(s), 'fill-opacity': .1, stroke: colorOf(s), 'stroke-opacity': .85, 'stroke-width': 2, 'stroke-dasharray': '6 5', 'pointer-events': 'none' }, gOther);
     const c = colorOf(scope);
     (Z[scope] || []).forEach((p, i) => { const on = i === sel;
-      poly(p, { fill: c, 'fill-opacity': on ? .26 : .16, stroke: c, 'stroke-width': on ? 3 : 2, 'data-i': i, class: 'bd-poly' }, gMine);
+      poly(p, { fill: c, 'fill-opacity': on ? .32 : .22, stroke: c, 'stroke-width': on ? 3.5 : 2.5, 'data-i': i, class: 'bd-poly' }, gMine);
       if (on && !draft) { p.forEach((q, k) => { const n = p[(k + 1) % p.length];
           el('circle', { cx: (q[0] + n[0]) / 2, cy: (q[1] + n[1]) / 2, r: r * .7, fill: c, 'fill-opacity': .55, class: 'bd-mid', 'data-k': k }, gMine); });
         p.forEach((q, k) => el('circle', { cx: q[0], cy: q[1], r, fill: '#0d1416', stroke: c, 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', class: 'bd-pt', 'data-k': k }, gMine)); } });
@@ -39,8 +39,9 @@
     for (const p of players) { const g = el('g', {}, gPl); el('circle', { cx: p.x, cy: p.z, r: r * .9, fill: colorOf(p.team in depts ? p.team : ''), stroke: '#0d1416', 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke' }, g);
       const t = el('text', { x: p.x + r * 1.5, y: p.z + r * .5, 'font-size': 11 * px(), fill: '#F0F2F5', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * px() }, g); t.textContent = p.name; }
     $('bdDel').disabled = sel < 0 || !!draft; $('bdUndo').hidden = !draft; $('bdDraw').textContent = draft ? 'Finish area' : 'Draw area';
-    $('bdHint').textContent = draft ? (draft.length < 3 ? 'Click the map to add corners. Drag to move around.' : 'Click the first corner, or press Finish area, to close it. Esc cancels.')
-      : sel >= 0 ? 'Drag a corner to move it. Drag a small dot between corners to add one.' : (Z[scope] || []).length ? 'Click an area to edit it, or draw another.' : 'No area yet for ' + scopeName(scope) + '. Press Draw area and click the map to outline it.'; };
+    svg.classList.toggle('drawing', !!draft);
+    $('bdHint').textContent = draft ? (draft.length < 3 ? 'Click to place corners, or hold and drag to draw the outline. Scroll to zoom, right-drag to move the map.' : 'Click the first corner, or press Finish area, to close it. Esc cancels.')
+      : sel >= 0 ? 'Drag a corner to move it. Drag a small dot between corners to add one.' : (Z[scope] || []).length ? 'Click an area to edit it, or draw another.' : 'No area yet for ' + scopeName(scope) + '. Click or drag on the map to draw one.'; };
 
   // ── the controls above and below the map ──
   const slots = () => { $('bdSlots').innerHTML = B.presets.map(p => '<button type="button" class="bd-chip' + (p.id === cur ? ' on' : '') + '" data-p="' + p.id + '">' + esc(p.name) + (p.id === B.active ? '<i>Live</i>' : '') + '</button>').join('')
@@ -71,20 +72,47 @@
   document.addEventListener('keydown', e => { if (!draft || !root.offsetParent || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) return;
     if (e.key === 'Escape') { draft = null; hover = null; draw(); } else if (e.key === 'Enter') { e.preventDefault(); finish(); } else if (e.key === 'Backspace') { e.preventDefault(); draft.pop(); draw(); } });
 
-  // ── pointer: a press that doesn't move is a click (add a corner, pick an area); a press that moves pans, or drags a corner ──
-  let down = null;
-  svg.addEventListener('pointerdown', e => { if (e.button) return; svg.setPointerCapture(e.pointerId); const t = e.target, P = toMap(e);
+  // ── pointer. Drawing: a click adds a corner, holding and dragging draws the outline freehand. Otherwise a drag moves the map,
+  // and a click picks an area. The right or middle button (or Space held down) always moves the map. ──
+  let down = null, space = false;
+  addEventListener('keydown', e => { if (e.code === 'Space' && root.offsetParent && document.activeElement === document.body) { space = true; e.preventDefault(); } });
+  addEventListener('keyup', e => { if (e.code === 'Space') space = false; });
+  svg.addEventListener('contextmenu', e => e.preventDefault());
+  // fewer points for a freehand outline: drop the ones that sit on a nearly straight line (Douglas-Peucker)
+  const simplify = (pts, tol) => { if (pts.length < 4) return pts;
+    const [sx, sz] = pts[0], [ex, ez] = pts[pts.length - 1];
+    if (Math.hypot(ex - sx, ez - sz) < tol * 4) { let k = 1, far = 0; pts.forEach((q, i) => { const d = Math.hypot(q[0] - sx, q[1] - sz); if (d > far) { far = d; k = i; } });   // a closed loop: split it at its far side first
+      if (k > 0 && k < pts.length - 1) return [...line(pts.slice(0, k + 1), tol), ...line(pts.slice(k), tol).slice(1)]; }
+    return line(pts, tol); };
+  const line = (pts, tol) => { if (pts.length < 3) return pts; const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1; const st = [[0, pts.length - 1]];
+    while (st.length) { const [a, b] = st.pop(); let far = 0, k = -1; const [ax, az] = pts[a], [bx, bz] = pts[b], L = Math.hypot(bx - ax, bz - az) || 1;
+      for (let i = a + 1; i < b; i++) { const d = Math.abs((bx - ax) * (az - pts[i][1]) - (ax - pts[i][0]) * (bz - az)) / L; if (d > far) { far = d; k = i; } }
+      if (far > tol) { keep[k] = 1; st.push([a, k], [k, b]); } }
+    return pts.filter((_, i) => keep[i]); };
+  svg.addEventListener('pointerdown', e => { svg.setPointerCapture(e.pointerId); const t = e.target, P = toMap(e);
+    const pan = () => ({ kind: 'pan', x: e.clientX, y: e.clientY, vb: [...vb], moved: false, t });
+    if (e.button || space) { down = { ...pan(), force: true }; return; }
     if (!draft && sel >= 0 && t.classList.contains('bd-pt')) down = { kind: 'pt', k: +t.dataset.k };
     else if (!draft && sel >= 0 && t.classList.contains('bd-mid')) { const p = zones()[scope][sel], k = +t.dataset.k; p.splice(k + 1, 0, P); down = { kind: 'pt', k: k + 1 }; mark(); draw(); }
-    else down = { kind: 'pan', x: e.clientX, y: e.clientY, vb: [...vb], moved: false, t }; });
+    else if (!draft && !t.closest('.bd-poly') && !(zones()[scope] || []).length) { draft = []; sel = -1; down = { kind: 'draw', x: e.clientX, y: e.clientY, moved: false, n: 0 }; draw(); }   // nothing drawn for this team yet: just start drawing
+    else if (draft) down = { kind: 'draw', x: e.clientX, y: e.clientY, moved: false, n: draft.length };
+    else down = pan(); });
   svg.addEventListener('pointermove', e => { const P = toMap(e);
     if (down?.kind === 'pt') { zones()[scope][sel][down.k] = P; mark(); draw(); return; }
     if (down?.kind === 'pan') { const dx = e.clientX - down.x, dy = e.clientY - down.y; if (!down.moved && Math.hypot(dx, dy) < 5) return; down.moved = true;
       const s = down.vb[2] / svg.clientWidth; vb = [down.vb[0] - dx * s, down.vb[1] - dy * s, vb[2], vb[3]]; setVB(); return; }
+    if (down?.kind === 'draw') { if (!down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) return;
+      if (!down.moved) { down.moved = true; draft.push(toMap({ clientX: down.x, clientY: down.y })); }
+      const last = draft[draft.length - 1]; if (Math.hypot(P[0] - last[0], P[1] - last[1]) > 6 * px()) { draft.push(P); hover = null; draw(); } return; }
     if (draft) { hover = P; draw(); } });
-  svg.addEventListener('pointerup', e => { const d = down; down = null; if (!d || d.kind !== 'pan' || d.moved) { if (d?.kind === 'pan') draw(); return; } const P = toMap(e);
-    if (draft) { if (draft.length >= 3 && Math.hypot(P[0] - draft[0][0], P[1] - draft[0][1]) < 12 * px()) return finish(); draft.push(P); draw(); return; }
-    const hit = d.t.closest?.('.bd-poly'); sel = hit ? +hit.dataset.i : -1; draw(); });
+  svg.addEventListener('pointerup', e => { const d = down; down = null; if (!d) return; const P = toMap(e);
+    if (d.kind === 'pt') return;
+    if (d.kind === 'pan') { if (d.moved || d.force) { draw(); return; } const hit = d.t.closest?.('.bd-poly'); sel = hit ? +hit.dataset.i : -1; draw(); return; }
+    if (d.moved) { const stroke = draft.splice(d.n); stroke.push(P); draft.push(...simplify(stroke, 2.5 * px()));   // a freehand stroke: keep its shape with fewer points
+      if (draft.length > 220) draft = simplify(draft, 6 * px());
+      if (draft.length >= 3 && Math.hypot(P[0] - draft[0][0], P[1] - draft[0][1]) < 18 * px()) { draft.pop(); return finish(); }   // ended where it started: close it
+      draw(); return; }
+    if (draft.length >= 3 && Math.hypot(P[0] - draft[0][0], P[1] - draft[0][1]) < 12 * px()) return finish(); draft.push(P); draw(); });
   svg.addEventListener('dblclick', e => { if (draft) { e.preventDefault(); draft.pop(); finish(); } });
   svg.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY > 0 ? 1.15 : 1 / 1.15, toMap(e)); }, { passive: false });
 

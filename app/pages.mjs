@@ -685,7 +685,7 @@ const ST_CSS = `.stm{max-width:1060px}
 .bd-chip.add{border-style:dashed}
 .bd-pre{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0 80px}.bd-pre input{flex:1 1 160px;min-width:0;max-width:240px;padding:7px 11px}
 .bd-map{position:relative;margin:14px 0 0;aspect-ratio:1/1;max-height:72vh;border-radius:12px;overflow:hidden;border:1px solid var(--hair2);background:#0b1113}
-.bd-map svg{display:block;width:100%;height:100%;touch-action:none;cursor:grab;user-select:none}.bd-map svg:active{cursor:grabbing}
+.bd-map svg{display:block;width:100%;height:100%;touch-action:none;cursor:grab;user-select:none}.bd-map svg:active{cursor:grabbing}.bd-map svg.drawing{cursor:crosshair}.bd-map:has(svg.drawing){outline:2px solid rgba(240,242,245,.35);outline-offset:-2px}
 .bd-map .bd-poly{cursor:pointer}.bd-map .bd-pt{cursor:move}.bd-map .bd-mid{cursor:copy}
 .bd-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1px solid var(--hair2);background:rgba(13,20,22,.86)}
 .bd-zoom button{width:34px;height:34px;border:0;background:transparent;color:var(--ink);font:500 17px/1 inherit;cursor:pointer}.bd-zoom button+button{border-top:1px solid var(--hair)}.bd-zoom button:hover{background:rgba(255,255,255,.06)}
@@ -734,7 +734,7 @@ ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p
 <p class="hint">Oversite sends <code>:pm</code> when someone leaves and <code>:load</code> when their time is up, so the owner has to have allowed Oversite to run commands (General, ER:LC server).</p></div>
 <div class="row" style="margin-top:14px"><button class="btn pri" id="bdSave" disabled>Save</button><span class="hint" id="bdDirty" hidden>Unsaved changes</span></div><p class="msg" id="bdMsg"></p>
 <h3 class="bd-h">Recent</h3><ul class="bd-log" id="bdLog"></ul></section>
-<script src="/bounds-editor.js?v=3" defer></script></div>
+<script src="/bounds-editor.js?v=5" defer></script></div>
 <div class="st-pane" id="tab-profile" data-pane="profile" role="tabpanel" aria-labelledby="t-profile">
 ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.name.slice(0, 1).toUpperCase());
   const fact = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
