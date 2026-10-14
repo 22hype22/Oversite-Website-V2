@@ -52,7 +52,7 @@ export const ownerLogin = (req, code) => { const ip = (req.headers['x-forwarded-
 // ── Roblox sign-in (OAuth, "Log in with Roblox"): Roblox itself confirms which account is theirs, so the link is always right.
 // The app lives under the Oversite Customs group on Roblox (Creator Dashboard, Credentials, OAuth 2.0 Apps); redirect: <site>/auth/roblox/callback
 const RID = process.env.ROBLOX_CLIENT_ID || '', RSECRET = process.env.ROBLOX_CLIENT_SECRET || '', RAPI = process.env.ROBLOX_OAUTH || 'https://apis.roblox.com/oauth';
-export const robloxOAuthReady = () => !!(RID && RSECRET);
+export const robloxOAuthReady = () => !!(RID && RSECRET) && process.env.ROBLOX_SIGNIN_OFF !== '1';   // ROBLOX_SIGNIN_OFF=1 hides the button, e.g. while Roblox reviews the app and its redirect URL can't be added
 // where Roblox sends people back; ROBLOX_REDIRECT_URI overrides it (e.g. a shared app whose registered redirect bounces here)
 const rbxRedirect = req => process.env.ROBLOX_REDIRECT_URI || base(req) + '/auth/roblox/callback';
 export const robloxOAuthStart = (req, next) => { const state = token(16), verifier = token(32), challenge = createHash('sha256').update(verifier).digest('base64url');
