@@ -496,7 +496,7 @@ background:radial-gradient(70% 120% at 85% 50%,rgba(232,179,58,.13),transparent 
 
 .ph-art:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#120f0a 30%,rgba(18,15,10,.75) 55%,transparent 80%)}
 .ph-k{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#E8B33A}
-.ph h2{margin:12px 0 0;font-size:clamp(28px,3.8vw,40px);line-height:1.1;font-weight:700;letter-spacing:-.03em;color:#F4F1EA;max-width:15ch}.ph h2 span{color:#F0BE4A}
+.ph h2{margin:0;font-size:clamp(28px,3.8vw,40px);line-height:1.1;font-weight:700;letter-spacing:-.03em;color:#F4F1EA;max-width:15ch}.ph h2 span{color:#F0BE4A}
 .ph .ph-sub{margin:14px 0 0;max-width:44ch;color:#AFA899;font-size:14.5px;line-height:1.55}
 .ph-buy{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:24px}.ph .pm-bill{margin:0}.ph .pm-bill>span{display:none}.ph .pm-seg button[aria-pressed="true"]{background:#F4F1EA;color:#1E1503}
 .ph-go{display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;border-radius:999px;border:0;background:linear-gradient(180deg,#F3C556,#DEA126);color:#1E1503;font-family:inherit;font-weight:700;font-size:14px;line-height:1;cursor:pointer;box-shadow:0 8px 26px rgba(232,179,58,.3),inset 0 1px 0 rgba(255,255,255,.4);transition:transform .12s,box-shadow .2s}
@@ -512,7 +512,7 @@ export const account = ({ logo, user, comms, discord, back, prem = { on: false }
 <div><h1><b>${esc(user.roblox_name || user.name)}</b>${user.verified ? vbadge(22) : ''}${(user.premium_until || 0) > Date.now() ? pbadge(22) : ''}</h1><p>${comms.length ? `Member of ${comms.length} server${comms.length === 1 ? '' : 's'}` : 'Not in any server yet'}${user.discord_id ? ' · Signs in with Discord' : ''}</p></div></div>
 ${(() => { const day = t => new Date(t).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   if (!prem.on) return `<section class="ph" id="premium"><style>${PREM_CSS}${PH_CSS}</style>${PH_ART}
-<span class="ph-k">Oversite Premium</span><h2>Put the <span>gold check</span> next to your name.</h2>
+<h2>Put the <span>gold check</span> next to your name.</h2>
 <p class="ph-sub">$5 a month or $30 a year, for your account. Then boost a server you own or co-own, and everyone on it gets every Premium feature.</p>
 <div class="ph-buy"><div class="pm-bill"><span>Billing</span><div class="pm-seg" role="group" aria-label="Billing"><button type="button" data-plan="month" aria-pressed="false">Monthly, $5</button><button type="button" data-plan="year" aria-pressed="true">Yearly, $30</button></div></div><button class="ph-go" id="apBuy"${payments ? '' : ' disabled'}>Get Premium</button></div>
 <div class="ph-foot"><p class="msg" id="apMsg">${payments ? 'Paid through Stripe. Cancel any time.' : 'Card payments aren&#39;t open yet.'}</p><a href="/premium">What Premium adds</a></div></section>`;
