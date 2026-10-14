@@ -490,9 +490,10 @@ const PH_CSS = `.ph{position:relative;overflow:hidden;isolation:isolate;margin-b
 background:radial-gradient(70% 120% at 85% 50%,rgba(232,179,58,.13),transparent 60%),linear-gradient(115deg,#14100a 0%,#100d09 60%,#0f0d0a 100%)}
 .ph-art{position:absolute;inset:0;z-index:-1;pointer-events:none}.ph-art svg{position:absolute;overflow:visible}
 .ph-art .fr{right:-150px;top:176px;width:min(700px,66%);transform:translateY(-50%) rotate(-6deg)}
-.ph-art .fr path,.ph-art .fr rect{fill:url(#phFill);stroke:rgba(232,179,58,.45);stroke-width:5;stroke-linejoin:round;filter:drop-shadow(0 0 18px rgba(232,179,58,.25))}
+.ph-art .fr>path,.ph-art .fr>rect{fill:url(#phFill);stroke:rgba(232,179,58,.45);stroke-width:5;stroke-linejoin:round;filter:drop-shadow(0 0 18px rgba(232,179,58,.25))}
+.ph-art .fr .smk{stroke-width:14}.ph-art .fr .sk{fill:rgba(232,179,58,.07);stroke:none;filter:none}
+.ph-who{display:flex;align-items:center;gap:18px;height:130px;font-family:inherit;font-size:76px;font-weight:700;letter-spacing:-.02em;color:#F4F1EA;white-space:nowrap}.ph-who .vb{position:static;flex:none;margin:0;filter:drop-shadow(0 0 18px rgba(232,179,58,.45))}
 .ph-art .fr .sc{fill:rgba(10,8,5,.6);stroke-width:3;stroke:rgba(232,179,58,.3)}.ph-art .fr .gp{stroke-width:3}
-.ph-art .ck{z-index:1;right:calc(min(700px,66%) * .13 - 110px);top:26px;width:128px;transform:rotate(-8deg)}.ph-art .ck path:first-child{fill:#1d160a;stroke:rgba(240,190,74,.7);stroke-width:.45;filter:drop-shadow(0 0 14px rgba(232,179,58,.4))}.ph-art .ck path+path{fill:none;stroke:#F0BE4A;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
 
 .ph-art:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#120f0a 30%,rgba(18,15,10,.75) 55%,transparent 80%)}
 .ph-k{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#E8B33A}
@@ -511,18 +512,21 @@ background:radial-gradient(70% 120% at 85% 50%,rgba(232,179,58,.13),transparent 
 .cmp td.y{color:#46D07C}.cmp td.pr.y{color:#F0BE4A}.cmp td.n{color:#5E5A52}.cmp td.t{font-size:12.5px;color:#D8D3C8}.cmp td.pr.t{color:#F0BE4A}.cmp svg{display:inline-block;vertical-align:middle}
 .cmp th:not(:first-child),.cmp td:not(:first-child){width:22%}
 @media (max-width:560px){.ph-cmpi{padding:4px 10px 6px}.cmp{font-size:12.5px}.cmp td,.cmp th{padding:10px 6px}}.ph .msg{margin:0;color:inherit;font-size:inherit}
-@media (max-width:760px){.ph{padding:30px 20px 26px}.ph-art .fr{width:420px;right:-190px;opacity:.6}.ph-art .fr{top:200px}.ph-art .ck{right:18px;top:300px;width:84px;opacity:.75}.ph-art:after{background:linear-gradient(90deg,#120f0a 40%,rgba(18,15,10,.7) 75%,rgba(18,15,10,.35))}}`;
-const PH_ART = `<div class="ph-art" aria-hidden="true"><svg width="0" height="0"><defs><linearGradient id="phFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A1F0D"/><stop offset="1" stop-color="#130F08"/></linearGradient></defs></svg>
-<svg class="fr" viewBox="0 0 1536 1024"><path d="${OV_FRAME}"/><rect class="gp" x="114" y="310" width="44" height="410" rx="20"/><rect class="gp" x="1378" y="310" width="44" height="410" rx="20"/><rect class="sc" x="222" y="150" width="1092" height="724" rx="10"/><path d="${OV_MARK}" transform="translate(518 262) scale(1)"/></svg>
-<svg class="ck" viewBox="0 0 24 24"><path d="M12 1.6l2.3 1.7 2.8-.3 1.1 2.6 2.6 1.1-.3 2.8L22.4 12l-1.9 2.5.3 2.8-2.6 1.1-1.1 2.6-2.8-.3L12 22.4l-2.3-1.9-2.8.3-1.1-2.6-2.6-1.1.3-2.8L1.6 12l1.9-2.5-.3-2.8 2.6-1.1 1.1-2.6 2.8.3z"/><path d="m7.8 12.3 2.8 2.8 5.6-5.8"/></svg></div>`;
+@media (max-width:760px){.ph{padding:30px 20px 26px}.ph-art .fr{width:420px;right:-190px;opacity:.6}.ph-art{display:none}.ph-art:after{background:linear-gradient(90deg,#120f0a 40%,rgba(18,15,10,.7) 75%,rgba(18,15,10,.35))}}`;
+// the tablet's screen shows what Premium looks like: the small Oversite mark, then your own name with the gold check
+const phArt = name => `<div class="ph-art" aria-hidden="true"><svg width="0" height="0"><defs><linearGradient id="phFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A1F0D"/><stop offset="1" stop-color="#130F08"/></linearGradient></defs></svg>
+<svg class="fr" viewBox="0 0 1536 1024"><path d="${OV_FRAME}"/><rect class="gp" x="114" y="310" width="44" height="410" rx="20"/><rect class="gp" x="1378" y="310" width="44" height="410" rx="20"/><rect class="sc" x="222" y="150" width="1092" height="724" rx="10"/>
+<path class="smk" d="${OV_MARK}" transform="translate(262 198) scale(.25)"/>
+<foreignObject x="420" y="196" width="900" height="130"><div xmlns="http://www.w3.org/1999/xhtml" class="ph-who"><span>${name}</span>${pbadge(64)}</div></foreignObject>
+<rect class="sk" x="270" y="360" width="760" height="30" rx="15"/><rect class="sk" x="270" y="430" width="600" height="30" rx="15"/><rect class="sk" x="270" y="500" width="680" height="30" rx="15"/><rect class="sk" x="270" y="610" width="420" height="160" rx="22"/><rect class="sk" x="730" y="610" width="420" height="160" rx="22"/></svg></div>`;
 export const account = ({ logo, user, comms, discord, back, prem = { on: false }, payments = false, justBought = false, boostable = [] }) => layout({ title: 'Your account · Oversite', logo, user, body: `
 <main class="acct">${back ? `<div class="row" style="margin:0 0 18px"><a class="btn sm" href="${esc(back)}">&larr; Back to the CAD</a></div>` : ''}
 <div class="prof"><span class="pic">${esc((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase())}${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.remove()">` : ''}</span>
 <div><h1><b>${esc(user.roblox_name || user.name)}</b>${user.verified ? vbadge(22) : ''}${(user.premium_until || 0) > Date.now() ? pbadge(22) : ''}</h1><p>${comms.length ? `Member of ${comms.length} server${comms.length === 1 ? '' : 's'}` : 'Not in any server yet'}${user.discord_id ? ' · Signs in with Discord' : ''}</p></div></div>
 ${(() => { const day = t => new Date(t).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  if (!prem.on) return `<section class="ph" id="premium"><style>${PREM_CSS}${PH_CSS}</style>${PH_ART}
+  if (!prem.on) return `<section class="ph" id="premium"><style>${PREM_CSS}${PH_CSS}</style>${phArt(esc(user.roblox_name || 'Username'))}
 <h2>Put the <span>gold check</span> next to your name.</h2>
-<p class="ph-sub">$5 a month or $30 a year, for your account. Then boost a server you own or co-own, and everyone on it gets every Premium feature.</p>
+<p class="ph-sub">Choose your pack and upgrade your account to Oversite Premium today!</p>
 <div class="ph-buy"><div class="pm-bill"><span>Billing</span><div class="pm-seg" role="group" aria-label="Billing"><button type="button" data-plan="month" aria-pressed="false">Monthly, $5</button><button type="button" data-plan="year" aria-pressed="true">Yearly, $30</button></div></div><button class="ph-go" id="apBuy"${payments ? '' : ' disabled'}>Get Premium</button></div>
 <div class="ph-foot"><p class="msg" id="apMsg">${payments ? 'Paid through Stripe. Cancel any time.' : 'Card payments aren&#39;t open yet.'}</p><button type="button" class="ph-more" aria-expanded="false" aria-controls="phCmp">What Premium adds<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>
 <div class="ph-cmp" id="phCmp"><div><div class="ph-cmpi">${compareTable()}</div></div></div></section>`;
