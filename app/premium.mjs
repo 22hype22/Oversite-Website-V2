@@ -83,11 +83,36 @@ export const checkout = async (c, user, plan, origin) => { if (!stripeReady()) r
 
 const periodEnd = sub => (sub.current_period_end || sub.items?.data?.[0]?.current_period_end || 0) * 1000;
 // a subscription's state, written onto its server
-export const applySub = sub => { const cid = +(sub?.metadata?.community_id || 0); if (!cid || !communities.byId(cid)) return null;
+export const applySub = sub => { if (sub?.metadata?.kind === 'user') return applyUserSub(sub); const cid = +(sub?.metadata?.community_id || 0); if (!cid || !communities.byId(cid)) return null;
   const end = periodEnd(sub), live = ['active', 'trialing', 'past_due'].includes(sub.status), interval = sub.items?.data?.[0]?.price?.recurring?.interval || '';
   console.log(`stripe: subscription ${sub.status}${sub.cancel_at_period_end ? ' (cancels at period end)' : ''} for ${communities.byId(cid).slug}, Premium ${live ? 'until ' + new Date(end + 2 * 864e5).toISOString().slice(0, 10) : 'off'}`);
   return save(cid, p => ({ ...p, source: 'stripe', sub: sub.id, customer: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id || p.customer, plan: interval === 'year' ? 'year' : 'month',
     cancel: !!sub.cancel_at_period_end, until: live ? end + 2 * 864e5 : Math.min(p.until || 0, Date.now()) })); };   // two days' grace for a late renewal
+
+// ── Premium for a person's account: bought without a server; it brings the gold check and one server boost ──
+export const checkoutUser = async (user, plan, origin) => { if (!stripeReady()) return { error: 'Card payments are not open yet. Message Oversite support to get Premium.' };
+  const pl = PLANS[plan]; if (!pl) return { error: 'Pick monthly or yearly.' }; const b = users.billing(user.id);
+  if (users.premiumUntil(user.id) > Date.now() && b.sub && !b.cancel) return { error: 'You already have Premium. Manage it from your account.' };
+  const meta = { kind: 'user', user_id: String(user.id), roblox: String(user.roblox_name || '') };
+  const s = await stripe('POST', '/checkout/sessions', { mode: 'subscription', client_reference_id: 'user-' + user.id, ...(b.customer ? { customer: b.customer } : {}), metadata: meta, subscription_data: { metadata: meta },
+    line_items: { 0: { quantity: 1, price_data: { currency: 'usd', unit_amount: pl.price, recurring: { interval: pl.interval }, product_data: { name: `Oversite Premium for ${user.roblox_name || user.name}`.slice(0, 120) } } } },
+    allow_promotion_codes: 'true', success_url: `${origin}/premium/done?session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${origin}/account#premium` });
+  console.log(`stripe: checkout opened for ${user.roblox_name || user.id}'s account (${plan})`); return { ok: true, url: s.url }; };
+const applyUserSub = sub => { const uid = +(sub.metadata.user_id || 0); if (!uid || !users.byId(uid)) return null;
+  const end = periodEnd(sub), live = ['active', 'trialing', 'past_due'].includes(sub.status), interval = sub.items?.data?.[0]?.price?.recurring?.interval || '', b = users.billing(uid);
+  users.setBilling(uid, { customer: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id || b.customer, sub: sub.id, plan: interval === 'year' ? 'year' : 'month', cancel: !!sub.cancel_at_period_end });
+  const until = live ? end + 2 * 864e5 : Math.min(users.premiumUntil(uid), Date.now()); users.setPremium(uid, until); if (!live) sweepBoosts();
+  console.log(`stripe: subscription ${sub.status}${sub.cancel_at_period_end ? ' (cancels at period end)' : ''} for ${users.byId(uid).roblox_name || uid}'s account, Premium ${live ? 'until ' + new Date(until).toISOString().slice(0, 10) : 'off'}`); return until; };
+export const confirmUser = async (user, sessionId) => { if (!stripeReady() || !/^cs_[A-Za-z0-9_]+$/.test(sessionId || '')) return { error: 'That payment link is not valid.' };
+  const s = await stripe('GET', `/checkout/sessions/${sessionId}?expand[]=subscription`);
+  if (String(s.metadata?.user_id) !== String(user.id)) return { error: 'That payment was for a different account.' };
+  if (s.status !== 'complete' || !s.subscription) return { error: 'The payment has not gone through yet. If you were charged, Premium switches on within a few minutes.' };
+  applySub(typeof s.subscription === 'string' ? await stripe('GET', `/subscriptions/${s.subscription}`) : s.subscription); return { ok: true }; };
+export const portalUser = async (user, origin) => { const b = users.billing(user.id); if (!stripeReady() || !b.customer) return { error: 'You have no subscription to manage.' };
+  const conf = siteSettings.get('stripe_portal'); const s = await stripe('POST', '/billing_portal/sessions', { customer: b.customer, return_url: `${origin}/account#premium`, ...(conf ? { configuration: conf } : {}) }); return { ok: true, url: s.url }; };
+// what the account page shows: the person's Premium, and which of their servers it boosts
+export const userInfo = user => { const until = users.premiumUntil(user.id), on = until > Date.now(), b = users.billing(user.id);
+  return { on, until: on ? until : 0, forever: on && until >= FOREVER, stripe: on && !!b.sub, plan: b.plan || '', cancelling: !!b.cancel, billing: !!b.customer, boosting: boosted(user.id).map(c => ({ slug: c.slug, name: c.name })) }; };
 
 // back from Checkout: look the session up rather than trust the link
 export const confirm = async (c, sessionId) => { if (!stripeReady() || !/^cs_[A-Za-z0-9_]+$/.test(sessionId || '')) return { error: 'That payment link is not valid.' };

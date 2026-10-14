@@ -275,6 +275,11 @@ const globalApi = async (req, res, rest) => {
   // the verification page; anyone else gets a plain not-found
   if (rest === 'me/ping') return json(res, { ok: true });   // open pages check in; a suspended account gets 403 before this and reloads
   // your Liberty County license for the MDT card reader
+  // Premium for your own account: buy it, manage it, see what it boosts
+  if (rest === 'me/premium' && req.method === 'GET') return json(res, premium.userInfo(user));
+  if ((rest === 'me/premium/checkout' || rest === 'me/premium/portal') && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
+    try { const r = rest.endsWith('checkout') ? await premium.checkoutUser(user, String((await jsonBody(req)).plan || ''), origin(req)) : await premium.portalUser(user, origin(req)); return json(res, r, r.error ? 400 : 200); }
+    catch (e) { console.log(`premium account ${rest}: ${user.roblox_name}: ${e.message}`); return json(res, { error: 'Payments could not be reached. Try again in a minute.' }, 502); } }
   if (rest === 'me/license' && req.method === 'GET') return json(res, await licenseOf(user));
   if (rest === 'me/license' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     return json(res, await saveLicense(user, await jsonBody(req))); }
@@ -446,7 +451,8 @@ const route = async (req, res) => {
     return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus() })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/(c\/)?[a-z0-9-]{3,32}$/.test(from) ? from : null;
-    return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }
+    const comms = withSetup(communities.forUser(user.id));
+    return page(res, pages.account({ logo: LOGO, user, comms, discord: auth.discordReady(), back, prem: premium.userInfo(user), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), boostable: comms.filter(x => x.role === 'owner' || x.role === 'co_owner').map(x => ({ slug: x.slug, name: x.name, premium: premium.isPremium(x), mine: !!premium.boostInfo(x, user).here })) })); }
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
     const p = roblox.pending(user.id), w = url.searchParams.get('welcome'), wc = w && communities.bySlug(w);
     // a Roblox link is required; once it is there, carry on to the CAD they were heading for
@@ -541,8 +547,11 @@ const route = async (req, res) => {
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
       return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c), ranks: ranksFor(c, premium.isPremium(c)), boost: premium.boostInfo(c, user)})); }
     return msg(res, user, 'Page not found', 'That page does not exist in this server.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
+  if (path === '/premium/done') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account');
+    let r; try { r = await premium.confirmUser(user, url.searchParams.get('session_id')); } catch (e) { r = { error: 'Payments could not be reached. If you were charged, Premium switches on within a few minutes.' }; }
+    if (r.error) return msg(res, user, 'Almost there', r.error, { href: '/account#premium', label: 'Back to your account' }); return redirect(res, '/account?premium=1#premium'); }
   if (path === '/premium') { const user = auth.currentUser(req), owned = user ? communities.forUser(user.id).filter(x => x.role === 'owner' || x.role === 'co_owner').map(x => ({ slug: x.slug, name: x.name, premium: premium.isPremium(x) })) : [];
-    return page(res, pages.premiumPage({ logo: LOGO, user, owned, payments: premium.stripeReady() })); }
+    return page(res, pages.premiumPage({ logo: LOGO, user, owned, payments: premium.stripeReady(), mine: !!user && premium.userInfo(user).on })); }
   if (path === '/support') return page(res, pages.support({ logo: LOGO, user: auth.currentUser(req), topic: url.searchParams.get('topic') || '' }));
   if (path === '/api/support' && req.method === 'POST') { const user = auth.currentUser(req); if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
     if (auth.limited(req, 'support', 6, 3600e3) || (user && support.recent(user.id, Date.now() - 3600e3) >= 6)) return json(res, { error: 'You have sent several messages in the last hour. Oversite has them; wait for a reply.' }, 429);

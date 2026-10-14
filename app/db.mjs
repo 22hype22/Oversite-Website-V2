@@ -66,7 +66,8 @@ try { db.exec('ALTER TABLE reviews ADD COLUMN reply_by INTEGER'); } catch (e) {}
 try { db.exec('ALTER TABLE communities ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
 // a player's Liberty County license details for the MDT's card reader (ER:LC's API doesn't share them, so the player fills them in once)
 try { db.exec('ALTER TABLE users ADD COLUMN license TEXT'); } catch (e) {}
-try { db.exec('ALTER TABLE users ADD COLUMN premium_until INTEGER NOT NULL DEFAULT 0'); } catch (e) {}   // Premium a site admin gave the person: every server they own has it
+try { db.exec('ALTER TABLE users ADD COLUMN premium_until INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+try { db.exec('ALTER TABLE users ADD COLUMN premium_bill TEXT'); } catch (e) {}   // a person's own Premium bought through Stripe: { customer, sub, plan, cancel }   // Premium a site admin gave the person: every server they own has it
 // who is signed in to a department's MDT on a server, and at what rank; stays until they sign out
 db.exec('CREATE TABLE IF NOT EXISTS mdt_signin (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, dept TEXT NOT NULL, rank TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (community_id, user_id, dept))');
 db.exec(`CREATE TABLE IF NOT EXISTS reports (
@@ -117,6 +118,8 @@ export const users = {
   setPremium: (id, until) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(id); if (!u) return 0;
     return u.roblox_id ? q('UPDATE users SET premium_until = ? WHERE roblox_id = ?').run(until, u.roblox_id).changes : q('UPDATE users SET premium_until = ? WHERE id = ?').run(until, id).changes; },
   premiumUntil: id => q('SELECT premium_until AS t FROM users WHERE id = ?').get(id)?.t || 0,
+  billing: id => { try { return JSON.parse(q('SELECT premium_bill AS b FROM users WHERE id = ?').get(id)?.b || '{}'); } catch (e) { return {}; } },
+  setBilling: (id, b) => q('UPDATE users SET premium_bill = ? WHERE id = ?').run(JSON.stringify(b || {}), id),
   verifiedRoblox: () => new Set(q('SELECT DISTINCT roblox_id FROM users WHERE verified = 1 AND roblox_id IS NOT NULL').all().map(r => String(r.roblox_id))),
   // for the verification page: only real people (a linked Roblox account; code-only "Owner"/"Member" placeholders are left out),
   // one row per Roblox account; searched by Roblox name, Discord name or either ID, newest first when there is nothing to search
