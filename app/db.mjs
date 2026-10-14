@@ -67,7 +67,8 @@ try { db.exec('ALTER TABLE communities ADD COLUMN suspended INTEGER NOT NULL DEF
 // a player's Liberty County license details for the MDT's card reader (ER:LC's API doesn't share them, so the player fills them in once)
 try { db.exec('ALTER TABLE users ADD COLUMN license TEXT'); } catch (e) {}
 try { db.exec('ALTER TABLE users ADD COLUMN premium_until INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
-try { db.exec('ALTER TABLE users ADD COLUMN premium_bill TEXT'); } catch (e) {}   // a person's own Premium bought through Stripe: { customer, sub, plan, cancel }   // Premium a site admin gave the person: every server they own has it
+try { db.exec('ALTER TABLE users ADD COLUMN premium_bill TEXT'); } catch (e) {}
+try { db.exec('ALTER TABLE users ADD COLUMN site_mod INTEGER NOT NULL DEFAULT 0'); } catch (e) {}   // can open the moderation panel   // a person's own Premium bought through Stripe: { customer, sub, plan, cancel }   // Premium a site admin gave the person: every server they own has it
 // who is signed in to a department's MDT on a server, and at what rank; stays until they sign out
 db.exec('CREATE TABLE IF NOT EXISTS mdt_signin (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, dept TEXT NOT NULL, rank TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (community_id, user_id, dept))');
 db.exec(`CREATE TABLE IF NOT EXISTS reports (
@@ -111,6 +112,9 @@ export const users = {
   // the check belongs to the person, so every account on the same Roblox gets it
   setVerified: (id, on) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(id); if (!u) return 0;
     return u.roblox_id ? q('UPDATE users SET verified = ? WHERE roblox_id = ?').run(on ? 1 : 0, u.roblox_id).changes : q('UPDATE users SET verified = ? WHERE id = ?').run(on ? 1 : 0, id).changes; },
+  // moderation-panel access follows the person to every account on their Roblox, like the check
+  setSiteMod: (id, on) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(id); if (!u) return 0;
+    return u.roblox_id ? q('UPDATE users SET site_mod = ? WHERE roblox_id = ?').run(on ? 1 : 0, u.roblox_id).changes : q('UPDATE users SET site_mod = ? WHERE id = ?').run(on ? 1 : 0, id).changes; },
   // like the check, a suspension follows the person to every account on their Roblox
   setSuspended: (id, on) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(id); if (!u) return 0;
     return u.roblox_id ? q('UPDATE users SET suspended = ? WHERE roblox_id = ?').run(on ? 1 : 0, u.roblox_id).changes : q('UPDATE users SET suspended = ? WHERE id = ?').run(on ? 1 : 0, id).changes; },
@@ -124,7 +128,7 @@ export const users = {
   // for the verification page: only real people (a linked Roblox account; code-only "Owner"/"Member" placeholders are left out),
   // one row per Roblox account; searched by Roblox name, Discord name or either ID, newest first when there is nothing to search
   search: (term, limit = 40) => { const t = String(term || '').trim();
-    const sel = `SELECT MIN(u.id) AS id, u.roblox_id, MAX(u.roblox_name) AS roblox_name, MAX(CASE WHEN u.discord_id IS NOT NULL THEN u.name END) AS discord_name, MAX(u.discord_id IS NOT NULL) AS discord, MAX(u.verified) AS verified, MAX(u.suspended) AS suspended, MAX(u.premium_until) AS prem_until,
+    const sel = `SELECT MIN(u.id) AS id, u.roblox_id, MAX(u.roblox_name) AS roblox_name, MAX(CASE WHEN u.discord_id IS NOT NULL THEN u.name END) AS discord_name, MAX(u.discord_id IS NOT NULL) AS discord, MAX(u.verified) AS verified, MAX(u.suspended) AS suspended, MAX(u.premium_until) AS prem_until, MAX(u.site_mod) AS site_mod,
       (SELECT COUNT(DISTINCT m.community_id) FROM members m JOIN users x ON x.id = m.user_id WHERE x.roblox_id = u.roblox_id) AS servers, MAX(u.id) AS newest FROM users u WHERE u.roblox_id IS NOT NULL`;
     if (!t) return q(`${sel} GROUP BY u.roblox_id ORDER BY verified DESC, newest DESC LIMIT ?`).all(limit);
     const like = '%' + t.replace(/[%_\\]/g, c => '\\' + c) + '%';

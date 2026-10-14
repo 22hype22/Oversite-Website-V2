@@ -20,7 +20,7 @@ import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
-import { isSiteAdmin } from './app/admins.mjs';
+import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
 import { rude, RUDE_MSG } from './app/clean.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), 'preview');
@@ -283,7 +283,12 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'me/license' && req.method === 'GET') return json(res, await licenseOf(user));
   if (rest === 'me/license' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     return json(res, await saveLicense(user, await jsonBody(req))); }
-  if (rest.startsWith('admin/') && !isSiteAdmin(user)) return json(res, { error: 'Not found.' }, 404);
+  if (rest.startsWith('admin/') && !isSiteMod(user)) return json(res, { error: 'Not found.' }, 404);
+  // payments, the ER:LC application, Premium grants and moderator access: site admins only
+  if (/^admin\/(erlc-app|premium|stripe|mod)$/.test(rest) && !isSiteAdmin(user)) return json(res, { error: 'Only Oversite\'s owners can do that.' }, 403);
+  if (rest === 'admin/mod' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), u = users.byId(Number(j.id)); if (!u) return json(res, { error: 'No such person.' }, 404);
+    if (isSiteAdmin(u)) return json(res, { error: 'That person is a site admin already.' }, 400); users.setSiteMod(u.id, !!j.on);
+    console.log(`moderation: ${user.roblox_name || user.name} ${j.on ? 'made' : 'removed'} ${u.roblox_name || u.id} ${j.on ? 'a moderator' : 'as moderator'}`); return json(res, { ok: true, on: !!j.on }); }
   if (rest === 'admin/people' && req.method === 'GET') return json(res, { people: users.search(new URL(req.url, 'http://x').searchParams.get('q')) });   // read-only: the server browser's live refresh
   if (req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
   // Oversite's ER:LC application (needed to serve more than one server): its Global API Key, sealed, and its App ID; then a live check
@@ -332,7 +337,7 @@ const globalApi = async (req, res, rest) => {
     if (!reviews.mine(c.id, user.id) && reviews.newToday(user.id) >= 5) return json(res, { error: 'You have written a lot of reviews today. Please try again tomorrow.' }, 429);
     reviews.save(c.id, user.id, rating, body); return json(res, { ok: true, list: reviewList(c.id) }); }
   if (rest === 'reviews/delete' && req.method === 'POST') { const r = reviews.byId(Number((await jsonBody(req)).id)); if (!r) return json(res, { error: 'That review is already gone.' }, 404);
-    if (r.user_id !== user.id && !isSiteAdmin(user)) return json(res, { error: 'You can only delete your own review.' }, 403);
+    if (r.user_id !== user.id && !isSiteMod(user)) return json(res, { error: 'You can only delete your own review.' }, 403);
     reviews.remove(r.id); reports.resolveReview(r.id, 'removed'); if (r.user_id !== user.id) console.log(`moderation: ${user.discord_id} removed review ${r.id} on server ${r.community_id}`);
     return json(res, { ok: true, list: reviewList(r.community_id) }); }
   if (rest === 'reviews/reply' && req.method === 'POST') { const j = await jsonBody(req), r = reviews.byId(Number(j.id)); if (!r) return json(res, { error: 'That review is gone.' }, 404);
@@ -345,7 +350,7 @@ const globalApi = async (req, res, rest) => {
     if (reports.sameReview(user.id, r.id)) return json(res, { error: 'You already reported this review. Thanks, we have it.' }, 429);
     if (reports.byUserSince(user.id, Date.now() - 864e5) >= 10) return json(res, { error: 'You have sent a lot of reports today. Please try again tomorrow.' }, 429);
     reports.add(r.community_id, user.id, 'review', '', r.id); return json(res, { ok: true }); }
-  if (rest === 'admin/review' && req.method === 'POST') { if (!isSiteAdmin(user) || !sameOrigin(req)) return json(res, { error: 'Not found.' }, 404); const id = Number((await jsonBody(req)).id);
+  if (rest === 'admin/review' && req.method === 'POST') { if (!isSiteMod(user) || !sameOrigin(req)) return json(res, { error: 'Not found.' }, 404); const id = Number((await jsonBody(req)).id);
     reviews.remove(id); reports.resolveReview(id, 'removed'); console.log(`moderation: ${user.discord_id} removed review ${id}`); return json(res, { ok: true, servers: communities.overview(), reports: reports.open() }); }
   if (rest === 'explore/report' && req.method === 'POST') { if (!user.roblox_name) return json(res, { error: 'Link your Roblox account to report a server.' }, 403);
     const j = await jsonBody(req), c = communities.bySlug(String(j.slug || '')), reason = String(j.reason || ''), details = String(j.details || '').replace(/\s+/g, ' ').trim().slice(0, 500);
@@ -366,7 +371,7 @@ const globalApi = async (req, res, rest) => {
     console.log(`moderation: ${user.discord_id} ${act} server ${c.id} (${c.slug})`); return json(res, { ok: true, servers: communities.overview(), reports: reports.open() }); }
   if (rest === 'admin/person' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), act = String(j.action || ''), id = Number(j.id);
     if (act !== 'suspend' && act !== 'unsuspend') return json(res, { error: 'Unknown action.' }, 400);
-    const target = users.byId(id); if (!target) return json(res, { error: 'Not found.' }, 404); if (isSiteAdmin(target)) return json(res, { error: 'You can\'t suspend a site admin.' }, 400);
+    const target = users.byId(id); if (!target) return json(res, { error: 'Not found.' }, 404); if (isSiteMod(target) && !isSiteAdmin(user)) return json(res, { error: 'Only a site admin can suspend a moderator.' }, 403); if (isSiteAdmin(target)) return json(res, { error: 'You can\'t suspend a site admin.' }, 400);
     users.setSuspended(id, act === 'suspend'); if (act === 'suspend') for (const fd of feeds.values()) fd.kick(id);   // their open CADs reload into the suspension at once
     console.log(`moderation: ${user.discord_id} ${act} person ${id} (${target.roblox_name || target.name})`); return json(res, { ok: true }); }
   if (rest === 'admin/report' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req);
@@ -445,10 +450,10 @@ const route = async (req, res) => {
       const place = [...all].sort((a, b) => f(b) - f(a) || b.votes - a.votes || a.name.localeCompare(b.name)).findIndex(y => y.id === x.id) + 1;
       return place && place <= 3 ? { k, label, place } : null; }).filter(Boolean).sort((a, b) => a.place - b.place);
     const own = user && runsServer(c.id, user.id);
-    const me = user ? { id: user.id, owner: own, admin: isSiteAdmin(user), can: !!user.roblox_name && !own, why: !user.roblox_name ? 'Link your Roblox account to write a review.' : own ? 'Reviews are from players. You can reply to any review below.' : '' } : null;
+    const me = user ? { id: user.id, owner: own, admin: isSiteMod(user), can: !!user.roblox_name && !own, why: !user.roblox_name ? 'Link your Roblox account to write a review.' : own ? 'Reviews are from players. You can reply to any review below.' : '' } : null;
     return page(res, serverPage({ logo: LOGO, user, x, medals, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me, prompt: req.votePrompt ? { vote: true, roblox: !!user?.roblox_name, origin: origin(req), rank: x.votes > 0 ? [...all].sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name)).findIndex(y => y.id === x.id) + 1 : 0 } : null })); }
-  if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
-    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus() })); }
+  if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteMod(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
+    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus(), owner: isSiteAdmin(user) })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/(c\/)?[a-z0-9-]{3,32}$/.test(from) ? from : null;
     const comms = withSetup(communities.forUser(user.id));

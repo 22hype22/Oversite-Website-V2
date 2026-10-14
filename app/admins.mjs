@@ -2,3 +2,6 @@
 // so the account has to have Discord connected. SITE_ADMINS (comma separated IDs) replaces the default list.
 const IDS = new Set((process.env.SITE_ADMINS || '787136885054111784').split(',').map(s => s.trim()).filter(Boolean));
 export const isSiteAdmin = u => !!u?.discord_id && IDS.has(String(u.discord_id));
+// moderators: people a site admin lets into the moderation panel. They verify, suspend, and handle reports and support;
+// payments, the ER:LC application key, Premium grants and choosing moderators stay with the site admins.
+export const isSiteMod = u => isSiteAdmin(u) || !!u?.site_mod;
