@@ -608,12 +608,15 @@ export const explore = ({ logo, user, servers, owned, prem = false }) => layout(
 <main class="xp"><div class="xp-head"><div><h1><span style="font-weight:400">Explore</span> <b>servers</b></h1><p class="lead">ER:LC servers running Oversite CAD. Vote for your favourites, jump in game, or join their Discord.</p></div>
 <div class="xp-tools"><label class="xp-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="xq" placeholder="Search servers" autocomplete="off" spellcheck="false" aria-label="Search servers"></label>
 </div></div>
-${prem ? '' : `<style>.xpp{display:flex;align-items:center;gap:14px;margin:0 0 18px;padding:12px 12px 12px 16px;border-radius:14px;border:1px solid rgba(232,179,58,.22);background:linear-gradient(100deg,#19130a,#110e0a 55%,#0f0e0c);box-shadow:inset 0 1px 0 rgba(240,190,74,.08)}
-.xpp[hidden]{display:none}.xpp .vb{flex:none;margin:0;filter:drop-shadow(0 0 10px rgba(232,179,58,.35))}.xpp p{flex:1;min-width:0;margin:0;font-size:13.5px;line-height:1.45;color:#B9B2A4}.xpp p b{color:#F4F1EA;font-weight:600}
-.xpp a.go{flex:none;padding:8px 16px;border-radius:999px;background:linear-gradient(180deg,#F3C556,#DEA126);color:#1E1503;font-weight:700;font-size:13px;text-decoration:none;box-shadow:0 4px 16px rgba(232,179,58,.22)}.xpp a.go:hover{filter:brightness(1.06)}
-.xpp button{flex:none;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#6F6A60;font-size:18px;line-height:1;cursor:pointer}.xpp button:hover{color:#F4F1EA;background:rgba(255,255,255,.06)}
-@media (max-width:640px){.xpp{position:relative;flex-wrap:wrap;gap:10px 12px;padding-right:40px}.xpp p{flex-basis:calc(100% - 40px)}.xpp a.go{margin-left:34px}.xpp button{position:absolute;top:8px;right:8px}}</style>
-<aside class="xpp" id="xpp" aria-label="Oversite Premium" hidden>${pbadge(22)}<p><b>Oversite Premium</b>: the gold check next to your name, and every Premium feature for a server you boost. From $5 a month.</p><a class="go" href="${user ? '/account#premium' : '/premium'}">Get Premium</a><button type="button" aria-label="Hide this">&times;</button></aside>`}
+${prem ? '' : `<style>${PH_CSS}.xpp{position:relative;overflow:hidden;isolation:isolate;display:flex;align-items:center;gap:24px;min-height:150px;margin:0 0 20px;padding:26px 30px;border-radius:18px;border:1px solid rgba(232,179,58,.2);
+background:radial-gradient(60% 140% at 88% 50%,rgba(232,179,58,.14),transparent 60%),linear-gradient(110deg,#15110a,#100d09 60%,#0f0d0a)}
+.xpp .ph-art .fr{right:-110px;top:78%;width:470px}.xpp .ph-art:after{background:linear-gradient(90deg,#120f0a 38%,rgba(18,15,10,.7) 62%,transparent 85%)}
+.xpp-t{flex:1;min-width:0;max-width:560px}.xpp h2{margin:0;font-size:24px;line-height:1.2;font-weight:700;letter-spacing:-.02em;color:#F4F1EA}.xpp h2 span{color:#F0BE4A}
+.xpp p{margin:8px 0 0;font-size:14px;line-height:1.5;color:#AFA899}.xpp-b{display:flex;align-items:center;gap:14px;margin-top:16px}
+.xpp .ph-go{text-decoration:none}.xpp-b small{font-size:12.5px;color:#8E887C}
+@media (max-width:760px){.xpp{padding:22px 20px;min-height:0}.xpp h2{font-size:21px}}</style>
+<aside class="xpp" aria-label="Oversite Premium">${phArt(esc(user?.roblox_name || 'Username'))}<div class="xpp-t"><h2>Put the <span>gold check</span> next to your name.</h2><p>Choose your pack and upgrade to Oversite Premium. Boost a server you own, and everyone on it gets every Premium feature.</p>
+<div class="xpp-b"><a class="ph-go" href="${user ? '/account#premium' : '/premium'}">Get Premium</a><small>From $5 a month</small></div></div></aside>`}
 <nav class="xp-tabs" id="xt" role="tablist" aria-label="Sort servers">
 <button role="tab" data-t="trending" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Trending</button>
 <button role="tab" data-t="active" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 4v16l13-8z"/></svg>Active now</button>
@@ -626,7 +629,6 @@ ${prem ? '' : `<style>.xpp{display:flex;align-items:center;gap:14px;margin:0 0 1
 </main>
 <div class="xp-toast" id="xtoast" role="status" aria-live="polite"></div>
 <dialog class="xp-dlg" id="xd" aria-labelledby="xdT"><div class="xp-dlgin" id="xdB"></div></dialog>`, script: `
-{const x=document.getElementById('xpp');if(x){let t=0;try{t=+localStorage.getItem('ov.xpp.hide')||0}catch(e){}if(Date.now()-t>14*864e5)x.hidden=false;x.querySelector('button').onclick=()=>{x.hidden=true;try{localStorage.setItem('ov.xpp.hide',String(Date.now()))}catch(e){}}}}
 
 const ME=${user ? 1 : 0};let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};let TAB='trending',TOPI=0;
 // ER:LC's own join links open Roblox straight into a private server by its code
