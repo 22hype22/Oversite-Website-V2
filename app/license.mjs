@@ -7,7 +7,22 @@ export const RANKS = {
   fd: [['Probationary Firefighter', 0], ['Firefighter', 0], ['Engineer', 0], ['Lieutenant', 1], ['Captain', 2], ['Battalion Chief', 2], ['Deputy Chief', 3], ['Fire Chief', 5]],
   pd: [['Cadet', 0], ['Officer', 0], ['Senior Officer', 0], ['Corporal', 0], ['Sergeant', 0], ['Lieutenant', 1], ['Captain', 2], ['Deputy Chief', 3], ['Chief of Police', 4]],
   dot: [['Trainee', 0], ['Operator', 0], ['Senior Operator', 0], ['Crew Lead', 1], ['Supervisor', 2], ['Superintendent', 3], ['Director', 4]] };
-export const validRank = (dept, rank) => !!RANKS[dept]?.some(r => r[0] === rank);
+// a server's ranks: its own list on Premium (Settings, Premium, MDT ranks), otherwise the ones above. Each is [name, insignia, supervisor];
+// a supervisor can approve and deny warrants. By default that's Sergeant and up for police, Lieutenant and up for fire, Crew Lead and up for DOT.
+const SUP_FROM = { pd: 'Sergeant', fd: 'Lieutenant', dot: 'Crew Lead' };
+const DEFAULT = Object.fromEntries(Object.entries(RANKS).map(([d, list]) => { const k = list.findIndex(r => r[0] === SUP_FROM[d]); return [d, list.map((r, i) => [r[0], r[1], i >= k])]; }));
+export const MAX_RANKS = 20;
+export const ranksFor = (c, premium) => Object.fromEntries(Object.keys(RANKS).map(d => { const own = premium && c.settings.ranks?.[d];
+  return [d, Array.isArray(own) && own.length ? own.map(r => [r[0], 0, !!r[2]]) : DEFAULT[d]]; }));
+export const validRank = (dept, rank, R = DEFAULT) => !!R[dept]?.some(r => r[0] === rank);
+// the owner's edited lists, checked: names short and not repeated, at least one rank and at most MAX_RANKS per department; reset goes back to the defaults
+export const saveRanks = (c, j, save) => { if (j.reset) { delete c.settings.ranks; save(); return { ok: true, ranks: ranksFor(c, true) }; }
+  const out = {};
+  for (const d of Object.keys(RANKS)) { const list = Array.isArray(j.ranks?.[d]) ? j.ranks[d] : null; if (!list) continue; const seen = new Set(), rows = [];
+    for (const r of list.slice(0, MAX_RANKS)) { const name = String(r?.name ?? r?.[0] ?? '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 32);
+      if (!name || seen.has(name.toLowerCase())) continue; seen.add(name.toLowerCase()); rows.push([name, 0, !!(r?.sup ?? r?.[2])]); }
+    if (!rows.length) return { error: 'Each department needs at least one rank.' }; out[d] = rows; }
+  c.settings.ranks = { ...(c.settings.ranks || {}), ...out }; save(); return { ok: true, ranks: ranksFor(c, true) }; };
 
 // what each field may hold: the license's own short forms (BLK, BRN…), kept short so the card never overflows
 const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);

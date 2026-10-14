@@ -2,25 +2,31 @@
 // A server is Premium while settings.premium.until is in the future: Stripe keeps moving that date as the subscription renews,
 // and a site admin can also grant it by hand. Premium also comes with 3 Explore ad credits a month and a bot API key.
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { communities, siteSettings, unseal, sha, token } from './db.mjs';
+import { communities, users, siteSettings, unseal, sha, token } from './db.mjs';
 
 export const PLANS = { month: { price: 500, label: '$5 a month', interval: 'month' }, year: { price: 3000, label: '$30 a year', interval: 'year' } };
 export const CREDITS_PER_MONTH = 3, BOOST_HOURS = 24, FREE_RECORD_DAYS = 30;
 const FOREVER = 4102444800000;   // 2100-01-01: a grant with no end
 
 const P = c => communities.byId(c.id)?.settings.premium || {};
-export const isPremium = c => !!c && (P(c).until || 0) > Date.now();
+// a server is Premium on its own (bought or granted), or because a site admin gave its owner Premium personally
+const ownerUntil = c => { const o = communities.byId(c.id)?.owner_id; return o ? users.premiumUntil(o) : 0; };
+const untilOf = c => Math.max(P(c).until || 0, ownerUntil(c));
+export const isPremium = c => !!c && untilOf(c) > Date.now();
 const save = (cid, fn) => { const c = communities.byId(cid); if (!c) return null; const s = c.settings; s.premium = fn({ ...(s.premium || {}) }); communities.saveSettings(cid, s); return s.premium; };
 const month = () => new Date().toISOString().slice(0, 7);
 
 // what the owner sees in Settings and on the Premium page
-export const info = c => { const p = P(c), on = isPremium(c), used = p.credits?.m === month() ? p.credits.used || 0 : 0;
-  return { on, until: on ? p.until : 0, forever: on && p.until >= FOREVER, source: p.source || '', plan: p.plan || '', cancelling: !!p.cancel, billing: !!p.customer,
+export const info = c => { const p = P(c), on = isPremium(c), used = p.credits?.m === month() ? p.credits.used || 0 : 0, own = ownerUntil(c), until = untilOf(c), viaOwner = own > Date.now() && own >= (p.until || 0);
+  return { on, until: on ? until : 0, forever: on && until >= FOREVER, source: viaOwner ? 'owner' : p.source || '', plan: viaOwner ? 'owner' : p.plan || '', cancelling: !!p.cancel, billing: !!p.customer,
     credits: on ? Math.max(0, CREDITS_PER_MONTH - used) : 0, featured: (communities.byId(c.id)?.settings.profile?.featured_until || 0) > Date.now() ? communities.byId(c.id).settings.profile.featured_until : 0,
     botKey: !!p.bot, botHint: p.botHint || '' }; };
 
 // a site admin turns Premium on (for N days, or for good) or off
 export const grant = (cid, days, by) => save(cid, p => ({ ...p, until: days ? Math.max(Date.now(), Math.min(p.until || 0, FOREVER - 1)) + days * 864e5 : FOREVER, source: p.source === 'stripe' && days ? 'stripe' : 'grant', plan: days ? p.plan || `${days} days` : 'forever', by }));   // extending adds to what's left
+// Premium for a person (every account on their Roblox): all the servers they own have it, now and later
+export const grantUser = (uid, days) => { const cur = users.premiumUntil(uid); const until = days ? Math.max(Date.now(), Math.min(cur, FOREVER - 1)) + days * 864e5 : FOREVER; users.setPremium(uid, until); return until; };
+export const revokeUser = uid => { users.setPremium(uid, 0); return 0; };
 export const revoke = cid => save(cid, p => ({ ...p, until: 0, source: '', plan: '', cancel: false }));
 
 // ── Explore ads: a credit puts the server at the top of Explore, marked Featured, for 24 hours ──

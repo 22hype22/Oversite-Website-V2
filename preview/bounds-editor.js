@@ -120,17 +120,23 @@
 
   // ── recent activity, and live players while the tab is open ──
   const ago = t => { const s = Math.round((Date.now() - t) / 1000); return s < 60 ? s + 's ago' : s < 3600 ? Math.round(s / 60) + 'm ago' : Math.round(s / 3600) + 'h ago'; };
-  const showLog = log => { $('bdLog').innerHTML = log.length ? log.slice(0, 12).map(l => '<li><p><b>' + esc(l.name) + '</b>' + (l.team ? ' <span>' + esc(l.team) + '</span>' : '') + ' ' + (l.kind === 'left' ? 'left ' + esc(l.where || 'their area') + ' and was warned' : l.kind === 'loaded' ? 'was loaded for staying outside ' + esc(l.where || 'their area') : 'came back in time') + '</p><time>' + ago(l.at) + '</time></li>').join('') : '<li class="none">Nothing yet. Warnings and loads show up here.</li>'; };
+  const showLog = log => { $('bdLog').innerHTML = log.length ? log.slice(0, 12).map(l => '<li><p><b>' + esc(l.name) + '</b>' + (l.team ? ' <span>' + esc(l.team) + '</span>' : '') + ' ' + (l.kind === 'left' ? 'left ' + esc(l.where || 'their area') + ' and was warned' : l.kind === 'loaded' ? 'was loaded for staying outside ' + esc(l.where || 'their area') : l.kind === 'failed' ? '<em class="bad">could not be ' + (l.cmd === 'load' ? 'loaded' : 'messaged') + ': ' + esc(l.why || 'ER:LC refused it') + '</em>' : 'came back in time') + '</p><time>' + ago(l.at) + '</time></li>').join('') : '<li class="none">Nothing yet. Warnings and loads show up here.</li>'; };
   const load = async first => { try { const j = await api(A, null, 'GET'); players = j.players || []; showLog(j.log || []);
       if (first) { B = j.bounds; teams = j.teams; depts = j.depts || {}; cur = B.active; img.setAttribute('x', -j.off[0]); img.setAttribute('y', -j.off[1]);
         dirty = false; $('bdSave').disabled = true; $('bdDirty').hidden = true;   // the switches below the map come filled in from the page
         if (!j.connected) $('bdHint2').hidden = false; slots(); }
-      draw(); } catch (e) { say(msg, e.message); } };
+      draw(); } catch (e) { if (first) say(msg, e.message); } };   // the background refresh stays quiet: a blip (a restart) fixes itself on the next one
   $('bdSave').addEventListener('click', async () => { if (draft) finish(); $('bdSave').disabled = true;
     try { const j = await api(A, B); B = j.bounds; if (!B.presets.some(p => p.id === cur)) cur = B.active; dirty = false; $('bdDirty').hidden = true; showLog(j.log || []); slots(); draw();
       say(msg, B.on ? 'Saved. ' + (B.presets.find(p => p.id === B.active)?.name || 'The live preset') + ' is being enforced in game.' : 'Saved. Boundaries are off, so nobody is warned or loaded.', true); }
     catch (e) { $('bdSave').disabled = false; say(msg, e.message); } });
-  addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+  // leaving with unsaved changes: the site's own dialog when a link is clicked, instead of the browser's "Changes you made may not be saved"
+  (window.ovUnsaved = window.ovUnsaved || []).push(() => dirty && 'the boundaries');
+  if (!window.ovLeaveGuard) { window.ovLeaveGuard = true;
+    document.addEventListener('click', async e => { const a = e.target.closest('a[href]'); if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
+      const href = a.getAttribute('href'); if (href.startsWith('#')) return;   // the Settings tabs keep what you were editing
+      const what = window.ovUnsaved.map(f => f()).filter(Boolean); if (!what.length) return; e.preventDefault();
+      if (await ask({ title: 'Leave without saving?', text: 'Your changes to ' + what.join(' and ') + ' are not saved yet.', ok: 'Leave', danger: true })) { window.ovUnsaved.length = 0; location.href = a.href; } }, true); }
   load(true); setInterval(() => { if (root.offsetParent && !down && !document.hidden) load(false); }, 5000);
   setVB();
 })();

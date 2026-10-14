@@ -66,6 +66,7 @@ try { db.exec('ALTER TABLE reviews ADD COLUMN reply_by INTEGER'); } catch (e) {}
 try { db.exec('ALTER TABLE communities ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
 // a player's Liberty County license details for the MDT's card reader (ER:LC's API doesn't share them, so the player fills them in once)
 try { db.exec('ALTER TABLE users ADD COLUMN license TEXT'); } catch (e) {}
+try { db.exec('ALTER TABLE users ADD COLUMN premium_until INTEGER NOT NULL DEFAULT 0'); } catch (e) {}   // Premium a site admin gave the person: every server they own has it
 // who is signed in to a department's MDT on a server, and at what rank; stays until they sign out
 db.exec('CREATE TABLE IF NOT EXISTS mdt_signin (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, dept TEXT NOT NULL, rank TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (community_id, user_id, dept))');
 db.exec(`CREATE TABLE IF NOT EXISTS reports (
@@ -112,11 +113,15 @@ export const users = {
   // like the check, a suspension follows the person to every account on their Roblox
   setSuspended: (id, on) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(id); if (!u) return 0;
     return u.roblox_id ? q('UPDATE users SET suspended = ? WHERE roblox_id = ?').run(on ? 1 : 0, u.roblox_id).changes : q('UPDATE users SET suspended = ? WHERE id = ?').run(on ? 1 : 0, id).changes; },
+  // personal Premium, like the check: it belongs to the person, so it is set on every account on their Roblox
+  setPremium: (id, until) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(id); if (!u) return 0;
+    return u.roblox_id ? q('UPDATE users SET premium_until = ? WHERE roblox_id = ?').run(until, u.roblox_id).changes : q('UPDATE users SET premium_until = ? WHERE id = ?').run(until, id).changes; },
+  premiumUntil: id => q('SELECT premium_until AS t FROM users WHERE id = ?').get(id)?.t || 0,
   verifiedRoblox: () => new Set(q('SELECT DISTINCT roblox_id FROM users WHERE verified = 1 AND roblox_id IS NOT NULL').all().map(r => String(r.roblox_id))),
   // for the verification page: only real people (a linked Roblox account; code-only "Owner"/"Member" placeholders are left out),
   // one row per Roblox account; searched by Roblox name, Discord name or either ID, newest first when there is nothing to search
   search: (term, limit = 40) => { const t = String(term || '').trim();
-    const sel = `SELECT MIN(u.id) AS id, u.roblox_id, MAX(u.roblox_name) AS roblox_name, MAX(CASE WHEN u.discord_id IS NOT NULL THEN u.name END) AS discord_name, MAX(u.discord_id IS NOT NULL) AS discord, MAX(u.verified) AS verified, MAX(u.suspended) AS suspended,
+    const sel = `SELECT MIN(u.id) AS id, u.roblox_id, MAX(u.roblox_name) AS roblox_name, MAX(CASE WHEN u.discord_id IS NOT NULL THEN u.name END) AS discord_name, MAX(u.discord_id IS NOT NULL) AS discord, MAX(u.verified) AS verified, MAX(u.suspended) AS suspended, MAX(u.premium_until) AS prem_until,
       (SELECT COUNT(DISTINCT m.community_id) FROM members m JOIN users x ON x.id = m.user_id WHERE x.roblox_id = u.roblox_id) AS servers, MAX(u.id) AS newest FROM users u WHERE u.roblox_id IS NOT NULL`;
     if (!t) return q(`${sel} GROUP BY u.roblox_id ORDER BY verified DESC, newest DESC LIMIT ?`).all(limit);
     const like = '%' + t.replace(/[%_\\]/g, c => '\\' + c) + '%';

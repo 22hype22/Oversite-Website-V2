@@ -3,7 +3,6 @@
 // officer see the same thing. ER:LC's API gives plates, vehicle colors and owners, and players' wanted stars; it has no
 // characters, so a person is their Roblox account, and their license details are the ones they filled in on Oversite.
 import { db, now, users, licenses, mdtSignin } from './db.mjs';
-import { RANKS } from './license.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS pd_people (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, rid TEXT NOT NULL, name TEXT NOT NULL, team TEXT,
   first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL, PRIMARY KEY (community_id, rid));
@@ -36,10 +35,10 @@ export const PENAL = [
   ['F-313', 'Escape from custody', 3000, 20, 'Felony'], ['F-314', 'Bank robbery', 10000, 50, 'Felony'], ['F-315', 'Terroristic threats', 5000, 30, 'Felony']];
 const PENAL_BY = new Map(PENAL.map(p => [p[0], p]));
 
-// PD ranks that may approve a warrant: Sergeant and up (or a server admin)
-const SUPERVISOR = RANKS.pd.findIndex(r => r[0] === 'Sergeant');
+// who may approve a warrant: a server admin, or someone signed in to the police MDT with a supervisor rank (Sergeant and up,
+// unless a Premium server set its own ranks); pdRanks is the server's police list from ranksFor
 export const pdRank = (cid, uid) => mdtSignin.mine(cid, uid).pd || '';
-export const isSupervisor = (cid, uid, adminRole) => adminRole || RANKS.pd.findIndex(r => r[0] === pdRank(cid, uid)) >= SUPERVISOR;
+export const isSupervisor = (cid, uid, adminRole, pdRanks) => adminRole || !!pdRanks?.find(r => r[0] === pdRank(cid, uid))?.[2];
 
 const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
 const PLATE = v => String(v ?? '').toUpperCase().replace(/[^A-Z0-9 -]/g, '').trim().slice(0, 10);
