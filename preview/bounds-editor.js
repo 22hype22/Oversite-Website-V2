@@ -40,7 +40,7 @@
       const t = el('text', { x: p.x + r * 1.5, y: p.z + r * .5, 'font-size': 11 * px(), fill: '#F0F2F5', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * px() }, g); t.textContent = p.name; }
     $('bdDel').disabled = sel < 0 || !!draft; $('bdUndo').hidden = !draft; $('bdDraw').textContent = draft ? 'Finish area' : 'Draw area';
     svg.classList.toggle('drawing', !!draft);
-    $('bdHint').textContent = draft ? (draft.length < 3 ? 'Click to place corners, or hold and drag to draw the outline. Scroll to zoom, right-drag to move the map.' : 'Click the first corner, or press Finish area, to close it. Esc cancels.')
+    $('bdHint').textContent = draft ? (draft.length < 3 ? 'Click to place corners, or hold and drag to draw the outline. Scroll to zoom, hold the middle mouse button to move the map.' : 'Click the first corner, or press Finish area, to close it. Esc cancels.')
       : sel >= 0 ? 'Drag a corner to move it. Drag a small dot between corners to add one.' : (Z[scope] || []).length ? 'Click an area to edit it, or draw another.' : 'No area yet for ' + scopeName(scope) + '. Click or drag on the map to draw one.'; };
 
   // ── the controls above and below the map ──
@@ -73,11 +73,13 @@
     if (e.key === 'Escape') { draft = null; hover = null; draw(); } else if (e.key === 'Enter') { e.preventDefault(); finish(); } else if (e.key === 'Backspace') { e.preventDefault(); draft.pop(); draw(); } });
 
   // ── pointer. Drawing: a click adds a corner, holding and dragging draws the outline freehand. Otherwise a drag moves the map,
-  // and a click picks an area. The right or middle button (or Space held down) always moves the map. ──
+  // and a click picks an area. The middle button (or right button, or Space held down) always moves the map. ──
   let down = null, space = false;
   addEventListener('keydown', e => { if (e.code === 'Space' && root.offsetParent && document.activeElement === document.body) { space = true; e.preventDefault(); } });
   addEventListener('keyup', e => { if (e.code === 'Space') space = false; });
   svg.addEventListener('contextmenu', e => e.preventDefault());
+  // the middle button moves the map: stop the browser's own middle-click autoscroll (it starts on mousedown) and its paste/open-link click
+  for (const ev of ['mousedown', 'auxclick']) svg.addEventListener(ev, e => { if (e.button === 1) e.preventDefault(); });
   // fewer points for a freehand outline: drop the ones that sit on a nearly straight line (Douglas-Peucker)
   const simplify = (pts, tol) => { if (pts.length < 4) return pts;
     const [sx, sz] = pts[0], [ex, ez] = pts[pts.length - 1];
@@ -91,7 +93,7 @@
     return pts.filter((_, i) => keep[i]); };
   svg.addEventListener('pointerdown', e => { svg.setPointerCapture(e.pointerId); const t = e.target, P = toMap(e);
     const pan = () => ({ kind: 'pan', x: e.clientX, y: e.clientY, vb: [...vb], moved: false, t });
-    if (e.button || space) { down = { ...pan(), force: true }; return; }
+    if (e.button || space) { if (e.button === 1) e.preventDefault(); down = { ...pan(), force: true }; return; }
     if (!draft && sel >= 0 && t.classList.contains('bd-pt')) down = { kind: 'pt', k: +t.dataset.k };
     else if (!draft && sel >= 0 && t.classList.contains('bd-mid')) { const p = zones()[scope][sel], k = +t.dataset.k; p.splice(k + 1, 0, P); down = { kind: 'pt', k: k + 1 }; mark(); draw(); }
     else if (!draft && !t.closest('.bd-poly') && !(zones()[scope] || []).length) { draft = []; sel = -1; down = { kind: 'draw', x: e.clientX, y: e.clientY, moved: false, n: 0 }; draw(); }   // nothing drawn for this team yet: just start drawing

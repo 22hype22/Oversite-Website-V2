@@ -734,7 +734,7 @@ ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p
 <p class="hint">Oversite sends <code>:pm</code> when someone leaves and <code>:load</code> when their time is up, so the owner has to have allowed Oversite to run commands (General, ER:LC server).</p></div>
 <div class="row" style="margin-top:14px"><button class="btn pri" id="bdSave" disabled>Save</button><span class="hint" id="bdDirty" hidden>Unsaved changes</span></div><p class="msg" id="bdMsg"></p>
 <h3 class="bd-h">Recent</h3><ul class="bd-log" id="bdLog"></ul></section>
-<script src="/bounds-editor.js?v=5" defer></script></div>
+<script src="/bounds-editor.js?v=6" defer></script></div>
 <div class="st-pane" id="tab-profile" data-pane="profile" role="tabpanel" aria-labelledby="t-profile">
 ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.name.slice(0, 1).toUpperCase());
   const fact = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
