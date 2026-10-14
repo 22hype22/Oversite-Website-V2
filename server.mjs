@@ -291,7 +291,11 @@ const globalApi = async (req, res, rest) => {
     if (k && !/^(sk|rk)_(live|test)_[A-Za-z0-9]{10,200}$/.test(k)) return json(res, { error: 'That is not a Stripe secret key. It starts with sk_live_ or sk_test_.' }, 400);
     if (w && !/^whsec_[A-Za-z0-9]{10,200}$/.test(w)) return json(res, { error: 'That is not a webhook signing secret. It starts with whsec_.' }, 400);
     if (k) siteSettings.set('stripe_key', seal(k)); if (w) siteSettings.set('stripe_whsec', seal(w)); if (j.clear) { siteSettings.set('stripe_key', ''); siteSettings.set('stripe_whsec', ''); }
-    console.log(`stripe: keys ${j.clear ? 'cleared' : 'updated'} by ${user.roblox_name || user.name}`); return json(res, premium.stripeStatus()); }
+    if (j.clear) siteSettings.set('stripe_portal', '');
+    console.log(`stripe: keys ${j.clear ? 'cleared' : 'updated'} by ${user.roblox_name || user.name}`);
+    if (k && !w) { try { const r = await premium.setupStripe(origin(req), seal); console.log('stripe: webhook and billing page set up'); return json(res, { ...r, check: 'Saved. Oversite set up its webhook and billing page in Stripe. Premium payments are on.' }); }   // only the key: finish the rest automatically
+      catch (e) { console.log('stripe setup:', e.message); return json(res, { ...premium.stripeStatus(), error: undefined, check: 'Key saved, but Stripe said: ' + e.message }); } }
+    return json(res, premium.stripeStatus()); }
   if (rest === 'admin/support' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); support.close(Number((await jsonBody(req)).id)); return json(res, { tickets: support.open() }); }
   if (rest === 'admin/verify' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), id = Number(j.id);
     const n = j.kind === 'server' ? communities.setVerified(id, !!j.on) : j.kind === 'user' ? users.setVerified(id, !!j.on) : 0;

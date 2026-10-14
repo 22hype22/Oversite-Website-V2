@@ -1120,8 +1120,8 @@
   .bar .mark img.own{height:30px;width:30px;border-radius:8px;object-fit:cover;filter:none;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
   #mdt .crest .crest-ic{width:20px;height:20px;border-radius:6px;object-fit:cover}
   .prem-lock{position:absolute;inset:0;z-index:30;display:grid;place-items:center;padding:24px;text-align:center;background:rgba(12,13,15,.94);border-radius:inherit}
-  .prem-lock>div{max-width:380px}.prem-lock b{display:block;font-size:19px;font-weight:600;color:#E9EAEC}.prem-lock p{margin:8px 0 0;color:#8F939B;font-size:13.5px;line-height:1.5}
-  .prem-lock .pl-go{display:inline-block;margin-top:16px;padding:10px 16px;border-radius:10px;background:#F2C46E;color:#1A1203;font-weight:600;font-size:13.5px;text-decoration:none}
+  .prem-lock>div{max-width:380px}.prem-lock b{display:block;font-size:17px;font-weight:600;color:#E9EAEC}.prem-lock p{margin:8px 0 0;color:#8F939B;font-size:13.5px;line-height:1.5}
+  .prem-lock .pl-go{display:inline-block;margin-top:16px;padding:9px 16px;border-radius:999px;background:#F0F2F5;color:#0B0C0E;font-weight:500;font-size:13.5px;text-decoration:none}.prem-lock .pl-go:hover{background:#fff}
 </style>
 <script src="/dropdown.js?v=1" defer></script>
 <script src="/license-card.js?v=3" defer></script>
@@ -2619,10 +2619,10 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
 <script id="community">
 /* ── Premium: the server's own logo on the CAD and MDTs; the Server Staff CAD is Premium only ── */
 (() => { const O = window.OVERSITE || {}; if (!O.slug) return;
-  if (O.logo) { const m = document.querySelector('.bar .mark img'); if (m) { m.src = O.logo; m.alt = O.name || ''; m.classList.add('own'); }
-    document.querySelectorAll('#mdt .crest svg').forEach(c => { const im = document.createElement('img'); im.src = O.logo; im.alt = ''; im.className = 'crest-ic'; c.replaceWith(im); }); }
+  if (O.logo) { const m = document.querySelector('.bar .mark img'); if (m) { const orig = m.src; m.onerror = () => { m.onerror = null; m.src = orig; m.classList.remove('own'); }; m.src = O.logo; m.alt = ''; m.classList.add('own'); }   // no icon after all: keep the Oversite mark
+    document.querySelectorAll('#mdt .crest svg').forEach(c => { const im = document.createElement('img'); im.src = O.logo; im.alt = ''; im.className = 'crest-ic'; im.onerror = () => im.replaceWith(c); c.replaceWith(im); }); }
   if (!O.premium) { const sc = document.querySelector('#staffMdt .screen'); if (!sc) return; const runs = O.role === 'owner' || O.role === 'co_owner', d = document.createElement('div'); d.className = 'prem-lock';
-    d.innerHTML = `<div><b>The Server Staff CAD is part of Premium</b><p>Mod calls, records, bans, logs, the Team tab and in-game commands for your staff.</p>${runs ? `<a class="pl-go" href="/${O.slug}/settings#premium">Get Premium for $5 a month</a>` : '<p>Ask your server owner to get Premium.</p>'}</div>`; sc.appendChild(d); } })();
+    d.innerHTML = `<div><b>Server Staff needs Premium</b><p>Mod calls, records, bans, logs, the Team tab and in-game commands. ${runs ? 'Premium is $5 a month for the whole server.' : 'Ask the server owner to turn it on.'}</p>${runs ? `<a class="pl-go" href="/${O.slug}/settings#premium">Open Premium settings</a>` : ''}</div>`; sc.appendChild(d); } })();
 /* ── panic buttons: a red bar on top of the CAD, a siren, and a priority 1 10-99 call at the unit; clearing it anywhere clears it everywhere ── */
 (() => { const O = window.OVERSITE || {}, P = new Map(), muted = new Set();
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

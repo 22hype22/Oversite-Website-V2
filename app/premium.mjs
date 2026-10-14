@@ -45,7 +45,7 @@ export const serverForBotKey = key => { if (!/^ovs_[A-Za-z0-9_-]{20,80}$/.test(k
 const sk = () => (process.env.STRIPE_SECRET_KEY || unseal(siteSettings.get('stripe_key')) || '').trim();
 const whsec = () => (process.env.STRIPE_WEBHOOK_SECRET || unseal(siteSettings.get('stripe_whsec')) || '').trim();
 export const stripeReady = () => /^(sk|rk)_(live|test)_/.test(sk());
-export const stripeStatus = () => ({ ready: stripeReady(), live: /^(sk|rk)_live_/.test(sk()), webhook: !!whsec(), fromEnv: !!process.env.STRIPE_SECRET_KEY });
+export const stripeStatus = () => ({ ready: stripeReady(), live: /^(sk|rk)_live_/.test(sk()), webhook: !!whsec(), portal: !!siteSettings.get('stripe_portal'), fromEnv: !!process.env.STRIPE_SECRET_KEY });
 const form = (o, pre = '', out = []) => { for (const [k, v] of Object.entries(o)) { const key = pre ? `${pre}[${k}]` : k; if (v == null) continue;
   if (typeof v === 'object') form(v, key, out); else out.push(encodeURIComponent(key) + '=' + encodeURIComponent(v)); } return out.join('&'); };
 const stripe = async (method, path, body) => { const r = await fetch('https://api.stripe.com/v1' + path, { method, headers: { authorization: 'Bearer ' + sk(), 'content-type': 'application/x-www-form-urlencoded' }, body: body ? form(body) : undefined });
@@ -77,7 +77,18 @@ export const confirm = async (c, sessionId) => { if (!stripeReady() || !/^cs_[A-
 
 // Stripe's own page for changing the card, switching plans or cancelling
 export const portal = async (c, origin) => { const p = P(c); if (!stripeReady() || !p.customer) return { error: 'This server has no subscription to manage.' };
-  const s = await stripe('POST', '/billing_portal/sessions', { customer: p.customer, return_url: `${origin}/${c.slug}/settings#premium` }); return { ok: true, url: s.url }; };
+  const conf = siteSettings.get('stripe_portal'); const s = await stripe('POST', '/billing_portal/sessions', { customer: p.customer, return_url: `${origin}/${c.slug}/settings#premium`, ...(conf ? { configuration: conf } : {}) }); return { ok: true, url: s.url }; };
+// one click after the secret key is saved: Oversite makes its own webhook (and keeps the signing secret, which Stripe shows only now)
+// and its own billing page settings, so nothing has to be done by hand in the Stripe dashboard
+export const setupStripe = async (origin, seal) => { if (!stripeReady()) return { error: 'Save the Stripe secret key first.' };
+  const url = `${origin}/api/stripe/webhook`, events = ['checkout.session.completed', 'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted', 'invoice.paid', 'invoice.payment_failed'];
+  const mine = (await stripe('GET', '/webhook_endpoints?limit=100')).data.filter(w => w.url === url);
+  for (const w of mine) await stripe('DELETE', `/webhook_endpoints/${w.id}`);   // an old one's secret can't be read back, so replace it
+  const w = await stripe('POST', '/webhook_endpoints', { url, enabled_events: Object.fromEntries(events.map((e, i) => [i, e])), description: 'Oversite Premium' });
+  siteSettings.set('stripe_whsec', seal(w.secret));
+  const pc = await stripe('POST', '/billing_portal/configurations', { business_profile: { headline: 'Oversite Premium', privacy_policy_url: `${origin}/privacy`, terms_of_service_url: `${origin}/terms` },
+    features: { subscription_cancel: { enabled: 'true', mode: 'at_period_end' }, payment_method_update: { enabled: 'true' }, invoice_history: { enabled: 'true' } } });
+  siteSettings.set('stripe_portal', pc.id); return { ok: true, ...stripeStatus() }; };
 
 // webhook: the signature is checked against the raw body before anything is believed
 export const webhook = async (raw, sig) => { const secret = whsec(); if (!secret) return { error: 'Webhook secret not set.', status: 400 };
