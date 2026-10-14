@@ -1117,9 +1117,14 @@
   @media (max-width:980px){.st-acts{grid-template-columns:repeat(3,1fr)}}
   @media (prefers-reduced-motion:reduce){.st-dlg{transition:opacity .15s}}
   /* staff:end */
+  .bar .mark img.own{height:30px;width:30px;border-radius:8px;object-fit:cover;filter:none;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
+  #mdt .crest .crest-ic{width:20px;height:20px;border-radius:6px;object-fit:cover}
+  .prem-lock{position:absolute;inset:0;z-index:30;display:grid;place-items:center;padding:24px;text-align:center;background:rgba(12,13,15,.94);border-radius:inherit}
+  .prem-lock>div{max-width:380px}.prem-lock b{display:block;font-size:19px;font-weight:600;color:#E9EAEC}.prem-lock p{margin:8px 0 0;color:#8F939B;font-size:13.5px;line-height:1.5}
+  .prem-lock .pl-go{display:inline-block;margin-top:16px;padding:10px 16px;border-radius:10px;background:#F2C46E;color:#1A1203;font-weight:600;font-size:13.5px;text-decoration:none}
 </style>
 <script src="/dropdown.js?v=1" defer></script>
-<script src="/license-card.js?v=2" defer></script>
+<script src="/license-card.js?v=3" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
   .mtabs{display:none}
@@ -2396,6 +2401,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     else if (pend.length) { const c = pend.sort((a, b) => a.pri - b.pri)[0]; const d = Math.hypot(u.x - c.x, u.y - c.y) / 1609 * 1.2; msg = `Unassigned P${c.pri} ${c.code} at ${c.where}, ${d.toFixed(1)} mi away.`; }
     $('fdAssistText').textContent = msg; const b = $('tnavCalls'); b.hidden = !pend.length; b.textContent = pend.length; };
   // ── signing in: the MDT stays locked until you tap your license, pick your rank and type a password (roleplay; never saved or sent) ──
+  const licStyle = () => { const S = window.OVERSITE?.license; return S ? { title: S.title, color: S.color, seal: S.seal === 'icon' && window.OVERSITE.slug ? `/c/${window.OVERSITE.slug}/icon` : '' } : {}; };   // a Premium server's own license card
   const OVS = window.OVERSITE, LOCKS = !!(OVS && OVS.ranks), screen = document.querySelector('#mdt .screen'), signed = { ...(OVS?.mdt || {}) };
   const LK = 'oversite.mdtlock.' + (OVS?.slug || ''), locked = new Set(); try { JSON.parse(sessionStorage.getItem(LK) || '[]').forEach(d => locked.add(d)); } catch (e) {}
   const saveLocks = () => { try { sessionStorage.setItem(LK, JSON.stringify([...locked])); } catch (e) {} };
@@ -2417,7 +2423,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     $('tlS1').querySelector('h5').textContent = 'License'; $('tlPad').style.visibility = ''; $('tlMsg').className = 'tl-msg'; $('tlMsg').textContent = (locked.has(d) && signed[d] ? 'MDT locked. ' : '') + 'Tap the reader, or drag your license onto it';
     $('tlWho').textContent = 'Waiting for your card';
     const L = await loadLic(); if (!live()) return; const team = myTeam();
-    $('tlCard').className = 'tl-card'; $('tlCard').innerHTML = window.LicenseCard ? window.LicenseCard.html({ ...L, occ: (window.LicenseCard.occ(team)) || DEF_OCC[d] || '' }) : '';
+    $('tlCard').className = 'tl-card'; $('tlCard').innerHTML = window.LicenseCard ? window.LicenseCard.html({ ...L, ...licStyle(), occ: (window.LicenseCard.occ(team)) || DEF_OCC[d] || '' }) : '';
     await wait(300); if (!live()) return; $('tlCard').classList.add('peek'); $('tlRd').classList.add('peek');
     if (!skipNow) await new Promise(res => { placeCard = res; }); if (!live()) return; placeCard = null;   // (Skip pressed early: no waiting for the card)   // you put it on the reader: tap the reader, tap the card, or drag it up
     $('tlCard').classList.remove('peek', 'drag'); $('tlRd').classList.remove('peek'); $('tlCard').querySelector('.lcard')?.style.removeProperty('transform'); $('tlCard').classList.add('in'); $('tlPad').classList.remove('over'); await wait(750); if (!live()) return;
@@ -2611,6 +2617,12 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
 })();
 </script>
 <script id="community">
+/* ── Premium: the server's own logo on the CAD and MDTs; the Server Staff CAD is Premium only ── */
+(() => { const O = window.OVERSITE || {}; if (!O.slug) return;
+  if (O.logo) { const m = document.querySelector('.bar .mark img'); if (m) { m.src = O.logo; m.alt = O.name || ''; m.classList.add('own'); }
+    document.querySelectorAll('#mdt .crest svg').forEach(c => { const im = document.createElement('img'); im.src = O.logo; im.alt = ''; im.className = 'crest-ic'; c.replaceWith(im); }); }
+  if (!O.premium) { const sc = document.querySelector('#staffMdt .screen'); if (!sc) return; const runs = O.role === 'owner' || O.role === 'co_owner', d = document.createElement('div'); d.className = 'prem-lock';
+    d.innerHTML = `<div><b>The Server Staff CAD is part of Premium</b><p>Mod calls, records, bans, logs, the Team tab and in-game commands for your staff.</p>${runs ? `<a class="pl-go" href="/${O.slug}/settings#premium">Get Premium for $5 a month</a>` : '<p>Ask your server owner to get Premium.</p>'}</div>`; sc.appendChild(d); } })();
 /* ── panic buttons: a red bar on top of the CAD, a siren, and a priority 1 10-99 call at the unit; clearing it anywhere clears it everywhere ── */
 (() => { const O = window.OVERSITE || {}, P = new Map(), muted = new Set();
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -2862,7 +2874,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       $('pdWarList').innerHTML = L.map(warRow).join('') || `<div class="pd-empty"><b>${k === 'Active' ? 'No active warrants' : k === 'Pending' ? 'Nothing waiting for approval' : 'No closed warrants yet'}</b>${k === 'Pending' && !CFG.supervisor ? 'A Sergeant or above approves warrant requests.' : ''}</div>`; } catch (e) { $('pdWarList').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; } };
   const drawBolo = async () => { try { const j = await req('records?kind=bolo&status=open'); $('pdBoloList').innerHTML = keep(j.records).map(boloRow).join('') || '<div class="pd-empty"><b>No active BOLOs</b>Send one when a suspect or vehicle gets away.</div>'; } catch (e) { $('pdBoloList').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; } };
   const drawRecs = async () => { const k = segVal('pdRecSeg'); try { const j = await req('records?kind=' + k + '&mine=' + ($('pdRecMine').checked ? 1 : 0)); const L = keep(j.records).filter(r => k || ['citation', 'warning', 'arrest', 'stop'].includes(r.kind));
-      $('pdRecList').innerHTML = L.map(histRow).join('') || '<div class="pd-empty"><b>Nothing written yet</b>Citations, warnings, arrests and stops show here.</div>'; } catch (e) { $('pdRecList').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; } };
+      $('pdRecList').innerHTML = (CFG.recordDays ? `<p class="pd-note">Showing the last ${CFG.recordDays} days. Premium servers keep police records forever.</p>` : '') + (L.map(histRow).join('') || '<div class="pd-empty"><b>Nothing written yet</b>Citations, warnings, arrests and stops show here.</div>'); } catch (e) { $('pdRecList').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; } };
   seg('pdWarSeg', drawWar); seg('pdRecSeg', drawRecs); $('pdRecMine').addEventListener('change', drawRecs);
   // badges: active BOLOs, and warrants waiting for a supervisor
   const badges = async () => { if (!API || !isPD()) return; try { const [w, b] = await Promise.all([req('records?kind=warrant&status=open'), req('records?kind=bolo&status=open')]); keep(w.records); keep(b.records);
@@ -2896,7 +2908,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       const j = await req('records', { kind: 'stop', plate: stopPick.plate, vehicle: model, color, subject: owner, subject_rid: orid, location: where(), unit: u?.name || '', x: u?.x, y: u?.y });
       myStop = j.record; window.mdtSetStatus?.('10-11'); show('home'); runChecks(); drawStop(); toast(`10-11 on ${myStop.plate}. Dispatch can see your stop.`); }
     catch (x) { toast(x.message); b.disabled = false; } });
-  const runChecks = async () => { if (!myStop) return; stopChecks = null; drawStop(); const s = myStop; let v = null, p = null;
+  const runChecks = async () => { if (!myStop) return; if (!CFG.premium) { stopChecks = 'free'; drawStop(); return; } stopChecks = null; drawStop(); const s = myStop; let v = null, p = null;
     try { v = await req('vehicle?plate=' + encodeURIComponent(s.plate)); } catch (e) {}
     if (s.subject) try { p = await req('person?' + (s.subject_rid ? 'id=' + s.subject_rid : 'name=' + encodeURIComponent(s.subject))); } catch (e) {}
     if (myStop !== s) return; const C = [];
@@ -2912,7 +2924,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const s = myStop, bk = (s.backup || []).length;
     card.innerHTML = `<div class="tch"><h3>Traffic stop ${tag('10-11', 'b')}</h3><span class="pill" data-stopt="${s.at}">${dur(s.at)}</span></div>
       <div class="sv">${plate(s.plate)}<div><b>${esc([s.color, s.vehicle].filter(Boolean).join(' ') || 'Vehicle')}</b><small>${s.subject ? `Owner <a href="#" data-sowner style="color:inherit">${esc(s.subject)}</a>` : 'Owner unknown'}${s.location ? ' · ' + esc(s.location) : ''}</small></div></div>
-      <div class="chk">${stopChecks ? stopChecks.map(([c, t]) => `<div class="c-${c}"><i></i>${esc(t)}</div>`).join('') : '<div class="c-wait"><i></i>Running the plate and owner…</div>'}</div>
+      <div class="chk">${stopChecks === 'free' ? '<div class="c-wait"><i></i>Tap Run plate to check it. Premium servers get the plate, owner and warrants checked automatically.</div>' : stopChecks ? stopChecks.map(([c, t]) => `<div class="c-${c}"><i></i>${esc(t)}</div>`).join('') : '<div class="c-wait"><i></i>Running the plate and owner…</div>'}</div>
       <div class="bk"><button type="button" class="btn bk2" data-bk="2">${bk ? 'Backup again' : 'Backup'}, Code 2</button><button type="button" class="btn bk3" data-bk="3">Backup, Code 3</button></div>
       <div class="acts"><button type="button" class="btn ghost" data-snew="warning">Warning</button><button type="button" class="btn ghost" data-snew="citation">Citation</button><button type="button" class="btn ghost" data-snew="arrest">Arrest</button><button type="button" class="btn ghost" data-srun>Run plate</button><button type="button" class="btn ghost" data-sview>Details</button><button type="button" class="btn" data-send>End stop</button></div>`; };
   setInterval(() => { const t = card.querySelector('[data-stopt]'); if (t) t.textContent = dur(+t.dataset.stopt); }, 1000);

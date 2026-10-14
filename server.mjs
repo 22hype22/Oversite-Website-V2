@@ -16,6 +16,7 @@ import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
 import * as staff from './app/staff.mjs';
 import * as police from './app/police.mjs';
+import * as premium from './app/premium.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin } from './app/admins.mjs';
@@ -52,7 +53,7 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // ── the CAD page, with this community's settings injected ──
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const cfg = { slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: RANKS, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
+  const prem = premium.isPremium(c), cfg = { premium: prem, logo: prem && profile.iconSource(c) ? `/c/${c.slug}/icon` : '', license: prem ? c.settings.licenseStyle || null : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: RANKS, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};</script>`;
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
@@ -112,8 +113,15 @@ const communityApi = async (req, res, slug, rest) => {
     communities.setKey(c.id, k); f.setKey(k); console.log(`key: ${c.slug} saved${t.ok ? '' : ' (ER:LC did not confirm: ' + String(t.message).slice(0, 120) + ')'}`);
     return json(res, { ok: true, persistent: true, name: t.name, players: t.players, pending: t.ok ? undefined : t.message }); }   // pending: saved, but ER:LC hasn't confirmed it yet
   if (rest === 'track' && M === 'GET') { if (!can(role, 'co_owner')) return json(res, { error: 'Owner only.' }, 403); return json(res, { stats: f.stats(), players: Object.fromEntries([...f.track].map(([k, v]) => [k.split(':')[0], v])) }); }
-  // staff tools: Staff and up
-  if (rest.startsWith('staff/')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403);
+  // Premium: what this server has, buying it, Explore boosts and the bot key (owner and co-owners)
+  if (rest === 'premium' && M === 'GET') return json(res, { ...premium.info(c), plans: premium.PLANS, payments: premium.stripeReady(), canBuy: can(role, 'co_owner') });
+  if (rest.startsWith('premium/') && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can manage Premium.' }, 403);
+    const sub = rest.slice(8), j = await jsonBody(req);
+    try { const r = sub === 'checkout' ? await premium.checkout(c, user, String(j.plan || ''), origin(req)) : sub === 'portal' ? await premium.portal(c, origin(req)) : sub === 'boost' ? premium.boost(c)
+        : sub === 'botkey' ? premium.newBotKey(c) : sub === 'botkey/delete' ? premium.dropBotKey(c) : sub === 'license' ? saveLicenseStyle(c, j) : { error: 'Not found.' };
+      return json(res, r, r.error ? 400 : 200); } catch (e) { console.log(`premium ${sub}: ${c.slug}: ${e.message}`); return json(res, { error: 'Payments could not be reached. Try again in a minute.' }, 502); } }
+  // staff tools: Staff and up, on Premium servers
+  if (rest.startsWith('staff/')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403); if (!premium.isPremium(c)) return json(res, { error: 'The Server Staff CAD is part of Premium.', premium: true }, 402);
     const sub = rest.slice(6), by = { id: user.id, name: user.roblox_name || user.name };
     if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); return json(res, v, v.error ? 502 : 200); }
     if (sub === 'action' && M === 'POST' && !can(role, 'admin') && !staff.MOD_KINDS.includes(String((req._body = await jsonBody(req)).kind))) return json(res, { error: 'Mods can warn, message, kick and add notes. Bans, unbans and announcements need an admin.' }, 403);
@@ -126,6 +134,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'records' && M === 'GET') return json(res, { records: staff.records(c, Object.fromEntries(new URL(req.url, 'http://x').searchParams)) });
     return json(res, { error: 'Not found.' }, 404); }
   // proximity voice: the live stream of who is near you, connection setup between two players, mute, and the owner's settings
+  if (rest.startsWith('voice/') && !premium.isPremium(c)) return json(res, { error: 'Proximity voice is part of Premium.', premium: true }, 402);
   if (rest === 'voice/stream' && M === 'GET') { if (!voice.voiceSettings(c).on) return json(res, { error: 'Proximity voice is off for this server.' }, 403);
     if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403); return voice.join(req, res, c, user, f); }
   if (rest === 'voice/signal' && M === 'POST') { const j = await jsonBody(req), r = voice.signal(c, user, j.to, j.data); return json(res, r, r.error ? 400 : 200); }
@@ -158,12 +167,13 @@ const communityApi = async (req, res, slug, rest) => {
     if (r.ok) f.bcast('unitstatus', JSON.stringify({ unit: r.unit, st: r.st })); return json(res, r, r.error ? 400 : 200); }
   // the law enforcement MDT: lookups, warrants, BOLOs, citations, warnings, arrests and traffic stops, shared by the whole server
   if (rest.startsWith('pd/')) { const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, by = { uid: user.id, name: user.roblox_name || user.name, supervisor: police.isSupervisor(c.id, user.id, can(role, 'admin')) };
-    if (sub === 'config' && M === 'GET') return json(res, { penal: police.PENAL, rank: police.pdRank(c.id, user.id), supervisor: by.supervisor, admin: can(role, 'admin'), me: by.name });
+    const prem = premium.isPremium(c), cut = prem ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5, recent = L => cut ? L.filter(r => r.at >= cut || r.status === 'Active' || r.status === 'Pending') : L;   // free servers see the last 30 days
+    if (sub === 'config' && M === 'GET') return json(res, { penal: police.PENAL, rank: police.pdRank(c.id, user.id), supervisor: by.supervisor, admin: can(role, 'admin'), me: by.name, premium: prem, recordDays: prem ? 0 : premium.FREE_RECORD_DAYS });
     if (sub === 'search' && M === 'GET') return json(res, police.search(c.id, qs.get('q')));
-    if (sub === 'person' && M === 'GET') { const r = await police.person(c.id, qs.get('id') || qs.get('name'), licenseOf); return json(res, r, r.error ? 404 : 200); }
-    if (sub === 'vehicle' && M === 'GET') { const r = police.vehicle(c.id, qs.get('plate')); return json(res, r, r.error ? 404 : 200); }
+    if (sub === 'person' && M === 'GET') { const r = await police.person(c.id, qs.get('id') || qs.get('name'), licenseOf); if (r.history) r.history = recent(r.history); return json(res, r, r.error ? 404 : 200); }
+    if (sub === 'vehicle' && M === 'GET') { const r = police.vehicle(c.id, qs.get('plate')); if (r.history) r.history = recent(r.history); return json(res, r, r.error ? 404 : 200); }
     if (sub === 'vehicle' && M === 'POST') { const j = await jsonBody(req), r = police.setVehicle(c.id, j.plate, j); return json(res, r, r.error ? 400 : 200); }
-    if (sub === 'records' && M === 'GET') return json(res, { records: police.list(c.id, { kind: qs.get('kind') || '', status: qs.get('status') || '', mine: qs.get('mine') === '1' }, user.id) });
+    if (sub === 'records' && M === 'GET') return json(res, { records: recent(police.list(c.id, { kind: qs.get('kind') || '', status: qs.get('status') || '', mine: qs.get('mine') === '1' }, user.id)) });
     if (sub === 'records' && M === 'POST') { const r = police.create(c.id, by, await jsonBody(req)); if (r.ok) f.bcast('pdrec', JSON.stringify(r.record)); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records/act' && M === 'POST') { const j = await jsonBody(req), r = police.act(c.id, by, j); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: String(j.action || ''), _by: by.name })); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only an admin can delete records.' }, 403); const id = +(await jsonBody(req)).id || 0; police.remove(c.id, id); f.bcast('pdrec', JSON.stringify({ id, _deleted: true })); return json(res, { ok: true }); }
@@ -225,7 +235,33 @@ const communityApi = async (req, res, slug, rest) => {
 const legacyKey = id => { if (existsSync(LEGACY_KEY) && !communities.all().some(c => c.erlc_key)) { try { const k = readFileSync(LEGACY_KEY, 'utf8').trim(); if (k) { communities.setKey(id, k); renameSync(LEGACY_KEY, LEGACY_KEY + '.migrated'); } } catch (e) {} } };   // the first server keeps the key the site already had
 const origin = req => (process.env.PUBLIC_URL || `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers.host}`).replace(/\/$/, '');
 
+// ── bot API (Premium): a server's own Discord bot reads its CAD. Read-only, 60 requests a minute per key ──
+const botHits = new Map();
+const botApi = async (req, res, rest) => { if (req.method !== 'GET') return json(res, { error: 'Read-only.' }, 405);
+  const key = String(req.headers.authorization || '').replace(/^(Bot|Bearer)\s+/i, '').trim(), c = premium.serverForBotKey(key);
+  if (!c) return json(res, { error: 'Unknown key. Make one in your server\'s Settings, under Premium.' }, 401);
+  if (!premium.isPremium(c)) return json(res, { error: 'This server\'s Premium has ended, so its bot key is paused.' }, 402);
+  const now = Date.now(), h = (botHits.get(c.id) || []).filter(t => now - t < 60000); if (h.length >= 60) return json(res, { error: 'Slow down: 60 requests a minute.' }, 429); h.push(now); botHits.set(c.id, h);
+  const f = feedFor(c), s = await f.snapshot(); let j = {}; try { j = JSON.parse(s.body); } catch (e) {}
+  const live = s.status === 200, st = police.statuses(c.id), qs = new URL(req.url, 'http://x').searchParams;
+  if (rest === 'server') return json(res, { name: c.name, slug: c.slug, live, players: live ? (j.Players || []).length : null, max: j.MaxPlayers ?? null, calls: live ? (j.EmergencyCalls || []).length : null });
+  if (rest === 'players') return json(res, { live, players: (j.Players || []).map(p => { const [name, id] = String(p.Player || '').split(':'); return { name, id, team: p.Team || '', callsign: p.Callsign || null, postal: p.Location?.PostalCode || null, street: p.Location?.StreetName || null }; }) });
+  if (rest === 'calls') return json(res, { live, calls: (j.EmergencyCalls || []).map(k => ({ number: k.CallNumber, team: k.Team, description: k.Description || '', where: k.PositionDescriptor || '', started: k.StartedAt ? k.StartedAt * 1000 : null })) });
+  if (rest === 'status') return json(res, { units: st });
+  if (rest === 'records') return json(res, { records: police.list(c.id, { kind: ['warrant', 'citation', 'warning', 'arrest', 'bolo', 'stop'].includes(qs.get('kind')) ? qs.get('kind') : '', status: qs.get('status') === 'open' ? 'open' : '' }).slice(0, 100) });
+  return json(res, { error: 'Not found. Try server, players, calls, status or records.' }, 404); };
+// custom license (Premium): the card's title, color and seal
+const saveLicenseStyle = (c, j) => { if (!premium.isPremium(c)) return { error: 'A custom license comes with Premium.' };
+  const title = String(j.title || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 22), color = /^#[0-9a-fA-F]{6}$/.test(j.color || '') ? j.color : '#38542A';
+  const s = communities.byId(c.id).settings; s.licenseStyle = j.reset ? null : { title: title || c.name.slice(0, 22), color, seal: j.seal === 'icon' ? 'icon' : 'default' }; communities.saveSettings(c.id, s);
+  return { ok: true, license: s.licenseStyle }; };
+
 const globalApi = async (req, res, rest) => {
+  // Stripe tells us about payments here; the signature is checked against the raw body
+  if (rest === 'stripe/webhook' && req.method === 'POST') { const raw = await body(req, 5e5); let r; try { r = await premium.webhook(raw, req.headers['stripe-signature']); } catch (e) { console.log('stripe webhook:', e.message); return json(res, { error: 'Try again.' }, 500); }
+    return json(res, r, r.status || 200); }
+  // a Premium server's own Discord bot reads its CAD with the key from Settings: Authorization: Bot <key>
+  if (rest.startsWith('bot/v1/')) return botApi(req, res, rest.slice(7));
   const user = auth.currentUser(req); if (rest === 'explore' && req.method === 'GET') return json(res, { servers: profile.directory(user) });   // Explore's live refresh: open to everyone
   if (!user) return json(res, { error: 'Sign in first.' }, 401);
   // the verification page; anyone else gets a plain not-found
@@ -246,6 +282,16 @@ const globalApi = async (req, res, rest) => {
     console.log(`erlc app: ${user.discord_id} ${j.clear ? 'cleared' : 'updated'} the application settings`);
     return json(res, await erlcAppStatus(true)); }
   if (rest === 'admin/erlc-app' && req.method === 'GET') return json(res, await erlcAppStatus(true));
+  // Premium by hand: days (30, 90, 365), forever, or off
+  if (rest === 'admin/premium' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), c = communities.byId(Number(j.id)); if (!c) return json(res, { error: 'No such server.' }, 404);
+    if (j.off) premium.revoke(c.id); else premium.grant(c.id, j.forever ? 0 : Math.min(3650, Math.max(1, Number(j.days) || 30)), user.roblox_name || user.name);
+    console.log(`premium: ${c.slug} ${j.off ? 'turned off' : j.forever ? 'granted forever' : 'granted ' + j.days + ' days'} by ${user.roblox_name || user.name}`); return json(res, { ok: true, premium: premium.info(c) }); }
+  // Stripe keys for selling Premium, sealed like the ER:LC key
+  if (rest === 'admin/stripe' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), k = String(j.key || '').trim(), w = String(j.whsec || '').trim();
+    if (k && !/^(sk|rk)_(live|test)_[A-Za-z0-9]{10,200}$/.test(k)) return json(res, { error: 'That is not a Stripe secret key. It starts with sk_live_ or sk_test_.' }, 400);
+    if (w && !/^whsec_[A-Za-z0-9]{10,200}$/.test(w)) return json(res, { error: 'That is not a webhook signing secret. It starts with whsec_.' }, 400);
+    if (k) siteSettings.set('stripe_key', seal(k)); if (w) siteSettings.set('stripe_whsec', seal(w)); if (j.clear) { siteSettings.set('stripe_key', ''); siteSettings.set('stripe_whsec', ''); }
+    console.log(`stripe: keys ${j.clear ? 'cleared' : 'updated'} by ${user.roblox_name || user.name}`); return json(res, premium.stripeStatus()); }
   if (rest === 'admin/support' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); support.close(Number((await jsonBody(req)).id)); return json(res, { tickets: support.open() }); }
   if (rest === 'admin/verify' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), id = Number(j.id);
     const n = j.kind === 'server' ? communities.setVerified(id, !!j.on) : j.kind === 'user' ? users.setVerified(id, !!j.on) : 0;
@@ -382,7 +428,7 @@ const route = async (req, res) => {
     const me = user ? { id: user.id, owner: own, admin: isSiteAdmin(user), can: !!user.roblox_name && !own, why: !user.roblox_name ? 'Link your Roblox account to write a review.' : own ? 'Reviews are from players. You can reply to any review below.' : '' } : null;
     return page(res, serverPage({ logo: LOGO, user, x, medals, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me, prompt: req.votePrompt ? { vote: true, roblox: !!user?.roblox_name, origin: origin(req), rank: x.votes > 0 ? [...all].sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name)).findIndex(y => y.id === x.id) + 1 : 0 } : null })); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
-    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open() })); }
+    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus() })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/(c\/)?[a-z0-9-]{3,32}$/.test(from) ? from : null;
     return page(res, pages.account({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discord: auth.discordReady(), back })); }
@@ -459,6 +505,10 @@ const route = async (req, res) => {
     if (members.role(c.id, user.id)) return redirect(res, `/${c.slug}`);
     if (req.method === 'POST') { if (!sameOrigin(req)) return redirect(res, `/invite/${encodeURIComponent(code)}`); members.raise(c.id, user.id, 'member'); return redirect(res, `/${c.slug}`); }
     return page(res, pages.join({ logo: LOGO, user, c, code, action: `/invite/${encodeURIComponent(code)}` })); }
+  if ((m = path.match(/^\/c\/([a-z0-9-]{3,32})\/premium\/done$/))) { const { c, user, role } = await access(req, m[1]); if (!c || !user) return redirect(res, '/');
+    let r; try { r = await premium.confirm(c, url.searchParams.get('session_id')); } catch (e) { r = { error: 'Payments could not be reached. Premium switches on within a few minutes.' }; }
+    if (r.error) return msg(res, user, 'Almost there', r.error, { href: `/${c.slug}/settings#premium`, label: 'Back to Settings' });
+    console.log(`premium: ${c.slug} bought by ${user.roblox_name || user.name}`); return redirect(res, `/${c.slug}/settings?premium=1#premium`); }
   if ((m = path.match(/^\/c\/([a-z0-9-]{3,32})(\/.*)?$/))) { const slug = m[1], sub = (m[2] || '/').replace(/\/+$/, '') || '/';
     if (sub.startsWith('/api/')) return communityApi(req, res, slug, sub.slice(5));
     const { c, user, role } = await access(req, slug);
@@ -470,11 +520,14 @@ const route = async (req, res) => {
     if (needsDiscord(c) && sub === '/') return can(role, 'co_owner') ? redirect(res, `/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
     if (sub === '/') return html(res, mapPage(c, user, role));
     if (sub === '/voice' && !req.prox) return redirect(res, `/${c.slug}/prox${url.search}`);   // the old address
+    if (sub === '/voice' && !premium.isPremium(c)) return msg(res, user, 'Proximity chat is part of Premium', can(role, 'co_owner') ? 'Get Premium for this server to let players hear each other by distance in game.' : 'Ask your server owner to get Premium for proximity chat.', can(role, 'co_owner') ? { href: `/${c.slug}/settings#premium`, label: 'Get Premium' } : { href: `/${c.slug}`, label: 'Back to the CAD' });
     if (sub === '/voice') return page(res, voicePage({ logo: LOGO, user, c, settings: voice.voiceSettings(c), keyOk: !!communities.key(c.id), embed: url.searchParams.has('embed') }));
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null })); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium')})); }
     return msg(res, user, 'Not found', 'That page does not exist.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
+  if (path === '/premium') { const user = auth.currentUser(req), owned = user ? communities.forUser(user.id).filter(x => x.role === 'owner' || x.role === 'co_owner').map(x => ({ slug: x.slug, name: x.name, premium: premium.isPremium(x) })) : [];
+    return page(res, pages.premiumPage({ logo: LOGO, user, owned, payments: premium.stripeReady() })); }
   if (path === '/support') return page(res, pages.support({ logo: LOGO, user: auth.currentUser(req), topic: url.searchParams.get('topic') || '' }));
   if (path === '/api/support' && req.method === 'POST') { const user = auth.currentUser(req); if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
     if (auth.limited(req, 'support', 6, 3600e3) || (user && support.recent(user.id, Date.now() - 3600e3) >= 6)) return json(res, { error: 'You have sent several messages in the last hour. Oversite has them; wait for a reply.' }, 429);
@@ -482,7 +535,8 @@ const route = async (req, res) => {
     if (body.length < 10) return json(res, { error: 'Tell Oversite a bit more: at least a sentence.' }, 400);
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(res, { error: 'That email address does not look right.' }, 400);
     if (!user && !email) return json(res, { error: 'Add your email so Oversite can reply.' }, 400);
-    const id = support.add(user ? user.id : null, topic, email || null, body, String(j.page || '').slice(0, 200)); console.log(`support: #${id} ${topic} from ${user ? (user.roblox_name || user.name) : email}`);
+    const prio = user ? communities.forUser(user.id).some(x => (x.role === 'owner' || x.role === 'co_owner') && premium.isPremium(x)) : false;   // Premium owners go to the top of the inbox
+    const id = support.add(user ? user.id : null, topic, email || null, body, String(j.page || '').slice(0, 200), prio); console.log(`support: #${id} ${topic} from ${user ? (user.roblox_name || user.name) : email}`);
     return json(res, { ok: true, id }); }
   if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
   return serve(req, res, path); };
@@ -546,7 +600,7 @@ const gate = async (req, res) => {
   if (path === '/unlock' && req.method === 'POST') { const f = await formBody(req); return unlock(req, res, String(f.get('code') || '').trim()); }
   if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });
   const q = url.searchParams.get('code'); if (q && CODE && !hasAccess(req)) { url.searchParams.delete('code'); return unlock(req, res, q.trim(), url.pathname + (url.search || '')); }
-  if (hasAccess(req)) return route(req, res);
+  if (hasAccess(req) || path === '/api/stripe/webhook' || path.startsWith('/api/bot/')) return route(req, res);
   if (path.includes('/api/')) return json(res, { error: 'locked' }, 401);
   return html(res, lockPage(), 401); };
 
@@ -558,6 +612,10 @@ http.createServer((req, res) => {
 staff.startHistory(); profile.startDirectory(id => feeds.get(id)?.snap);
 // once: the old owner link left extra "Owner" members behind; on servers a site admin made, they go back to plain members
 // (in-game staff still get their in-game rank in the CAD), and the server's creator can sort out anyone else from the Team tab
+// Premium launch: servers Oversite's own team runs get it for good; every server that existed before gets 30 days free, so nobody loses the Staff CAD or voice overnight
+if (!siteSettings.get('premium_founding_1')) { let a = 0, f = 0;
+  for (const c of communities.all()) { if (premium.isPremium(c)) continue; if (isSiteAdmin(users.byId(c.owner_id))) { premium.grant(c.id, 0, 'launch'); a++; } else { premium.grant(c.id, 30, 'founding'); f++; } }
+  siteSettings.set('premium_founding_1', String(Date.now())); console.log(`premium: launch grants, ${a} forever (Oversite's own), ${f} founding servers for 30 days`); }
 if (!siteSettings.get('fix_extra_owners_1')) { let n = 0;
   for (const c of communities.all()) { if (!isSiteAdmin(users.byId(c.owner_id))) continue; for (const m of members.list(c.id)) { if (m.role !== 'owner' || m.id === c.owner_id || isSiteAdmin(m)) continue;
       const u = users.byId(m.id), to = u?.roblox_id && c.settings.ingameStaff?.co?.includes(String(u.roblox_id)) ? 'co_owner' : 'member';   // a co-owner in game stays co-owner

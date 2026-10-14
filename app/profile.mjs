@@ -116,6 +116,7 @@ export const directory = me => { const mine = new Map((me ? communities.forUser(
       verified: E.verified || '', team_balance: !!E.team_balance,
       depts: ['pd', 'fd', 'dot'].map(d => c.settings.depts?.[d] && { k: d, name: c.settings.depts[d].name, short: c.settings.depts[d].short }).filter(Boolean), discord: c.settings.discord?.guild_name || '', at: E.at || 0, created: c.created || 0,
       role: mine.get(c.id) || null, photos: ph.get(c.id) || [], ppos: (ph.get(c.id) || []).map(id => P.ppos?.[id] || null), live: !!E.at && Date.now() - E.at < 10 * 60000,
+      featured: (P.featured_until || 0) > Date.now(), premium: (c.settings.premium?.until || 0) > Date.now(),   // a Premium boost puts it at the top of Explore for a day
       votes: total[c.id] || 0, week: week[c.id] || 0, next_vote: voted[c.id] ? Math.max(0, voted[c.id] + VOTE_GAP - Date.now()) : 0,
       region: REGIONS[P.region] ? { code: P.region, name: REGIONS[P.region][0], flag: REGIONS[P.region][1] } : null, lang: LANGS[P.lang] ? { code: P.lang, name: LANGS[P.lang][0], flag: LANGS[P.lang][1] } : null,
       dc_members: P.dc_members ?? null, dc_online: P.dc_online ?? null, connected: !!c.erlc_key, badge: !!c.verified, owner_badge: !!(E.owner_id || ownerOf(c).roblox_id) && vr.has(String(E.owner_id || ownerOf(c).roblox_id)), rating: rv[c.id] ? Math.round(rv[c.id].avg * 10) / 10 : null, reviews: rv[c.id]?.n || 0, id: c.id }; }); };

@@ -1,17 +1,18 @@
 /* The Liberty County driver's license, drawn like ER:LC's in-game card (484×303 there, 400×250 here).
    Used by the MDT's card reader and the account page. window.LicenseCard.html(data) returns the card;
-   data = { user, rid, display, age, occ, gndr, hair, eyes, hgt, wgt, addr, iss: 'YYYY-MM-DD' }. */
+   data = { user, rid, display, age, occ, gndr, hair, eyes, hgt, wgt, addr, iss: 'YYYY-MM-DD' }, plus a Premium server's own
+   style: { title, color: '#rrggbb', seal: image url }. */
 (() => {
   if (window.LicenseCard) return;
   const CSS = `
-.lcard{position:relative;width:400px;height:250px;border-radius:13px;overflow:hidden;color:#1C1C1C;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;text-align:left;line-height:1.2;
+.lcard{--lc:#38542A;--lc2:#5C7D44;position:relative;width:400px;height:250px;border-radius:13px;overflow:hidden;color:#1C1C1C;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;text-align:left;line-height:1.2;
   background:radial-gradient(42% 46% at 72% 58%,rgba(170,176,168,.42),transparent 72%),radial-gradient(38% 40% at 20% 92%,rgba(190,196,186,.38),transparent 72%),
     radial-gradient(30% 34% at 95% 20%,rgba(200,204,198,.35),transparent 70%),linear-gradient(180deg,#F7F8F5,#EEF0EB);box-shadow:0 22px 44px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.25)}
 .lcard>*{position:absolute}
-.lcard .lc-seal{left:10px;top:8px;width:22px;height:22px;border-radius:50%;background:url(/lc-seal.png?v=1) center/contain no-repeat}
-.lcard .lc-ttl{left:34px;top:5px;font-size:22px;font-weight:800;color:#38542A;letter-spacing:-.01em;line-height:1.2}
+.lcard .lc-seal{left:10px;top:8px;width:22px;height:22px;border-radius:50%;background:url(/lc-seal.png?v=1) center/contain no-repeat}.lcard .lc-seal.own{background:none;overflow:hidden}.lcard .lc-seal.own img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.lcard .lc-ttl{left:34px;top:5px;max-width:230px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:22px;font-weight:800;color:var(--lc);letter-spacing:-.01em;line-height:1.2}
 .lcard .lc-kind{right:22px;top:10px;font-size:11.5px;font-weight:500;color:#222}
-.lcard .lc-rule{left:136px;right:12px;top:37px;height:5px;border-top:2.5px solid #5C7D44;border-bottom:1px solid #B8C3AC}
+.lcard .lc-rule{left:136px;right:12px;top:37px;height:5px;border-top:2.5px solid var(--lc2);border-bottom:1px solid color-mix(in srgb,var(--lc2) 40%,#fff)}
 .lcard .lc-ph{left:11px;top:43px;width:121px;height:134px;border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#8ED6EA,#B8E8F4)}
 .lcard .lc-ph img,.lcard .lc-gh img{position:absolute;left:50%;top:5%;width:168%;height:auto;max-width:none;transform:translateX(-50%);display:block}
 .lcard .lc-ph,.lcard .lc-gh{position:absolute}
@@ -37,7 +38,8 @@
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const iss = d => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); return m ? `${m[2]}/${m[3]}/${m[1]}` : ''; };
   const html = (d = {}) => { add(); const photo = /^\d+$/.test(String(d.rid || '')) ? `<img src="/rbx/bust/${esc(d.rid)}" alt="" onerror="this.remove()">` : '';
-    return `<div class="lcard" aria-label="Liberty County driver's license for ${esc(d.user)}"><span class="lc-seal"></span><span class="lc-ttl">Liberty County</span><span class="lc-kind">DRIVER'S LICENSE</span><span class="lc-rule"></span>
+    const col = /^#[0-9a-fA-F]{6}$/.test(d.color || '') ? d.color : '', ttl = d.title || 'Liberty County', seal = /^\/[\w\/.?=-]+$/.test(d.seal || '') ? `<span class="lc-seal own"><img src="${esc(d.seal)}" alt="" onerror="this.parentNode.className='lc-seal'"></span>` : '<span class="lc-seal"></span>';
+    return `<div class="lcard" style="${col ? `--lc:${col};--lc2:${col}` : ''}" aria-label="${esc(ttl)} driver's license for ${esc(d.user)}">${seal}<span class="lc-ttl">${esc(ttl)}</span><span class="lc-kind">DRIVER'S LICENSE</span><span class="lc-rule"></span>
       <span class="lc-ph">${photo}</span><span class="lc-sig">${esc(d.display || d.user)}</span>
       <span class="lc-un">@${esc(String(d.user || '').toUpperCase())}</span><span class="lc-iss"><b>ISS</b>${esc(iss(d.iss))}</span><span class="lc-dn">${esc(d.display)}</span>
       <span class="lc-k lc-k1"><b>AGE</b><span>${esc(d.age)}</span></span><span class="lc-k lc-k2"><b>OCC</b><span>${esc(d.occ)}</span></span><span class="lc-addr">Address: ${esc(d.addr || 'N/A')}</span>

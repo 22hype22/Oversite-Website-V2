@@ -136,7 +136,7 @@ export const sessions = {
 export const DEFAULT_SETTINGS = { depts: { pd: { name: 'Law Enforcement', short: 'LE' }, fd: { name: 'Fire Department', short: 'FD' }, dot: { name: 'Department of Transportation', short: 'DOT' } },
   teams: { Police: 'pd', Sheriff: 'pd', Fire: 'fd', DOT: 'dot', Civilian: '' }, cal: [] };
 const withSettings = c => c && { ...c, settings: { ...DEFAULT_SETTINGS, ...JSON.parse(c.settings || '{}') } };
-export const RESERVED = new Set(['api', 'app', 'admin', 'auth', 'c', 'dashboard', 'join', 'invite', 'login', 'logout', 'www', 'oversite', 'settings', 'account', 'help', 'support', 'status', 'new',
+export const RESERVED = new Set(['premium', 'api', 'app', 'admin', 'auth', 'c', 'dashboard', 'join', 'invite', 'login', 'logout', 'www', 'oversite', 'settings', 'account', 'help', 'support', 'status', 'new',
   // top-level pages and files: a server's address is oversitescad.com/<slug>, so it can't be any of these
   'explore', 's', 'about', 'privacy', 'terms', 'refunds', 'health', 'rbx', 'unlock', 'lock', 'preview', 'newmap', 'relay', 'vendor', 'dispatch', 'intro', 'voice', 'cad', 'server', 'servers', 'home', 'discord', 'roblox', 'docs', 'legal', 'pricing', 'shop', 'store', 'blog', 'static', 'assets', 'profile', 'user', 'users', 'moderation', 'reports', 'icon', 'photos']);
 export const communities = {
@@ -155,7 +155,7 @@ export const communities = {
   setVerified: (id, on) => q('UPDATE communities SET verified = ? WHERE id = ?').run(on ? 1 : 0, id).changes,
   // for the verification page: every server with its owner and size
   setFlag: (id, flag, on) => ['hidden', 'suspended'].includes(flag) ? q(`UPDATE communities SET ${flag} = ? WHERE id = ?`).run(on ? 1 : 0, id).changes : 0,
-  overview: () => q('SELECT c.id, c.slug, c.name, c.verified, c.hidden, c.suspended, c.created, coalesce(json_extract(c.settings, \'$.profile.unlisted\'), 0) = 0 AS listed, length(coalesce(json_extract(c.settings, \'$.profile.bio\'), \'\')) > 0 AS has_bio, EXISTS (SELECT 1 FROM community_icons i WHERE i.community_id = c.id) AS custom_icon, (SELECT COUNT(*) FROM community_photos ph WHERE ph.community_id = c.id) AS photos, (SELECT COUNT(*) FROM reports r WHERE r.community_id = c.id AND r.resolved IS NULL) AS open_reports, u.roblox_name AS owner_rbx, u.name AS owner_name, (SELECT COUNT(*) FROM members m WHERE m.community_id = c.id) AS members FROM communities c LEFT JOIN users u ON u.id = c.owner_id ORDER BY open_reports DESC, c.verified DESC, c.name').all(),
+  overview: () => q('SELECT c.id, c.slug, c.name, c.verified, c.hidden, c.suspended, c.created, coalesce(json_extract(c.settings, \'$.premium.until\'), 0) AS prem_until, coalesce(json_extract(c.settings, \'$.profile.unlisted\'), 0) = 0 AS listed, length(coalesce(json_extract(c.settings, \'$.profile.bio\'), \'\')) > 0 AS has_bio, EXISTS (SELECT 1 FROM community_icons i WHERE i.community_id = c.id) AS custom_icon, (SELECT COUNT(*) FROM community_photos ph WHERE ph.community_id = c.id) AS photos, (SELECT COUNT(*) FROM reports r WHERE r.community_id = c.id AND r.resolved IS NULL) AS open_reports, u.roblox_name AS owner_rbx, u.name AS owner_name, (SELECT COUNT(*) FROM members m WHERE m.community_id = c.id) AS members FROM communities c LEFT JOIN users u ON u.id = c.owner_id ORDER BY open_reports DESC, c.verified DESC, c.name').all(),
 };
 export const members = {
   role: (cid, uid) => q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(cid, uid)?.role || null,
@@ -299,9 +299,10 @@ db.exec(`CREATE TABLE IF NOT EXISTS site_settings (k TEXT PRIMARY KEY, v TEXT NO
 export const siteSettings = { get: k => q('SELECT v FROM site_settings WHERE k = ?').get(k)?.v || '',
   set: (k, v) => v ? q('INSERT OR REPLACE INTO site_settings (k, v, updated) VALUES (?, ?, ?)').run(k, v, now()) : q('DELETE FROM site_settings WHERE k = ?').run(k) };
 db.exec('CREATE TABLE IF NOT EXISTS support_tickets (id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, topic TEXT NOT NULL, email TEXT, body TEXT NOT NULL, page TEXT, created INTEGER NOT NULL, closed INTEGER)');
+try { db.exec('ALTER TABLE support_tickets ADD COLUMN priority INTEGER NOT NULL DEFAULT 0'); } catch (e) {}   // Premium owners' messages go first
 export const support = {
-  add: (uid, topic, email, body, page) => q('INSERT INTO support_tickets (user_id, topic, email, body, page, created) VALUES (?, ?, ?, ?, ?, ?)').run(uid, topic, email, body, page, now()).lastInsertRowid,
-  open: () => q('SELECT t.id, t.topic, t.email, t.body, t.page, t.created, u.roblox_name, u.roblox_id, u.name, u.discord_id, u.suspended FROM support_tickets t LEFT JOIN users u ON u.id = t.user_id WHERE t.closed IS NULL ORDER BY t.created DESC LIMIT 200').all(),
+  add: (uid, topic, email, body, page, prio = false) => q('INSERT INTO support_tickets (user_id, topic, email, body, page, created, priority) VALUES (?, ?, ?, ?, ?, ?, ?)').run(uid, topic, email, body, page, now(), prio ? 1 : 0).lastInsertRowid,
+  open: () => q('SELECT t.id, t.topic, t.email, t.body, t.page, t.created, t.priority, u.roblox_name, u.roblox_id, u.name, u.discord_id, u.suspended FROM support_tickets t LEFT JOIN users u ON u.id = t.user_id WHERE t.closed IS NULL ORDER BY t.priority DESC, t.created DESC LIMIT 200').all(),
   close: id => q('UPDATE support_tickets SET closed = ? WHERE id = ? AND closed IS NULL').run(now(), id).changes,
   recent: (uid, since) => q('SELECT COUNT(*) AS n FROM support_tickets WHERE user_id = ? AND created > ?').get(uid, since).n };
 // staff roles given from the Staff CAD's Team tab to someone who isn't on Oversite yet: applied the first time they open the server

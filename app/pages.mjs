@@ -78,6 +78,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xs{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#D5D8DD;padding:5px 11px;border-radius:999px;background:rgba(8,9,11,.72);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08)}
 .xs b{color:#fff;font-weight:600}.xs.full b{color:#F2C46E}
 .xr-badge{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#0B0B0C;background:#F0F2F5;padding:4px 10px;border-radius:999px}
+.xr-badge.ft{background:#F2C46E;color:#1A1203}.xr.is-ft{box-shadow:0 0 0 1px rgba(242,196,110,.55),0 18px 40px rgba(0,0,0,.35)}
 .xr-rank{font-size:11.5px;font-weight:600;color:#E9EAEC;padding:4px 9px;border-radius:999px;background:rgba(8,9,11,.72);border:1px solid rgba(255,255,255,.08)}
 .xr-code{position:absolute;right:14px;bottom:12px;z-index:3;display:flex;align-items:center;gap:7px;font:700 15px/1 inherit;font-family:inherit;letter-spacing:.05em;color:#fff;padding:7px 11px;border-radius:9px;background:rgba(8,9,11,.78);border:1px solid rgba(255,255,255,.2);box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .15s,border-color .15s}
 .xr-code small{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.6)}.xr-code:hover{background:rgba(8,9,11,.9);border-color:rgba(255,255,255,.4)}
@@ -219,7 +220,7 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .adm-r{flex-wrap:wrap}.adm-b{display:flex;gap:6px;flex:none}.adm-b .btn{min-width:0}.adm-r .adm-b .btn[data-k]{min-width:84px}
 .adm-x{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 2px 48px;border-top:1px solid var(--hair);margin-top:4px}
 .adm-ts{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
-.adm-t{font-style:normal;font-size:11px;font-weight:500;padding:2px 7px;border-radius:999px;border:1px solid var(--hair2);color:var(--dim)}.adm-t.warn{color:#F0C46E;border-color:rgba(233,176,76,.35)}.adm-t.bad{color:#F3A3A3;border-color:rgba(226,75,75,.4)}
+.adm-t{font-style:normal;font-size:11px;font-weight:500;padding:2px 7px;border-radius:999px;border:1px solid var(--hair2);color:var(--dim)}.adm-t.ok{color:#F2C46E;border-color:rgba(242,196,110,.4)}.adm-t.warn{color:#F0C46E;border-color:rgba(233,176,76,.35)}.adm-t.bad{color:#F3A3A3;border-color:rgba(226,75,75,.4)}
 .adm-rr .tx small{white-space:normal}.adm-rr q{display:block;margin-top:6px;color:#C9CDD3;font-size:13px;quotes:none}
 .btn.ghost{background:transparent}
 .btn.warnb{background:transparent;color:#F3A3A3;border-color:rgba(226,75,75,.35)}.btn.warnb:hover{background:rgba(226,75,75,.12);color:#FFC2C2}
@@ -346,11 +347,14 @@ const tl=[...document.querySelectorAll('.lg-toc a')];const io=new IntersectionOb
 ` }); };
 
 // Site admins only (see admins.mjs): reports from Explore, the blue check, and moderation of servers and people.
-export const admin = ({ logo, user, servers, reports, reasons, app = {}, tickets = [] }) => layout({ title: 'Moderation · Oversite', logo, user, body: `
+export const admin = ({ logo, user, servers, reports, reasons, app = {}, tickets = [], stripe = {} }) => layout({ title: 'Moderation · Oversite', logo, user, body: `
 <main class="adm"><h1>Moderation</h1><p class="lead">Reports from Explore, the blue check ${vbadge(18)} and suspensions. Only site admins can see this page.</p>
 <section class="card adm-app"><div class="adm-h"><h2>ER:LC application</h2><span id="aS">${app.hasKey ? (app.fromEnv ? 'Key set in Railway' : 'Key saved') + (app.appId ? ' · Client ID ' + esc(app.appId) : ' · no Client ID') : 'Not set up'}</span></div>
 <p class="note">ER:LC only lets Oversite serve more than one server as a registered application. Create it once at <a href="https://api.erlc.gg/developers/applications" target="_blank" rel="noopener">api.erlc.gg/developers/applications</a> (privacy policy ${esc('https://www.oversitescad.com/privacy')}, terms ${esc('https://www.oversitescad.com/terms')}), then paste its Global API Key and Client ID here. The key is stored encrypted and never shown again. The Client ID gives every server owner a one-click link to let Oversite run staff commands.</p>
 <form id="aF" autocomplete="off" class="adm-af"><input id="aK" type="password" placeholder="${app.hasKey ? 'Paste a new Global API Key to replace it' : 'Global API Key'}"${app.hasKey ? ' value="••••••••••••••••••••••••••••" data-saved="1"' : ''} aria-label="Global API Key"><input id="aI" placeholder="Client ID" value="${esc(app.appId || '')}" aria-label="Client ID" spellcheck="false"><button class="btn pri">Save and test</button></form><p class="msg" id="aM"></p></section>
+<section class="card adm-app"><div class="adm-h"><h2>Payments (Premium)</h2><span id="pyS">${stripe.ready ? (stripe.live ? 'Live' : 'Test mode') + (stripe.webhook ? ' · webhook set' : ' · no webhook') : 'Not set up'}</span></div>
+<p class="note">Premium is sold with Stripe. The Stripe account must belong to an adult. In Stripe: Developers → API keys, copy the <b>secret key</b>. Then Developers → Webhooks → Add endpoint <code>${esc('https://www.oversitescad.com/api/stripe/webhook')}</code> with the events <code>checkout.session.completed</code>, <code>customer.subscription.updated</code>, <code>customer.subscription.deleted</code> and <code>invoice.paid</code>, and copy its <b>signing secret</b>. Turn on the customer portal under Settings → Billing so owners can cancel.</p>
+<form id="pyF" autocomplete="off" class="adm-af"><input id="pyK" type="password" placeholder="${stripe.ready ? 'Paste a new secret key to replace it' : 'Secret key (sk_live_…)'}" aria-label="Stripe secret key"><input id="pyW" type="password" placeholder="${stripe.webhook ? 'Paste a new signing secret' : 'Webhook signing secret (whsec_…)'}" aria-label="Webhook signing secret"><button class="btn pri">Save</button></form><p class="msg" id="pyM"></p></section>
 <section class="card adm-rep"><div class="adm-h"><h2>Reports</h2><span id="rN"></span></div><div class="adm-l" id="rL"></div></section>
 <section class="card adm-rep"><div class="adm-h"><h2>Support</h2><span id="tN"></span></div><div class="adm-l" id="tL"></div></section>
 <div class="adm-cols">
@@ -374,9 +378,9 @@ const rRow=x=>'<div class="adm-r adm-rr">'+sIc(x)+'<div class="tx"><b>'+e(x.name
   +(x.review_id?(x.review_body!=null?'<q>'+'★'.repeat(x.review_rating)+' '+e(x.review_body)+'</q><small>Review by '+e(x.review_by||'someone')+' · <a href="/'+e(x.slug)+'/about#reviews" target="_blank">open page</a></small>':'<q>This review was already deleted.</q>'):(x.details?'<q>'+e(x.details)+'</q>':''))+'</div>'
   +'<div class="adm-b">'+(x.review_id?(x.review_body!=null?'<button class="btn sm warnb" data-rvd="'+x.review_id+'">Remove review</button>':''):(x.hidden?'':act('hide',x.community_id,'Hide server','warnb')))+'<button class="btn sm" data-dismiss="'+x.id+'">Dismiss</button></div></div>';
 const sRow=x=>'<div class="adm-r'+(x.verified?' on':'')+(x.suspended?' off':'')+'" data-srv="'+x.id+'">'+sIc(x)+'<div class="tx"><b>'+e(x.name)+(x.verified?VB:'')+'</b><small>/'+e(x.slug)+' · '+(x.owner_rbx||x.owner_name?'by '+e(x.owner_rbx||x.owner_name)+' · ':'')+x.members+' member'+(x.members===1?'':'s')+(x.listed&&!x.hidden?' · On Explore':'')+'</small>'
-  +((x.open_reports||x.hidden||x.suspended)?'<span class="adm-ts">'+(x.open_reports?tag(x.open_reports+' report'+(x.open_reports===1?'':'s'),'warn'):'')+(x.hidden?tag('Hidden from Explore','dim'):'')+(x.suspended?tag('Suspended','bad'):'')+'</span>':'')+'</div>'
+  +((x.open_reports||x.hidden||x.suspended||x.prem_until>Date.now())?'<span class="adm-ts">'+(x.prem_until>Date.now()?tag('Premium','ok'):'')+(x.open_reports?tag(x.open_reports+' report'+(x.open_reports===1?'':'s'),'warn'):'')+(x.hidden?tag('Hidden from Explore','dim'):'')+(x.suspended?tag('Suspended','bad'):'')+'</span>':'')+'</div>'
   +'<div class="adm-b">'+vbtn('server',x.id,x.verified)+'<button class="btn sm ghost" data-more="'+x.id+'" aria-expanded="'+open.has(x.id)+'">Manage</button></div>'
-  +(open.has(x.id)?'<div class="adm-x">'+act(x.hidden?'show':'hide',x.id,x.hidden?'Show on Explore':'Hide from Explore')+(x.custom_icon?act('reset_icon',x.id,'Reset icon'):'')+(x.photos?act('clear_photos',x.id,'Remove photos'):'')+(x.has_bio?act('clear_bio',x.id,'Clear bio'):'')+'<a class="btn sm" href="/'+e(x.slug)+'">Open CAD</a>'+act(x.suspended?'unsuspend':'suspend',x.id,x.suspended?'Lift suspension':'Suspend server',x.suspended?'':'warnb')+'</div>':'')+'</div>';
+  +(open.has(x.id)?'<div class="adm-x">'+act(x.hidden?'show':'hide',x.id,x.hidden?'Show on Explore':'Hide from Explore')+(x.custom_icon?act('reset_icon',x.id,'Reset icon'):'')+(x.photos?act('clear_photos',x.id,'Remove photos'):'')+(x.has_bio?act('clear_bio',x.id,'Clear bio'):'')+'<a class="btn sm" href="/'+e(x.slug)+'">Open CAD</a>'+(x.prem_until>Date.now()?'<button class="btn sm" data-pm="off" data-id="'+x.id+'">Turn off Premium</button>':'<button class="btn sm" data-pm="30" data-id="'+x.id+'">Premium 30 days</button><button class="btn sm" data-pm="forever" data-id="'+x.id+'">Premium forever</button>')+act(x.suspended?'unsuspend':'suspend',x.id,x.suspended?'Lift suspension':'Suspend server',x.suspended?'':'warnb')+'</div>':'')+'</div>';
 const pRow=x=>'<div class="adm-r'+(x.verified?' on':'')+(x.suspended?' off':'')+'"><span class="pic">'+ini(x.roblox_name)+'<img src="/rbx/avatar/'+e(x.roblox_id)+'" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>'+e(x.roblox_name)+(x.verified?VB:'')+'</b><small>Roblox '+e(x.roblox_id)+(x.discord?' · Discord '+e(x.discord_name||''):'')+' · '+x.servers+' server'+(x.servers===1?'':'s')+'</small>'+(x.suspended?'<span class="adm-ts">'+tag('Suspended','bad')+'</span>':'')+'</div>'
   +'<div class="adm-b">'+vbtn('user',x.id,x.verified)+'<button class="btn sm'+(x.suspended?'':' warnb')+'" data-p="'+(x.suspended?'unsuspend':'suspend')+'" data-id="'+x.id+'">'+(x.suspended?'Unsuspend':'Suspend')+'</button></div></div>';
 const TOP=${JSON.stringify(SUPPORT_TOPICS)};const tAgo=t=>{const s=(Date.now()-t)/1000;return s<3600?Math.max(1,Math.round(s/60))+'m ago':s<86400?Math.round(s/3600)+'h ago':Math.round(s/86400)+'d ago'};let T=${JSON.stringify(tickets).replace(/</g, '\\u003c')};const tL=document.getElementById('tL');
@@ -399,6 +403,7 @@ const CONFIRM={suspend:id=>({title:'Suspend '+sName(id)+'?',text:'Its CAD closes
 sQ.addEventListener('input',drawS);pQ.addEventListener('input',()=>{clearTimeout(pt);pt=setTimeout(loadP,200)});
 document.addEventListener('click',async ev=>{
   const m=ev.target.closest('[data-more]');if(m){const id=+m.dataset.more;open.has(id)?open.delete(id):open.add(id);drawS();return}
+  const pm=ev.target.closest('[data-pm]');if(pm){const id=+pm.dataset.id,v=pm.dataset.pm,x=S.find(y=>y.id===id);pm.disabled=true;try{const j=await api('/api/admin/premium',v==='off'?{id,off:true}:v==='forever'?{id,forever:true}:{id,days:+v});if(x)x.prem_until=j.premium.on?j.premium.until:0;drawS()}catch(err){pm.disabled=false;await ask({title:'That didn\'t work',text:err.message,ok:'OK'})}return}
   const rv=ev.target.closest('[data-rvd]');if(rv){if(!(await ask({title:'Remove this review?',text:'It is removed from the server page for everyone.',ok:'Remove review',danger:true})))return;rv.disabled=true;try{fresh(await api('/api/admin/review',{id:+rv.dataset.rvd}))}catch(x){rv.disabled=false}return}
   const b=ev.target.closest('[data-k],[data-a],[data-p],[data-dismiss]');if(!b)return;const id=+(b.dataset.id||b.dataset.dismiss);
   try{
@@ -409,6 +414,8 @@ document.addEventListener('click',async ev=>{
     if(b.dataset.dismiss){b.disabled=true;fresh(await api('/api/admin/report',{id}));return}
   }catch(x){b.disabled=false;await ask({title:'That didn\\'t work',text:x.message,ok:'OK'})}});
 drawR();drawS();loadP();
+{const f=document.getElementById('pyF');if(f)f.addEventListener('submit',async e=>{e.preventDefault();const k=document.getElementById('pyK'),w=document.getElementById('pyW'),m=document.getElementById('pyM');
+  try{const j=await api('/api/admin/stripe',{key:k.value.trim(),whsec:w.value.trim()});k.value='';w.value='';document.getElementById('pyS').textContent=j.ready?(j.live?'Live':'Test mode')+(j.webhook?' · webhook set':' · no webhook'):'Not set up';say(m,'Saved.',true)}catch(x){say(m,x.message)}})}
 ` });
 
 export const dashboard = ({ logo, user, comms, discordLinkable, pending, welcome, discord, robloxOAuth }) => { const rbx = `<section class="card" id="rbx"><h2 class="hrow">Your Roblox account${user.roblox_name ? '<span class="tag ok">Linked</span>' : '<span class="tag warn">Not linked</span>'}</h2>
@@ -496,7 +503,7 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 <label>Issued<input id="lIss" type="date"></label>
 <div class="row wide"><button class="btn pri">Save license</button><span class="msg" id="licmsg"></span></div></form>` : '<p class="note">Link your Roblox account first. Your license uses your Roblox photo and username.</p>'}</section>
 <section class="card"><h2>Sign out</h2><p class="note">Signs you out on this device. You'll need your sign-in again to get back in.</p><form method="post" action="/auth/logout" style="margin:0"><button class="btn danger">Sign out</button></form></section>
-</div></div></main><script src="/license-card.js?v=2"></script>
+</div></div></main><script src="/license-card.js?v=3"></script>
 <style>.licw{position:relative;width:100%;max-width:400px;aspect-ratio:400/250;margin:6px 0 14px}.licw .lcard{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(var(--ls,1))}
 .licf{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.licf label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim);min-width:0}.licf .wide{grid-column:1/-1}
 .licf input,.licf select{width:100%;min-width:0}.licf .lh{display:grid;grid-template-columns:1fr 1fr;gap:6px}.licf .row{align-items:center;gap:12px}</style>`, script: `
@@ -536,7 +543,7 @@ export const explore = ({ logo, user, servers, owned }) => layout({ title: 'Expl
 </main>
 <div class="xp-toast" id="xtoast" role="status" aria-live="polite"></div>
 <dialog class="xp-dlg" id="xd" aria-labelledby="xdT"><div class="xp-dlgin" id="xdB"></div></dialog>`, script: `
-const ME=${user ? 1 : 0};let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};let TAB='trending';
+const ME=${user ? 1 : 0};let S=${JSON.stringify(servers).replace(/</g, '\\u003c')};const OWNED=${JSON.stringify(owned).replace(/</g, '\\u003c')};let TAB='trending',TOPI=0;
 // ER:LC's own join links open Roblox straight into a private server by its code
 const JOIN=c=>'https://erlc.gg/join/'+encodeURIComponent(c);
 const g=document.getElementById('xg'),q=document.getElementById('xq'),em=document.getElementById('xe'),dlg=document.getElementById('xd'),tabs=document.getElementById('xt');
@@ -568,8 +575,8 @@ const voteBtn=x=>x.next_vote>0?'<button class="xb ghost voted" data-vote="'+e(x.
 const acts=x=>(x.join_key?'<a class="xb pri" href="'+e(JOIN(x.join_key))+'" target="_blank" rel="noopener" data-play="'+e(x.join_key)+'" title="Join '+e(x.name)+' in ER:LC">'+PLAY+'Join</a>':'')+(x.role?'<a class="xb" href="/'+e(x.slug)+'" title="Open the CAD for '+e(x.name)+'">'+CADI+'Open CAD</a>':x.open_join?'<button class="xb" data-joincad="'+e(x.slug)+'" title="Join this server on Oversite">'+CADI+'Join CAD</button>':'')+voteBtn(x)
   +(x.invite?'<a class="xb ghost" href="'+e(x.invite)+'" target="_blank" rel="noopener" title="Join their Discord">'+DC+'Discord</a>':'');
 const pct=x=>x.live&&x.max?Math.min(100,Math.round(x.players/x.max*100)):0;
-const card=(x,i)=>'<article class="xr st-'+state(x)+(i===0?' is-top':'')+'" tabindex="0" data-slug="'+e(x.slug)+'"'+(x.role?' data-mine="1"':'')+' aria-label="'+e(x.name)+'">'
-  +'<div class="xr-map'+(x.photos&&x.photos.length?' ph':'')+'" style="--pos:'+spot(x)+(x.photos&&x.photos.length?';background-image:url(/c/'+e(x.slug)+'/photos/'+x.photos[0]+')'+(x.ppos&&x.ppos[0]?';background-position:'+(+x.ppos[0][0])+'% '+(+x.ppos[0][1])+'%':''):'')+'"><div class="xr-mt">'+status(x)+(i===0?'<span class="xr-badge">'+(TAB==='new'?'Newest':TAB==='voted'?'Most voted':TAB==='popular'?'Most popular':'Most active')+'</span>':i<3?'<span class="xr-rank">#'+(i+1)+'</span>':'')+'</div>'
+const card=(x,i)=>'<article class="xr st-'+state(x)+(i===TOPI?' is-top':'')+(x.featured?' is-ft':'')+'" tabindex="0" data-slug="'+e(x.slug)+'"'+(x.role?' data-mine="1"':'')+' aria-label="'+e(x.name)+'">'
+  +'<div class="xr-map'+(x.photos&&x.photos.length?' ph':'')+'" style="--pos:'+spot(x)+(x.photos&&x.photos.length?';background-image:url(/c/'+e(x.slug)+'/photos/'+x.photos[0]+')'+(x.ppos&&x.ppos[0]?';background-position:'+(+x.ppos[0][0])+'% '+(+x.ppos[0][1])+'%':''):'')+'"><div class="xr-mt">'+status(x)+(x.featured?'<span class="xr-badge ft" title="Boosted with Premium">Featured</span>':'')+(i===TOPI?'<span class="xr-badge">'+(TAB==='new'?'Newest':TAB==='voted'?'Most voted':TAB==='popular'?'Most popular':'Most active')+'</span>':i<3?'<span class="xr-rank">#'+(i+1)+'</span>':'')+'</div>'
   +(x.join_key?'<button type="button" class="xr-code" data-copycode="'+e(x.join_key)+'" title="Copy the join code"><small>Code</small>'+e(x.join_key)+'</button>':'')+'<div class="xr-bar"><i style="width:'+pct(x)+'%"></i></div></div>'
   +'<div class="xr-b"><div class="xr-h">'+ic(x)+'<div class="xr-n"><h3>'+e(x.name)+(x.badge?VB:'')+'</h3>'+by(x)+'</div>'+'</div>'
   +'<div class="xr-m">'+meta(x)+'</div><p class="'+(x.bio?'':'none')+'">'+e(x.bio||'No description yet.')+'</p>'
@@ -578,7 +585,8 @@ const row=card;
 const render=()=>{ const t=q.value.trim().toLowerCase(), k=SORT[TAB];
   const L=S.filter(x=>!t||[x.name,x.bio,x.owner_name,x.ingame,x.discord,x.region&&x.region.name,x.lang&&x.lang.name,...x.depts.map(d=>d.name+' '+d.short)].join(' ').toLowerCase().includes(t))
     .filter(x=>TAB!=='active'||(x.live&&x.players!=null))
-    .sort((a,b)=>k(b)-k(a)||b.votes-a.votes||a.name.localeCompare(b.name));
+    .sort((a,b)=>(TAB==='trending'&&!t?(b.featured?1:0)-(a.featured?1:0):0)||k(b)-k(a)||b.votes-a.votes||a.name.localeCompare(b.name));   // boosted servers lead Trending
+  TOPI=L.findIndex(x=>!(TAB==='trending'&&!t&&x.featured));
   g.innerHTML=L.map(row).join(''); em.hidden=!!L.length;
   if(!L.length) em.innerHTML=TAB==='active'&&!t?'<b>No servers are online right now.</b><p>Servers show up here while they are running. Check Trending in the meantime.</p>':S.length?'<b>No servers match that.</b><p>Try a different search.</p>'
     :'<b>No servers are listed yet.</b><p>Owners can add theirs in their server\\'s Settings, under Server profile.</p>'+(OWNED.length?'<a class="btn pri" href="/'+e(OWNED[0])+'/settings#profile">List your server</a>':''); };
@@ -619,9 +627,54 @@ setInterval(async()=>{ if(document.hidden||dlg.open) return; try{ const r=await 
 ` });
 
 const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
-export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {} }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
+// what each plan gets; the Premium page and the Settings card both read these
+export const FREE_FEATURES = ['Dispatch live map, calls and units', 'Fire, Police and DOT MDTs', 'Panic button', 'Police lookup, tickets, warnings and BOLOs', 'Police records from the last 30 days', 'Discord role linking', 'Explore listing, vote link and reviews'];
+export const PREMIUM_FEATURES = [['Proximity chat', 'Players hear each other by distance in game.'], ['Server Staff CAD', 'Mod calls, records, bans, logs, the Team tab and in-game commands.'],
+  ['Custom license', 'Your own title, color and seal on the MDT license card.'], ['3 Explore ad credits a month', 'Each one puts your server at the top of Explore, marked Featured, for 24 hours.'],
+  ['External bot access', 'An API key so your own Discord bot can read players, calls, 10-codes and records.'], ['Police records kept forever', 'Free servers see the last 30 days.'],
+  ['Priority support and feature requests', 'Your messages go to the top of our inbox.'], ['Automatic plate and warrant checks', 'Start a traffic stop and the plate, owner, warrants and BOLOs are checked for you.'],
+  ['Server logo on the CAD and MDT', 'Your server icon replaces the Oversite logo for your members.']];
+const CHK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>';
+const PREM_CSS = `.pm-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}.pm-list li{display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start}.pm-list svg{color:#F2C46E;margin-top:2px}.pm-list b{display:block;font-weight:600}.pm-list small{display:block;color:var(--dim);font-size:13px;margin-top:1px}
+.pm-plans{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 12px}.pm-plan{display:grid;gap:2px;padding:14px;border-radius:12px;border:1px solid var(--hair2);background:rgba(255,255,255,.03);cursor:pointer;text-align:left;font:inherit;color:inherit}
+.pm-plan b{font-size:20px}.pm-plan small{color:var(--dim)}.pm-plan[aria-pressed="true"]{border-color:#F2C46E;background:rgba(242,196,110,.08)}.pm-plan em{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#F2C46E}
+.pm-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1A1203;background:#F2C46E;padding:4px 10px;border-radius:999px}
+.pm-sub{margin-top:18px;padding-top:16px;border-top:1px solid var(--hair)}.pm-sub h3{margin:0 0 4px;font-size:14px}.pm-key{display:flex;gap:8px;align-items:center;margin-top:10px}.pm-key code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--hair);font-size:12.5px;user-select:all}
+.pm-lic{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}.pm-prev{width:248px;height:156px;overflow:hidden;border-radius:9px}.pm-prev .lcard{transform:scale(.62);transform-origin:top left}@media (max-width:700px){.pm-plans,.pm-lic{grid-template-columns:1fr}}`;
+// the Premium box in a server's Settings: buy it, or use what it gives
+const premiumCard = (c, role, prem, payments, justBought) => { const canBuy = runs(role) || role === 'co_owner', S = c.settings.licenseStyle || {};
+  if (!prem.on) return `<section class="card" id="premium"><style>${PREM_CSS}</style><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">Oversite Premium</h2><span class="pm-tag">$5 a month</span></div>
+<p class="note">Everything in Free, plus:</p><ul class="pm-list">${PREMIUM_FEATURES.map(([t, d]) => `<li>${CHK}<span><b>${esc(t)}</b><small>${esc(d)}</small></span></li>`).join('')}</ul>
+${canBuy ? `<div class="pm-plans" role="group" aria-label="Billing"><button type="button" class="pm-plan" data-plan="month" aria-pressed="false"><small>Monthly</small><b>$5</b><small>a month</small></button><button type="button" class="pm-plan" data-plan="year" aria-pressed="true"><em>Save 50%</em><b>$30</b><small>a year</small></button></div>
+<div class="row"><button class="btn pri" id="pmBuy"${payments ? '' : ' disabled'}>Get Premium</button><a class="btn" href="/premium">Compare plans</a></div>
+<p class="msg${payments ? '' : ' err'}" id="pmMsg">${payments ? 'Pay securely with Stripe. Cancel any time from here.' : 'Payments open soon. To get Premium now, <a href="/support?topic=billing">message Oversite support</a>.'}</p>` : '<p class="note" style="margin-top:14px">Only the owner or a co-owner can buy Premium for this server.</p>'}</section>`;
+  const end = prem.forever ? 'Given by Oversite, no end date.' : `${prem.cancelling ? 'Ends' : prem.source === 'stripe' ? 'Renews' : 'Ends'} ${new Date(prem.until - (prem.source === 'stripe' ? 2 * 864e5 : 0)).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}${prem.source === 'stripe' ? (prem.plan === 'year' ? ', $30 a year.' : ', $5 a month.') : '.'}`;
+  return `<section class="card" id="premium"><style>${PREM_CSS}</style><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">Oversite Premium</h2><span class="pm-tag">${CHK}Active</span></div>
+${justBought ? '<p class="msg ok" style="margin-top:10px">Thanks! Premium is on for this server.</p>' : ''}<p class="note">${esc(end)}</p>
+${prem.billing && canBuy ? '<div class="row"><button class="btn sm" id="pmPortal">Manage billing</button></div>' : ''}
+<div class="pm-sub"><h3>Explore ad credits</h3><p class="note" id="pmCred">${prem.featured ? `Featured on Explore until ${new Date(prem.featured).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}.` : `${prem.credits} of 3 left this month. One puts ${esc(c.name)} at the top of Explore for 24 hours.`}</p>
+${canBuy ? `<button class="btn sm pri" id="pmBoost"${prem.featured || !prem.credits ? ' disabled' : ''}>Boost on Explore</button>` : ''}</div>
+<div class="pm-sub"><h3>Custom license</h3><p class="note">The license card your members scan to sign in to the MDT.</p>
+<div class="pm-lic"><form id="pmLic" autocomplete="off"><label for="pmLt">Title</label><input id="pmLt" maxlength="22" value="${esc(S.title || c.name.slice(0, 22))}"${canBuy ? '' : ' disabled'}>
+<div class="cols2"><div><label for="pmLc">Color</label><input id="pmLc" type="color" value="${esc(S.color || '#38542A')}" style="height:40px;padding:4px"${canBuy ? '' : ' disabled'}></div><div><label for="pmLs">Seal</label><select id="pmLs"${canBuy ? '' : ' disabled'}><option value="default"${S.seal !== 'icon' ? ' selected' : ''}>Liberty County seal</option><option value="icon"${S.seal === 'icon' ? ' selected' : ''}>Your server icon</option></select></div></div>
+${canBuy ? '<div class="row" style="margin-top:10px"><button class="btn sm pri">Save license</button><button type="button" class="btn sm" id="pmLr">Use the standard license</button></div><p class="msg" id="pmLm"></p>' : ''}</form><div class="pm-prev" id="pmPrev" aria-label="Preview"></div></div></div>
+<div class="pm-sub"><h3>Bot access</h3><p class="note">Your own Discord bot can read players, calls, 10-codes and police records. Send <code>Authorization: Bot &lt;key&gt;</code> to <code>/api/bot/v1/players</code>, <code>calls</code>, <code>status</code>, <code>records</code> or <code>server</code>. 60 requests a minute.</p>
+<div id="pmBot">${prem.botKey ? `<p class="note">Key ending in <b>${esc(prem.botHint)}</b> is active.</p>` : '<p class="note">No key yet.</p>'}</div>
+${canBuy ? `<div class="row"><button class="btn sm" id="pmKey">${prem.botKey ? 'Make a new key' : 'Make a key'}</button>${prem.botKey ? '<button class="btn sm danger" id="pmKeyDel">Turn off</button>' : ''}</div>` : ''}</div>
+<div class="pm-sub"><h3>Also on</h3><p class="note">Proximity chat, the Server Staff CAD, police records kept forever, automatic plate and warrant checks, your server icon on the CAD and MDT, and priority support. <a href="/support?topic=feature">Send a feature request</a>.</p></div></section>`; };
+// /premium: what Free and Premium get, and where to buy
+export const premiumPage = ({ logo, user, owned = [], payments }) => layout({ title: 'Premium · Oversite', logo, user, body: `<style>${PREM_CSS}.pp{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}.pp .card h2{display:flex;align-items:baseline;justify-content:space-between;gap:10px}.pp .card h2 small{font-size:14px;color:var(--dim);font-weight:500}.pp .free .pm-list svg{color:var(--dim)}@media (max-width:820px){.pp{grid-template-columns:1fr}}</style>
+<main><h1>Oversite <b>Premium</b></h1><p class="lead">One plan for your whole server. Everyone on it gets Premium: dispatch, officers and staff.</p>
+<div class="pp"><section class="card free"><h2>Free <small>$0</small></h2><ul class="pm-list">${FREE_FEATURES.map(t => `<li>${CHK}<span><b>${esc(t)}</b></span></li>`).join('')}</ul></section>
+<section class="card"><h2>Premium <small>$5 a month or $30 a year</small></h2><p class="note">Everything in Free, plus:</p><ul class="pm-list">${PREMIUM_FEATURES.map(([t, d]) => `<li>${CHK}<span><b>${esc(t)}</b><small>${esc(d)}</small></span></li>`).join('')}</ul>
+<div style="margin-top:18px">${owned.length ? `<label for="ppS">Your server</label><select id="ppS">${owned.map(o => `<option value="${esc(o.slug)}">${esc(o.name)}${o.premium ? ' (already Premium)' : ''}</option>`).join('')}</select><div class="row" style="margin-top:12px"><a class="btn pri" id="ppGo" href="/${esc(owned[0].slug)}/settings#premium">Get Premium</a></div>`
+  : user ? '<p class="note">Premium is bought by a server\'s owner or a co-owner, from that server\'s Settings.</p><a class="btn pri" href="/dashboard">Go to your dashboard</a>' : '<a class="btn pri" href="/?next=/premium">Sign in to get Premium</a>'}
+${payments ? '' : '<p class="note" style="margin-top:10px">Card payments open soon. Until then, <a href="/support?topic=billing">message support</a> to get Premium.</p>'}</div></section></div></main>`,
+  script: `const s=document.getElementById('ppS'),g=document.getElementById('ppGo');if(s&&g)s.onchange=()=>{g.href='/'+s.value+'/settings#premium'};` });
+export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main><h1><b>${esc(c.name)}</b> settings</h1><p class="lead">${isNew ? 'Your server is ready. Connect it to ER:LC, then give your members the invite code.' : 'Manage your server connection, codes, departments and members.'}</p>
 <div class="row" style="margin:-8px 0 20px"><a class="btn sm pri" href="/${esc(c.slug)}">Open CAD</a></div>
+${premiumCard(c, role, prem, payments, justBought)}
 ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord server to finish</h2><p class="note">Every Oversite server is tied to its Discord. Members can't open the CAD until it's connected, and it's where you pick which Discord roles are Admin and Mod.</p></div><a class="btn discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord server</a></section>` : ''}
 <div class="grid"><div>
 <section class="card"><h2>ER:LC server</h2>
@@ -688,6 +741,21 @@ ${runs(role) ? `<section class="card" id="discord"><h2 class="hrow">Discord serv
 ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p class="note">Removes the server from Oversite with its settings, codes and member list. This cannot be undone.</p><button class="btn danger" id="del">Delete ${esc(c.name)}</button></section>` : ''}
 </div></div></main>`, script: `
 const A='/c/${esc(c.slug)}/api';
+/* Premium */
+{const pm=document.getElementById('premium');if(pm){let plan='year';const PM=document.getElementById('pmMsg');
+  pm.querySelectorAll('[data-plan]').forEach(b=>b.onclick=()=>{plan=b.dataset.plan;pm.querySelectorAll('[data-plan]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+  const go=async(path,body,btn)=>{if(btn)btn.disabled=true;try{const j=await api(A+'/premium/'+path,body||{});if(j.url){location.href=j.url;return null}return j}catch(e){if(PM)say(PM,e.message);else alert(e.message);if(btn)btn.disabled=false;return null}};
+  const buy=document.getElementById('pmBuy');if(buy)buy.onclick=()=>go('checkout',{plan},buy);
+  const po=document.getElementById('pmPortal');if(po)po.onclick=()=>go('portal',{},po);
+  const bo=document.getElementById('pmBoost');if(bo)bo.onclick=async()=>{const j=await go('boost',{},bo);if(j){document.getElementById('pmCred').textContent='Featured on Explore for the next 24 hours. '+j.credits+' of 3 boosts left this month.'}};
+  const prev=document.getElementById('pmPrev'),lt=document.getElementById('pmLt'),lc=document.getElementById('pmLc'),ls=document.getElementById('pmLs');
+  const draw=()=>{if(!prev||!window.LicenseCard)return;prev.innerHTML=LicenseCard.html({user:'${esc(user.roblox_name || 'player')}',rid:'${esc(user.roblox_id || '')}',display:'${esc(user.roblox_name || 'Player')}',age:'21',occ:'Police Officer',gndr:'M',hair:'BRN',eyes:'BRN',hgt:"5' 11\\"",wgt:'170 lbs',iss:'2024-01-01',title:lt.value||'${esc(c.name.slice(0, 22))}',color:lc.value,seal:ls.value==='icon'?'/c/${esc(c.slug)}/icon':''})};
+  if(lt){[lt,lc,ls].forEach(x=>x.addEventListener('input',draw));const sc=document.createElement('script');sc.src='/license-card.js?v=3';sc.onload=draw;document.head.appendChild(sc);
+    const lf=document.getElementById('pmLic'),lm=document.getElementById('pmLm');if(lf&&lm){lf.addEventListener('submit',async e=>{e.preventDefault();try{await api(A+'/premium/license',{title:lt.value,color:lc.value,seal:ls.value});say(lm,'Saved. Members see it the next time they sign in to the MDT.',true)}catch(x){say(lm,x.message)}});
+      document.getElementById('pmLr').onclick=async()=>{try{await api(A+'/premium/license',{reset:true});lt.value='${esc(c.name.slice(0, 22))}';lc.value='#38542A';ls.value='default';draw();say(lm,'Back to the standard Liberty County license.',true)}catch(x){say(lm,x.message)}}}}
+  const kb=document.getElementById('pmKey'),kd=document.getElementById('pmKeyDel'),box=document.getElementById('pmBot');
+  if(kb)kb.onclick=async()=>{const j=await go('botkey',{},kb);if(j){box.innerHTML='<p class="note">Copy this key now. It is only shown once.</p><div class="pm-key"><code></code><button class="btn sm" type="button" data-copy="">Copy</button></div>';box.querySelector('code').textContent=j.key;box.querySelector('[data-copy]').dataset.copy=j.key;kb.textContent='Make a new key';kb.disabled=false}};
+  if(kd)kd.onclick=async()=>{const j=await go('botkey/delete',{},kd);if(j){box.innerHTML='<p class="note">Bot access is off.</p>';kd.remove()}};}}
 // ── server profile ──
 (()=>{const P=document.getElementById('profile');if(!P)return;const m=document.getElementById('spMsg'),f=document.getElementById('spFile');
 const inv=document.getElementById('spInv'),code=v=>{const m=/(?:discord\\.gg|discord(?:app)?\\.com\\/invite)\\/([A-Za-z0-9-]{2,32})/i.exec(v);return m?m[1]:v.trim()};
@@ -780,7 +848,7 @@ export const join = ({ logo, user, c, code, action }) => layout({ title: `Join $
 <h1>Join <b>${esc(c.name)}</b></h1><p class="lead">You have been invited to this server's CAD on Oversite.</p>
 <form method="post" action="${esc(action || '/join/' + code)}" class="actions"><button class="btn pri">Join community</button></form></div></section>` });
 
-export const SUPPORT_TOPICS = { account: 'My account is suspended', server: 'My server is suspended', erlc: 'My ER:LC server won\'t connect', bug: 'Something on the site is broken', billing: 'Billing or refunds', other: 'Something else' };
+export const SUPPORT_TOPICS = { account: 'My account is suspended', server: 'My server is suspended', erlc: 'My ER:LC server won\'t connect', bug: 'Something on the site is broken', billing: 'Billing, Premium or refunds', feature: 'Feature request', other: 'Something else' };
 export const support = ({ logo, user, topic }) => layout({ title: 'Support · Oversite', logo, user, body: `
 <main class="acct" style="max-width:620px"><section class="card"><h2>Contact support</h2>
 <p class="note">Your message goes straight to the Oversite team. ${user ? `You're sending it as <b>${esc(user.roblox_name || user.name)}</b>, so we can see your account. Add an email if you'd like the reply there.` : 'Add your email so we can reply.'}</p>
