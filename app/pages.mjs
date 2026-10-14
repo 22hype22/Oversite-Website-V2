@@ -676,13 +676,32 @@ const ST_CSS = `.stm{max-width:1060px}
 .st-nav a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-radius:10px;color:var(--dim);text-decoration:none;font-size:14px;font-weight:500;transition:background .15s,color .15s}
 .st-nav a:hover{color:var(--ink);background:rgba(255,255,255,.04)}.st-nav a[aria-selected="true"]{color:var(--ink);background:rgba(255,255,255,.07)}
 .st-nav small{font-size:11.5px;color:var(--faint);font-weight:500}.st-nav small.warn{color:var(--warn)}
-.st-pane{display:none;max-width:720px}.st-pane.on{display:block}.st-pane>.card+.card,.st-pane>section+section{margin-top:18px}
+.st-pane{display:none;max-width:720px}.st-pane.on{display:block}.st-pane.wide{max-width:900px}#bounds [hidden]{display:none!important}
+.bd-row{display:flex;align-items:flex-start;gap:12px;margin:12px 0 0}.bd-l{flex:none;width:68px;padding-top:7px;font-size:12.5px;color:var(--faint)}
+.bd-chips{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.bd-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;border:1px solid var(--hair2);background:transparent;color:var(--dim);font:500 13px/1.2 inherit;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.bd-chip:hover{color:var(--ink);border-color:rgba(240,242,245,.24)}.bd-chip.on{color:#0d1416;background:var(--ink);border-color:var(--ink)}
+.bd-chip b{width:8px;height:8px;border-radius:50%;flex:none}.bd-chip small{font-size:11px;opacity:.7}.bd-chip i{font-style:normal;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ok)}.bd-chip.on i{color:#1d7a46}
+.bd-chip.add{border-style:dashed}
+.bd-pre{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0 80px}.bd-pre input{flex:1 1 160px;min-width:0;max-width:240px;padding:7px 11px}
+.bd-map{position:relative;margin:14px 0 0;aspect-ratio:1/1;max-height:72vh;border-radius:12px;overflow:hidden;border:1px solid var(--hair2);background:#0b1113}
+.bd-map svg{display:block;width:100%;height:100%;touch-action:none;cursor:grab;user-select:none}.bd-map svg:active{cursor:grabbing}
+.bd-map .bd-poly{cursor:pointer}.bd-map .bd-pt{cursor:move}.bd-map .bd-mid{cursor:copy}
+.bd-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1px solid var(--hair2);background:rgba(13,20,22,.86)}
+.bd-zoom button{width:34px;height:34px;border:0;background:transparent;color:var(--ink);font:500 17px/1 inherit;cursor:pointer}.bd-zoom button+button{border-top:1px solid var(--hair)}.bd-zoom button:hover{background:rgba(255,255,255,.06)}
+.bd-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}.bd-bar .hint{flex:1 1 220px;margin:0}
+.bd-opts{margin:16px 0 0;padding:14px 0 0;border-top:1px solid var(--hair)}.bd-opts .hint{margin:6px 0 0}
+.bd-grace{display:flex;align-items:center;gap:12px;margin:10px 0}.bd-grace label{margin:0}
+.bd-h{font-size:13px;font-weight:600;margin:20px 0 6px}.bd-log{list-style:none;margin:0;padding:0;font-size:13px}
+.bd-log li{display:flex;align-items:baseline;gap:12px;padding:8px 0;border-top:1px solid var(--hair);color:var(--dim)}.bd-log p{flex:1;min-width:0;margin:0}.bd-log li:first-child{border-top:0}.bd-log b{color:var(--ink);font-weight:600}
+.bd-log span{font-size:11.5px;color:var(--faint)}.bd-log time{flex:none;font-size:11.5px;color:var(--faint)}.bd-log .none{color:var(--faint)}
+@media (max-width:760px){.bd-pre{margin-left:0}.bd-l{width:auto}.bd-row{flex-direction:column;gap:6px}}.st-pane>.card+.card,.st-pane>section+section{margin-top:18px}
 @media (max-width:760px){.sx{grid-template-columns:1fr;gap:16px}.st-nav{position:sticky;top:0;z-index:5;flex-direction:row;overflow-x:auto;scrollbar-width:none;padding:6px 24px;margin:0 -24px;background:#0d1416;border-bottom:1px solid var(--hair)}.st-nav::-webkit-scrollbar{display:none}.st-nav a{flex:none;padding:7px 12px}.st-top{margin-bottom:12px}}`;
-export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
+export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false, bnd = { on: false, grace: 60, exemptStaff: true } }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main class="stm"><style>${ST_CSS}</style><div class="st-top"><div><h1><b>${esc(c.name)}</b> settings</h1>${isNew ? '<p class="lead">Your server is ready. Connect it to ER:LC, then give your members the invite code.</p>' : ''}</div><a class="btn sm pri" href="/${esc(c.slug)}">Open CAD</a></div>
 ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord server to finish</h2><p class="note">Every Oversite server is tied to its Discord. Members can't open the CAD until it's connected, and it's where you pick which Discord roles are Admin and Mod.</p></div><a class="btn discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord server</a></section>` : ''}
 <div class="sx">
-<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
+<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
 <div class="st-body">
 <div class="st-pane" id="tab-general" data-pane="general" role="tabpanel" aria-labelledby="t-general">
 <section class="card"><h2>ER:LC server</h2>
@@ -699,6 +718,23 @@ ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord s
 ${runs(role) ? `<section class="card" id="discord"><h2 class="hrow">Discord server<span class="tag" id="dgTag">…</span></h2><p class="note">Link your Discord server and choose which roles are <b>Admin</b> and which are <b>Mod</b>. Anyone with one of those roles who signs in with Discord gets that rank's staff tools, and loses them when the role is taken away. Everything else in the CAD follows the team they are on in game.</p><div id="dgBody"><p class="empty">Loading…</p></div><p class="msg" id="dgMsg"></p></section>` : ''}
 ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p class="note">Removes the server from Oversite with its settings, codes and member list. This cannot be undone.</p><button class="btn danger" id="del">Delete ${esc(c.name)}</button></section>` : ''}
 </div>
+<div class="st-pane wide" id="tab-bounds" data-pane="bounds" role="tabpanel" aria-labelledby="t-bounds">
+<section class="card" id="bounds" data-api="/c/${esc(c.slug)}/api"><h2 class="hrow">Boundaries<span class="tag" id="bdTag">${bnd.on ? 'On' : 'Off'}</span></h2>
+<p class="note">Draw where people are allowed to go: one area for the whole server, and one for each team if you want. Anyone who leaves theirs gets a message in game, and is loaded if they aren't back in time.</p>
+<div class="bd-row"><span class="bd-l">Presets</span><div class="bd-chips" id="bdSlots"></div></div>
+<div class="bd-pre"><input id="bdName" maxlength="32" aria-label="Preset name" placeholder="Preset name"><button type="button" class="btn sm" id="bdLive">Make this preset live</button><button type="button" class="btn sm" id="bdCopy">Duplicate</button><button type="button" class="btn sm danger" id="bdRm">Delete</button></div>
+<div class="bd-row"><span class="bd-l">Area for</span><div class="bd-chips" id="bdScope"></div></div>
+<div class="bd-map"><svg id="bdSvg" preserveAspectRatio="xMidYMid slice" aria-label="Map. Click to add corners, drag to move around, scroll to zoom."></svg>
+<div class="bd-zoom"><button type="button" id="bdIn" aria-label="Zoom in">+</button><button type="button" id="bdOut" aria-label="Zoom out">&minus;</button><button type="button" id="bdFit" aria-label="Show the whole map">&#9634;</button></div></div>
+<div class="bd-bar"><button type="button" class="btn sm pri" id="bdDraw">Draw area</button><button type="button" class="btn sm" id="bdUndo" hidden>Undo corner</button><button type="button" class="btn sm danger" id="bdDel" disabled>Delete area</button><p class="hint" id="bdHint"></p></div>
+<div class="bd-opts"><label class="chk"><input type="checkbox" id="bdOn"${bnd.on ? ' checked' : ''}> Enforce the live preset in game</label>
+<div class="bd-grace"><label for="bdGrace">Time to get back</label><select id="bdGrace">${[15, 30, 45, 60, 90, 120, 180, 300].map(t => `<option value="${t}"${+bnd.grace === t ? ' selected' : ''}>${t < 60 ? t + ' seconds' : t / 60 + (t === 60 ? ' minute' : ' minutes')}</option>`).join('')}</select></div>
+<label class="chk"><input type="checkbox" id="bdStaff"${bnd.exemptStaff ? ' checked' : ''}> Leave server staff alone (in-game admins and mods)</label>
+<p class="hint" id="bdHint2" hidden style="color:var(--warn)">Connect your ER:LC server in General first. Boundaries need in-game positions and staff commands.</p>
+<p class="hint">Oversite sends <code>:pm</code> when someone leaves and <code>:load</code> when their time is up, so the owner has to have allowed Oversite to run commands (General, ER:LC server).</p></div>
+<div class="row" style="margin-top:14px"><button class="btn pri" id="bdSave" disabled>Save</button><span class="hint" id="bdDirty" hidden>Unsaved changes</span></div><p class="msg" id="bdMsg"></p>
+<h3 class="bd-h">Recent</h3><ul class="bd-log" id="bdLog"></ul></section>
+<script src="/bounds-editor.js?v=3" defer></script></div>
 <div class="st-pane" id="tab-profile" data-pane="profile" role="tabpanel" aria-labelledby="t-profile">
 ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.name.slice(0, 1).toUpperCase());
   const fact = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;

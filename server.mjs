@@ -17,6 +17,7 @@ import * as discordlink from './app/discordlink.mjs';
 import * as staff from './app/staff.mjs';
 import * as police from './app/police.mjs';
 import * as premium from './app/premium.mjs';
+import * as bounds from './app/bounds.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin } from './app/admins.mjs';
@@ -188,6 +189,11 @@ const communityApi = async (req, res, slug, rest) => {
     const R = rideWith.all(c.id); if (w && R[w] === String(user.roblox_id)) rideWith.set(c.id, w, '');   // they were riding with you: now you ride with them instead
     rideWith.set(c.id, String(user.roblox_id), w); const out = { of: unitMembers.all(c.id), ride: rideWith.all(c.id) }; f.bcast('unitsof', JSON.stringify(out)); return json(res, { ok: true, ...out }); }
   if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can do that.' }, 403);
+  // jurisdiction boundaries: presets of areas per team, the live one enforced in game (app/bounds.mjs)
+  if (rest === 'bounds' && M === 'GET') { const A = 2000 / 5355, cal = c.settings.cal || [], off = cal.length ? [0, 1].map(i => cal.reduce((t, p) => t + (i ? p.wy - A * p.sz : p.wx - A * p.sx), 0) / cal.length / A) : [0, 0];
+    let players = []; try { if (f.snap && Date.now() - f.snap.t < 15000) players = (JSON.parse(f.snap.body).Players || []).filter(p => p.Location).map(p => ({ name: String(p.Player).split(':')[0], team: p.Team || '', x: p.Location.LocationX, z: p.Location.LocationZ })); } catch (e) {}
+    return json(res, { bounds: bounds.of(c), log: bounds.log(c), teams: Object.keys(c.settings.teams || {}), depts: c.settings.teams, off, players, connected: !!communities.key(c.id) }); }
+  if (rest === 'bounds' && M === 'POST') { const r = bounds.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/refresh' && M === 'POST') { const r = await profile.refresh(c); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/save' && M === 'POST') { const r = profile.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 5e5) || '{}'); } catch (e) {} const r = profile.setIcon(c, j.data); return json(res, r, r.error ? 400 : 200); }
@@ -528,7 +534,7 @@ const route = async (req, res) => {
     if (sub === '/voice') return page(res, voicePage({ logo: LOGO, user, c, settings: voice.voiceSettings(c), keyOk: !!communities.key(c.id), embed: url.searchParams.has('embed') }));
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium')})); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c)})); }
     return msg(res, user, 'Page not found', 'That page does not exist in this server.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path === '/premium') { const user = auth.currentUser(req), owned = user ? communities.forUser(user.id).filter(x => x.role === 'owner' || x.role === 'co_owner').map(x => ({ slug: x.slug, name: x.name, premium: premium.isPremium(x) })) : [];
     return page(res, pages.premiumPage({ logo: LOGO, user, owned, payments: premium.stripeReady() })); }
@@ -616,7 +622,7 @@ http.createServer((req, res) => {
     let u = null; try { u = auth.currentUser(req); } catch {}   // the database may be what broke
     msg(res, u, 'Something went wrong', 'Oversite hit an error loading this page. Try again in a moment. If it keeps happening, let us know.', { href: '/', label: 'Home' }, 500); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
-staff.startHistory(); profile.startDirectory(id => feeds.get(id)?.snap);
+staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); profile.startDirectory(id => feeds.get(id)?.snap);
 // once: the old owner link left extra "Owner" members behind; on servers a site admin made, they go back to plain members
 // (in-game staff still get their in-game rank in the CAD), and the server's creator can sort out anyone else from the Team tab
 // Premium launch: servers Oversite's own team runs get it for good; every server that existed before gets 30 days free, so nobody loses the Staff CAD or voice overnight

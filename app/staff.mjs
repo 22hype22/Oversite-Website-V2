@@ -85,6 +85,9 @@ const run = (c, key, command, by) => { const s = of(c.id);
   });
   s.queue = job.catch(() => {}); return job; };
 
+// a command Oversite sends by itself (boundaries): same queue and spacing as staff commands, credited to "Oversite Boundaries" in the command log
+export const command = (c, key, cmd) => run(c, key, cmd, { id: null, name: 'Oversite Boundaries' }).catch(() => ({ ok: false }));
+
 // a staff action: validate, run it in game if it has a command, and record it either way
 export const act = async (c, key, by, body) => {
   const kind = String(body.kind || ''); if (!KINDS.includes(kind)) return { error: 'Unknown action.' };
