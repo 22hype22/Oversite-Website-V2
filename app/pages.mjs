@@ -482,40 +482,40 @@ const ul=document.getElementById('unlink');if(ul)ul.addEventListener('click',asy
 ` }); };
 
 // the person's own account: who they are, what is linked, the servers they belong to
-// the Premium banner on the account page: big outlined shapes glowing faintly behind a bold headline, one gold phrase with a
-// hand-drawn underline, and one glowing button. The shapes are Oversite's own: the check, a boost, a map pin, a shield, bars.
-const PH_CSS = `.ph{position:relative;overflow:hidden;isolation:isolate;margin-bottom:18px;padding:64px 24px 46px;border-radius:20px;text-align:center;border:1px solid rgba(232,179,58,.16);
-background:radial-gradient(120% 90% at 50% 115%,rgba(232,179,58,.16),transparent 58%),radial-gradient(60% 60% at 50% 0%,rgba(255,255,255,.035),transparent 70%),#100d09}
-.ph-art{position:absolute;inset:0;z-index:-1;pointer-events:none}.ph-art svg{position:absolute;fill:url(#phFill);stroke:rgba(232,179,58,.42);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 14px rgba(232,179,58,.28));opacity:.55}
-.ph-art .a1{width:150px;left:4%;top:-26px}.ph-art .a2{width:190px;left:-46px;top:46%}.ph-art .a3{width:230px;left:50%;top:-150px;transform:translateX(-50%)}.ph-art .a4{width:170px;right:5%;top:-30px}.ph-art .a5{width:200px;right:-40px;top:44%}
-.ph-art:after{content:"";position:absolute;inset:0;background:radial-gradient(55% 70% at 50% 55%,#100d09 30%,rgba(16,13,9,.55) 65%,transparent)}
-.ph h2{margin:0 auto;max-width:none;font-size:clamp(32px,5.4vw,54px);line-height:1.04;font-weight:800;letter-spacing:-.035em;color:#F4F1EA}
-.ph h2 em{position:relative;display:inline-block;font-style:normal;color:#F0BE4A;padding-bottom:4px}.ph h2 em svg{position:absolute;left:-3%;bottom:-8px;width:106%;height:16px;overflow:visible;fill:none;stroke:#E8B33A;stroke-linecap:round}
-.ph .ph-sub{margin:20px auto 0;max-width:52ch;color:#B9B2A4;font-size:15px;line-height:1.55}.ph .ph-sub b{color:#F4F1EA;font-weight:600}
-.ph .pm-bill{justify-content:center;margin:26px 0 0}.ph .pm-seg button[aria-pressed="true"]{background:#F4F1EA;color:#1E1503}.ph .pm-bill>span{display:none}
-.ph-cta{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:22px}
-.ph-go{display:inline-flex;align-items:center;justify-content:center;min-width:190px;padding:13px 28px;border-radius:12px;border:1px solid rgba(255,214,120,.55);background:linear-gradient(180deg,#F3C556,#D99A1F);color:#1E1503;font-family:inherit;font-weight:700;font-size:15px;line-height:1;cursor:pointer;
-box-shadow:0 0 0 4px rgba(232,179,58,.12),0 10px 34px rgba(232,179,58,.32),inset 0 1px 0 rgba(255,255,255,.45);transition:transform .15s,box-shadow .2s}
-.ph-go:hover{transform:translateY(-1px);box-shadow:0 0 0 5px rgba(232,179,58,.16),0 14px 40px rgba(232,179,58,.4),inset 0 1px 0 rgba(255,255,255,.45)}.ph-go:active{transform:translateY(0) scale(.98)}.ph-go:disabled{opacity:.5;cursor:default;transform:none}
-.ph-cta a{color:#9D968A;font-size:13px;text-decoration:none}.ph-cta a:hover{color:#F4F1EA}.ph .msg{margin:14px 0 0;color:#8E887C;font-size:12.5px}
-@media (max-width:640px){.ph{padding:44px 18px 34px}.ph h2{line-height:1.14}.ph-art .a1,.ph-art .a4{display:none}.ph-art .a2,.ph-art .a5{width:130px}.ph-art .a3{width:170px;top:-110px}}`;
-const PH_ART = `<div class="ph-art" aria-hidden="true"><svg width="0" height="0" style="position:absolute"><defs><linearGradient id="phFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A1E0B"/><stop offset="1" stop-color="#120E08"/></linearGradient></defs></svg>
-<svg class="a1" viewBox="0 0 120 140"><rect x="8" y="58" width="26" height="74" rx="12"/><rect x="47" y="30" width="26" height="102" rx="12"/><rect x="86" y="6" width="26" height="126" rx="12"/></svg>
-<svg class="a2" viewBox="0 0 24 24" style="stroke-width:.45"><path d="M12 1.6l2.3 1.7 2.8-.3 1.1 2.6 2.6 1.1-.3 2.8L22.4 12l-1.9 2.5.3 2.8-2.6 1.1-1.1 2.6-2.8-.3L12 22.4l-2.3-1.9-2.8.3-1.1-2.6-2.6-1.1.3-2.8L1.6 12l1.9-2.5-.3-2.8 2.6-1.1 1.1-2.6 2.8.3z"/><path d="m7.8 12.3 2.8 2.8 5.6-5.8" style="fill:none;stroke-width:.9"/></svg>
-<svg class="a3" viewBox="0 0 120 130"><path d="M60 6 104 22v36c0 30-19 50-44 66C35 108 16 88 16 58V22Z"/><path d="M40 62l14 14 28-30" style="fill:none"/></svg>
-<svg class="a4" viewBox="0 0 120 130"><path d="M60 124S18 80 18 50a42 42 0 0 1 84 0c0 30-42 74-42 74Z"/><circle cx="60" cy="50" r="15"/></svg>
-<svg class="a5" viewBox="0 0 120 120"><path d="M20 70 60 30l40 40-14 14-26-26-26 26Z"/><path d="M20 104 60 64l40 40" style="fill:none"/></svg></div>`;
+// the Premium banner on the account page: the pitch on the left; on the right Oversite's own shapes, outlined and glowing
+// faintly: the tablet frame from the logo with the mark inside, wearing the gold check. Traced from the logo, not an icon set.
+const OV_MARK = 'M326 102C255 78 175 100 138 160C95 225 100 320 170 380C230 430 330 415 380 350C425 290 395 215 330 197C305 190 280 189 256 191L312 250L256 310L190 242Z';
+const OV_FRAME = 'M200 45H290L330 70H540L580 98H955L995 70H1240L1290 45H1336L1430 135V200L1396 236V790L1430 826V890L1340 978H1270L1240 952H995L955 924H580L540 952H300L200 978L108 890V826L142 790V236L108 200V135Z';
+const PH_CSS = `.ph{position:relative;overflow:hidden;isolation:isolate;margin-bottom:18px;padding:44px 40px 40px;border-radius:18px;border:1px solid rgba(232,179,58,.18);
+background:radial-gradient(70% 120% at 85% 50%,rgba(232,179,58,.13),transparent 60%),linear-gradient(115deg,#14100a 0%,#100d09 60%,#0f0d0a 100%)}
+.ph-art{position:absolute;inset:0;z-index:-1;pointer-events:none}.ph-art svg{position:absolute;overflow:visible}
+.ph-art .fr{right:-40px;top:50%;width:min(560px,58%);transform:translateY(-50%) rotate(-6deg)}
+.ph-art .fr path,.ph-art .fr rect{fill:url(#phFill);stroke:rgba(232,179,58,.45);stroke-width:5;stroke-linejoin:round;filter:drop-shadow(0 0 18px rgba(232,179,58,.25))}
+.ph-art .fr .sc{fill:rgba(10,8,5,.6);stroke-width:3;stroke:rgba(232,179,58,.3)}.ph-art .fr .gp{stroke-width:3}
+.ph-art .ck{z-index:1;right:calc(min(560px,58%) * .13);top:16%;width:104px;transform:rotate(-8deg)}.ph-art .ck path:first-child{fill:#1d160a;stroke:rgba(240,190,74,.7);stroke-width:.45;filter:drop-shadow(0 0 14px rgba(232,179,58,.4))}.ph-art .ck path+path{fill:none;stroke:#F0BE4A;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
+
+.ph-art:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#120f0a 30%,rgba(18,15,10,.75) 55%,transparent 80%)}
+.ph-k{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#E8B33A}
+.ph h2{margin:12px 0 0;font-size:clamp(28px,3.8vw,40px);line-height:1.1;font-weight:700;letter-spacing:-.03em;color:#F4F1EA;max-width:15ch}.ph h2 span{color:#F0BE4A}
+.ph .ph-sub{margin:14px 0 0;max-width:44ch;color:#AFA899;font-size:14.5px;line-height:1.55}
+.ph-buy{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:24px}.ph .pm-bill{margin:0}.ph .pm-bill>span{display:none}.ph .pm-seg button[aria-pressed="true"]{background:#F4F1EA;color:#1E1503}
+.ph-go{display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;border-radius:999px;border:0;background:linear-gradient(180deg,#F3C556,#DEA126);color:#1E1503;font-family:inherit;font-weight:700;font-size:14px;line-height:1;cursor:pointer;box-shadow:0 8px 26px rgba(232,179,58,.3),inset 0 1px 0 rgba(255,255,255,.4);transition:transform .12s,box-shadow .2s}
+.ph-go:hover{box-shadow:0 10px 32px rgba(232,179,58,.42),inset 0 1px 0 rgba(255,255,255,.4)}.ph-go:active{transform:scale(.98)}.ph-go:disabled{opacity:.5;cursor:default}
+.ph-foot{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;font-size:12.5px;color:#8E887C}.ph-foot a{color:#B9B2A4}.ph-foot a:hover{color:#F4F1EA}.ph .msg{margin:0;color:inherit;font-size:inherit}
+@media (max-width:760px){.ph{padding:30px 20px 26px}.ph-art .fr{width:420px;right:-190px;opacity:.6}.ph-art .ck{right:18px;top:auto;bottom:18px;width:84px;opacity:.75}.ph-art:after{background:linear-gradient(90deg,#120f0a 40%,rgba(18,15,10,.7) 75%,rgba(18,15,10,.35))}}`;
+const PH_ART = `<div class="ph-art" aria-hidden="true"><svg width="0" height="0"><defs><linearGradient id="phFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A1F0D"/><stop offset="1" stop-color="#130F08"/></linearGradient></defs></svg>
+<svg class="fr" viewBox="0 0 1536 1024"><path d="${OV_FRAME}"/><rect class="gp" x="114" y="310" width="44" height="410" rx="20"/><rect class="gp" x="1378" y="310" width="44" height="410" rx="20"/><rect class="sc" x="222" y="150" width="1092" height="724" rx="10"/><path d="${OV_MARK}" transform="translate(518 262) scale(1)"/></svg>
+<svg class="ck" viewBox="0 0 24 24"><path d="M12 1.6l2.3 1.7 2.8-.3 1.1 2.6 2.6 1.1-.3 2.8L22.4 12l-1.9 2.5.3 2.8-2.6 1.1-1.1 2.6-2.8-.3L12 22.4l-2.3-1.9-2.8.3-1.1-2.6-2.6-1.1.3-2.8L1.6 12l1.9-2.5-.3-2.8 2.6-1.1 1.1-2.6 2.8.3z"/><path d="m7.8 12.3 2.8 2.8 5.6-5.8"/></svg></div>`;
 export const account = ({ logo, user, comms, discord, back, prem = { on: false }, payments = false, justBought = false, boostable = [] }) => layout({ title: 'Your account · Oversite', logo, user, body: `
 <main class="acct">${back ? `<div class="row" style="margin:0 0 18px"><a class="btn sm" href="${esc(back)}">&larr; Back to the CAD</a></div>` : ''}
 <div class="prof"><span class="pic">${esc((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase())}${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.remove()">` : ''}</span>
 <div><h1><b>${esc(user.roblox_name || user.name)}</b>${user.verified ? vbadge(22) : ''}${(user.premium_until || 0) > Date.now() ? pbadge(22) : ''}</h1><p>${comms.length ? `Member of ${comms.length} server${comms.length === 1 ? '' : 's'}` : 'Not in any server yet'}${user.discord_id ? ' · Signs in with Discord' : ''}</p></div></div>
 ${(() => { const day = t => new Date(t).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   if (!prem.on) return `<section class="ph" id="premium"><style>${PREM_CSS}${PH_CSS}</style>${PH_ART}
-<h2>Wear the <em>gold check<svg viewBox="0 0 200 16" preserveAspectRatio="none" aria-hidden="true"><path d="M3 11C52 4 120 3 197 8" stroke-width="4"/><path d="M40 15C88 11 140 11 178 13" stroke-width="1.6" opacity=".55"/></svg></em><br>on Oversite.</h2>
-<p class="ph-sub">Premium for your account, <b>$5 a month or $30 a year</b>. The gold check sits next to your name everywhere, and one boost gives a server you own or co-own every Premium feature.</p>
-<div class="pm-bill"><span>Billing</span><div class="pm-seg" role="group" aria-label="Billing"><button type="button" data-plan="month" aria-pressed="false">Monthly, $5</button><button type="button" data-plan="year" aria-pressed="true">Yearly, $30</button></div></div>
-<div class="ph-cta"><button class="ph-go" id="apBuy"${payments ? '' : ' disabled'}>Get Premium</button><a href="/premium">See everything Premium adds</a></div>
-<p class="msg" id="apMsg">${payments ? 'Paid through Stripe. Cancel any time.' : 'Card payments aren&#39;t open yet.'}</p></section>`;
+<span class="ph-k">${pbadge(14)}Oversite Premium</span><h2>Put the <span>gold check</span> next to your name.</h2>
+<p class="ph-sub">$5 a month or $30 a year, for your account. Then boost a server you own or co-own, and everyone on it gets every Premium feature.</p>
+<div class="ph-buy"><div class="pm-bill"><span>Billing</span><div class="pm-seg" role="group" aria-label="Billing"><button type="button" data-plan="month" aria-pressed="false">Monthly, $5</button><button type="button" data-plan="year" aria-pressed="true">Yearly, $30</button></div></div><button class="ph-go" id="apBuy"${payments ? '' : ' disabled'}>Get Premium</button></div>
+<div class="ph-foot"><p class="msg" id="apMsg">${payments ? 'Paid through Stripe. Cancel any time.' : 'Card payments aren&#39;t open yet.'}</p><a href="/premium">What Premium adds</a></div></section>`;
   const status = prem.forever ? 'You have Premium, given by Oversite.' : prem.stripe ? (prem.cancelling ? `You have Premium until ${day(prem.until - 2 * 864e5)}. It won&#39;t renew.` : `You have Premium. It renews ${day(prem.until - 2 * 864e5)} at ${prem.plan === 'year' ? '$30 a year' : '$5 a month'}.`) : `You have Premium until ${day(prem.until)}.`;
   return `<section class="card" id="premium" style="margin-bottom:18px"><style>${PREM_CSS}</style><h2>Premium${pbadge(16)}</h2>${justBought ? '<p class="msg ok">Premium is on. Thanks for supporting Oversite.</p>' : ''}<p class="note">${status}</p>
 ${prem.billing ? '<div class="row"><button class="btn sm" id="apPortal">Manage billing</button></div>' : ''}
