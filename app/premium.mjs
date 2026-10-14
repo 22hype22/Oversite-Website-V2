@@ -1,10 +1,10 @@
-// Oversite Premium: one plan per server, $5 a month or $30 a year, paid through Stripe by the server's owner or a co-owner.
+// Oversite Premium: one plan per server, $4.99 a month or $29.99 a year, paid through Stripe by the server's owner or a co-owner.
 // A server is Premium while settings.premium.until is in the future: Stripe keeps moving that date as the subscription renews,
 // and a site admin can also grant it by hand. Premium also comes with 3 Explore ad credits a month and a bot API key.
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { communities, users, siteSettings, unseal, sha, token } from './db.mjs';
 
-export const PLANS = { month: { price: 500, label: '$5 a month', interval: 'month' }, year: { price: 3000, label: '$30 a year', interval: 'year' } };
+export const PLANS = { month: { price: 499, label: '$4.99 a month', interval: 'month' }, year: { price: 2999, label: '$29.99 a year', interval: 'year' } };
 export const CREDITS_PER_MONTH = 3, BOOST_HOURS = 24, FREE_RECORD_DAYS = 30;
 const FOREVER = 4102444800000;   // 2100-01-01: a grant with no end
 
