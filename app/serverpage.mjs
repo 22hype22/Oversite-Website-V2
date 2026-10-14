@@ -31,7 +31,7 @@ const CSS = `
 .sv-ic{position:relative;overflow:hidden;flex:none;width:136px;height:136px;border-radius:34px;display:grid;place-items:center;font-size:50px;font-weight:700;background:linear-gradient(160deg,#2d3440,#1b1f26);border:5px solid #0f1113;box-shadow:0 18px 40px rgba(0,0,0,.55),0 0 0 1px rgba(240,242,245,.08)}
 .sv-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .sv-id{flex:1;min-width:240px;padding-top:52px}
-.sv-id h1{margin:0;font-size:clamp(24px,3.6vw,34px);letter-spacing:-.02em;line-height:1.1;display:flex;align-items:center;flex-wrap:wrap}.sv-id h1 .vb{margin-left:10px}
+.sv-id h1{margin:0;font-size:clamp(24px,3.6vw,34px);letter-spacing:-.02em;line-height:1.1;display:flex;align-items:center;flex-wrap:wrap}.sv-id h1 .vb{margin-left:10px}.vb+.pb{margin-left:1px!important}
 .sv-by{display:flex;align-items:center;color:var(--dim);font-size:13.5px;margin-top:4px}.sv-by .vb{margin-left:5px}
 .sv-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .sv-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 11px 4px 9px;border-radius:999px;background:rgba(240,242,245,.07);border:1px solid var(--hair2);color:#E2E5E9;font-size:12.5px;font-weight:500}.sv-tag svg{color:#8DB6FF}

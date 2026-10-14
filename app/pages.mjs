@@ -88,7 +88,7 @@ label.chk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px
 .xr-ic{position:relative;overflow:hidden;flex:none;width:64px;height:64px;border-radius:17px;display:grid;place-items:center;font-size:24px;font-weight:700;background:linear-gradient(160deg,#2d3440,#1b1f26);border:3px solid #141517;box-shadow:0 10px 22px rgba(0,0,0,.45)}
 .xr-ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .xr-n{flex:1 1 150px;min-width:0;padding-top:34px}.xr h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.by{display:inline-flex;align-items:center;gap:0;color:var(--dim);font-size:12.5px;margin-top:2px}.by .vb{margin-left:5px;vertical-align:-1px}.by img{width:16px;height:16px;border-radius:50%;background:#2a2d33}
+.by{display:inline-flex;align-items:center;gap:0;color:var(--dim);font-size:12.5px;margin-top:2px}.by .vb{margin-left:5px;vertical-align:-1px}.vb+.pb{margin-left:1px!important}.by img{width:16px;height:16px;border-radius:50%;background:#2a2d33}
 .xr-mine{flex:none;align-self:flex-end;margin-top:34px;font-size:12px;font-weight:500;color:var(--ink);text-decoration:none;padding:6px 11px;border-radius:999px;border:1px solid var(--hair2);background:rgba(240,242,245,.06)}.xr-mine:hover{background:rgba(240,242,245,.12)}
 .xr-m{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;color:var(--dim);font-size:12.5px}.xr-m span{display:inline-flex;align-items:center;gap:6px}.xr-m .xr-rt{color:#F2C46E;font-weight:600}.xr-m .xr-tag{gap:5px;padding:3px 10px 3px 8px;border-radius:999px;background:rgba(240,242,245,.07);border:1px solid var(--hair2);color:#E2E5E9;font-weight:500}.xr-m .xr-tag svg{color:#8DB6FF}
 .xr-b p{margin:0;color:#C9CDD3;font-size:13.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:3em}.xr-b p.none{color:var(--faint)}
@@ -204,7 +204,7 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 @media (max-width:820px){.lg-body{grid-template-columns:1fr;gap:16px}.lg-toc{position:static}.lg-toc nav{display:grid;grid-template-columns:1fr 1fr}.lg-s{padding:18px 16px}}
 @media (max-width:520px){.lg-toc nav{grid-template-columns:1fr}.lg-short{flex-direction:column;gap:4px}}
 .srv .ic:has(img),.vc-p .av:has(img),.xr-ic:has(img),.sv-ic:has(img),.adm-r .pic:has(img),.rv-av:has(img),.prof .pic:has(img),.sp-icon:has(img){color:transparent}.sp-icon:has(img) i{color:var(--ink)}
-.vb{display:inline-block;vertical-align:-2px;margin-left:6px;flex:none}
+.vb{display:inline-block;vertical-align:-2px;margin-left:6px;flex:none}.vb+.pb{margin-left:1px!important}
 .adm{max-width:1080px}.adm h1{margin:0 0 4px}.adm .lead{margin:0 0 22px}
 .adm-app{margin-bottom:18px}.auth-cmd{display:flex;align-items:center;gap:14px;margin-top:16px;padding:12px 14px;border:1px solid var(--line, rgba(255,255,255,.1));border-radius:12px}.auth-cmd>div{flex:1}.adm-af{display:grid;grid-template-columns:1fr 160px auto;gap:10px;margin-top:12px}.adm-af input{margin:0}@media (max-width:700px){.adm-af{grid-template-columns:1fr}}
 .adm-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}.adm-cols .card+.card{margin-top:0}
@@ -297,7 +297,7 @@ const runs = r => r === 'owner' || r === 'co_owner';
 // Oversite's blue check: a scalloped seal, given by hand from /admin
 const SEAL = '<path fill="#4C8DFF" d="M12 1.6l2.3 1.7 2.8-.3 1.1 2.6 2.6 1.1-.3 2.8L22.4 12l-1.9 2.5.3 2.8-2.6 1.1-1.1 2.6-2.8-.3L12 22.4l-2.3-1.9-2.8.3-1.1-2.6-2.6-1.1.3-2.8L1.6 12l1.9-2.5-.3-2.8 2.6-1.1 1.1-2.6 2.8.3z"/><path fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m7.8 12.3 2.8 2.8 5.6-5.8"/>';
 // the gold check: Oversite Premium (a Premium server, or a person a site admin gave Premium), shown next to the blue one
-export const pbadge = (size = 16) => `<svg class="vb pb" width="${size}" height="${size}" viewBox="0 0 24 24" role="img" aria-label="Oversite Premium"><title>Oversite Premium</title>${SEAL.replace('#4C8DFF', '#E8B33A').replace('stroke="#fff"', 'stroke="#2B1E04"')}</svg>`;
+export const pbadge = (size = 16) => `<svg class="vb pb" width="${size}" height="${size}" viewBox="0 0 24 24" role="img" aria-label="Oversite Premium"><title>Oversite Premium</title>${SEAL.replace('#4C8DFF', '#E8B33A')}</svg>`;
 export const vbadge = (size = 16) => `<svg class="vb" width="${size}" height="${size}" viewBox="0 0 24 24" role="img" aria-label="Verified by Oversite"><title>Verified by Oversite</title>${SEAL}</svg>`;
 // pinned to the bottom of every page: the same legal links as oversite.shop, then our Roblox group and Discord
 const ROBLOX_GROUP = 'https://www.roblox.com/communities/691798472/Oversite-Customs', DISCORD_INVITE = 'https://discord.gg/ovs';
