@@ -79,12 +79,13 @@ export const checkout = async (c, user, plan, origin) => { if (!stripeReady()) r
   const s = await stripe('POST', '/checkout/sessions', { mode: 'subscription', client_reference_id: String(c.id), ...(p.customer ? { customer: p.customer } : {}), metadata: meta, subscription_data: { metadata: meta },
     line_items: { 0: { quantity: 1, price_data: { currency: 'usd', unit_amount: pl.price, recurring: { interval: pl.interval }, product_data: { name: `Oversite Premium for ${c.name}`.slice(0, 120) } } } },
     allow_promotion_codes: 'true', success_url: `${origin}/c/${c.slug}/premium/done?session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${origin}/${c.slug}/settings#premium` });
-  return { ok: true, url: s.url }; };
+  console.log(`stripe: checkout opened for ${c.slug} (${plan}) by ${user.roblox_name || user.name}`); return { ok: true, url: s.url }; };
 
 const periodEnd = sub => (sub.current_period_end || sub.items?.data?.[0]?.current_period_end || 0) * 1000;
 // a subscription's state, written onto its server
 export const applySub = sub => { const cid = +(sub?.metadata?.community_id || 0); if (!cid || !communities.byId(cid)) return null;
   const end = periodEnd(sub), live = ['active', 'trialing', 'past_due'].includes(sub.status), interval = sub.items?.data?.[0]?.price?.recurring?.interval || '';
+  console.log(`stripe: subscription ${sub.status}${sub.cancel_at_period_end ? ' (cancels at period end)' : ''} for ${communities.byId(cid).slug}, Premium ${live ? 'until ' + new Date(end + 2 * 864e5).toISOString().slice(0, 10) : 'off'}`);
   return save(cid, p => ({ ...p, source: 'stripe', sub: sub.id, customer: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id || p.customer, plan: interval === 'year' ? 'year' : 'month',
     cancel: !!sub.cancel_at_period_end, until: live ? end + 2 * 864e5 : Math.min(p.until || 0, Date.now()) })); };   // two days' grace for a late renewal
 
@@ -116,7 +117,7 @@ export const webhook = async (raw, sig) => { const secret = whsec(); if (!secret
   const want = createHmac('sha256', secret).update(`${parts.t}.${raw}`).digest('hex'), got = String(sig || '').split(',').filter(x => x.startsWith('v1=')).map(x => x.slice(3));
   if (!t || Math.abs(Date.now() / 1000 - t) > 300 || !got.some(g => g.length === want.length && timingSafeEqual(Buffer.from(g), Buffer.from(want)))) return { error: 'Bad signature.', status: 400 };
   let ev; try { ev = JSON.parse(raw); } catch (e) { return { error: 'Bad body.', status: 400 }; }
-  const o = ev.data?.object || {};
+  const o = ev.data?.object || {}; console.log(`stripe: event ${ev.type}`);
   if (ev.type?.startsWith('customer.subscription.')) applySub(o);
   else if (ev.type === 'checkout.session.completed' && o.subscription) applySub(await stripe('GET', `/subscriptions/${o.subscription}`));
   else if ((ev.type === 'invoice.paid' || ev.type === 'invoice.payment_failed') && (o.subscription || o.parent?.subscription_details?.subscription)) applySub(await stripe('GET', `/subscriptions/${o.subscription || o.parent.subscription_details.subscription}`));
