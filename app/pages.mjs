@@ -489,10 +489,10 @@ const OV_FRAME = 'M200 45H290L330 70H540L580 98H955L995 70H1240L1290 45H1336L143
 const PH_CSS = `.ph{position:relative;overflow:hidden;isolation:isolate;margin-bottom:18px;padding:44px 40px 40px;border-radius:18px;border:1px solid rgba(232,179,58,.18);
 background:radial-gradient(70% 120% at 85% 50%,rgba(232,179,58,.13),transparent 60%),linear-gradient(115deg,#14100a 0%,#100d09 60%,#0f0d0a 100%)}
 .ph-art{position:absolute;inset:0;z-index:-1;pointer-events:none}.ph-art svg{position:absolute;overflow:visible}
-.ph-art .fr{right:-40px;top:50%;width:min(560px,58%);transform:translateY(-50%) rotate(-6deg)}
+.ph-art .fr{right:-150px;top:50%;width:min(700px,66%);transform:translateY(-50%) rotate(-6deg)}
 .ph-art .fr path,.ph-art .fr rect{fill:url(#phFill);stroke:rgba(232,179,58,.45);stroke-width:5;stroke-linejoin:round;filter:drop-shadow(0 0 18px rgba(232,179,58,.25))}
 .ph-art .fr .sc{fill:rgba(10,8,5,.6);stroke-width:3;stroke:rgba(232,179,58,.3)}.ph-art .fr .gp{stroke-width:3}
-.ph-art .ck{z-index:1;right:calc(min(560px,58%) * .13);top:16%;width:104px;transform:rotate(-8deg)}.ph-art .ck path:first-child{fill:#1d160a;stroke:rgba(240,190,74,.7);stroke-width:.45;filter:drop-shadow(0 0 14px rgba(232,179,58,.4))}.ph-art .ck path+path{fill:none;stroke:#F0BE4A;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
+.ph-art .ck{z-index:1;right:calc(min(700px,66%) * .13 - 110px);top:8%;width:128px;transform:rotate(-8deg)}.ph-art .ck path:first-child{fill:#1d160a;stroke:rgba(240,190,74,.7);stroke-width:.45;filter:drop-shadow(0 0 14px rgba(232,179,58,.4))}.ph-art .ck path+path{fill:none;stroke:#F0BE4A;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
 
 .ph-art:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#120f0a 30%,rgba(18,15,10,.75) 55%,transparent 80%)}
 .ph-k{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#E8B33A}
@@ -512,7 +512,7 @@ export const account = ({ logo, user, comms, discord, back, prem = { on: false }
 <div><h1><b>${esc(user.roblox_name || user.name)}</b>${user.verified ? vbadge(22) : ''}${(user.premium_until || 0) > Date.now() ? pbadge(22) : ''}</h1><p>${comms.length ? `Member of ${comms.length} server${comms.length === 1 ? '' : 's'}` : 'Not in any server yet'}${user.discord_id ? ' · Signs in with Discord' : ''}</p></div></div>
 ${(() => { const day = t => new Date(t).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   if (!prem.on) return `<section class="ph" id="premium"><style>${PREM_CSS}${PH_CSS}</style>${PH_ART}
-<span class="ph-k">${pbadge(14)}Oversite Premium</span><h2>Put the <span>gold check</span> next to your name.</h2>
+<span class="ph-k">Oversite Premium</span><h2>Put the <span>gold check</span> next to your name.</h2>
 <p class="ph-sub">$5 a month or $30 a year, for your account. Then boost a server you own or co-own, and everyone on it gets every Premium feature.</p>
 <div class="ph-buy"><div class="pm-bill"><span>Billing</span><div class="pm-seg" role="group" aria-label="Billing"><button type="button" data-plan="month" aria-pressed="false">Monthly, $5</button><button type="button" data-plan="year" aria-pressed="true">Yearly, $30</button></div></div><button class="ph-go" id="apBuy"${payments ? '' : ' disabled'}>Get Premium</button></div>
 <div class="ph-foot"><p class="msg" id="apMsg">${payments ? 'Paid through Stripe. Cancel any time.' : 'Card payments aren&#39;t open yet.'}</p><a href="/premium">What Premium adds</a></div></section>`;
