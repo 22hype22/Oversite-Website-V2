@@ -26,11 +26,14 @@ export const saveRanks = (c, j, save) => { if (j.reset) { delete c.settings.rank
 
 // what each field may hold: the license's own short forms (BLK, BRN…), kept short so the card never overflows
 const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
-export const cleanLicense = b => {
+// Premium extras: a card finish, your own occupation line and signature
+export const FINISHES = ['gold', 'holo', 'obsidian'];
+export const cleanLicense = (b, prem = false) => {
   const o = { age: T(b.age, 16), gndr: T(b.gndr, 3).toUpperCase(), hair: T(b.hair, 4).toUpperCase(), eyes: T(b.eyes, 4).toUpperCase(), addr: T(b.addr, 34) };
   const ft = +b.ft, inch = +b.in; o.hgt = Number.isInteger(ft) && ft >= 3 && ft <= 8 && Number.isInteger(inch) && inch >= 0 && inch <= 11 ? `${ft}' ${inch}"` : '';
   const w = Math.round(+b.wgt); o.wgt = w >= 50 && w <= 600 ? `${w} lbs` : '';
   o.iss = /^\d{4}-\d{2}-\d{2}$/.test(String(b.iss || '')) && !isNaN(Date.parse(b.iss)) ? b.iss : '';
+  if (prem) { o.finish = FINISHES.includes(b.finish) ? b.finish : ''; o.occx = T(b.occx, 20); o.sig = T(b.sig, 24); }
   return o; };
 
 // display name and account age from Roblox, kept a few hours
@@ -40,6 +43,7 @@ const robloxUser = async rid => { const hit = rbx.get(rid); if (hit && Date.now(
   if (rbx.size > 5000) rbx.clear(); rbx.set(rid, v); return v; };
 
 // everything the card shows for this person; the issue date defaults to when their Roblox account was made
-export const licenseOf = async user => { const f = licenses.get(user.id), r = user.roblox_id ? await robloxUser(String(user.roblox_id)) : { display: '', created: '' };
-  return { user: user.roblox_name || '', rid: user.roblox_id || '', display: r.display || user.roblox_name || '', ...f, iss: f.iss || r.created || '', saved: !!Object.keys(f).length }; };
-export const saveLicense = (user, b) => { licenses.set(user.id, cleanLicense(b || {})); return licenseOf(user); };
+export const licenseOf = async (user, prem = false) => { const f = { ...licenses.get(user.id) }, r = user.roblox_id ? await robloxUser(String(user.roblox_id)) : { display: '', created: '' };
+  if (!prem) { delete f.finish; delete f.occx; delete f.sig; }   // the Premium extras only show while the person has Premium
+  return { user: user.roblox_name || '', rid: user.roblox_id || '', display: r.display || user.roblox_name || '', ...f, iss: f.iss || r.created || '', saved: !!Object.keys(f).length, premium: !!prem }; };
+export const saveLicense = (user, b, prem = false) => { licenses.set(user.id, cleanLicense(b || {}, prem)); return licenseOf(user, prem); };

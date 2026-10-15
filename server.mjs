@@ -281,9 +281,9 @@ const globalApi = async (req, res, rest) => {
   if ((rest === 'me/premium/checkout' || rest === 'me/premium/portal') && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     try { const r = rest.endsWith('checkout') ? await premium.checkoutUser(user, String((await jsonBody(req)).plan || ''), origin(req)) : await premium.portalUser(user, origin(req)); return json(res, r, r.error ? 400 : 200); }
     catch (e) { console.log(`premium account ${rest}: ${user.roblox_name}: ${e.message}`); return json(res, { error: 'Payments could not be reached. Try again in a minute.' }, 502); } }
-  if (rest === 'me/license' && req.method === 'GET') return json(res, await licenseOf(user));
+  if (rest === 'me/license' && req.method === 'GET') return json(res, await licenseOf(user, premium.userInfo(user).on));
   if (rest === 'me/license' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
-    return json(res, await saveLicense(user, await jsonBody(req))); }
+    return json(res, await saveLicense(user, await jsonBody(req), premium.userInfo(user).on)); }
   if (rest.startsWith('admin/') && !isSiteMod(user)) return json(res, { error: 'Not found.' }, 404);
   // payments, the ER:LC application, Premium grants and moderator access: site admins only
   if (/^admin\/(erlc-app|premium|stripe|mod)$/.test(rest) && !isSiteAdmin(user)) return json(res, { error: 'Only Oversite\'s owners can do that.' }, 403);

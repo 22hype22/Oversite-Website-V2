@@ -1164,7 +1164,7 @@
   .loading.off{opacity:0}
 </style>
 <script src="/dropdown.js?v=1" defer></script>
-<script src="/license-card.js?v=3" defer></script>
+<script src="/license-card.js?v=4" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
   .mtabs{display:none}
@@ -2489,7 +2489,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     $('tlS1').querySelector('h5').textContent = 'License'; $('tlPad').style.visibility = ''; $('tlMsg').className = 'tl-msg'; $('tlMsg').textContent = (locked.has(d) && signed[d] ? 'MDT locked. ' : '') + 'Tap the reader, or drag your license onto it';
     $('tlWho').textContent = 'Waiting for your card';
     const L = await loadLic(); if (!live()) return; const team = myTeam();
-    $('tlCard').className = 'tl-card'; $('tlCard').innerHTML = window.LicenseCard ? window.LicenseCard.html({ ...L, ...licStyle(), occ: (window.LicenseCard.occ(team)) || DEF_OCC[d] || '' }) : '';
+    $('tlCard').className = 'tl-card'; $('tlCard').innerHTML = window.LicenseCard ? window.LicenseCard.html({ ...L, ...licStyle(), occ: L.occx || (window.LicenseCard.occ(team)) || DEF_OCC[d] || '' }) : '';
     await wait(300); if (!live()) return; $('tlCard').classList.add('peek'); $('tlRd').classList.add('peek');
     if (!skipNow) await new Promise(res => { placeCard = res; }); if (!live()) return; placeCard = null;   // (Skip pressed early: no waiting for the card)   // you put it on the reader: tap the reader, tap the card, or drag it up
     $('tlCard').classList.remove('peek', 'drag'); $('tlRd').classList.remove('peek'); $('tlCard').querySelector('.lcard')?.style.removeProperty('transform'); $('tlCard').classList.add('in'); $('tlPad').classList.remove('over'); await wait(750); if (!live()) return;
