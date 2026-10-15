@@ -55,25 +55,27 @@ sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.8;
 scene.add(sun, sun.target);
 
 // ── ground: the map draped over the heightmap ──
-const HMAX = 150, HN = 512;
+const HMAX = 150, HN = 1024;                     // the heightmap is 16-bit in red (high byte) + green (low byte), see newmap/tame-terrain.py
 let hdata = null;                                  // Float32Array of heights (HN x HN), filled once the heightmap loads
 const heightAt = (x, y) => { if (!hdata) return 0; const u = Math.min(Math.max(x / W * (HN - 1), 0), HN - 1.001), v = Math.min(Math.max(y / W * (HN - 1), 0), HN - 1.001);
   const i = u | 0, j = v | 0, fu = u - i, fv = v - j, k = j * HN + i;
   return (hdata[k] * (1 - fu) + hdata[k + 1] * fu) * (1 - fv) + (hdata[k + HN] * (1 - fu) + hdata[k + HN + 1] * fu) * fv; };
-const SEG = 191;
+const SEG = 383;                                   // ~5 units a step: fine enough for the level pads under buildings
 const groundGeo = new THREE.PlaneGeometry(W, W, SEG, SEG); groundGeo.rotateX(-Math.PI / 2); groundGeo.translate(W / 2, 0, W / 2);
 const loader = new THREE.TextureLoader();
 const tex = loader.load(MAP_LIGHT, () => { loading.classList.add('off'); renderer.shadowMap.needsUpdate = true; });
-const texDark = loader.load(MAP_DARK);
+const texDark = tex;                                // 3D has one look now (no 3D Dark): the dark 2D map isn't downloaded for it
 for (const t of [tex, texDark]) { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); }
 const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ map: tex, color: 0xE4E7EB, roughness: 1, metalness: 0 }));
 ground.receiveShadow = true; ground.castShadow = true;
 scene.add(ground);
 const onTerrain = [];                              // callbacks to re-seat things once heights are known
-const hm = new Image(); hm.onload = () => {
-  const c = document.createElement('canvas'); c.width = c.height = HN; const g = c.getContext('2d'); g.drawImage(hm, 0, 0, HN, HN);
+const hm = new Image(); hm.onload = async () => {
+  // read at full size with no colour conversion, so the two height bytes come through untouched
+  const bmp = await createImageBitmap(hm, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' }).catch(() => hm);
+  const c = document.createElement('canvas'); c.width = c.height = HN; const g = c.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true }); g.drawImage(bmp, 0, 0, HN, HN);
   const px = g.getImageData(0, 0, HN, HN).data; hdata = new Float32Array(HN * HN);
-  for (let i = 0; i < HN * HN; i++) hdata[i] = px[i * 4] / 255 * HMAX;
+  for (let i = 0; i < HN * HN; i++) hdata[i] = (px[i * 4] * 256 + px[i * 4 + 1]) / 65535 * HMAX;
   const pos = groundGeo.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
   pos.needsUpdate = true; groundGeo.computeVertexNormals();
@@ -133,8 +135,11 @@ const houseStoreys = b => (b[2] * b[3] > 560 ? 2 : 1);                 // bigger
 const wallH = b => b[6] === 8 ? b[5] : WALL_H + (houseStoreys(b) - 1) * 3.4;
 const WALLS = { light: [0xE8E6E0, 0xE8E6E0, 0xE8E6E0, 0xD9C28E, 0xD9C28E, 0xBFC3C8], dark: [0x3A3A3E, 0x3A3A3E, 0x3A3A3E, 0x4A4234, 0x4A4234, 0x33363A] };
 const placeBuildings = () => { GEO.buildings.forEach(([x, y, L, Wd, ang, h, k], i) => {
-  const base = heightAt(x, y) - 1.5, house = isHouse(GEO.buildings[i]);
-  P.set(x, base, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L, (house ? wallH(GEO.buildings[i]) : h) + 1.5, Wd);
+  // the ground under each building is a level pad; walls start at the lowest corner so no side ever floats, roof height comes from the middle
+  const c = Math.cos(ang), s = Math.sin(ang), top = heightAt(x, y), house = isHouse(GEO.buildings[i]);
+  let low = top; for (const [a, b] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) { const u = a * L / 2, v = b * Wd / 2; low = Math.min(low, heightAt(x + u * c - v * s, y + u * s + v * c)); }
+  const base = low - 1.5;
+  P.set(x, base, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L, top - base + (house ? wallH(GEO.buildings[i]) : h), Wd);
   bld.setMatrixAt(i, M.compose(P, Q, Sc)); }); bld.instanceMatrix.needsUpdate = true;
   houseIdx.forEach((i, r) => { const [x, y, L, Wd, ang] = GEO.buildings[i];
     P.set(x, heightAt(x, y) + wallH(GEO.buildings[i]) - 0.05, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L * 1.12, ROOF_H, Wd * 1.12);

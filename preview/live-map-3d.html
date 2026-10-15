@@ -1612,7 +1612,6 @@
       <button id="zlayers" aria-label="Map style" aria-haspopup="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5"/></svg></button>
       <div class="fly"><div class="flyout" role="group" aria-label="Map style">
         <button role="menuitemradio" data-dim="3d" data-theme="light" aria-checked="true"><span class="thumb t3d light"><i></i></span>3D</button>
-        <button role="menuitemradio" data-dim="3d" data-theme="dark" aria-checked="false"><span class="thumb t3d dark"><i></i></span>3D Dark</button>
         <button role="menuitemradio" data-dim="2d" data-theme="light" aria-checked="false"><span class="thumb light"><i></i></span>2D</button>
         <button role="menuitemradio" data-dim="2d" data-theme="dark" aria-checked="false"><span class="thumb dark"><i></i></span>2D Dark</button>
       </div></div>
@@ -2245,7 +2244,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const UPDATES = [
     { v: 'v1.5', date: 'Sep 15, 2026', tag: 'new', title: 'Dispatch live map', by: '22hype22',
       body: 'The dispatch board is live: real-time unit positions, incoming call feed with one-click dispatch, and the 3D map with light and dark styles.',
-      items: ['Unit cards show crew, vehicle, status, speed and an overhead live feed', 'Warning panel lists new calls with nearest units and a recommendation', 'Map styles: 3D, 3D Dark, 2D, 2D Dark'] },
+      items: ['Unit cards show crew, vehicle, status, speed and an overhead live feed', 'Warning panel lists new calls with nearest units and a recommendation', 'Map styles: 3D, 2D, 2D Dark'] },
     { v: 'v1.4', date: 'Sep 11, 2026', tag: 'fix', title: 'Rank sync fixes', by: 'sppoklex',
       body: 'Discord rank changes now reach the roster within a minute instead of waiting for the hourly sync.', items: ['Fixed Battalion Chief showing as Firefighter after promotion', 'Removed duplicate roster entries for renamed accounts'] },
     { v: 'v1.3', date: 'Sep 6, 2026', tag: 'change', title: 'Callsign format', by: '22hype22',
@@ -4694,25 +4693,27 @@ sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.8;
 scene.add(sun, sun.target);
 
 // ── ground: the map draped over the heightmap ──
-const HMAX = 150, HN = 512;
+const HMAX = 150, HN = 1024;                     // the heightmap is 16-bit in red (high byte) + green (low byte), see newmap/tame-terrain.py
 let hdata = null;                                  // Float32Array of heights (HN x HN), filled once the heightmap loads
 const heightAt = (x, y) => { if (!hdata) return 0; const u = Math.min(Math.max(x / W * (HN - 1), 0), HN - 1.001), v = Math.min(Math.max(y / W * (HN - 1), 0), HN - 1.001);
   const i = u | 0, j = v | 0, fu = u - i, fv = v - j, k = j * HN + i;
   return (hdata[k] * (1 - fu) + hdata[k + 1] * fu) * (1 - fv) + (hdata[k + HN] * (1 - fu) + hdata[k + HN + 1] * fu) * fv; };
-const SEG = 191;
+const SEG = 383;                                   // ~5 units a step: fine enough for the level pads under buildings
 const groundGeo = new THREE.PlaneGeometry(W, W, SEG, SEG); groundGeo.rotateX(-Math.PI / 2); groundGeo.translate(W / 2, 0, W / 2);
 const loader = new THREE.TextureLoader();
 const tex = loader.load(MAP_LIGHT, () => { loading.classList.add('off'); renderer.shadowMap.needsUpdate = true; });
-const texDark = loader.load(MAP_DARK);
+const texDark = tex;                                // 3D has one look now (no 3D Dark): the dark 2D map isn't downloaded for it
 for (const t of [tex, texDark]) { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); }
 const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ map: tex, color: 0xE4E7EB, roughness: 1, metalness: 0 }));
 ground.receiveShadow = true; ground.castShadow = true;
 scene.add(ground);
 const onTerrain = [];                              // callbacks to re-seat things once heights are known
-const hm = new Image(); hm.onload = () => {
-  const c = document.createElement('canvas'); c.width = c.height = HN; const g = c.getContext('2d'); g.drawImage(hm, 0, 0, HN, HN);
+const hm = new Image(); hm.onload = async () => {
+  // read at full size with no colour conversion, so the two height bytes come through untouched
+  const bmp = await createImageBitmap(hm, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' }).catch(() => hm);
+  const c = document.createElement('canvas'); c.width = c.height = HN; const g = c.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true }); g.drawImage(bmp, 0, 0, HN, HN);
   const px = g.getImageData(0, 0, HN, HN).data; hdata = new Float32Array(HN * HN);
-  for (let i = 0; i < HN * HN; i++) hdata[i] = px[i * 4] / 255 * HMAX;
+  for (let i = 0; i < HN * HN; i++) hdata[i] = (px[i * 4] * 256 + px[i * 4 + 1]) / 65535 * HMAX;
   const pos = groundGeo.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
   pos.needsUpdate = true; groundGeo.computeVertexNormals();
@@ -4772,8 +4773,11 @@ const houseStoreys = b => (b[2] * b[3] > 560 ? 2 : 1);                 // bigger
 const wallH = b => b[6] === 8 ? b[5] : WALL_H + (houseStoreys(b) - 1) * 3.4;
 const WALLS = { light: [0xE8E6E0, 0xE8E6E0, 0xE8E6E0, 0xD9C28E, 0xD9C28E, 0xBFC3C8], dark: [0x3A3A3E, 0x3A3A3E, 0x3A3A3E, 0x4A4234, 0x4A4234, 0x33363A] };
 const placeBuildings = () => { GEO.buildings.forEach(([x, y, L, Wd, ang, h, k], i) => {
-  const base = heightAt(x, y) - 1.5, house = isHouse(GEO.buildings[i]);
-  P.set(x, base, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L, (house ? wallH(GEO.buildings[i]) : h) + 1.5, Wd);
+  // the ground under each building is a level pad; walls start at the lowest corner so no side ever floats, roof height comes from the middle
+  const c = Math.cos(ang), s = Math.sin(ang), top = heightAt(x, y), house = isHouse(GEO.buildings[i]);
+  let low = top; for (const [a, b] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) { const u = a * L / 2, v = b * Wd / 2; low = Math.min(low, heightAt(x + u * c - v * s, y + u * s + v * c)); }
+  const base = low - 1.5;
+  P.set(x, base, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L, top - base + (house ? wallH(GEO.buildings[i]) : h), Wd);
   bld.setMatrixAt(i, M.compose(P, Q, Sc)); }); bld.instanceMatrix.needsUpdate = true;
   houseIdx.forEach((i, r) => { const [x, y, L, Wd, ang] = GEO.buildings[i];
     P.set(x, heightAt(x, y) + wallH(GEO.buildings[i]) - 0.05, y); Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang); Sc.set(L * 1.12, ROOF_H, Wd * 1.12);
@@ -5003,7 +5007,7 @@ window.map3dReady = true;
 setActive(true);
 </script>
 <script type="module">
-/* ── map style controller: 3D / 3D Dark / 2D / 2D Dark ── */
+/* ── map style controller: 3D / 2D / 2D Dark ── */
 const body = document.body, picker = document.getElementById('layers'), zfit = document.getElementById('zfit');
 // 3D needs graphics acceleration: without it every frame is copied back through the main thread and clicks lag by close to a second.
 // The browser can tell us (failIfMajorPerformanceCaveat); then the CAD starts on the 2D map without glass blur. A person's own choice is remembered.
@@ -5011,7 +5015,7 @@ const slow = (() => { try { const c = document.createElement('canvas'), g = c.ge
   const d = g.getExtension('WEBGL_debug_renderer_info'), r = d ? String(g.getParameter(d.UNMASKED_RENDERER_WEBGL)) : ''; g.getExtension('WEBGL_lose_context')?.loseContext();
   return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(r); } catch (e) { return false; } })();   // software drawing (Chrome's SwiftShader, Mesa llvmpipe, Windows' basic driver)
 let saved = null; try { saved = JSON.parse(localStorage.getItem('ov.mapstyle') || 'null'); } catch (e) {}
-const state = saved && (saved.dim === '2d' || saved.dim === '3d') ? { dim: saved.dim, theme: saved.theme === 'dark' ? 'dark' : 'light' } : { dim: slow ? '2d' : '3d', theme: 'light' };
+const state = saved && (saved.dim === '2d' || saved.dim === '3d') ? { dim: saved.dim, theme: saved.theme === 'dark' && saved.dim === '2d' ? 'dark' : 'light' } : { dim: slow ? '2d' : '3d', theme: 'light' };   // there is no 3D dark any more
 const lowgpu = () => { if (body.classList.contains('lowgpu')) return; body.classList.add('lowgpu'); const st = document.createElement('style');
   st.textContent = 'body.lowgpu{--blur:none;--glass:rgba(13,13,15,.88);--glass2:rgba(20,20,23,.9)}.gpu-note{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:12px;max-width:min(640px,calc(100vw - 32px));padding:12px 14px 12px 16px;border-radius:14px;background:#17181B;border:1px solid rgba(240,242,245,.14);box-shadow:0 18px 40px -12px rgba(0,0,0,.6);color:#C9CDD3;font-size:13px;line-height:1.45}.gpu-note b{color:#F0F2F5}.gpu-note button{flex:none;font:inherit;font-size:12.5px;font-weight:500;padding:7px 12px;border-radius:999px;border:1px solid rgba(240,242,245,.18);background:rgba(240,242,245,.06);color:#F0F2F5;cursor:pointer}.gpu-note button.x{padding:7px 10px}';
   document.head.appendChild(st); };

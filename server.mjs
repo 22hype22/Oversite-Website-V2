@@ -57,7 +57,7 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 
 // ── the CAD page, with this community's settings injected ──
 // a Premium person's saved map style wins over whatever this browser last used, so every device opens on the same map
-const mapPref = p => { const m = /^(2d|3d)-(light|dark)$/.exec(p?.map || ''); return m ? `try{localStorage.setItem('ov.mapstyle','{"dim":"${m[1]}","theme":"${m[2]}"}')}catch(e){}` : ''; };
+const mapPref = p => { const m = /^(2d-(?:light|dark)|3d-light)$/.test(p?.map || '') && /^(2d|3d)-(light|dark)$/.exec(p.map); return m ? `try{localStorage.setItem('ov.mapstyle','{"dim":"${m[1]}","theme":"${m[2]}"}')}catch(e){}` : ''; };
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
   const prem = premium.isPremium(c), cfg = { premium: prem, logo: prem && profile.iconSource(c) ? `/c/${c.slug}/icon` : '', license: prem ? c.settings.licenseStyle || null : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: ranksFor(c, prem), gold: users.premiumRoblox(), setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
