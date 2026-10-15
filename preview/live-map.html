@@ -2227,6 +2227,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     if (!mine) { toastMsg(`You're not on the ${DEPT_NAME[dept]} team in game right now. Join it in ER:LC and its MDT opens here.`); return false; }
     if (mine !== dept) { toastMsg(`You're on the ${DEPT_NAME[mine] || mine} team in game. The ${DEPT_NAME[dept]} MDT is only for its members.`); return false; } return true; };
   const setView = (v, dept) => { if (window.__civOnly && (v === 'dispatch' || v === 'mdt')) v = 'civ';   // players on the civilian team stay on their own tab
+    if (window.__deptOnly && v === 'civ') v = 'dispatch';                                                 // and department players stay off theirs
     const real = v === 'mdt' ? 'dispatch' : v; document.body.dataset.view = real;
     for (const [k, id] of Object.entries(PAGES)) { const el = document.getElementById(id); if (el) el.hidden = real !== k; }
     tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.view === v && (v !== 'mdt' || t.dataset.dept === dept)));
@@ -2235,11 +2236,9 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const ok = !gated() || myDept() === t.dataset.dept; t.classList.toggle('locked', !ok); t.title = ok ? '' : 'For players on the ' + DEPT_NAME[t.dataset.dept] + ' team in game'; }); };
   updateLocks(); addEventListener('me', updateLocks);
   // tabs follow your team in game: on the civilian team you see only the Civilian tab; on a department team you see Dispatch and
-  // every department (only yours opens) but not Civilian. Not in game: everything shows. Owners and co-owners keep Civilian, but on the
-  // civilian team nobody gets Dispatch or the MDTs.
-  const BOSS = ['owner', 'co_owner'].includes(window.OVERSITE?.role);
+  // every department (only yours opens) but not Civilian. Not in game: everything shows. This goes for owners and co-owners too.
   const onCivTeam = () => !!(window.ME && window.ME.team && !window.ME.dept);
-  const updateTabs = () => { if (!gated()) return; const civ = onCivTeam(), dept = !!myDept() && !BOSS; window.__civOnly = civ;
+  const updateTabs = () => { if (!gated()) return; const civ = onCivTeam(), dept = !!myDept(); window.__civOnly = civ; window.__deptOnly = dept;
     const cvx = document.getElementById('cvClose'); if (cvx) cvx.hidden = civ;
     tabs.forEach(t => { const v = t.dataset.view; t.hidden = civ ? (v === 'dispatch' || v === 'mdt') : dept ? v === 'civ' : false; });
     if (mdtBtn) mdtBtn.hidden = civ;

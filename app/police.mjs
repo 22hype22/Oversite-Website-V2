@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS pd_records (id INTEGER PRIMARY KEY, community_id INTE
 CREATE INDEX IF NOT EXISTS pd_records_k ON pd_records (community_id, kind, status);
 CREATE INDEX IF NOT EXISTS pd_records_s ON pd_records (community_id, subject_rid);
 CREATE INDEX IF NOT EXISTS pd_records_p ON pd_records (community_id, plate);`);
+// civ: 1 when its owner was on the civilian team when we last saw it (police cars, fire trucks and the like aren't theirs to pay for)
+try { db.exec('ALTER TABLE pd_vehicles ADD COLUMN civ INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
 const q = sql => db.prepare(sql);
 
 // Liberty County's penal code: [code, title, fine in $, jail in minutes, class]. Infractions are tickets; misdemeanors and felonies can be jailed.
@@ -46,16 +48,16 @@ const RID = v => /^\d{1,20}$/.test(String(v ?? '')) ? String(v) : '';
 
 // ── what ER:LC shows: who is in the server and which vehicles are out, recorded at most every 20 s per server ──
 const seen = new Map();
-export const observe = (cid, body) => { const t = now(); if (t - (seen.get(cid) || 0) < 20000) return; seen.set(cid, t); let j; try { j = JSON.parse(body); } catch (e) { return; }
-  const byName = new Map(); const up = q(`INSERT INTO pd_people (community_id, rid, name, team, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?)
+export const observe = (cid, body, teams = {}) => { const t = now(); if (t - (seen.get(cid) || 0) < 20000) return; seen.set(cid, t); let j; try { j = JSON.parse(body); } catch (e) { return; }
+  const byName = new Map(), civName = new Set(); const up = q(`INSERT INTO pd_people (community_id, rid, name, team, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(community_id, rid) DO UPDATE SET name = excluded.name, team = excluded.team, last_seen = excluded.last_seen`);
-  const upV = q(`INSERT INTO pd_vehicles (community_id, plate, model, color, color_hex, owner, owner_rid, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  const upV = q(`INSERT INTO pd_vehicles (community_id, plate, model, color, color_hex, owner, owner_rid, first_seen, last_seen, civ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(community_id, plate) DO UPDATE SET model = excluded.model, color = excluded.color, color_hex = excluded.color_hex, owner = excluded.owner,
-    owner_rid = COALESCE(NULLIF(excluded.owner_rid, ''), pd_vehicles.owner_rid), last_seen = excluded.last_seen`);
+    owner_rid = COALESCE(NULLIF(excluded.owner_rid, ''), pd_vehicles.owner_rid), last_seen = excluded.last_seen, civ = excluded.civ`);
   db.exec('BEGIN'); try {
-    for (const p of j.Players || []) { const [name, id] = String(p.Player || '').split(':'); if (!name || !RID(id)) continue; byName.set(name.toLowerCase(), id); up.run(cid, id, T(name, 40), T(p.Team, 30), t, t); }
+    for (const p of j.Players || []) { const [name, id] = String(p.Player || '').split(':'); if (!name || !RID(id)) continue; byName.set(name.toLowerCase(), id); if (!(teams || {})[p.Team]) civName.add(name.toLowerCase()); up.run(cid, id, T(name, 40), T(p.Team, 30), t, t); }
     for (const v of j.Vehicles || []) { const plate = PLATE(v.Plate); if (!plate) continue; const owner = T(String(v.Owner || '').split(':')[0], 40);
-      upV.run(cid, plate, T(v.Name, 60), T(v.ColorName, 30), /^#?[0-9a-f]{6}$/i.test(v.ColorHex || '') ? '#' + String(v.ColorHex).replace('#', '') : '', owner, byName.get(owner.toLowerCase()) || '', t, t); }
+      upV.run(cid, plate, T(v.Name, 60), T(v.ColorName, 30), /^#?[0-9a-f]{6}$/i.test(v.ColorHex || '') ? '#' + String(v.ColorHex).replace('#', '') : '', owner, byName.get(owner.toLowerCase()) || '', t, t, civName.has(owner.toLowerCase()) ? 1 : 0); }
     db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); console.log('pd observe:', e.message); } };
 
 // ── records ──

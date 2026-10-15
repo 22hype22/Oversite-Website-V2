@@ -117,9 +117,9 @@ export const cycle = c => { const cf = conf(c); if (!cf.on) return;
     // a fine for every citation and arrest written since the economy began, billed to whoever it was written against
     for (const r of q("SELECT id, kind, subject_rid, data, at FROM pd_records WHERE community_id = ? AND kind IN ('citation', 'arrest') AND at >= ? AND subject_rid <> ''").all(cid, since)) {
       const h = byRid.get(String(r.subject_rid)); if (h) billFine(cid, h.user_id, r, cf); }
-    // each week, registration and insurance on every car they drove in the last two weeks
+    // each week, registration and insurance on every civilian car they drove in the last two weeks (never a department's)
     const wk = Math.floor((t - since) / WEEK), wkStart = since + wk * WEEK;
-    for (const v of q('SELECT plate, model, owner_rid FROM pd_vehicles WHERE community_id = ? AND owner_rid <> \'\' AND last_seen >= ?').all(cid, t - 2 * WEEK)) {
+    for (const v of q('SELECT plate, model, owner_rid FROM pd_vehicles WHERE community_id = ? AND owner_rid <> \'\' AND civ = 1 AND last_seen >= ?').all(cid, t - 2 * WEEK)) {
       const h = byRid.get(String(v.owner_rid)); if (!h) continue; const car = `${v.model || 'Vehicle'} (${v.plate})`;
       if (cf.reg) bill(cid, h.user_id, 'reg', `reg:${v.plate}:${wk}`, `Registration, ${car}`, cf.reg, wkStart, wkStart + cf.grace * DAY);
       if (cf.ins) bill(cid, h.user_id, 'ins', `ins:${v.plate}:${wk}`, `Insurance, ${car}`, cf.ins, wkStart, wkStart + cf.grace * DAY); }

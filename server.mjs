@@ -54,7 +54,7 @@ const msg = (res, user, title, text, action, status = 200) => page(res, pages.me
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
 const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f);
-  f.onSnap = body => { police.observe(c.id, body); career.observe(c.id, body); staffhub.observe(c.id, body); };
+  f.onSnap = body => { police.observe(c.id, body, (communities.byId(c.id) || c).settings.teams); career.observe(c.id, body); staffhub.observe(c.id, body); };
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
@@ -67,6 +67,7 @@ const liveSide = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Dat
 // the cars someone has spawned in game right now, from the same snapshot; null when there's no fresh data
 const spawnedBy = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Date.now() - sn.t > 180000 || !user.roblox_name) return null;
   let j; try { j = JSON.parse(sn.body); } catch (e) { return null; } const me = String(user.roblox_name).toLowerCase();
+  const p = (j.Players || []).find(x => String(x.Player || '').split(':')[0].toLowerCase() === me); if (p && (c.settings.teams || {})[p.Team]) return [];   // a department car isn't theirs
   return (j.Vehicles || []).filter(v => String(v.Owner || '').split(':')[0].toLowerCase() === me).map(v => ({ plate: v.Plate, model: v.Name, color: v.ColorName, hex: v.ColorHex })); };
 
 // ── the CAD page, with this community's settings injected ──
@@ -201,8 +202,8 @@ const communityApi = async (req, res, slug, rest) => {
   // the law enforcement MDT: lookups, warrants, BOLOs, citations, warnings, arrests and traffic stops, shared by the whole server
   // the Civilian tab (app/civ.mjs): every member has an account, a character, bills and 911
   if (rest.startsWith('civ/')) { const sub = rest.slice(4), ok = r => json(res, r.error ? r : { ...r, state: civ.state(c, user, can(role, 'admin'), spawnedBy(c, user)) }, r.error ? 400 : 200);
-    // players on a police, fire or DOT team in game don't use the Civilian tab (staff tools and owners excepted)
-    if (M === 'POST' && !can(role, 'co_owner') && !['settings', 'grant', 'prop', 'biz/admin'].includes(sub)) { const side = liveSide(c, user);
+    // players on a police, fire or DOT team in game don't use the Civilian tab, owners included (its staff tools excepted)
+    if (M === 'POST' && !['settings', 'grant', 'prop', 'biz/admin'].includes(sub)) { const side = liveSide(c, user);
       if (side && side !== 'civ') return json(res, { error: 'You’re on a department team in game. The Civilian tab is for players on the civilian team.' }, 403); }
     if (sub === 'state' && M === 'GET') return json(res, civ.state(c, user, can(role, 'admin'), spawnedBy(c, user)));
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404);
