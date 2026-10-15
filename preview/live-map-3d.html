@@ -1177,24 +1177,20 @@
   .trip-steps span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid #33363c;font-size:11px;font-weight:600}.trip-steps b{font-weight:500}
   .trip-steps li.on{color:#ECEDEF}.trip-steps li.on span{border-color:#E8B33A;color:#E8B33A}.trip-steps li.done{color:var(--dim)}.trip-steps li.done span{background:#3FBF8A;border-color:#3FBF8A;color:#0d0e10}
   @media (max-width:760px){.trip{grid-template-columns:1fr}.trip-map.gpsnav{min-height:260px}}
-  /* task boards: a sheet of work orders on a clip, like the paperwork in the games */
-  .wo{position:relative;margin-top:16px}
-  .wo-clip{position:absolute;left:50%;top:-7px;z-index:1;width:84px;height:16px;margin-left:-42px;border-radius:5px 5px 3px 3px;background:linear-gradient(#c3c8cf,#80868f);box-shadow:0 2px 3px rgba(0,0,0,.35)}
-  .wo-clip::before{content:"";position:absolute;left:28px;right:28px;top:-7px;height:9px;border:2.5px solid #9aa0a8;border-bottom:0;border-radius:6px 6px 0 0}
-  .wo-paper{position:relative;padding:20px 16px 4px 0;border-radius:3px;background:#F3EEDF;color:#1d1f24;box-shadow:0 1px 0 #d8d1bd,0 10px 24px rgba(0,0,0,.35)}
-  .wo-paper::before{content:"";position:absolute;left:40px;top:0;bottom:0;border-left:1.5px solid rgba(200,55,45,.4)}
-  .wo-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 0 8px 52px;border-bottom:2px solid #1d1f24}.wo-head b{font:17px/1.2 "Special Elite",ui-monospace,monospace}
-  .wo-head span{font:600 9.5px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:#6b6556;white-space:nowrap}
-  .wo-row{display:grid;grid-template-columns:40px 1fr auto auto;align-items:center;gap:0 12px;padding:11px 0;border-bottom:1px solid #ddd5c0}.wo-row:last-child{border-bottom:0}
-  .wo-n{justify-self:center;font:13px/1 "Special Elite",ui-monospace,monospace;color:#8d877a}
-  .wo-main{min-width:0}.wo-main b{display:block;font:15px/1.25 "Special Elite",ui-monospace,monospace}.wo-main p{margin:3px 0 0;font-size:12px;line-height:1.4;color:#5e5c55}
-  .wo-pay{font:26px/1 Caveat,"Segoe Print","Bradley Hand",cursive;color:#1D3B8F;white-space:nowrap}
-  .wo-btn{font:13px/1 "Special Elite",ui-monospace,monospace;color:#1d1f24;background:transparent;border:1.5px solid #1d1f24;border-radius:3px;padding:7px 12px;cursor:pointer;transition:background-color .15s ease,color .15s ease,transform .1s ease}
-  .wo-btn:active{transform:translateY(1px)}.wo-btn:disabled{opacity:.45;cursor:default}.wo-btn.solid{background:#1d1f24;color:#F3EEDF}
-  @media (hover:hover) and (pointer:fine){.wo-btn:not(:disabled):hover{background:#1d1f24;color:#F3EEDF}.wo-btn.solid:not(:disabled):hover{background:#33363d}}
-  .wo-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 10px 52px;border-top:1px solid #ddd5c0;font:13px/1.3 "Special Elite",ui-monospace,monospace;color:#4a4d55}
-  .wo-none{margin:0;padding:12px 0 12px 52px;font:13px "Special Elite",ui-monospace,monospace;color:#6b6556}
-  @media (max-width:640px){.wo-row{grid-template-columns:40px 1fr auto}.wo-row .wo-btn{grid-column:2/-1;justify-self:start;margin-top:8px}}
+  /* task boards: a list of trips, each with its route drawn as a line from first step to last */
+  .tb{margin-top:12px}.tb-h{display:flex;align-items:center;gap:8px;margin:0 0 10px}.tb-h b{font-size:15px;font-weight:600;color:#ECEDEF}.tb-h>span{font-size:12px;color:var(--faint)}.tb-h .st-btn{margin-left:auto}
+  .tb-list{display:grid;gap:8px}
+  .tb-card{display:grid;grid-template-columns:76px minmax(0,1fr) auto;align-items:center;gap:16px;padding:14px 16px;border-radius:16px;background:#1b1c20;border:1px solid #26282d}
+  .tb-pay b{display:block;font-size:17px;font-weight:600;color:#ECEDEF;font-variant-numeric:tabular-nums}.tb-pay small{font-size:11.5px;color:var(--faint)}
+  .tb-t{display:block;font-size:13.5px;font-weight:600;line-height:1.3;color:#ECEDEF}
+  .tb-line{display:flex;align-items:center;gap:8px;margin:10px 0 6px}.tb-line::before,.tb-line::after{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:#E8B33A}
+  .tb-line i{flex:1;height:1.5px;background:#E8B33A;opacity:.55}.tb-line span{flex:none;padding:3px 9px;border-radius:999px;background:#2a2c31;color:#C9CDD3;font-size:11px;font-weight:600}
+  .tb-ends{display:flex;justify-content:space-between;gap:16px;font-size:11.5px;color:var(--dim)}.tb-ends span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tb-ends span+span{text-align:right}
+  .tb-go{font:inherit;font-size:12.5px;font-weight:600;color:#0d0e10;background:#ECEDEF;border:0;border-radius:999px;padding:9px 18px;cursor:pointer;transition:background-color .15s ease,transform .1s ease}
+  .tb-go:active{transform:scale(.97)}.tb-go:disabled{opacity:.45;cursor:default}
+  @media (hover:hover) and (pointer:fine){.tb-go:not(:disabled):hover{background:#fff}}
+  .tb-note{margin:10px 2px 0;font-size:12px;color:var(--dim)}
+  @media (max-width:640px){.tb-card{grid-template-columns:64px minmax(0,1fr);gap:12px}.tb-go{grid-column:1/-1}}
   .tk-go{font:600 12.5px/1 inherit;color:#0d0e10;background:#ECEDEF;border:0;border-radius:9px;padding:10px 14px;cursor:pointer;transition:transform .12s cubic-bezier(.23,1,.32,1),background-color .15s ease}.tk-go:active{transform:scale(.97)}.tk-go:disabled{opacity:.5}
   @media (hover:hover) and (pointer:fine){.tk-go:hover{background:#fff}}
   /* the overlay */
@@ -1207,17 +1203,18 @@
   .g-stamp{position:absolute;right:22px;top:46%;padding:6px 14px;border:3px solid #C8372D;border-radius:6px;color:#C8372D;font:700 26px/1 "Special Elite",ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;transform:rotate(-12deg);opacity:.9;mix-blend-mode:multiply;animation:gStamp .38s cubic-bezier(.2,1.6,.4,1);pointer-events:none}
   .g-stamp.green{border-color:#2E8B57;color:#2E8B57;mix-blend-mode:normal;background:rgba(10,12,12,.55)}
   @keyframes gStamp{from{transform:rotate(-12deg) scale(2.2);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:.9}}
-  /* closing a business: a notice of closure */
-  .cl-win{width:min(500px,100%)}.ask-win{width:min(400px,100%)}.ask-p{margin:-4px 0 4px;font-size:13.5px;line-height:1.5;color:var(--dim)}.pw-paper.cl-paper{background:#F3EEDF;padding-bottom:18px}.cl-paper .g-stamp{top:auto;bottom:70px;right:28px}
-  .cl-biz{margin:10px 0 2px}.cl-biz b{display:block;font:22px/1.15 "Special Elite",ui-monospace,monospace}.cl-biz span{font:600 10px/1.4 system-ui;letter-spacing:.08em;text-transform:uppercase;color:#6b6556}
-  .cl-sec{margin:14px 0 6px;padding-bottom:5px;border-bottom:1px solid #d8d1bd;font:600 9.5px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#6b6556}
-  .cl-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:3px 0;font:14px/1.3 "Special Elite",ui-monospace,monospace}.cl-row b{font-weight:400;font-variant-numeric:tabular-nums}.cl-row.neg b{color:#B3362C}
-  .cl-row.tot{margin-top:5px;padding-top:7px;border-top:1.5px solid #1d1f24}.cl-row.tot span{font-weight:700}.cl-row.tot b{font-size:18px}
-  .cl-staff{display:flex;flex-wrap:wrap;gap:6px;margin:0}.cl-staff span{padding:5px 8px;border:1px dashed #b9b19c;border-radius:4px;font:13px/1 "Special Elite",ui-monospace,monospace;text-decoration:line-through;text-decoration-color:rgba(179,54,44,.75)}
-  .cl-staff i,.cl-gone{margin:0;font:13px/1.45 "Special Elite",ui-monospace,monospace;font-style:normal;color:#3a3d44}
-  .cl-sign{display:block;margin-top:18px}.cl-sign span{font:600 9.5px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;color:#6b6556}.cl-sign span b{letter-spacing:0;text-transform:none;font-size:11px;color:#1d1f24}
-  .cl-sign input{display:block;width:100%;margin-top:4px;padding:2px 2px 4px;font:28px/1.1 Caveat,"Segoe Print","Bradley Hand",cursive;color:#1D3B8F;background:transparent;border:0;border-bottom:1.5px solid #1d1f24;border-radius:0;outline:none}
-  .cl-sign input:focus-visible{box-shadow:0 1.5px 0 #1D3B8F}.cl-sign input:disabled{opacity:1}
+  /* closing a business: where the money goes, who is let go, then type the name to confirm */
+  .cl-win{width:min(480px,100%)}.ask-win{width:min(400px,100%)}.ask-p{margin:-4px 0 4px;font-size:13.5px;line-height:1.5;color:var(--dim)}
+  .cl-sub{margin:-8px 0 14px;font-size:12.5px;color:var(--dim)}
+  .cl-card{padding:12px 14px;border-radius:12px;background:#1b1c20;border:1px solid #26282d}
+  .cl-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:3px 0;font-size:13px;color:var(--dim)}.cl-row b{color:#ECEDEF;font-weight:600;font-variant-numeric:tabular-nums}.cl-row.neg b{color:#F0A0A0}
+  .cl-row.tot{margin-top:6px;padding-top:9px;border-top:1px solid #2a2c31;color:#ECEDEF}.cl-row.tot b{font-size:18px;color:#E8B33A}.cl-row.tot.neg b{color:#F0A0A0}
+  .cl-sec{margin:14px 0 6px;font-size:11px;color:var(--faint)}
+  .cl-staff{display:flex;flex-wrap:wrap;gap:6px;margin:0}.cl-staff span{padding:4px 10px;border-radius:999px;background:#2a2c31;color:#C9CDD3;font-size:12px}
+  .cl-staff small,.cl-gone{margin:0;font-size:12.5px;line-height:1.45;color:var(--dim)}
+  .cl-sign{display:block;margin-top:16px;font-size:12px;color:var(--dim)}.cl-sign b{color:#ECEDEF;font-weight:600}
+  .cl-sign input{display:block;width:100%;margin-top:6px;padding:10px 12px;font:inherit;font-size:14px;color:#ECEDEF;background:#0f1012;border:1px solid #2a2c31;border-radius:10px;outline:none}
+  .cl-sign input:focus-visible{border-color:#5a5d64}.cl-sign input:disabled{opacity:.6}
   .cl-acts{gap:8px}.cl-go{font:inherit;font-size:13px;font-weight:600;color:#fff;background:#B3362C;border:0;border-radius:9px;padding:9px 14px;cursor:pointer;transition:background-color .15s ease,transform .1s ease}
   .cl-go:disabled{background:#33292a;color:#8d7f7d;cursor:not-allowed}.cl-go:not(:disabled):active{transform:scale(.97)}
   @media (hover:hover) and (pointer:fine){.cl-go:not(:disabled):hover{background:#C8372D}}
@@ -4422,8 +4419,8 @@ body.voice-snap .stage{transition:none!important}
     if (t && u) { if (!gR) gRoute(u[0], u[1], t[0], t[1]); pos = gAlong(u[0], u[1]); if (pos.off > 16 && performance.now() - gAt > 700) { gRoute(u[0], u[1], t[0], t[1]); pos = gAlong(u[0], u[1]); }
       const total = gC[gC.length - 1], left = Math.max(0, total - pos.at) + Math.min(pos.off, 30), next = gM.find(m => m.at > pos.at + 4) || gM[gM.length - 1], dist = Math.max(0, next.at - pos.at);
       const here = Math.hypot(st.x - me[0], st.z - me[1]) <= (J.r || 45), wl = st.wait && J.arrived ? Math.max(0, J.arrived + st.wait - Date.now()) : 0, miles = (left * K.W2M * K.FT / 5280).toFixed(1);
-      if (J.arrived && st.wait) { big = mmss(wl); sub = 'Stay close until the timer runs out'; eta = 'Here'; mi = '0 mi'; }
-      else if (here) { big = 'You’re here'; sub = st.wait ? 'The timer starts in a moment' : 'Finishing up…'; eta = 'Here'; mi = '0 mi'; }
+      if (J.arrived && st.wait) { big = mmss(wl); sub = 'Stay close until the timer runs out'; eta = 'You’re here'; mi = '0 mi'; }
+      else if (here) { big = 'You’re here'; sub = st.wait ? 'The timer starts in a moment' : 'Finishing up…'; eta = 'You’re here'; mi = '0 mi'; }
       else { ic = next.k; big = K.fmt(dist); sub = next.k === 'arrive' ? st.label : dist > 450 ? 'Continue, then ' + next.t.toLowerCase() : next.t; eta = Math.max(1, Math.round(left * K.W2M / (30 * 0.44704) / 60)) + ' min'; mi = miles + ' mi'; chip = miles + ' mi left'; }
       const ahead = gPoint(Math.min(total, pos.at + 25)); want = Math.atan2(ahead[1] - pos.py, ahead[0] - pos.px) || 0; }
     else if (t) { big = 'Not in game'; sub = 'Join the server to get directions'; }
@@ -4461,17 +4458,22 @@ body.voice-snap .stage{transition:none!important}
     return `<div class="trip"><div class="trip-map gpsnav"><canvas></canvas><div class="nav-top"><div class="nav-ic"></div><div><b></b><span></span></div></div><span class="trip-chip" hidden></span></div>
       <div class="trip-info"><div class="trip-h"><div><small>${esc(J.biz || 'Task')}</small><b>${esc(J.label)}</b></div><button class="st-btn" data-jobstop="1">Stop</button></div>
         <div class="trip-now">${st.game ? `<small>Step ${J.step + 1} of ${J.steps.length}</small><b>${esc(st.what)}</b><button class="tk-go" data-play="1">Start</button>`
-          : `<small>Next stop</small><b>${esc(st.label || st.what)}</b><div class="facts"><span>ETA<b data-f="eta">–</b></span><span>Distance<b data-f="mi">–</b></span><span>Step<b>${J.step + 1} of ${J.steps.length}</b></span></div>${st.wait ? `<p>Stay ${waitText(st.wait)} once you get there.</p>` : ''}`}</div>
+          : `<small>Next stop</small><div class="tb-line"><i></i><span data-f="eta">–</span><i></i></div><div class="tb-ends"><span>You</span><span>${esc(st.label || st.what)}</span></div>
+            <div class="facts"><span>Distance<b data-f="mi">–</b></span><span>Step<b>${J.step + 1} of ${J.steps.length}</b></span>${st.wait ? `<span>Stay<b>${waitText(st.wait)}</b></span>` : ''}</div>`}</div>
         <ol class="trip-steps">${J.steps.map((x, i) => `<li class="${i < J.step ? 'done' : i === J.step ? 'on' : ''}"><span>${i < J.step ? '✓' : i + 1}</span><b>${esc(x.what)}</b></li>`).join('')}</ol></div></div>`; };
   const clockBtn = id => D.shift ? (D.shift.biz === id ? '<button class="st-btn" data-clock="out">Clock out</button>' : '') : `<button class="st-btn" data-clock="${id}">Clock in</button>`;
-  // ── task boards: a sheet of work orders per workplace, taken while you're on shift ──
+  // ── task boards: today's tasks per workplace, taken while you're on shift ──
   const GNAME = { paperwork: 'Paperwork', pitch: 'Talk', negotiate: 'Negotiate', timing: 'Steady hands', sequence: 'Memory' };
   let taking = null;   // { id, slot } while a Take is on its way, so a refresh can't re-enable the buttons
   const taskBoard = (id, kind) => { const on = D.shift && D.shift.biz === id, B = (D.boards || {})[id] || [], can = on && !D.job, wait = taking && taking.id === id;
-    const route = t => t.steps.map((x, i) => i ? x.what.charAt(0).toLowerCase() + x.what.slice(1) : x.what).join(', then ');
-    const foot = can ? '' : `<div class="wo-foot">${D.job ? '<span>Finish the task you’re on, then take the next one.</span>' : D.shift ? '<span>You’re clocked in somewhere else.</span>' : `<span>Clock in to take one.</span><button class="wo-btn" data-clock="${id}">Clock in</button>`}</div>`;
-    return `<div class="wo"><i class="wo-clip" aria-hidden="true"></i><div class="wo-paper"><div class="wo-head"><b>Work orders</b><span>${B.length} today</span></div>
-      ${B.map((t, i) => `<div class="wo-row"><span class="wo-n">${i + 1}.</span><div class="wo-main"><b>${esc(t.title)}</b><p>${esc(route(t))}</p></div><span class="wo-pay">${t.far ? '~' : ''}${money(t.pay)}</span>${can ? `<button class="wo-btn" data-task="${i}"${wait ? ' disabled' : ''}>${wait && taking.slot === i ? 'Taking…' : 'Take'}</button>` : ''}</div>`).join('') || '<p class="wo-none">Nothing on the sheet today.</p>'}${foot}</div></div>`; };
+    const card = (t, i) => { const a = t.steps[0], z = t.steps[t.steps.length - 1];
+      return `<div class="tb-card"><div class="tb-pay"><b>${t.far ? '~' : ''}${money(t.pay)}</b><small>Task ${i + 1}</small></div>
+        <div><b class="tb-t">${esc(t.title)}</b><div class="tb-line"><i></i><span>${t.steps.length} step${t.steps.length > 1 ? 's' : ''}</span><i></i></div>
+          <div class="tb-ends"><span>${esc(a.what)}</span>${t.steps.length > 1 ? `<span>${esc(z.what)}</span>` : ''}</div></div>
+        ${can ? `<button class="tb-go" data-task="${i}"${wait ? ' disabled' : ''}>${wait && taking.slot === i ? 'Taking…' : 'Take'}</button>` : ''}</div>`; };
+    return `<div class="tb"><div class="tb-h"><b>Tasks today</b><span>${B.length}</span>${!on && !D.shift ? `<button class="st-btn" data-clock="${id}">Clock in to take one</button>` : ''}</div>
+      <div class="tb-list">${B.map(card).join('') || '<p class="tb-note">Nothing on the board today.</p>'}</div>
+      ${D.job && on ? '<p class="tb-note">Finish the task you’re on, then take the next one.</p>' : !on && D.shift ? '<p class="tb-note">You’re clocked in somewhere else.</p>' : ''}</div>`; };
   // ── mini-games, in an overlay on the tablet so its refresh never interrupts one ──
   const gbox = $('cvGame'); let gameKey = '', gameOff = '', hold = 0;
   const pickOne = a => a[Math.floor(Math.random() * a.length)];
@@ -4619,7 +4621,7 @@ body.voice-snap .stage{transition:none!important}
   const BST = { Active: 'good', Suspended: 'bad', Held: 'bad' }, BSTT = { Active: 'Licensed', Suspended: 'License overdue', Held: 'On hold by staff' };
   const REQL = [['warrants', 'No active warrants'], ['felony', 'No felony convictions'], ['license', "Driver's license on file"], ['debt', 'No overdue bills']];
   const bizTab = {};
-  // ── closing a business: a notice of closure that shows where the money goes, signed by typing the name ──
+  // ── closing a business: shows where the money goes and who is let go, confirmed by typing the name ──
   const clBox = $('cvShut'); let clFrom = null, clDone = false;
   const clOff = () => { clBox.hidden = true; clBox.innerHTML = ''; document.removeEventListener('keydown', clKey); if (clFrom?.isConnected) clFrom.focus(); };
   const clKey = e => { if (e.key === 'Escape' && !clDone) clOff(); };
@@ -4637,21 +4639,19 @@ body.voice-snap .stage{transition:none!important}
     const gone = [(X.items || []).length ? n(X.items.length, K.menu.toLowerCase() === 'listings' ? 'listing' : 'item') : '', X.ad ? 'the ad in Shops (no refund)' : '', (X.reviews || []).length ? n(X.reviews.length, 'review') : '',
       z.apps.length ? n(z.apps.length, 'open application') : '', 'its sales and account history'].filter(Boolean);
     clFrom = from; clDone = false; clBox.hidden = false;
-    clBox.innerHTML = `<div class="g-win cl-win" role="dialog" aria-modal="true" aria-labelledby="clT"><header><span>Close business</span><b id="clT">This can’t be undone</b></header>
-      <div class="pw-paper cl-paper"><div class="pw-head"><small>Liberty County business registry</small><b>Notice of closure</b><i>No. ${String(id).padStart(5, '0')}</i></div>
-        <div class="cl-biz"><b>${esc(z.name)}</b><span>${esc(z.kind)}${z.address ? ' · ' + esc(z.address) : ''}</span></div>
-        <div class="cl-sec">Final accounts</div>${row('Business account', money(z.balance))}${loan ? row('Loan paid off', '−' + money(loan), 'neg') : ''}
-        ${row(net >= 0 ? 'Paid to you' : 'You pay to close', money(Math.abs(net)), 'tot' + (net < 0 ? ' neg' : ''))}
-        <div class="cl-sec">Staff let go</div><p class="cl-staff">${z.staff.length ? z.staff.map(w => `<span>${esc(w.name || w.who)}</span>`).join('') : '<i>No one on the books.</i>'}</p>
-        <div class="cl-sec">Gone for good</div><p class="cl-gone">${esc(gone.join(', ').replace(/, ([^,]*)$/, ' and $1').replace(/^./, c => c.toUpperCase()))}.</p>
-        <label class="cl-sign"><span>Sign by typing <b>${esc(z.name)}</b></span><input autocomplete="off" spellcheck="false" maxlength="60" aria-label="Type ${esc(z.name)} to confirm"></label></div>
+    clBox.innerHTML = `<div class="g-win cl-win" role="dialog" aria-modal="true" aria-labelledby="clT"><header><span>Close business</span><b id="clT">Close ${esc(z.name)}?</b></header>
+      <p class="cl-sub">${esc(z.kind)}${z.address ? ' · ' + esc(z.address) : ''}. This can’t be undone.</p>
+      <div class="cl-card">${row('Business account', money(z.balance))}${loan ? row('Loan paid off', '−' + money(loan), 'neg') : ''}${row(net >= 0 ? 'Paid to you' : 'You pay to close', money(Math.abs(net)), 'tot' + (net < 0 ? ' neg' : ''))}</div>
+      <div class="cl-sec">Staff let go</div><p class="cl-staff">${z.staff.length ? z.staff.map(w => `<span>${esc(w.name || w.who)}</span>`).join('') : '<small>No one on the books.</small>'}</p>
+      <div class="cl-sec">Gone for good</div><p class="cl-gone">${esc(gone.join(', ').replace(/, ([^,]*)$/, ' and $1').replace(/^./, c => c.toUpperCase()))}.</p>
+      <label class="cl-sign">Type <b>${esc(z.name)}</b> to confirm<input autocomplete="off" spellcheck="false" maxlength="60"></label>
       <p class="g-msg" role="status"></p><div class="g-acts cl-acts"><button class="st-btn" data-clx="1">Keep it open</button><button class="cl-go" disabled>Close ${esc(z.name)}</button></div></div>`;
     const inp = clBox.querySelector('.cl-sign input'), go = clBox.querySelector('.cl-go'), msg = clBox.querySelector('.g-msg'), ok = () => inp.value.trim().toLowerCase() === z.name.trim().toLowerCase();
     inp.oninput = () => { go.disabled = !ok(); }; inp.onkeydown = e => { if (e.key === 'Enter' && ok()) go.click(); };
     go.onclick = async () => { go.disabled = true; go.textContent = 'Closing…'; msg.textContent = ''; msg.className = 'g-msg';
-      try { const j = await post('/biz/close', { id, name: inp.value }); clDone = true; inp.disabled = true; stamp(clBox.querySelector('.cl-paper'), 'Closed');
+      try { const j = await post('/biz/close', { id, name: inp.value }); clDone = true; inp.disabled = true;
         clBox.querySelector('.cl-acts').innerHTML = ''; msg.className = 'g-msg ok'; msg.textContent = net > 0 ? `${money(net)} is in your account.` : net < 0 ? `${money(-net)} came out of your account to clear the loan.` : `${z.name} is closed.`;
-        if (j.state) { D = j.state; render(); } setTimeout(() => { clDone = false; clOff(); }, 1800); }
+        if (j.state) { D = j.state; render(); } setTimeout(() => { clDone = false; clOff(); }, 1400); }
       catch (e) { msg.className = 'g-msg bad'; msg.textContent = e.message; go.textContent = `Close ${z.name}`; go.disabled = !ok(); } };
     document.addEventListener('keydown', clKey); inp.focus(); };
   const renderBiz = () => { const O = D.owned || [], napps = O.reduce((n, z) => n + z.apps.length + (((D.queue || {})[z.id] || {}).pending || []).length, 0); $('cvBizN').textContent = napps; $('cvBizN').hidden = !napps;
@@ -4771,7 +4771,7 @@ body.voice-snap .stage{transition:none!important}
     if (d.show !== undefined && b.matches('[data-show]')) { if (!d.show) return alert('That listing is gone.'); return go('/biz/job', { id, item: +d.show, req: +d.req || 0 }); }
     if (d.job) return go('/biz/job', { id: +d.job });
     if (d.task !== undefined && b.matches('[data-task]')) { if (taking) return; taking = { id, slot: +d.task };
-      b.closest('.wo').querySelectorAll('[data-task]').forEach(x => { x.disabled = true; }); b.textContent = 'Taking…';
+      b.closest('.tb').querySelectorAll('[data-task]').forEach(x => { x.disabled = true; }); b.textContent = 'Taking…';
       act('/biz/task', { id, slot: +d.task }).then(r => { taking = null; render(); if (r) show('jobs'); }); return; }
     if (d.play) { gameOff = ''; return openGame(); }
     if (d.jobstop) { const J = D.job; if (!J) return; const n = J.step;
