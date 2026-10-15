@@ -2,11 +2,11 @@
 """Make the 3D terrain look like Liberty County in game: rolling hills at real heights, flat lots under buildings,
 roads that don't climb cliffs.
 
-    python3 tame-terrain.py <current height png> <masks.npy> <out png>
+    python3 tame-terrain.py <height png from ledge-terrain.py> <masks.npy> <out png>
 
 The generated heightmap (build-heightmap.py) guesses hill heights from the rock drawn on the map, which made needle
 peaks up to ~325 studs. Here:
-  1. guessed hills are smoothed and squeezed under ~50 studs, like the photo-measured terraced hills (35-55);
+  1. hills not measured from photos (from ledge-terrain.py) are smoothed and given a soft ceiling;
   2. the photo-measured features in heights.json are put back exactly;
   3. road surfaces are smoothed so roads have gentle grades;
   4. every building in liberty-county-3d.json gets a level pad at the middle height of its footprint.
@@ -19,7 +19,7 @@ from scipy import ndimage as ndi
 
 SRC, MASKS, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 HERE = os.path.dirname(os.path.abspath(__file__))
-HMAX, W, CAP = 150.0, 2000.0, 14.0          # CAP: the most a guessed hill rises above flat land, in units (14 = 49 studs, like the measured terraced hills)
+HMAX, W, CAP = 150.0, 2000.0, 60.0          # CAP: a soft ceiling for hills not measured from photos, in units (60 = 210 studs)
 cfg = json.load(open(os.path.join(HERE, 'heights.json')))
 S = cfg['stud']; flat = cfg['sea_level_land'] * S
 geo = json.load(open(os.path.join(HERE, '..', 'liberty-county-3d.json')))

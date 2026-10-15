@@ -4995,7 +4995,8 @@ const frame = () => {
 let active = false;
 const setActive = on => { if (on === active) return; active = on; renderer.setAnimationLoop(on ? frame : null); if (on) { clock.getDelta(); resize(); } };
 let flight = null;
-const flyTo = (x, z, dist = 520, az = 0.9, smooth = false) => { const y = heightAt(x, z); const T = new THREE.Vector3(x, y, z), P = new THREE.Vector3(x + Math.sin(az) * dist * 0.75, y + dist * 0.62, z + Math.cos(az) * dist * 0.75);
+const flyTo = (x, z, dist = 520, az = 0.9, smooth = false, tilt = 0.69) => { const y = heightAt(x, z), hz = Math.cos(tilt) * dist * 0.97, up = Math.sin(tilt) * dist * 0.97;   // tilt: radians above the horizon (0.69 = the usual view)
+  const T = new THREE.Vector3(x, y, z), P = new THREE.Vector3(x + Math.sin(az) * hz, y + up, z + Math.cos(az) * hz);
   if (!smooth) { controls.target.copy(T); camera.position.copy(P); controls.update(); return; }
   follow = false; flight = { t0: performance.now(), ms: 900, T0: controls.target.clone(), P0: camera.position.clone(), T, P }; };
 const rayc = new THREE.Raycaster(), ndc = new THREE.Vector2();
