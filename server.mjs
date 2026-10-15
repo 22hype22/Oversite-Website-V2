@@ -3,7 +3,7 @@
 // Railway runs `npm start`. Data lives in SQLite on the /data volume (see app/db.mjs).
 import http from 'node:http';
 import { createReadStream, statSync, existsSync, readFileSync, renameSync } from 'node:fs';
-import { join, extname, normalize } from 'node:path';
+import { join, extname, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, mdtSignin, support, staffGrants, siteSettings, seal, RESERVED, token } from './app/db.mjs';
@@ -39,7 +39,8 @@ const LEGACY_KEY = join(DATA, existsSync('/data') ? 'erlc.key' : '.erlc.key');  
 const html = (res, body, status = 200, extra = {}) => { res.writeHead(status, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-frame-options': 'SAMEORIGIN', ...extra }); res.end(body); };
 const json = (res, obj, status = 200, extra = {}) => { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...extra }); res.end(JSON.stringify(obj)); };
 const redirect = (res, to, extra = {}, code = 303) => { res.writeHead(code, { location: to, 'cache-control': 'no-store', ...extra }); res.end(); };
-const body = (req, limit = 1e5) => new Promise(resolve => { let b = ''; req.on('data', c => { b += c; if (b.length > limit) req.destroy(); }); req.on('end', () => resolve(b)); req.on('error', () => resolve('')); });
+// bytes are joined before decoding, so a character split across two chunks (and the Stripe signature over it) stays intact
+const body = (req, limit = 1e5) => new Promise(resolve => { const parts = []; let n = 0; req.on('data', c => { n += c.length; if (n > limit) return req.destroy(); parts.push(c); }); req.on('end', () => resolve(Buffer.concat(parts).toString('utf8'))); req.on('error', () => resolve('')); req.on('close', () => { if (n > limit) resolve(''); }); });
 const jsonBody = async req => { try { return JSON.parse(await body(req) || '{}'); } catch (e) { return {}; } };
 const formBody = async req => new URLSearchParams(await body(req));
 const sameOrigin = req => { const o = req.headers.origin || req.headers.referer; if (!o) return true; try { return new URL(o).host === req.headers.host; } catch (e) { return false; } };
@@ -61,7 +62,7 @@ let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
   const prem = premium.isPremium(c), cfg = { premium: prem, logo: prem && profile.iconSource(c) ? `/c/${c.slug}/icon` : '', license: prem ? c.settings.licenseStyle || null : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: ranksFor(c, prem), gold: users.premiumRoblox(), setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};${mapPref(cfg.setup)}</script>`;
-  return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
+  return mapHtml.replace(/<head>/i, () => `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, () => `<title>${pages.esc(c.name)} · Oversite</title>`); };   // functions, so a $' in a name is never read as a replace pattern
 
 // ── Roblox headshots ──
 const heads = new Map();
@@ -114,6 +115,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (M === 'GET') return json(res, { hasKey: !!communities.key(c.id), persistent: true, canEdit: can(role, 'co_owner') });
     if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can change the server key.' }, 403);
     if (M === 'DELETE') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner can disconnect the server.' }, 403); communities.setKey(c.id, null); f.setKey(''); return json(res, { ok: true }); }
+    if (auth.limited(req, 'keytest', 6, 60000)) return json(res, { error: 'Too many tries. Wait a minute and try again.' }, 429);   // each try asks ER:LC
     const k = String((await jsonBody(req)).key || '').trim(); if (!/^[A-Za-z0-9_\-]{8,200}$/.test(k)) return json(res, { error: 'That does not look like an ER:LC server key.' }, 400);
     const t = await testKey(k); if (!t.ok && !t.appSide && !t.keep) return json(res, { error: t.message }, 400);
     communities.setKey(c.id, k); f.setKey(k); console.log(`key: ${c.slug} saved${t.ok ? '' : ' (ER:LC did not confirm: ' + String(t.message).slice(0, 120) + ')'}`);
@@ -123,7 +125,7 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'premium' && M === 'GET') return json(res, { ...premium.info(c), plans: premium.PLANS, payments: premium.stripeReady(), canBuy: can(role, 'co_owner') });
   if (rest.startsWith('premium/') && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can manage Premium.' }, 403);
     const sub = rest.slice(8), j = await jsonBody(req);
-    try { const r = sub === 'checkout' ? await premium.checkout(c, user, String(j.plan || ''), origin(req)) : sub === 'portal' ? await premium.portal(c, origin(req)) : sub === 'boost' ? premium.boost(c)
+    try { const r = sub === 'checkout' ? await premium.checkout(c, user, String(j.plan || ''), origin(req)) : sub === 'portal' ? await premium.portal(c, origin(req), user, role === 'owner') : sub === 'boost' ? premium.boost(c)
         : sub === 'botkey' ? premium.newBotKey(c) : sub === 'botkey/delete' ? premium.dropBotKey(c) : sub === 'license' ? saveLicenseStyle(c, j)
         : sub === 'boost-server' ? premium.boostServer(c, user) : sub === 'unboost-server' ? premium.unboostServer(c, user)
         : sub === 'ranks' ? (premium.isPremium(c) ? saveRanks(c, j, () => communities.saveSettings(c.id, c.settings)) : { error: 'Custom ranks come with Premium.' }) : { error: 'Not found.' };
@@ -201,7 +203,7 @@ const communityApi = async (req, res, slug, rest) => {
     let players = []; try { if (f.snap && Date.now() - f.snap.t < 15000) players = (JSON.parse(f.snap.body).Players || []).filter(p => p.Location).map(p => ({ name: String(p.Player).split(':')[0], team: p.Team || '', x: p.Location.LocationX, z: p.Location.LocationZ })); } catch (e) {}
     return json(res, { bounds: bounds.of(c), log: bounds.log(c), teams: Object.keys(c.settings.teams || {}), depts: c.settings.teams, off, players, connected: !!communities.key(c.id) }); }
   if (rest === 'bounds' && M === 'POST') { const r = bounds.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
-  if (rest === 'profile/refresh' && M === 'POST') { const r = await profile.refresh(c); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'profile/refresh' && M === 'POST') { if (auth.limited(req, 'profref', 6, 60000)) return json(res, { error: 'Too many refreshes. Wait a minute.' }, 429); const r = await profile.refresh(c); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/save' && M === 'POST') { const r = profile.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 5e5) || '{}'); } catch (e) {} const r = profile.setIcon(c, j.data); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon/remove' && M === 'POST') return json(res, profile.clearIcon(c));
@@ -243,7 +245,9 @@ const communityApi = async (req, res, slug, rest) => {
     if (!target || +j.userId === user.id || +j.userId === c.owner_id || !(boss || (target !== 'owner' && ROLE_RANK[target] < ROLE_RANK[role]))) return json(res, { error: 'That member cannot be removed.' }, 400);
     members.remove(c.id, +j.userId); return json(res, { ok: true }); }
   if (rest === 'delete' && M === 'POST') { if (!can(role, 'owner')) return json(res, { error: 'Only the owner can delete the community.' }, 403);
-    if ((await jsonBody(req)).confirm !== c.slug) return json(res, { error: 'Type the address to confirm.' }, 400); communities.remove(c.id); feeds.delete(c.id); return json(res, { ok: true }); }
+    if ((await jsonBody(req)).confirm !== c.slug) return json(res, { error: 'Type the address to confirm.' }, 400);
+    if (premium.renews(c)) return json(res, { error: 'This server has a Premium subscription that renews. Cancel it under Premium, Manage billing, then delete the server.' }, 400);
+    communities.remove(c.id); feeds.delete(c.id); return json(res, { ok: true }); }
   return json(res, { error: 'Not found.' }, 404); };
 const legacyKey = id => { if (existsSync(LEGACY_KEY) && !communities.all().some(c => c.erlc_key)) { try { const k = readFileSync(LEGACY_KEY, 'utf8').trim(); if (k) { communities.setKey(id, k); renameSync(LEGACY_KEY, LEGACY_KEY + '.migrated'); } } catch (e) {} } };   // the first server keeps the key the site already had
 const origin = req => (process.env.PUBLIC_URL || `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers.host}`).replace(/\/$/, '');
@@ -253,6 +257,7 @@ const botHits = new Map();
 const botApi = async (req, res, rest) => { if (req.method !== 'GET') return json(res, { error: 'Read-only.' }, 405);
   const key = String(req.headers.authorization || '').replace(/^(Bot|Bearer)\s+/i, '').trim(), c = premium.serverForBotKey(key);
   if (!c) return json(res, { error: 'Unknown key. Make one in your server\'s Settings, under Premium.' }, 401);
+  if (c.suspended) return json(res, { error: 'This server is suspended.' }, 403);
   if (!premium.isPremium(c)) return json(res, { error: 'This server\'s Premium has ended, so its bot key is paused.' }, 402);
   const now = Date.now(), h = (botHits.get(c.id) || []).filter(t => now - t < 60000); if (h.length >= 60) return json(res, { error: 'Slow down: 60 requests a minute.' }, 429); h.push(now); botHits.set(c.id, h);
   const f = feedFor(c), s = await f.snapshot(); let j = {}; try { j = JSON.parse(s.body); } catch (e) {}
@@ -589,7 +594,7 @@ const route = async (req, res) => {
 
 const serve = (req, res, url) => {
   const file = normalize(join(ROOT, url));
-  if (!file.startsWith(ROOT) || /\.(py|md)$/i.test(file) || !existsSync(file) || !statSync(file).isFile()) return msg(res, auth.currentUser(req), 'Page not found', 'That page does not exist, or it has moved. Check the address.', { href: '/', label: 'Home' }, 404);
+  if (!file.startsWith(ROOT + sep) || /\.(py|md)$/i.test(file) || !existsSync(file) || !statSync(file).isFile()) return msg(res, auth.currentUser(req), 'Page not found', 'That page does not exist, or it has moved. Check the address.', { href: '/', label: 'Home' }, 404);
   const ext = extname(file).toLowerCase();
   res.writeHead(200, { 'content-type': TYPES[ext] || 'application/octet-stream', 'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=86400' }); createReadStream(file).pipe(res); };
 
@@ -599,7 +604,7 @@ const COOKIE = 'ov_access';
 const hasAccess = req => { if (!CODE) return true; const m = /(?:^|;\s*)ov_access=([0-9a-f]{64})/.exec(req.headers.cookie || ''); if (!m) return false;
   const want = Buffer.from(sign(CODE)), got = Buffer.from(m[1]); return want.length === got.length && timingSafeEqual(want, got); };
 const attempts = new Map();
-const ipOf = req => (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+const ipOf = auth.clientIp;
 const lockPage = (m = '') => { const n = Math.min(8, Math.max(4, CODE.length || 4)); return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oversite</title>
 <link rel="icon" href="/favicon.ico?v=5" sizes="32x32"><link rel="icon" type="image/svg+xml" href="/icon-tab.svg?v=5"><link rel="icon" type="image/png" href="/icon-tab.png?v=5"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -635,13 +640,14 @@ const paint=()=>{const v=inp.value.replace(/\\D/g,'').slice(0,N);inp.value=v;cel
 inp.addEventListener('input',paint);document.getElementById('boxes').addEventListener('click',()=>inp.focus());document.addEventListener('click',()=>inp.focus());
 f.addEventListener('animationend',()=>f.classList.remove('shake'));paint();inp.focus();
 </script></body></html>`; };
-const unlock = (req, res, code, next = '/') => { const ip = ipOf(req), a = attempts.get(ip) || { n: 0, until: 0 };
+const unlock = (req, res, code, next = '/') => { auth.prune(attempts); const ip = ipOf(req), a = attempts.get(ip) || { n: 0, until: 0 };
   if (Date.now() < a.until) return html(res, lockPage('Too many tries. Wait a minute and try again.'), 429);
   if (code && code === CODE) { attempts.delete(ip); const secure = (req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : '';
     return redirect(res, next, { 'set-cookie': `${COOKIE}=${sign(CODE)}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${secure}` }); }
   a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } attempts.set(ip, a); return html(res, lockPage('That code is not right.'), 401); };
 const gate = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = url.pathname;
+  if (path === '/health/ip') return json(res, { ip: auth.clientIp(req), xff: String(req.headers['x-forwarded-for'] || ''), real: String(req.headers['x-real-ip'] || ''), sock: req.socket.remoteAddress });   // TEMP: checking which address Railway passes on
   if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js' || /^\/(apple-touch-icon(-precomposed)?\.png|icon-(192|512|maskable-512|tab)\.png|icon-tab\.svg|manifest\.webmanifest|favicon\.ico)$/.test(path) || path === '/privacy' || path === '/terms' || path === '/refunds') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
   if (path === '/unlock' && req.method === 'POST') { const f = await formBody(req); return unlock(req, res, String(f.get('code') || '').trim()); }
   if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });
@@ -651,6 +657,10 @@ const gate = async (req, res) => {
   return html(res, lockPage(), 401); };
 
 http.createServer((req, res) => {
+  // on every answer: no sniffing file types, no other site framing Oversite (clickjacking), no plugins, and https only once seen over https
+  res.setHeader('x-content-type-options', 'nosniff'); res.setHeader('referrer-policy', 'strict-origin-when-cross-origin');
+  res.setHeader('content-security-policy', "frame-ancestors 'self'; object-src 'none'; base-uri 'self'");
+  if ((req.headers['x-forwarded-proto'] || '').startsWith('https')) res.setHeader('strict-transport-security', 'max-age=15552000');
   const host = (req.headers.host || '').toLowerCase().replace(/:\d+$/, '');
   if (CANON.startsWith('www.') && host === CANON.slice(4)) { res.writeHead(301, { location: `https://${CANON}${req.url}`, 'cache-control': 'no-store' }); return res.end(); }
   gate(req, res).catch(e => { console.error(e); if (res.headersSent) return res.end();

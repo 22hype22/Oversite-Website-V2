@@ -251,7 +251,8 @@ export const roblox = {
 
 // ── server codes: the owner code (full control) and the member code (normal access). Unique across the whole site, so a code alone finds its server.
 export const normCode = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-export const codeOk = c => /^[A-Z0-9]{2,24}$/.test(normCode(c));
+export const codeOk = c => /^[A-Z0-9]{2,24}$/.test(normCode(c));            // what still signs in (older servers have short codes)
+export const newCodeOk = c => /^[A-Z0-9]{4,24}$/.test(normCode(c));         // what can be set from now on: harder to guess
 const codeHash = c => sha(pepper + normCode(c));
 const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const newCode = () => { const b = randomBytes(8); let s = ''; for (let i = 0; i < 8; i++) s += ALPHA[b[i] % ALPHA.length]; return s.slice(0, 4) + '-' + s.slice(4); };

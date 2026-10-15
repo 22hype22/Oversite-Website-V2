@@ -40,7 +40,7 @@ export class Feed {
   takeRL(headers, seq) { const b = headers['x-ratelimit-bucket'] || '', left = +headers['x-ratelimit-remaining'], reset = +headers['x-ratelimit-reset'];
     if (b === 'global' && Number.isFinite(left)) { GL.left = left; GL.reset = reset; GL.at = Date.now(); }
     if (seq < this.rlSeq) return; this.rlSeq = seq; this.rl = { left, reset, bucket: b }; }
-  setKey(k) { this.key = k; this.snap = null; this.joins = null; this.hist.clear(); this.nextAt = 0; this.holdUntil = 0; if (this.clients.size) this.wake(); }
+  setKey(k) { this.key = k; this.snap = null; this.failSnap = null; this.joins = null; this.hist.clear(); this.nextAt = 0; this.holdUntil = 0; if (this.clients.size) this.wake(); }
   // the holder keeps the slot while it's in use; a site admin's server can take it from anyone else's, never from another of theirs
   soloOk() { const h = SOLO.feed; if (h && h !== this && holderLive(h) && !(this.prio() && !h.prio())) return false;
     if (h !== this) { console.log(`feed ${this.id}: has the one ER:LC slot${h ? ` (was feed ${h.id})` : ''} until Oversite's application key is added`); SOLO.feed = this; } this.lastUse = Date.now(); return true; }
@@ -104,8 +104,9 @@ export class Feed {
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive', 'x-accel-buffering': 'no' });
     res.write('retry: 2000\n\n'); res.write(`event: cal\ndata: ${JSON.stringify(cal)}\n\n`); res.write(`event: callclears\ndata: ${JSON.stringify(cleared)}\n\n`); if (panics.length) res.write(`event: panics\ndata: ${JSON.stringify(panics)}\n\n`); try { this.onStream?.(res); } catch (e) {}   // anyone opening the CAD sees panics still going   // calls someone already cleared stay off this board
     if (this.snap && Date.now() - this.snap.t < 10000) res.write(`event: server\nid: ${this.snap.taken}\ndata: ${this.snap.body}\n\n`); else if (!this.key) res.write(`event: err\ndata: ${NOKEY}\n\n`);
+    if (uid != null) { const mine = [...this.clients].filter(r => r.uid === uid); for (const r of mine.slice(0, Math.max(0, mine.length - 3))) { this.clients.delete(r); clearInterval(r.ka); r.end(); } }   // 4 open CADs per person at most: the oldest closes
     this.clients.add(res); this.lastClient = Date.now();
-    const ka = setInterval(() => res.write(': ping\n\n'), 15000);
+    const ka = res.ka = setInterval(() => { if (!res.writableEnded) res.write(': ping\n\n'); }, 15000);
     req.on('close', () => { clearInterval(ka); this.clients.delete(res); this.lastClient = Date.now(); });
     this.wake(); }
   // one-off answer for a dashboard whose stream dropped: the feed's latest snapshot, or a direct request if nobody is streaming
@@ -115,7 +116,10 @@ export class Feed {
   panic(p) { this.activePanics(); this.panics.set(p.id, p); this.bcast('panic', JSON.stringify(p)); }
   panicClear(id, by) { this.activePanics(); const p = this.panics.get(id); if (!p) return false; this.panics.delete(id); this.bcast('panicclear', JSON.stringify({ id, by })); return true; }
   kick(uid = null) { for (const r of this.clients) if (uid == null || r.uid === uid) r.write('event: reload\ndata: {}\n\n'); }
-  async snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return this.snap; if (!this.key) return { status: 401, body: NOKEY, headers: {} };
+  // one request at a time per server, and a failed answer is reused for a few seconds, so many callers can't multiply requests to ER:LC
+  snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return Promise.resolve(this.snap); if (this.failSnap && Date.now() - this.failSnap.t < 4000) return Promise.resolve(this.failSnap);
+    return this.inflight || (this.inflight = this.snapshotNow().then(s => { if (s.status !== 200) this.failSnap = { ...s, t: Date.now() }; return s; }).finally(() => { this.inflight = null; })); }
+  async snapshotNow() { if (!this.key) return { status: 401, body: NOKEY, headers: {} };
     if (!appKey() && !this.soloOk()) return { status: 403, body: SOLO_WAIT, headers: {} };
     try { const up = await fetch(UPSTREAM + QUERY, { headers: erlcHeaders(this.key) }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) { this.snap = out; try { this.onSnap?.(body); } catch (e) {} } return out; }
     catch (e) { return { status: 502, body: JSON.stringify({ message: 'could not reach api.erlc.gg: ' + e.message }), headers: {} }; } }

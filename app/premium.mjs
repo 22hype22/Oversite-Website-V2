@@ -83,10 +83,13 @@ export const checkout = async (c, user, plan, origin) => { if (!stripeReady()) r
 
 const periodEnd = sub => (sub.current_period_end || sub.items?.data?.[0]?.current_period_end || 0) * 1000;
 // a subscription's state, written onto its server
-export const applySub = sub => { if (sub?.metadata?.kind === 'user') return applyUserSub(sub); const cid = +(sub?.metadata?.community_id || 0); if (!cid || !communities.byId(cid)) return null;
+export const applySub = sub => { if (sub?.metadata?.kind === 'user') return applyUserSub(sub); const cid = +(sub?.metadata?.community_id || 0), c0 = cid && communities.byId(cid); if (!c0) return null;
   const end = periodEnd(sub), live = ['active', 'trialing', 'past_due'].includes(sub.status), interval = sub.items?.data?.[0]?.price?.recurring?.interval || '';
+  // the number alone isn't proof: a deleted server's number can go to a new server, so the subscription must be for this one
+  if ((sub.metadata.slug && sub.metadata.slug !== c0.slug) || (sub.created && sub.created * 1000 < c0.created - 60000)) { console.log(`stripe: ignored subscription ${sub.id}: it was for an older server ${sub.metadata.slug || cid}`); return null; }
+  const p0 = P(c0); if (p0.sub && p0.sub !== sub.id && !live && (p0.until || 0) > Date.now()) { console.log(`stripe: ignored the end of an older subscription for ${c0.slug}`); return null; }   // a newer one is running
   console.log(`stripe: subscription ${sub.status}${sub.cancel_at_period_end ? ' (cancels at period end)' : ''} for ${communities.byId(cid).slug}, Premium ${live ? 'until ' + new Date(end + 2 * 864e5).toISOString().slice(0, 10) : 'off'}`);
-  return save(cid, p => ({ ...p, source: 'stripe', sub: sub.id, customer: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id || p.customer, plan: interval === 'year' ? 'year' : 'month',
+  return save(cid, p => ({ ...p, source: 'stripe', sub: sub.id, payer: String(sub.metadata.user_id || p.payer || ''), customer: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id || p.customer, plan: interval === 'year' ? 'year' : 'month',
     cancel: !!sub.cancel_at_period_end, until: live ? end + 2 * 864e5 : Math.min(p.until || 0, Date.now()) })); };   // two days' grace for a late renewal
 
 // ── Premium for a person's account: bought without a server; it brings the gold check and one server boost ──
@@ -100,6 +103,7 @@ export const checkoutUser = async (user, plan, origin) => { if (!stripeReady()) 
   console.log(`stripe: checkout opened for ${user.roblox_name || user.id}'s account (${plan})`); return { ok: true, url: s.url }; };
 const applyUserSub = sub => { const uid = +(sub.metadata.user_id || 0); if (!uid || !users.byId(uid)) return null;
   const end = periodEnd(sub), live = ['active', 'trialing', 'past_due'].includes(sub.status), interval = sub.items?.data?.[0]?.price?.recurring?.interval || '', b = users.billing(uid);
+  if (b.sub && b.sub !== sub.id && !live && users.premiumUntil(uid) > Date.now()) { console.log(`stripe: ignored the end of an older subscription for account ${uid}`); return null; }   // a newer one is running
   users.setBilling(uid, { customer: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id || b.customer, sub: sub.id, plan: interval === 'year' ? 'year' : 'month', cancel: !!sub.cancel_at_period_end });
   const until = live ? end + 2 * 864e5 : Math.min(users.premiumUntil(uid), Date.now()); users.setPremium(uid, until); if (!live) sweepBoosts();
   console.log(`stripe: subscription ${sub.status}${sub.cancel_at_period_end ? ' (cancels at period end)' : ''} for ${users.byId(uid).roblox_name || uid}'s account, Premium ${live ? 'until ' + new Date(until).toISOString().slice(0, 10) : 'off'}`); return until; };
@@ -121,13 +125,16 @@ export const confirm = async (c, sessionId) => { if (!stripeReady() || !/^cs_[A-
   if (s.status !== 'complete' || !s.subscription) return { error: 'The payment has not gone through yet. If you were charged, it will switch on within a few minutes.' };
   applySub(typeof s.subscription === 'string' ? await stripe('GET', `/subscriptions/${s.subscription}`) : s.subscription); return { ok: true }; };
 
+// a server with a subscription that will renew can't be deleted until it's cancelled, so nobody keeps paying for a server that's gone
+export const renews = c => { const p = P(c); return p.source === 'stripe' && !!p.sub && !p.cancel && (p.until || 0) > Date.now(); };
 // Stripe's own page for changing the card, switching plans or cancelling
-export const portal = async (c, origin) => { const p = P(c); if (!stripeReady() || !p.customer) return { error: 'This server has no subscription to manage.' };
+export const portal = async (c, origin, user, isOwner) => { const p = P(c); if (!stripeReady() || !p.customer) return { error: 'This server has no subscription to manage.' };
+  if (!isOwner && String(user.id) !== String(p.payer || '')) return { error: 'Only the person who pays for Premium, or the server owner, can manage billing.' };   // it shows their card and email
   const conf = siteSettings.get('stripe_portal'); const s = await stripe('POST', '/billing_portal/sessions', { customer: p.customer, return_url: `${origin}/${c.slug}/settings#premium`, ...(conf ? { configuration: conf } : {}) }); return { ok: true, url: s.url }; };
 // one click after the secret key is saved: Oversite makes its own webhook (and keeps the signing secret, which Stripe shows only now)
 // and its own billing page settings, so nothing has to be done by hand in the Stripe dashboard
 export const setupStripe = async (origin, seal) => { if (!stripeReady()) return { error: 'Save the Stripe secret key first.' };
-  const url = `${origin}/api/stripe/webhook`, events = ['checkout.session.completed', 'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted', 'invoice.paid', 'invoice.payment_failed'];
+  const url = `${origin}/api/stripe/webhook`, events = ['checkout.session.completed', 'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted', 'invoice.paid', 'invoice.payment_failed', 'charge.refunded', 'charge.dispute.created'];
   const mine = (await stripe('GET', '/webhook_endpoints?limit=100')).data.filter(w => w.url === url);
   for (const w of mine) await stripe('DELETE', `/webhook_endpoints/${w.id}`);   // an old one's secret can't be read back, so replace it
   const w = await stripe('POST', '/webhook_endpoints', { url, enabled_events: Object.fromEntries(events.map((e, i) => [i, e])), description: 'Oversite Premium' });
@@ -145,6 +152,9 @@ export const webhook = async (raw, sig) => { const secret = whsec(); if (!secret
   const o = ev.data?.object || {}; console.log(`stripe: event ${ev.type}`);
   if (ev.type?.startsWith('customer.subscription.')) applySub(o);
   else if (ev.type === 'checkout.session.completed' && o.subscription) applySub(await stripe('GET', `/subscriptions/${o.subscription}`));
+  // a full refund or a chargeback ends that customer's Premium: their subscription is cancelled, and Stripe's 'deleted' event switches it off
+  else if ((ev.type === 'charge.refunded' && o.refunded) || ev.type === 'charge.dispute.created') { const cus = o.customer || (o.charge && (await stripe('GET', `/charges/${o.charge}`)).customer);
+    if (cus) for (const s of (await stripe('GET', `/subscriptions?customer=${encodeURIComponent(cus)}&status=active&limit=10`)).data || []) { await stripe('DELETE', `/subscriptions/${s.id}`); console.log(`stripe: ${ev.type} for ${cus}: cancelled ${s.id}`); } }
   else if ((ev.type === 'invoice.paid' || ev.type === 'invoice.payment_failed') && (o.subscription || o.parent?.subscription_details?.subscription)) applySub(await stripe('GET', `/subscriptions/${o.subscription || o.parent.subscription_details.subscription}`));
   return { ok: true }; };
 

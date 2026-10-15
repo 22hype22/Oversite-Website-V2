@@ -13,6 +13,7 @@ const UPSTREAM = process.env.ERLC_UPSTREAM || 'https://api.erlc.gg';
 const VIEW = '/v2/server?Players=true&Staff=true&ModCalls=true&CommandLogs=true&KillLogs=true';
 const VIEW_TTL = 5000, BANS_TTL = 30000, GAP = 5300;                          // ER:LC allows one command per 5 s per server
 const NAME = /^[A-Za-z0-9_]{3,20}$/;
+const RESERVED_TARGETS = new Set(['all', 'others', 'me', 'random', 'admins', 'mods', 'staff', 'team', 'police', 'sheriff', 'fire', 'dot', 'civilian', 'civilians', 'jail', 'nonstaff', 'nonadmins']);
 const clean = t => String(t || '').replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim().slice(0, 180);
 const split = s => { const [name, id] = String(s || '').split(':'); return { name: name || '', id: id || '' }; };
 const norm = t => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -93,6 +94,7 @@ export const act = async (c, key, by, body) => {
   const kind = String(body.kind || ''); if (!KINDS.includes(kind)) return { error: 'Unknown action.' };
   const name = String(body.name || '').trim(), id = String(body.id || '').replace(/\D/g, '').slice(0, 20), reason = clean(body.reason);
   if (kind !== 'announce' && !NAME.test(name)) return { error: 'Pick a player first.' };
+  if (kind !== 'announce' && RESERVED_TARGETS.has(name.toLowerCase())) return { error: 'Pick one player by their username.' };   // ER:LC reads these as groups of players
   if (NEEDS_REASON.has(kind) && !reason) return { error: kind === 'pm' || kind === 'announce' ? 'Write the message first.' : 'Give a reason.' };
   const make = COMMANDS[kind]; let result = { ok: true, message: 'Recorded' };
   if (make) { if (!key) return { error: 'This server has no ER:LC key yet.' }; result = await run(c, key, make(name, reason, id), by); if (!result.ok && kind !== 'warn') return { error: result.message }; }

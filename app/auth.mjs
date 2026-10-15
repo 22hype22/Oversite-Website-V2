@@ -1,7 +1,7 @@
 // Sign-in (Discord, or an owner code until Discord is set up), sessions, and Roblox account linking.
 import { rude, RUDE_MSG } from './clean.mjs';
-import { users, sessions, roblox, token, communities, members, codes, codeOk, normCode, newCode } from './db.mjs';
-import { createHash } from 'node:crypto';
+import { users, sessions, roblox, token, communities, members, codes, codeOk, newCodeOk, normCode, newCode } from './db.mjs';
+import { createHash, timingSafeEqual } from 'node:crypto';
 
 export const cookies = req => Object.fromEntries((req.headers.cookie || '').split(/;\s*/).filter(Boolean).map(c => { const i = c.indexOf('='); return [c.slice(0, i), decodeURIComponent(c.slice(i + 1))]; }));
 const secure = req => ((req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : '');
@@ -40,13 +40,25 @@ export const discordFinish = async (req, params) => {
       else { users.update(u.id, { roblox_id: rid, roblox_name: rb.name, roblox_via: 'discord' }); roblox.clear(u.id); u = users.byId(u.id); } } } catch (e) {}
   return { user: u, next: safeNext(next) }; };
 
+// ── the visitor's IP, for rate limits. Railway's proxy adds the real address to the end of X-Forwarded-For; anything before it
+// was sent by the browser and can be made up, so the last public address is the one to trust ──
+const PRIVATE = /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|169\.254\.|::1$|f[cd][0-9a-f]{2}:|fe80:)/i;
+export const clientIp = req => { const hops = String(req.headers['x-forwarded-for'] || '').split(',').map(s => s.trim().replace(/^::ffff:/i, '')).filter(Boolean);
+  for (let i = hops.length - 1; i >= 0; i--) if (!PRIVATE.test(hops[i])) return hops[i];
+  return String(req.socket?.remoteAddress || '').replace(/^::ffff:/i, '') || hops[0] || ''; };
+// rate-limit maps are cleaned out now and then, so lots of different addresses can't grow them for ever
+export const prune = (m, keep = 3600e3) => { if (m.size < 5000) return; const now = Date.now();
+  for (const [k, v] of m) { const t = Array.isArray(v) ? v[v.length - 1] || 0 : Math.max(v.until || 0, v.at || 0); if (now - t > keep) m.delete(k); }
+  if (m.size > 50000) m.clear(); };
+
 // ── owner sign-in: available until Discord is configured (or when OWNER_LOGIN=1), protected by the owner code ──
-const OWNER_CODE = (process.env.OWNER_CODE || process.env.ACCESS_CODE || '').trim();
+const OWNER_CODE = (process.env.OWNER_CODE || '').trim();   // its own code only: never the preview code everyone was given
 export const ownerLoginOn = () => !!OWNER_CODE && process.env.OWNER_LOGIN === '1';   // site-wide owner sign-in: off unless asked for; server codes replace it
 const tries = new Map();
-export const ownerLogin = (req, code) => { const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(), a = tries.get(ip) || { n: 0, until: 0 };
+const same = (a, b) => { const x = Buffer.from(String(a)), y = Buffer.from(String(b)); return x.length === y.length && timingSafeEqual(x, y); };
+export const ownerLogin = (req, code) => { const ip = clientIp(req), a = tries.get(ip) || { n: 0, until: 0 }; prune(tries);
   if (Date.now() < a.until) return { error: 'Too many tries. Wait a minute.' };
-  if (!ownerLoginOn() || code !== OWNER_CODE) { a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } tries.set(ip, a); return { error: 'That code is not right.' }; }
+  if (!ownerLoginOn() || !same(code, OWNER_CODE)) { a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } tries.set(ip, a); return { error: 'That code is not right.' }; }
   tries.delete(ip); let u = users.localOwner(); if (!u) u = users.byId(users.create({ name: 'Owner', is_local_owner: 1 })); return { user: u }; };
 
 // ── Roblox sign-in (OAuth, "Log in with Roblox"): Roblox itself confirms which account is theirs, so the link is always right.
@@ -100,9 +112,8 @@ export const robloxVerify = async user => { const p = roblox.pending(user.id); i
 export const robloxUnlink = user => users.update(user.id, { roblox_id: null, roblox_name: null });
 
 // ── server codes: create a server with your own owner code, or sign in to one with the code its owner gave you ──
-const ipOf = req => (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
 const limits = new Map();
-export const limited = (req, kind, max, windowMs) => { const k = kind + ipOf(req), now = Date.now(), a = (limits.get(k) || []).filter(t => now - t < windowMs); if (a.length >= max) return true; a.push(now); limits.set(k, a); return false; };
+export const limited = (req, kind, max, windowMs) => { prune(limits, windowMs); const k = kind + clientIp(req), now = Date.now(), a = (limits.get(k) || []).filter(t => now - t < windowMs); if (a.length >= max) return true; a.push(now); limits.set(k, a); return false; };
 export const codeSignIn = (req, user, code) => {
   if (limited(req, 'code', 8, 60000)) return { error: 'Too many tries. Wait a minute and try again.' };
   const hit = codes.find(code); if (!hit) return { error: 'No server uses that invite code. Check it with your server.' };
@@ -120,7 +131,7 @@ export const createServer = (req, user, { name, slug, inviteCode }, RESERVED) =>
   if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(slug) || slug.includes('--')) return { error: 'The address must be 3 to 32 lowercase letters, numbers or single dashes.' };
   if (RESERVED.has(slug) || communities.bySlug(slug)) return { error: 'That address is taken. Try another.' };
   const invite = String(inviteCode || '').trim();
-  if (invite && !codeOk(invite)) return { error: 'The invite code must be 2 to 24 letters or numbers.' };
+  if (invite && !newCodeOk(invite)) return { error: 'The invite code must be 4 to 24 letters or numbers.' };
   if (invite && rude(invite)) return { error: RUDE_MSG };
   if (invite && codes.find(invite)) return { error: 'Another server already uses that invite code. Pick a different one.' };
   if (user && communities.forUser(user.id).filter(c => c.role === 'owner').length >= 10) return { error: 'You can own up to 10 servers.' };
@@ -129,7 +140,7 @@ export const createServer = (req, user, { name, slug, inviteCode }, RESERVED) =>
   const id = communities.create(u.id, slug, name);
   let mc = invite.toUpperCase(); if (!mc) { mc = newCode(); while (codes.find(mc)) mc = newCode(); } codes.set(id, 'member', mc);
   return { user: u, id, slug, memberCode: mc }; };
-export const setCode = (cid, role, code) => { if (!codeOk(code)) return { error: 'Codes must be 2 to 24 letters or numbers.' };
+export const setCode = (cid, role, code) => { if (!newCodeOk(code)) return { error: 'Codes must be 4 to 24 letters or numbers.' };
   if (rude(code)) return { error: RUDE_MSG };
   if (codes.taken(code, cid, role)) return { error: 'Another server already uses that code. Pick a different one.' };
   codes.set(cid, role, String(code).trim().toUpperCase()); return { code: codes.show(cid, role) }; };
