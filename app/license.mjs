@@ -46,4 +46,7 @@ const robloxUser = async rid => { const hit = rbx.get(rid); if (hit && Date.now(
 export const licenseOf = async (user, prem = false) => { const f = { ...licenses.get(user.id) }, r = user.roblox_id ? await robloxUser(String(user.roblox_id)) : { display: '', created: '' };
   if (!prem) { delete f.finish; delete f.occx; delete f.sig; }   // the Premium extras only show while the person has Premium
   return { user: user.roblox_name || '', rid: user.roblox_id || '', display: r.display || user.roblox_name || '', ...f, iss: f.iss || r.created || '', saved: !!Object.keys(f).length, premium: !!prem }; };
-export const saveLicense = (user, b, prem = false) => { licenses.set(user.id, cleanLicense(b || {}, prem)); return licenseOf(user, prem); };
+// without Premium the extras can't be changed, but they are kept, so they come back if Premium does
+export const saveLicense = (user, b, prem = false) => { const o = cleanLicense(b || {}, prem), old = licenses.get(user.id);
+  if (!prem) for (const k of ['finish', 'occx', 'sig']) if (old[k]) o[k] = old[k];
+  licenses.set(user.id, o); return licenseOf(user, prem); };

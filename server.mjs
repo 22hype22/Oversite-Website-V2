@@ -470,7 +470,7 @@ const route = async (req, res) => {
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteMod(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
     return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus(), owner: isSiteAdmin(user), betaNote: siteSettings.get('beta_note') })); }
   if (path === '/account/career') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account/career'); if (!user.roblox_name) return redirect(res, '/dashboard');
-    return page(res, pages.career({ logo: LOGO, user, stats: career.stats(user), prem: premium.userInfo(user).on, payments: premium.stripeReady() })); }
+    return page(res, pages.career(premium.userInfo(user).on ? { logo: LOGO, user, stats: career.stats(user), prem: true } : { logo: LOGO, user, prem: false, tracked: career.stats(user)?.total || 0, payments: premium.stripeReady() })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/(c\/)?[a-z0-9-]{3,32}$/.test(from) ? from : null;
     const comms = withSetup(communities.forUser(user.id));
