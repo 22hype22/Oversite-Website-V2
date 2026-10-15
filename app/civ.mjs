@@ -98,6 +98,10 @@ const settle = (cid, b) => { q("UPDATE civ_bills SET status = 'Paid', paid_at = 
     q("UPDATE civ_biz SET status = 'Active' WHERE id = ?").run(z.id); }
   if (b.kind === 'mort') { const p = prop(cid, b.ref.split(':')[1]); if (p && p.owner_id === b.user_id && p.mode === 'mortgage') { const left = Math.max(0, p.loan_left - p.loan_weekly);
     q('UPDATE civ_props SET loan_left = ?, mode = ? WHERE id = ?').run(left, left ? 'mortgage' : 'own', p.id); } } };
+// the fine on a citation or arrest, billed to the person it was written against (once: the ref is unique)
+const FINE_SQL = "SELECT id, kind, subject_rid, data, at FROM pd_records WHERE community_id = ? AND kind IN ('citation', 'arrest') AND at >= ? AND subject_rid = ?";
+const billFine = (cid, uid, r, cf) => { const d = JSON.parse(r.data || '{}'); if (!(d.fine > 0) || d.paid_at) return;
+  bill(cid, uid, 'fine', `rec:${r.id}`, `${r.kind === 'arrest' ? 'Arrest' : 'Citation'} fine: ${(d.charges || []).map(x => x.title).slice(0, 2).join(', ')}`, d.fine, r.at, r.at + cf.grace * DAY); };
 export const pay = (c, user, id) => { const b = q('SELECT * FROM civ_bills WHERE community_id = ? AND id = ? AND user_id = ?').get(c.id, +id || 0, user.id);
   if (!b) return { error: 'That bill is gone.' }; if (b.status === 'Paid' || b.status === 'Void') return { error: 'That bill is already settled.' };
   ensure(c, user.id); const m = move(c.id, user.id, -b.amount, 'bill', b.label); if (m.error) return m; settle(c.id, b); return { ok: true }; };
@@ -112,8 +116,7 @@ export const cycle = c => { const cf = conf(c); if (!cf.on) return;
     for (const h of holders) if (cf.weekly && t - h.paid_at >= WEEK) { q('UPDATE civ_accounts SET paid_at = ? WHERE community_id = ? AND user_id = ?').run(t, cid, h.user_id); move(cid, h.user_id, cf.weekly, 'deposit', 'Weekly payment'); }
     // a fine for every citation and arrest written since the economy began, billed to whoever it was written against
     for (const r of q("SELECT id, kind, subject_rid, data, at FROM pd_records WHERE community_id = ? AND kind IN ('citation', 'arrest') AND at >= ? AND subject_rid <> ''").all(cid, since)) {
-      const h = byRid.get(String(r.subject_rid)), d = JSON.parse(r.data || '{}'); if (!h || !(d.fine > 0) || d.paid_at) continue;
-      bill(cid, h.user_id, 'fine', `rec:${r.id}`, `${r.kind === 'arrest' ? 'Arrest' : 'Citation'} fine: ${(d.charges || []).map(x => x.title).slice(0, 2).join(', ')}`, d.fine, r.at, r.at + cf.grace * DAY); }
+      const h = byRid.get(String(r.subject_rid)); if (h) billFine(cid, h.user_id, r, cf); }
     // each week, registration and insurance on every car they drove in the last two weeks
     const wk = Math.floor((t - since) / WEEK), wkStart = since + wk * WEEK;
     for (const v of q('SELECT plate, model, owner_rid FROM pd_vehicles WHERE community_id = ? AND owner_rid <> \'\' AND last_seen >= ?').all(cid, t - 2 * WEEK)) {
@@ -291,14 +294,19 @@ const who = uid => { const u = q('SELECT roblox_name, name FROM users WHERE id =
 const fullName = (cid, uid) => { const ch = charOf(cid, uid); return ch && ch.first ? `${ch.first} ${ch.last}` : ''; };
 
 // ── what the Civilian tab shows ──
-export const state = (c, user, isAdmin) => { const cf = conf(c); if (!cf.on) return { off: true, conf: cf, admin: !!isAdmin };
+// `live`: the cars they have spawned in game right now (server.mjs reads them off the latest ER:LC snapshot), null when unknown
+export const state = (c, user, isAdmin, live = null) => { const cf = conf(c); if (!cf.on) return { off: true, conf: cf, admin: !!isAdmin, linked: !!user.roblox_id, character: charOf(c.id, user.id) };
   const a = ensure(c, user.id), rid = user.roblox_id ? String(user.roblox_id) : '-';
+  // a ticket written a moment ago is on their bills straight away, not at the next cycle
+  if (cf.since && rid !== '-') for (const r of q(FINE_SQL).all(c.id, cf.since, rid)) billFine(c.id, user.id, r, cf);
   const bills = q("SELECT * FROM civ_bills WHERE community_id = ? AND user_id = ? AND (status IN ('Open', 'Overdue') OR paid_at >= ?) ORDER BY CASE status WHEN 'Overdue' THEN 0 WHEN 'Open' THEN 1 ELSE 2 END, due").all(c.id, user.id, now() - 30 * DAY).map(billRow);
-  const vehicles = q('SELECT plate, model, color, color_hex, reg, ins, stolen, last_seen FROM pd_vehicles WHERE community_id = ? AND owner_rid = ? ORDER BY last_seen DESC LIMIT 20').all(c.id, rid)
-    .map(v => ({ plate: v.plate, model: v.model || '', color: v.color || '', hex: v.color_hex || '', reg: v.reg, ins: v.ins, stolen: !!v.stolen, last_seen: v.last_seen }));
+  const onFile = plate => q('SELECT reg, ins, stolen FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(c.id, plate) || {};
+  const vehicles = (live || []).slice(0, 10).map(s => { const plate = T(s.plate, 10).toUpperCase(), v = onFile(plate);
+    return { plate, model: T(s.model, 60), color: T(s.color, 30), hex: /^#?[0-9a-f]{6}$/i.test(s.hex || '') ? '#' + String(s.hex).replace('#', '') : '', reg: v.reg || '', ins: v.ins || '', stolen: !!v.stolen }; });
+  const fines = new Map(q("SELECT * FROM civ_bills WHERE community_id = ? AND user_id = ? AND kind = 'fine'").all(c.id, user.id).map(b => [b.ref, b]));
   const record = q("SELECT id, kind, status, data, at, by_name FROM pd_records WHERE community_id = ? AND subject_rid = ? AND kind IN ('citation', 'warning', 'arrest') ORDER BY at DESC LIMIT 50").all(c.id, rid)
     .map(r => { const d = JSON.parse(r.data || '{}'); return { id: r.id, kind: r.kind, status: r.status, at: r.at, by: r.by_name || '', charges: (d.charges || []).map(x => ({ title: x.title, count: x.count, cls: x.cls })),
-      fine: d.fine || 0, jail: d.jail || 0, reason: d.reason || '', location: d.location || '', paid: !!d.paid_at }; });
+      fine: d.fine || 0, jail: d.jail || 0, reason: d.reason || '', location: d.location || '', paid: !!d.paid_at, bill: (b => b && { id: b.id, status: b.status, due: b.due, amount: b.amount })(fines.get(`rec:${r.id}`)) }; });
   const tx = q('SELECT amount, balance, kind, memo, at FROM civ_tx WHERE community_id = ? AND user_id = ? ORDER BY at DESC LIMIT 40').all(c.id, user.id);
   const calls = q('SELECT dept, location, details, at FROM civ_calls WHERE community_id = ? AND user_id = ? ORDER BY at DESC LIMIT 10').all(c.id, user.id);
   const nextPay = cf.weekly ? a.paid_at + WEEK : 0;
@@ -316,7 +324,7 @@ export const state = (c, user, isAdmin) => { const cf = conf(c); if (!cf.on) ret
     apps: q("SELECT * FROM civ_apps WHERE biz_id = ? AND status = 'Pending' ORDER BY at").all(z.id).map(x => ({ id: x.id, who: who(x.user_id), name: fullName(c.id, x.user_id), note: x.note, at: x.at, bg: JSON.parse(x.bg || '{}') })),
     ledger: q('SELECT amount, balance, memo, at FROM civ_btx WHERE biz_id = ? ORDER BY at DESC LIMIT 15').all(z.id) }));
   const allBiz = isAdmin ? q('SELECT b.*, (SELECT count(*) FROM civ_staff s WHERE s.biz_id = b.id) AS staff FROM civ_biz b WHERE b.community_id = ? ORDER BY b.name').all(c.id).map(z => ({ id: z.id, name: z.name, kind: z.kind, owner: who(z.owner_id), status: z.status, staff: z.staff, balance: z.balance })) : undefined;
-  return { conf: cf, admin: !!isAdmin, linked: !!user.roblox_id, balance: a.balance, autopay: !!a.autopay, nextPay, character: charOf(c.id, user.id), bills, vehicles, record, tx, calls, homes, market, props,
+  return { conf: cf, admin: !!isAdmin, linked: !!user.roblox_id, balance: a.balance, autopay: !!a.autopay, nextPay, character: charOf(c.id, user.id), bills, vehicles, carsLive: !!live, record, tx, calls, homes, market, props,
     bg: me, jobs, work, apps, owned, allBiz, kinds: BIZ_KINDS }; };
 
 // ── staff: put money in or take it out ──

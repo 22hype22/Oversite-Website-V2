@@ -64,6 +64,10 @@ const liveSide = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Dat
   let j; try { j = JSON.parse(sn.body); } catch (e) { return undefined; }
   const p = (j.Players || []).find(x => String(x.Player || '').split(':')[1] === String(user.roblox_id)); if (!p) return null;
   return (c.settings.teams || {})[p.Team] || 'civ'; };
+// the cars someone has spawned in game right now, from the same snapshot; null when there's no fresh data
+const spawnedBy = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Date.now() - sn.t > 180000 || !user.roblox_name) return null;
+  let j; try { j = JSON.parse(sn.body); } catch (e) { return null; } const me = String(user.roblox_name).toLowerCase();
+  return (j.Vehicles || []).filter(v => String(v.Owner || '').split(':')[0].toLowerCase() === me).map(v => ({ plate: v.Plate, model: v.Name, color: v.ColorName, hex: v.ColorHex })); };
 
 // ── the CAD page, with this community's settings injected ──
 // a Premium person's saved map style wins over whatever this browser last used, so every device opens on the same map
@@ -119,6 +123,9 @@ const communityApi = async (req, res, slug, rest) => {
   const f = feedFor(c), M = req.method;
   if (rest === 'stream' && M === 'GET') return f.stream(req, res, calOf(c), Object.keys(clearedCalls(c)), user.id);
   // a game 911 call cleared by anyone in the CAD clears for everyone (and stays cleared after a reload, for as long as ER:LC still lists it)
+  // dispatch and the MDTs are for the departments: on the civilian team in game you can't clear calls, set a unit or status, or press panic
+  if (M === 'POST' && ['calls/clear', 'units/me', 'status', 'panic', 'panic/clear', 'units/ride'].includes(rest) && liveSide(c, user) === 'civ')
+    return json(res, { error: 'You’re on the civilian team in game. Dispatch is for players on a department team.' }, 403);
   if (rest === 'calls/clear' && M === 'POST') { const k = String((await jsonBody(req)).key || ''); if (!/^[\w .:@#-]{1,120}$/.test(k)) return json(res, { error: 'Bad call.' }, 400);
     const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
     communities.saveSettings(c.id, s); c.settings.cleared = s.cleared; f.bcast('callclear', JSON.stringify({ key: k, by: user.roblox_name || user.name || '' })); return json(res, { ok: true }); }
@@ -193,16 +200,16 @@ const communityApi = async (req, res, slug, rest) => {
     if (r.ok) f.bcast('unitstatus', JSON.stringify({ unit: r.unit, st: r.st })); return json(res, r, r.error ? 400 : 200); }
   // the law enforcement MDT: lookups, warrants, BOLOs, citations, warnings, arrests and traffic stops, shared by the whole server
   // the Civilian tab (app/civ.mjs): every member has an account, a character, bills and 911
-  if (rest.startsWith('civ/')) { const sub = rest.slice(4), ok = r => json(res, r.error ? r : { ...r, state: civ.state(c, user, can(role, 'admin')) }, r.error ? 400 : 200);
+  if (rest.startsWith('civ/')) { const sub = rest.slice(4), ok = r => json(res, r.error ? r : { ...r, state: civ.state(c, user, can(role, 'admin'), spawnedBy(c, user)) }, r.error ? 400 : 200);
     // players on a police, fire or DOT team in game don't use the Civilian tab (staff tools and owners excepted)
     if (M === 'POST' && !can(role, 'co_owner') && !['settings', 'grant', 'prop', 'biz/admin'].includes(sub)) { const side = liveSide(c, user);
       if (side && side !== 'civ') return json(res, { error: 'You’re on a department team in game. The Civilian tab is for players on the civilian team.' }, 403); }
-    if (sub === 'state' && M === 'GET') return json(res, civ.state(c, user, can(role, 'admin')));
+    if (sub === 'state' && M === 'GET') return json(res, civ.state(c, user, can(role, 'admin'), spawnedBy(c, user)));
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404);
     const j = await jsonBody(req);
     if (sub === 'settings') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change this.' }, 403); return ok(civ.saveConf(c, j, () => communities.saveSettings(c.id, c.settings))); }
+    if (sub === 'character') return ok(civ.saveChar(c, user, j));   // your ID works with the economy off too
     if (!civ.conf(c).on) return json(res, { error: 'The civilian economy is switched off on this server.' }, 403);
-    if (sub === 'character') return ok(civ.saveChar(c, user, j));
     if (sub === 'pay') return ok(civ.pay(c, user, j.id));
     if (sub === 'autopay') return ok(civ.setAutopay(c, user, !!j.on));
     if (sub === 'stolen') { const v = police.vehicle(c.id, j.plate); if (v.error || String(v.vehicle.owner_rid) !== String(user.roblox_id)) return json(res, { error: 'That is not your car.' }, 403);
