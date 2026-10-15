@@ -2,7 +2,7 @@
 // A server is Premium while settings.premium.until is in the future: Stripe keeps moving that date as the subscription renews,
 // and a site admin can also grant it by hand. Premium also comes with 3 Explore ad credits a month and a bot API key.
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { communities, users, siteSettings, unseal, sha, token } from './db.mjs';
+import { db, communities, users, siteSettings, unseal, sha, token } from './db.mjs';
 
 export const PLANS = { month: { price: 499, label: '$4.99 a month', interval: 'month' }, year: { price: 2999, label: '$29.99 a year', interval: 'year' } };
 export const CREDITS_PER_MONTH = 3, BOOST_HOURS = 24, FREE_RECORD_DAYS = 30;
@@ -147,3 +147,10 @@ export const webhook = async (raw, sig) => { const secret = whsec(); if (!secret
   else if (ev.type === 'checkout.session.completed' && o.subscription) applySub(await stripe('GET', `/subscriptions/${o.subscription}`));
   else if ((ev.type === 'invoice.paid' || ev.type === 'invoice.payment_failed') && (o.subscription || o.parent?.subscription_details?.subscription)) applySub(await stripe('GET', `/subscriptions/${o.subscription || o.parent.subscription_details.subscription}`));
   return { ok: true }; };
+
+// early access: a Premium person can switch it on to get new features before everyone else. Code gates a new feature with
+// isBeta(user) on the server, or OVERSITE.beta in the CAD; /admin says what is in early access right now (siteSettings 'beta_note').
+try { db.exec('ALTER TABLE users ADD COLUMN beta INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+export const betaOn = uid => !!db.prepare('SELECT beta FROM users WHERE id = ?').get(uid)?.beta;
+export const setBeta = (uid, on) => db.prepare('UPDATE users SET beta = ? WHERE id = ?').run(on ? 1 : 0, uid);
+export const isBeta = user => !!user && userInfo(user).on && betaOn(user.id);

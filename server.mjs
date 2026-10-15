@@ -20,6 +20,7 @@ import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
 import * as career from './app/career.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
+import * as supporter from './app/supporter.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -58,7 +59,7 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 const mapPref = p => { const m = /^(2d|3d)-(light|dark)$/.exec(p?.map || ''); return m ? `try{localStorage.setItem('ov.mapstyle','{"dim":"${m[1]}","theme":"${m[2]}"}')}catch(e){}` : ''; };
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const prem = premium.isPremium(c), cfg = { premium: prem, logo: prem && profile.iconSource(c) ? `/c/${c.slug}/icon` : '', license: prem ? c.settings.licenseStyle || null : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: ranksFor(c, prem), gold: users.premiumRoblox(), setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
+  const prem = premium.isPremium(c), cfg = { premium: prem, logo: prem && profile.iconSource(c) ? `/c/${c.slug}/icon` : '', license: prem ? c.settings.licenseStyle || null : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: ranksFor(c, prem), gold: users.premiumRoblox(), setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};${mapPref(cfg.setup)}</script>`;
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
@@ -285,6 +286,8 @@ const globalApi = async (req, res, rest) => {
     try { const r = rest.endsWith('checkout') ? await premium.checkoutUser(user, String((await jsonBody(req)).plan || ''), origin(req)) : await premium.portalUser(user, origin(req)); return json(res, r, r.error ? 400 : 200); }
     catch (e) { console.log(`premium account ${rest}: ${user.roblox_name}: ${e.message}`); return json(res, { error: 'Payments could not be reached. Try again in a minute.' }, 502); } }
   // your own MDT setup (Premium): sounds, the tablet's look, the map style; every server's CAD uses it
+  if (rest === 'me/beta' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
+    if (!premium.userInfo(user).on) return json(res, { error: 'Early access comes with Premium.' }, 403); premium.setBeta(user.id, !!(await jsonBody(req)).on); return json(res, { ok: true, on: premium.betaOn(user.id) }); }
   if (rest === 'me/mdt' && req.method === 'GET') return json(res, { premium: premium.userInfo(user).on, setup: mdtprefs.get(user.id), defaults: mdtprefs.DEFAULTS });
   if (rest === 'me/mdt' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
     if (!premium.userInfo(user).on) return json(res, { error: 'Your own MDT setup comes with Premium.' }, 403); return json(res, { ok: true, setup: mdtprefs.save(user.id, await jsonBody(req)) }); }
@@ -293,7 +296,7 @@ const globalApi = async (req, res, rest) => {
     return json(res, await saveLicense(user, await jsonBody(req), premium.userInfo(user).on)); }
   if (rest.startsWith('admin/') && !isSiteMod(user)) return json(res, { error: 'Not found.' }, 404);
   // payments, the ER:LC application, Premium grants and moderator access: site admins only
-  if (/^admin\/(erlc-app|premium|stripe|mod)$/.test(rest) && !isSiteAdmin(user)) return json(res, { error: 'Only Oversite\'s owners can do that.' }, 403);
+  if (/^admin\/(erlc-app|premium|stripe|mod|supporter|beta-note)$/.test(rest) && !isSiteAdmin(user)) return json(res, { error: 'Only Oversite\'s owners can do that.' }, 403);
   if (rest === 'admin/mod' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), u = users.byId(Number(j.id)); if (!u) return json(res, { error: 'No such person.' }, 404);
     if (isSiteAdmin(u)) return json(res, { error: 'That person is a site admin already.' }, 400); users.setSiteMod(u.id, !!j.on);
     console.log(`moderation: ${user.roblox_name || user.name} ${j.on ? 'made' : 'removed'} ${u.roblox_name || u.id} ${j.on ? 'a moderator' : 'as moderator'}`); return json(res, { ok: true, on: !!j.on }); }
@@ -316,6 +319,10 @@ const globalApi = async (req, res, rest) => {
     if (j.off) premium.revoke(c.id); else if (j.until || j.forever) premium.setUntil(c.id, j.forever ? 4102444800000 : Number(j.until), user.roblox_name || user.name); else premium.grant(c.id, Math.min(3650, Math.max(1, Number(j.days) || 30)), user.roblox_name || user.name);
     console.log(`premium: ${c.slug} ${j.off ? 'turned off' : j.forever ? 'granted forever' : j.until ? 'granted until ' + new Date(+j.until).toISOString().slice(0, 10) : 'granted ' + j.days + ' days'} by ${user.roblox_name || user.name}`); return json(res, { ok: true, premium: premium.info(c) }); }
   // Stripe keys for selling Premium, sealed like the ER:LC key
+  // Oversite's own Discord: which server and role Premium people get (the Supporter role), and the invite link shown to them
+  if (rest === 'admin/supporter' && req.method === 'GET') return json(res, await supporter.status(String(new URL(req.url, 'http://x').searchParams.get('guild') || '').replace(/\D/g, '')));
+  if (rest === 'admin/supporter' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const r = await supporter.configure(await jsonBody(req)); return json(res, r.error ? r : await supporter.status(), r.error ? 400 : 200); }
+  if (rest === 'admin/beta-note' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const n = String((await jsonBody(req)).note || '').trim().slice(0, 300); siteSettings.set('beta_note', n); return json(res, { ok: true, note: n }); }
   if (rest === 'admin/stripe' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), k = String(j.key || '').trim(), w = String(j.whsec || '').trim();
     if (k && !/^(sk|rk)_(live|test)_[A-Za-z0-9]{10,200}$/.test(k)) return json(res, { error: 'That is not a Stripe secret key. It starts with sk_live_ or sk_test_.' }, 400);
     if (w && !/^whsec_[A-Za-z0-9]{10,200}$/.test(w)) return json(res, { error: 'That is not a webhook signing secret. It starts with whsec_.' }, 400);
@@ -461,13 +468,13 @@ const route = async (req, res) => {
     const me = user ? { id: user.id, owner: own, admin: isSiteMod(user), can: !!user.roblox_name && !own, why: !user.roblox_name ? 'Link your Roblox account to write a review.' : own ? 'Reviews are from players. You can reply to any review below.' : '' } : null;
     return page(res, serverPage({ logo: LOGO, user, x, medals, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me, prompt: req.votePrompt ? { vote: true, roblox: !!user?.roblox_name, origin: origin(req), rank: x.votes > 0 ? [...all].sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name)).findIndex(y => y.id === x.id) + 1 : 0 } : null })); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteMod(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
-    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus(), owner: isSiteAdmin(user) })); }
+    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus(), owner: isSiteAdmin(user), betaNote: siteSettings.get('beta_note') })); }
   if (path === '/account/career') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account/career'); if (!user.roblox_name) return redirect(res, '/dashboard');
     return page(res, pages.career({ logo: LOGO, user, stats: career.stats(user), prem: premium.userInfo(user).on, payments: premium.stripeReady() })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
     const from = url.searchParams.get('from'), back = from && /^\/(c\/)?[a-z0-9-]{3,32}$/.test(from) ? from : null;
     const comms = withSetup(communities.forUser(user.id));
-    return page(res, pages.account({ logo: LOGO, user, comms, discord: auth.discordReady(), back, prem: premium.userInfo(user), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), boostable: comms.filter(x => x.role === 'owner' || x.role === 'co_owner').map(x => ({ slug: x.slug, name: x.name, premium: premium.isPremium(x), mine: !!premium.boostInfo(x, user).here })) })); }
+    return page(res, pages.account({ logo: LOGO, user, comms, discord: auth.discordReady(), back, prem: premium.userInfo(user), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), beta: { on: premium.betaOn(user.id), note: siteSettings.get('beta_note') }, discordPerk: { invite: supporter.config().invite || '', ready: !!supporter.config().role, has: supporter.has(user.id) }, boostable: comms.filter(x => x.role === 'owner' || x.role === 'co_owner').map(x => ({ slug: x.slug, name: x.name, premium: premium.isPremium(x), mine: !!premium.boostInfo(x, user).here })) })); }
   if (path === '/dashboard') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/dashboard');
     const p = roblox.pending(user.id), w = url.searchParams.get('welcome'), wc = w && communities.bySlug(w);
     // a Roblox link is required; once it is there, carry on to the CAD they were heading for
@@ -510,7 +517,7 @@ const route = async (req, res) => {
     catch (e) { const u = auth.currentUser(req); return msg(res, u, 'Could not link Roblox', e.message, { href: u ? '/dashboard' : '/', label: 'Back' }, 400); } }
   if (path === '/auth/discord') { if (!auth.discordReady()) return msg(res, auth.currentUser(req), 'Discord sign-in is not set up yet', 'The site owner needs to connect a Discord application first.', { href: '/', label: 'Back' });
     const { url: to, cookie } = auth.discordStart(req, url.searchParams.get('next')); return redirect(res, to, { 'set-cookie': cookie }); }
-  if (path === '/auth/discord/callback') { try { const { user, next } = await auth.discordFinish(req, url.searchParams); await discordlink.autoJoin(user).catch(() => 0); return redirect(res, next, { 'set-cookie': [auth.signIn(req, user.id), auth.setCookie(req, 'ov_oauth', '', 0)] }); }
+  if (path === '/auth/discord/callback') { try { const { user, next } = await auth.discordFinish(req, url.searchParams); await discordlink.autoJoin(user).catch(() => 0); supporter.retry(user.id); return redirect(res, next, { 'set-cookie': [auth.signIn(req, user.id), auth.setCookie(req, 'ov_oauth', '', 0)] }); }
     catch (e) { return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), error: e.message }), 400); } }
   if (path === '/auth/owner' && req.method === 'POST') { if (!sameOrigin(req)) return msg(res, null, 'Request blocked', 'Please sign in from the Oversite page.', { href: '/', label: 'Back' }, 400);
     const f = await formBody(req), r = auth.ownerLogin(req, String(f.get('code') || '').trim());
@@ -567,14 +574,14 @@ const route = async (req, res) => {
     if (r.error) return msg(res, user, 'Almost there', r.error, { href: '/account#premium', label: 'Back to your account' }); return redirect(res, '/account?premium=1#premium'); }
   if (path === '/premium') { const user = auth.currentUser(req), owned = user ? communities.forUser(user.id).filter(x => x.role === 'owner' || x.role === 'co_owner').map(x => ({ slug: x.slug, name: x.name, premium: premium.isPremium(x) })) : [];
     return page(res, pages.premiumPage({ logo: LOGO, user, owned, payments: premium.stripeReady(), mine: !!user && premium.userInfo(user).on })); }
-  if (path === '/support') return page(res, pages.support({ logo: LOGO, user: auth.currentUser(req), topic: url.searchParams.get('topic') || '' }));
+  if (path === '/support') { const u = auth.currentUser(req); return page(res, pages.support({ logo: LOGO, user: u, topic: url.searchParams.get('topic') || '', prem: !!u && premium.userInfo(u).on })); }
   if (path === '/api/support' && req.method === 'POST') { const user = auth.currentUser(req); if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
     if (auth.limited(req, 'support', 6, 3600e3) || (user && support.recent(user.id, Date.now() - 3600e3) >= 6)) return json(res, { error: 'You have sent several messages in the last hour. Oversite has them; wait for a reply.' }, 429);
     const j = await jsonBody(req), topic = pages.SUPPORT_TOPICS[j.topic] ? j.topic : 'other', body = String(j.body || '').replace(/[\u0000-\u0008\u000b-\u001f]/g, '').trim().slice(0, 3000), email = String(j.email || '').trim().slice(0, 120);
     if (body.length < 10) return json(res, { error: 'Tell Oversite a bit more: at least a sentence.' }, 400);
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(res, { error: 'That email address does not look right.' }, 400);
     if (!user && !email) return json(res, { error: 'Add your email so Oversite can reply.' }, 400);
-    const prio = user ? communities.forUser(user.id).some(x => (x.role === 'owner' || x.role === 'co_owner') && premium.isPremium(x)) : false;   // Premium owners go to the top of the inbox
+    const prio = user ? premium.userInfo(user).on || communities.forUser(user.id).some(x => (x.role === 'owner' || x.role === 'co_owner') && premium.isPremium(x)) : false;   // Premium people and owners of Premium servers go to the top of the inbox
     const id = support.add(user ? user.id : null, topic, email || null, body, String(j.page || '').slice(0, 200), prio); console.log(`support: #${id} ${topic} from ${user ? (user.roblox_name || user.name) : email}`);
     return json(res, { ok: true, id }); }
   if (path.startsWith('/api/')) return globalApi(req, res, path.slice(5));
@@ -652,7 +659,7 @@ http.createServer((req, res) => {
     msg(res, u, 'Something went wrong', 'Oversite hit an error loading this page. Try again in a moment. If it keeps happening, let us know.', { href: '/', label: 'Home' }, 500); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
 staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id));
-premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);
+supporter.start(); premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);
 // once: the old owner link left extra "Owner" members behind; on servers a site admin made, they go back to plain members
 // (in-game staff still get their in-game rank in the CAD), and the server's creator can sort out anyone else from the Team tab
 // Premium launch: servers Oversite's own team runs get it for good; every server that existed before gets 30 days free, so nobody loses the Staff CAD or voice overnight

@@ -13,6 +13,15 @@ export const higher = (a, b) => ((RANK[a] || 0) >= (RANK[b] || 0) ? a : b) || nu
 const bot = async path => { const r = await fetch(DAPI + path, { headers: { authorization: 'Bot ' + BOT } }); if (r.status === 404 || r.status === 403) return null;
   if (!r.ok) throw new Error(`Discord answered ${r.status}`); return r.json(); };
 
+// Oversite's own Discord (the Supporter role for Premium people): the bot needs Manage Roles there
+export const supporterInstallUrl = () => `${DWEB}/oauth2/authorize?${new URLSearchParams({ client_id: DID, scope: 'bot', permissions: '268435456' })}`;
+export const botGuilds = async () => { try { return ((await bot('/users/@me/guilds')) || []).map(g => ({ id: g.id, name: g.name })); } catch (e) { return []; } };
+// give or take one role: true when done, false when the person isn't in that Discord server; throws when Discord refuses
+export const setRole = async (gid, uid, rid, on) => { const r = await fetch(`${DAPI}/guilds/${gid}/members/${uid}/roles/${rid}`, { method: on ? 'PUT' : 'DELETE', headers: { authorization: 'Bot ' + BOT, 'x-audit-log-reason': on ? 'Oversite Premium' : 'Oversite Premium ended' } });
+  if (r.ok) return true; const j = await r.json().catch(() => ({}));
+  if (r.status === 404 && [10007, 10013].includes(j.code)) return false;   // Unknown Member / User: not in the server (yet)
+  throw new Error(r.status === 403 ? 'the bot is missing Manage Roles, or its role is below the Supporter role' : `Discord answered ${r.status}${j.message ? ': ' + j.message : ''}`); };
+
 // adding the bot: Discord's own consent screen picks the server; the code exchange tells us which one, so it cannot be faked
 const base = req => (process.env.PUBLIC_URL || `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers.host}`).replace(/\/$/, '');
 export const installUrl = (req, state) => `${DWEB}/oauth2/authorize?${new URLSearchParams({ client_id: DID, scope: 'bot', permissions: '0', response_type: 'code', redirect_uri: base(req) + '/auth/discord/guild', state })}`;
