@@ -200,6 +200,8 @@ const communityApi = async (req, res, slug, rest) => {
       police.setVehicle(c.id, v.vehicle.plate, { stolen: !!j.on }); return ok({ ok: true }); }
     if (sub === '911') { if (auth.limited(req, 'civ911', 4, 60000)) return json(res, { error: 'Too many calls. Wait a minute.' }, 429); return ok(civ.call911(c, user, j)); }
     if (sub === 'grant') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can give or take money.' }, 403); return ok(civ.grant(c, user.roblox_name || user.name, j)); }
+    if (sub === 'home') return ok(j.out ? civ.moveOut(c, user, j) : civ.moveIn(c, user, j));
+    if (sub === 'prop') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can manage homes.' }, 403); return ok(j.drop || j.evict ? civ.dropProp(c, j) : civ.saveProp(c, j)); }
     return json(res, { error: 'Not found.' }, 404); }
   if (rest.startsWith('pd/')) { const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, by = { uid: user.id, name: user.roblox_name || user.name, supervisor: police.isSupervisor(c.id, user.id, can(role, 'admin'), ranksFor(c, premium.isPremium(c)).pd) };
     const prem = premium.isPremium(c), cut = prem ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5, recent = L => cut ? L.filter(r => r.at >= cut || r.status === 'Active' || r.status === 'Pending') : L;   // free servers see the last 30 days
