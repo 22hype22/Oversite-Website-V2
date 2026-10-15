@@ -39,9 +39,9 @@ CREATE TABLE IF NOT EXISTS civ_apps (id INTEGER PRIMARY KEY, biz_id INTEGER NOT 
   note TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'Pending', bg TEXT NOT NULL DEFAULT '{}', at INTEGER NOT NULL, decided INTEGER);
 CREATE TABLE IF NOT EXISTS civ_btx (id INTEGER PRIMARY KEY, biz_id INTEGER NOT NULL REFERENCES civ_biz(id) ON DELETE CASCADE, amount INTEGER NOT NULL, balance INTEGER NOT NULL, memo TEXT NOT NULL DEFAULT '', at INTEGER NOT NULL);`);
 const q = sql => db.prepare(sql);
-const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
-const DAY = 864e5, WEEK = 7 * DAY;
-const money = n => '$' + Math.round(n).toLocaleString('en-US');
+export const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
+export const DAY = 864e5, WEEK = 7 * DAY;
+export const money = n => '$' + Math.round(n).toLocaleString('en-US');
 
 // ── the server's settings (Settings in the Civilian tab, owner and co-owners) ──
 // housing: tax is a yearly % of the price, billed by the week; a mortgage takes `down`% up front and the rest plus `rate`% over `weeks`;
@@ -65,7 +65,7 @@ export const ensure = (c, uid) => { let a = acct(c.id, uid); if (a) return a; co
   q('INSERT OR IGNORE INTO civ_accounts (community_id, user_id, balance, autopay, paid_at, created) VALUES (?, ?, 0, 1, ?, ?)').run(c.id, uid, t, t);
   if (cf.start) move(c.id, uid, cf.start, 'deposit', 'Opening balance'); return acct(c.id, uid); };
 // money in (positive) or out (negative); never below zero unless forced (a fine paid by staff, say)
-const move = (cid, uid, amount, kind, memo, force = false) => { const a = acct(cid, uid); if (!a) return { error: 'No account.' }; amount = Math.round(amount);
+export const move = (cid, uid, amount, kind, memo, force = false) => { const a = acct(cid, uid); if (!a) return { error: 'No account.' }; amount = Math.round(amount);
   if (!force && amount < 0 && a.balance + amount < 0) return { error: `Not enough money. You have ${money(a.balance)}.` };
   const bal = a.balance + amount; q('UPDATE civ_accounts SET balance = ? WHERE community_id = ? AND user_id = ?').run(bal, cid, uid);
   q('INSERT INTO civ_tx (community_id, user_id, amount, balance, kind, memo, at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(cid, uid, amount, bal, kind, T(memo, 120), now()); return { ok: true, balance: bal }; };
@@ -93,7 +93,7 @@ const settle = (cid, b) => { q("UPDATE civ_bills SET status = 'Paid', paid_at = 
   if (b.kind === 'fine') { const rid = +b.ref.split(':')[1], r = q('SELECT data FROM pd_records WHERE community_id = ? AND id = ?').get(cid, rid);
     if (r) { const d = JSON.parse(r.data || '{}'); d.paid_at = now(); q('UPDATE pd_records SET data = ? WHERE community_id = ? AND id = ?').run(JSON.stringify(d), cid, rid); } }
   if (b.kind === 'reg' || b.kind === 'ins') fixVehicle(cid, b.ref.split(':')[1]);
-  if (b.kind === 'inv') { const z = biz(cid, b.ref.split(':')[1]); if (z) bizMove(z.id, b.amount, `Paid: ${b.label}`); }
+  if (b.kind === 'inv') { const z = biz(cid, b.ref.split(':')[1]); if (z) { bizMove(z.id, b.amount, `Paid: ${b.label}`); hooks.commission(cid, z, +b.ref.split(':')[3] || 0, b.amount); } }
   if (b.kind === 'lic') { const z = biz(cid, b.ref.split(':')[1]); if (z && z.status === 'Suspended' && !q("SELECT 1 FROM civ_bills WHERE community_id = ? AND kind = 'lic' AND ref LIKE ? AND status = 'Overdue'").get(cid, `lic:${z.id}:%`))
     q("UPDATE civ_biz SET status = 'Active' WHERE id = ?").run(z.id); }
   if (b.kind === 'mort') { const p = prop(cid, b.ref.split(':')[1]); if (p && p.owner_id === b.user_id && p.mode === 'mortgage') { const left = Math.max(0, p.loan_left - p.loan_weekly);
@@ -174,7 +174,7 @@ export const withCalls = (cid, body, cleared) => { const open = q('SELECT * FROM
 // ── housing ──
 const prop = (cid, id) => q('SELECT * FROM civ_props WHERE community_id = ? AND id = ?').get(cid, +id || 0);
 const release = p => q("UPDATE civ_props SET owner_id = NULL, mode = '', loan_left = 0, loan_weekly = 0, since = 0 WHERE id = ?").run(p.id);
-const note = (cid, uid, memo) => { const a = acct(cid, uid); if (a) q('INSERT INTO civ_tx (community_id, user_id, amount, balance, kind, memo, at) VALUES (?, ?, 0, ?, ?, ?, ?)').run(cid, uid, a.balance, 'notice', T(memo, 120), now()); };
+export const note = (cid, uid, memo) => { const a = acct(cid, uid); if (a) q('INSERT INTO civ_tx (community_id, user_id, amount, balance, kind, memo, at) VALUES (?, ?, 0, ?, ?, ?, ?)').run(cid, uid, a.balance, 'notice', T(memo, 120), now()); };
 const propRow = p => ({ id: p.id, name: p.name, kind: p.kind, address: p.address, price: p.price, rent: p.rent, mode: p.mode, loan_left: p.loan_left, loan_weekly: p.loan_weekly, since: p.since });
 const MAX_HOMES = 3;
 // what moving in costs, shown on the listing before anyone commits
@@ -224,17 +224,19 @@ const failing = (r, g) => [r.felony && g.felonies && 'a felony conviction', r.cl
 const reqText = r => Object.keys(REQS).filter(k => r[k]).map(k => REQS[k].replace('{n}', r.clean));
 
 // ── businesses ──
-const biz = (cid, id) => q('SELECT * FROM civ_biz WHERE community_id = ? AND id = ?').get(cid, +id || 0);
-const bizMove = (id, amount, memo) => { const z = q('SELECT balance FROM civ_biz WHERE id = ?').get(id); if (!z) return; const bal = z.balance + Math.round(amount);
+export const biz = (cid, id) => q('SELECT * FROM civ_biz WHERE community_id = ? AND id = ?').get(cid, +id || 0);
+export const bizMove = (id, amount, memo) => { const z = q('SELECT balance FROM civ_biz WHERE id = ?').get(id); if (!z) return; const bal = z.balance + Math.round(amount);
   q('UPDATE civ_biz SET balance = ? WHERE id = ?').run(bal, id); q('INSERT INTO civ_btx (biz_id, amount, balance, memo, at) VALUES (?, ?, ?, ?, ?)').run(id, Math.round(amount), bal, T(memo, 120), now()); };
+// app/civbiz.mjs fills these in: Premium managers who can run a business, how many businesses someone may own, and commission on a paid bill
+export const hooks = { manager: () => false, managed: () => [], maxBiz: () => 2, commission: () => {} };
 const BIZ_KINDS = ['Store', 'Restaurant', 'Mechanic', 'Towing', 'Taxi', 'Security', 'Law firm', 'Medical', 'Real estate', 'Bank', 'News', 'Other'];
-const MAX_BIZ = 2;
 const mine = (c, user, id) => { const z = biz(c.id, id); return z && z.owner_id === user.id ? z : null; };
+const runs = (c, user, id) => { const z = biz(c.id, id); return z && (z.owner_id === user.id || hooks.manager(c, user, z)) ? z : null; };   // the owner, or a Premium manager
 const weekNo = cf => cf.since ? Math.floor((now() - cf.since) / WEEK) : 0;
 export const openBiz = (c, user, j) => { const cf = conf(c), name = T(j.name, 50), kind = BIZ_KINDS.includes(j.kind) ? j.kind : 'Other'; ensure(c, user.id);
   if (!name) return { error: 'Name the business.' };
   if (q('SELECT 1 FROM civ_biz WHERE community_id = ? AND lower(name) = lower(?)').get(c.id, name)) return { error: 'A business with that name already exists.' };
-  if (q('SELECT count(*) AS n FROM civ_biz WHERE community_id = ? AND owner_id = ?').get(c.id, user.id).n >= MAX_BIZ) return { error: `You already own ${MAX_BIZ} businesses.` };
+  const max = hooks.maxBiz(c, user); if (q('SELECT count(*) AS n FROM civ_biz WHERE community_id = ? AND owner_id = ?').get(c.id, user.id).n >= max) return { error: `You already own ${max} businesses.${max < 5 ? ' Premium lets you own up to 5.' : ''}` };
   const g = background(c, user.id); if (g.warrants) return { error: 'You have an active warrant. Sort it out before you register a business.' };
   if (cf.bizfee) { const m = move(c.id, user.id, -cf.bizfee, 'business', `Registered ${name}`); if (m.error) return { error: `Registering costs ${money(cf.bizfee)}. ${m.error}` }; }
   q('INSERT INTO civ_biz (community_id, owner_id, name, kind, address, about, paid_wk, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(c.id, user.id, name, kind, T(j.address, 80), T(j.about, 300), weekNo(cf), now());
@@ -260,7 +262,7 @@ export const apply = (c, user, j) => { const z = biz(c.id, j.id); ensure(c, user
   const g = background(c, user.id), no = failing(reqsOf(z), g);
   if (no.length) return { error: `Your background check shows ${no.join(', ')}. ${z.name} does not hire anyone with that.` };
   q('INSERT INTO civ_apps (biz_id, user_id, note, bg, at) VALUES (?, ?, ?, ?, ?)').run(z.id, user.id, T(j.note, 500), JSON.stringify(g), now()); return { ok: true }; };
-export const decide = (c, user, j) => { const a = q('SELECT * FROM civ_apps WHERE id = ?').get(+j.app || 0), z = a && mine(c, user, a.biz_id);
+export const decide = (c, user, j) => { const a = q('SELECT * FROM civ_apps WHERE id = ?').get(+j.app || 0), z = a && runs(c, user, a.biz_id);
   if (!z) return { error: 'That application is gone.' }; if (a.status !== 'Pending') return { error: 'That application is already answered.' };
   if (!j.hire) { q("UPDATE civ_apps SET status = 'Declined', decided = ? WHERE id = ?").run(now(), a.id); note(c.id, a.user_id, `${z.name} turned down your application.`); return { ok: true }; }
   if (z.status !== 'Active') return { error: z.status === 'Held' ? 'Server staff have put the business on hold.' : 'The business is suspended until its license is paid.' };
@@ -269,8 +271,9 @@ export const decide = (c, user, j) => { const a = q('SELECT * FROM civ_apps WHER
   q("UPDATE civ_apps SET status = 'Hired', decided = ? WHERE id = ?").run(now(), a.id);
   q('UPDATE civ_chars SET occupation = ? WHERE community_id = ? AND user_id = ?').run(T(`${title}, ${z.name}`, 40), c.id, a.user_id);
   note(c.id, a.user_id, `Hired at ${z.name} as ${title}${wage ? `, ${money(wage)} a week` : ''}.`); return { ok: true }; };
-export const staffSet = (c, user, j) => { const z = mine(c, user, j.id); if (!z) return { error: 'That is not your business.' };
+export const staffSet = (c, user, j) => { const z = runs(c, user, j.id); if (!z) return { error: 'That is not your business.' };
   const w = q('SELECT * FROM civ_staff WHERE biz_id = ? AND user_id = ?').get(z.id, +j.user || 0); if (!w) return { error: 'They do not work there.' };
+  if (w.manager && z.owner_id !== user.id) return { error: 'Only the owner can change a manager.' };
   if (j.fire) { q('DELETE FROM civ_staff WHERE biz_id = ? AND user_id = ?').run(z.id, w.user_id); note(c.id, w.user_id, `Let go from ${z.name}.`); return { ok: true }; }
   q('UPDATE civ_staff SET title = ?, wage = ? WHERE biz_id = ? AND user_id = ?').run(T(j.title, 40) || w.title, Math.max(0, Math.min(1e6, Math.round(+j.wage || 0))), z.id, w.user_id); return { ok: true }; };
 export const quit = (c, user, j) => { const z = biz(c.id, j.id); if (!z || !q('SELECT 1 FROM civ_staff WHERE biz_id = ? AND user_id = ?').get(z.id, user.id)) return { error: 'You do not work there.' };
@@ -283,14 +286,14 @@ export const invoice = (c, user, j) => { const cf = conf(c), z = biz(c.id, j.id)
   if (!u) return { error: 'Nobody with that Roblox name has an Oversite account.' }; if (u.id === user.id) return { error: 'You cannot bill yourself.' };
   const amount = Math.round(+j.amount); if (!Number.isFinite(amount) || amount <= 0 || amount > 1e7) return { error: 'Enter an amount.' };
   ensure(c, u.id); const t = now(), what = T(j.memo, 60) || 'Services';
-  bill(c.id, u.id, 'inv', `inv:${z.id}:${t}${Math.floor(Math.random() * 1e3)}`, `${z.name}: ${what}`, amount, t, t + cf.grace * DAY); return { ok: true }; };
+  bill(c.id, u.id, 'inv', `inv:${z.id}:${t}${Math.floor(Math.random() * 1e3)}:${user.id}`, `${z.name}: ${what}`, amount, t, t + cf.grace * DAY); return { ok: true }; };
 export const bizAdmin = (c, j) => { const z = biz(c.id, j.id); if (!z) return { error: 'That business is gone.' };
   if (j.remove) { for (const w of q('SELECT user_id FROM civ_staff WHERE biz_id = ?').all(z.id)) note(c.id, w.user_id, `${z.name} was closed by staff.`); note(c.id, z.owner_id, `${z.name} was closed by staff.`);
     q('DELETE FROM civ_biz WHERE id = ?').run(z.id); return { ok: true }; }
   // a hold by staff is its own status, so paying the license does not lift it
   const st = j.suspend ? 'Held' : q("SELECT 1 FROM civ_bills WHERE community_id = ? AND kind = 'lic' AND ref LIKE ? AND status = 'Overdue'").get(c.id, `lic:${z.id}:%`) ? 'Suspended' : 'Active';
   q('UPDATE civ_biz SET status = ? WHERE id = ?').run(st, z.id); note(c.id, z.owner_id, `${z.name} was ${j.suspend ? 'put on hold' : 'released'} by staff.`); return { ok: true }; };
-const who = uid => { const u = q('SELECT roblox_name, name FROM users WHERE id = ?').get(uid); return u ? u.roblox_name || u.name : 'Someone'; };
+export const who = uid => { const u = q('SELECT roblox_name, name FROM users WHERE id = ?').get(uid); return u ? u.roblox_name || u.name : 'Someone'; };
 const fullName = (cid, uid) => { const ch = charOf(cid, uid); return ch && ch.first ? `${ch.first} ${ch.last}` : ''; };
 
 // ── what the Civilian tab shows ──
@@ -318,9 +321,11 @@ export const state = (c, user, isAdmin, live = null) => { const cf = conf(c); if
     return { id: z.id, name: z.name, kind: z.kind, address: z.address, about: z.about, reqs: reqText(r), blocked: failing(r, me), own: z.owner_id === user.id }; });
   const work = q('SELECT s.*, b.name, b.kind FROM civ_staff s JOIN civ_biz b ON b.id = s.biz_id WHERE b.community_id = ? AND s.user_id = ?').all(c.id, user.id).map(w => ({ id: w.biz_id, name: w.name, kind: w.kind, title: w.title, wage: w.wage, hired: w.hired }));
   const apps = q('SELECT a.id, a.status, a.at, b.name FROM civ_apps a JOIN civ_biz b ON b.id = a.biz_id WHERE b.community_id = ? AND a.user_id = ? ORDER BY a.at DESC LIMIT 10').all(c.id, user.id);
-  const owned = q('SELECT * FROM civ_biz WHERE community_id = ? AND owner_id = ? ORDER BY created').all(c.id, user.id).map(z => ({ id: z.id, name: z.name, kind: z.kind, address: z.address, about: z.about,
+  // the businesses they run: their own, and any they manage (Premium)
+  const managed = new Set(hooks.managed(c, user));
+  const owned = q('SELECT * FROM civ_biz WHERE community_id = ? ORDER BY created').all(c.id).filter(z => z.owner_id === user.id || managed.has(z.id)).map(z => ({ id: z.id, role: z.owner_id === user.id ? 'owner' : 'manager', owner: who(z.owner_id), name: z.name, kind: z.kind, address: z.address, about: z.about,
     balance: z.balance, status: z.status, hiring: !!z.hiring, reqs: reqsOf(z),
-    staff: q('SELECT * FROM civ_staff WHERE biz_id = ? ORDER BY hired').all(z.id).map(w => ({ user: w.user_id, who: who(w.user_id), name: fullName(c.id, w.user_id), title: w.title, wage: w.wage, hired: w.hired })),
+    staff: q('SELECT * FROM civ_staff WHERE biz_id = ? ORDER BY hired').all(z.id).map(w => ({ user: w.user_id, who: who(w.user_id), name: fullName(c.id, w.user_id), title: w.title, wage: w.wage, hourly: w.hourly || 0, manager: !!w.manager, commission: w.commission || 0, hired: w.hired })),
     apps: q("SELECT * FROM civ_apps WHERE biz_id = ? AND status = 'Pending' ORDER BY at").all(z.id).map(x => ({ id: x.id, who: who(x.user_id), name: fullName(c.id, x.user_id), note: x.note, at: x.at, bg: JSON.parse(x.bg || '{}') })),
     ledger: q('SELECT amount, balance, memo, at FROM civ_btx WHERE biz_id = ? ORDER BY at DESC LIMIT 15').all(z.id) }));
   const allBiz = isAdmin ? q('SELECT b.*, (SELECT count(*) FROM civ_staff s WHERE s.biz_id = b.id) AS staff FROM civ_biz b WHERE b.community_id = ? ORDER BY b.name').all(c.id).map(z => ({ id: z.id, name: z.name, kind: z.kind, owner: who(z.owner_id), status: z.status, staff: z.staff, balance: z.balance })) : undefined;

@@ -24,6 +24,7 @@ import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
 import * as staffhub from './app/staffhub.mjs';
 import * as civ from './app/civ.mjs';
+import * as civbiz from './app/civbiz.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -125,7 +126,8 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'stream' && M === 'GET') return f.stream(req, res, calOf(c), Object.keys(clearedCalls(c)), user.id);
   // a game 911 call cleared by anyone in the CAD clears for everyone (and stays cleared after a reload, for as long as ER:LC still lists it)
   // dispatch and the MDTs are for the departments: on the civilian team in game you can't clear calls, set a unit or status, or press panic
-  if (M === 'POST' && ['calls/clear', 'units/me', 'status', 'panic', 'panic/clear', 'units/ride'].includes(rest) && liveSide(c, user) === 'civ')
+  // (server staff, mod and up, see and use everything whatever their team)
+  if (M === 'POST' && !can(role, 'mod') && ['calls/clear', 'units/me', 'status', 'panic', 'panic/clear', 'units/ride'].includes(rest) && liveSide(c, user) === 'civ')
     return json(res, { error: 'You’re on the civilian team in game. Dispatch is for players on a department team.' }, 403);
   if (rest === 'calls/clear' && M === 'POST') { const k = String((await jsonBody(req)).key || ''); if (!/^[\w .:@#-]{1,120}$/.test(k)) return json(res, { error: 'Bad call.' }, 400);
     const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
@@ -200,12 +202,13 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'status' && M === 'POST') { const j = await jsonBody(req), r = police.setStatus(c.id, j.unit, String(j.st || ''), user.roblox_name || user.name);
     if (r.ok) f.bcast('unitstatus', JSON.stringify({ unit: r.unit, st: r.st })); return json(res, r, r.error ? 400 : 200); }
   // the law enforcement MDT: lookups, warrants, BOLOs, citations, warnings, arrests and traffic stops, shared by the whole server
-  // the Civilian tab (app/civ.mjs): every member has an account, a character, bills and 911
-  if (rest.startsWith('civ/')) { const sub = rest.slice(4), ok = r => json(res, r.error ? r : { ...r, state: civ.state(c, user, can(role, 'admin'), spawnedBy(c, user)) }, r.error ? 400 : 200);
-    // players on a police, fire or DOT team in game don't use the Civilian tab, owners included (its staff tools excepted)
-    if (M === 'POST' && !['settings', 'grant', 'prop', 'biz/admin'].includes(sub)) { const side = liveSide(c, user);
+  // the Civilian tab (app/civ.mjs, businesses in app/civbiz.mjs): every member has an account, an ID, bills, a record and businesses
+  if (rest.startsWith('civ/')) { const sub = rest.slice(4), st = () => { const s = civ.state(c, user, can(role, 'admin'), spawnedBy(c, user)); return s.off ? s : { ...s, ...civbiz.state(c, user) }; },
+      ok = r => json(res, r.error ? r : { ...r, state: st() }, r.error ? 400 : 200);
+    // players on a police, fire or DOT team in game don't use the Civilian tab (server staff, mod and up, excepted)
+    if (M === 'POST' && !can(role, 'mod') && !['settings', 'grant', 'prop', 'biz/admin'].includes(sub)) { const side = liveSide(c, user);
       if (side && side !== 'civ') return json(res, { error: 'You’re on a department team in game. The Civilian tab is for players on the civilian team.' }, 403); }
-    if (sub === 'state' && M === 'GET') return json(res, civ.state(c, user, can(role, 'admin'), spawnedBy(c, user)));
+    if (sub === 'state' && M === 'GET') return json(res, st());
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404);
     const j = await jsonBody(req);
     if (sub === 'settings') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change this.' }, 403); return ok(civ.saveConf(c, j, () => communities.saveSettings(c.id, c.settings))); }
@@ -215,16 +218,18 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'autopay') return ok(civ.setAutopay(c, user, !!j.on));
     if (sub === 'stolen') { const v = police.vehicle(c.id, j.plate); if (v.error || String(v.vehicle.owner_rid) !== String(user.roblox_id)) return json(res, { error: 'That is not your car.' }, 403);
       police.setVehicle(c.id, v.vehicle.plate, { stolen: !!j.on }); return ok({ ok: true }); }
-    if (sub === '911') { if (auth.limited(req, 'civ911', 4, 60000)) return json(res, { error: 'Too many calls. Wait a minute.' }, 429); return ok(civ.call911(c, user, j)); }
     if (sub === 'grant') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can give or take money.' }, 403); return ok(civ.grant(c, user.roblox_name || user.name, j)); }
     if (sub === 'home') return ok(j.out ? civ.moveOut(c, user, j) : civ.moveIn(c, user, j));
     const BIZ = { 'biz/open': civ.openBiz, 'biz/edit': civ.editBiz, 'biz/cash': civ.bizCash, 'biz/close': civ.closeBiz, 'biz/decide': civ.decide, 'biz/staff': civ.staffSet, 'biz/invoice': civ.invoice, 'job/apply': civ.apply, 'job/quit': civ.quit };
     if (BIZ[sub]) return ok(BIZ[sub](c, user, j));
+    if (sub === 'biz/clock') return ok(civbiz.clock(c, user, j, liveSide(c, user)));
+    const BIZ2 = { 'biz/item': civbiz.saveItem, 'biz/buy': civbiz.buy, 'biz/staffx': civbiz.staffx, 'biz/bonus': civbiz.bonus, 'biz/loan': civbiz.loan, 'biz/brand': civbiz.brand, 'biz/ad': civbiz.advertise, 'biz/review': civbiz.review };
+    if (BIZ2[sub]) return ok(BIZ2[sub](c, user, j));
     if (sub === 'biz/admin') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can do that.' }, 403); return ok(civ.bizAdmin(c, j)); }
     if (sub === 'prop') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can manage homes.' }, 403); return ok(j.drop || j.evict ? civ.dropProp(c, j) : civ.saveProp(c, j)); }
     return json(res, { error: 'Not found.' }, 404); }
   // the police MDT answers players on a police team in game (owners and co-owners always; anyone while ER:LC data is unavailable)
-  if (rest.startsWith('pd/') && rest !== 'pd/config' && !can(role, 'co_owner')) { const side = liveSide(c, user);
+  if (rest.startsWith('pd/') && rest !== 'pd/config' && !can(role, 'mod')) { const side = liveSide(c, user);
     if (side !== undefined && side !== 'pd') return json(res, { error: side ? 'The police MDT is for players on a police team in game.' : 'Join a police team in game to use the police MDT.' }, 403); }
   if (rest.startsWith('pd/')) { const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, by = { uid: user.id, name: user.roblox_name || user.name, supervisor: police.isSupervisor(c.id, user.id, can(role, 'admin'), ranksFor(c, premium.isPremium(c)).pd) };
     const prem = premium.isPremium(c), cut = prem ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5, recent = L => cut ? L.filter(r => r.at >= cut || r.status === 'Active' || r.status === 'Pending') : L;   // free servers see the last 30 days
@@ -743,7 +748,9 @@ http.createServer((req, res) => {
     msg(res, u, 'Something went wrong', 'Oversite hit an error loading this page. Try again in a moment. If it keeps happening, let us know.', { href: '/', label: 'Home' }, 500); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
 staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), staffhub.observe);
-supporter.start(); civ.start(); premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);
+supporter.start(); civ.start();
+// business shifts end when the worker leaves the server or the civilian team; loans take their weekly payment
+setInterval(() => { for (const c of communities.all()) { try { civbiz.sweep(c, uid => { const u = users.byId(uid); return u ? liveSide(c, u) : undefined; }); } catch (e) { console.log('civbiz:', e.message); } } }, 120000); premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);
 // once: the old owner link left extra "Owner" members behind; on servers a site admin made, they go back to plain members
 // (in-game staff still get their in-game rank in the CAD), and the server's creator can sort out anyone else from the Team tab
 // Premium launch: servers Oversite's own team runs get it for good; every server that existed before gets 30 days free, so nobody loses the Staff CAD or voice overnight
