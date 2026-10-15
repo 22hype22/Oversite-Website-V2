@@ -578,6 +578,12 @@ const route = async (req, res) => {
     res.writeHead(302, { location: url, 'cache-control': 'public, max-age=3600' }); return res.end(); }
   if ((m0r = path.match(/^\/rbx\/avatar\/(\d{1,20})$/))) { const url = await headshot(m0r[1]); if (!url) { res.writeHead(404, { 'cache-control': 'public, max-age=600' }); return res.end(); }
     res.writeHead(302, { location: url, 'cache-control': 'public, max-age=3600' }); return res.end(); }
+  // for search engines: what to crawl, and every public page (servers listed on Explore included once the site is open)
+  if (path === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' });
+    return res.end(['User-agent: *', 'Disallow: /api/', 'Disallow: /c/', 'Disallow: /auth/', 'Disallow: /account', 'Disallow: /admin', 'Disallow: /dashboard', 'Disallow: /lock', '', `Sitemap: ${pages.SITE}/sitemap.xml`, ''].join('\n')); }
+  if (path === '/sitemap.xml') { const open = !CODE, urls = ['/', ...(open ? ['/explore', '/premium', '/support'] : []), '/privacy', '/terms', '/refunds', ...(open ? profile.directory(null).map(x => '/' + x.slug) : [])];
+    res.writeHead(200, { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' });
+    return res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u => `<url><loc>${pages.SITE}${u.replace(/&/g, '&amp;')}</loc>${u === '/' ? '<priority>1.0</priority>' : ''}</url>`).join('\n')}\n</urlset>\n`); }
   if (path === '/privacy' || path === '/terms' || path === '/refunds') return page(res, pages.legal({ logo: LOGO, user: auth.currentUser(req), doc: path.slice(1) }));
   if ((m0 = path.match(/^\/c\/([a-z0-9-]+)\/discord\/connect$/))) { const { c, user, role } = await access(req, m0[1]);
     if (!c || !user || !can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner or a co-owner can connect a Discord server.', { href: '/dashboard', label: 'Back' }, 403);
@@ -685,7 +691,7 @@ const hasAccess = req => { if (!CODE) return true; const m = /(?:^|;\s*)ov_acces
   const want = Buffer.from(sign(CODE)), got = Buffer.from(m[1]); return want.length === got.length && timingSafeEqual(want, got); };
 const attempts = new Map();
 const ipOf = auth.clientIp;
-const lockPage = (m = '') => { const n = Math.min(8, Math.max(4, CODE.length || 4)); return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oversite</title>
+const lockPage = (m = '') => { const n = Math.min(8, Math.max(4, CODE.length || 4)); return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers</title>${pages.seoHead('Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers', { path: '/', ld: pages.SITE_LD })}
 <link rel="icon" href="/favicon.ico?v=5" sizes="32x32"><link rel="icon" type="image/svg+xml" href="/icon-tab.svg?v=5"><link rel="icon" type="image/png" href="/icon-tab.png?v=5"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -730,10 +736,11 @@ const gate = async (req, res) => {
   if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js' || /^\/(apple-touch-icon(-precomposed)?\.png|icon-(192|512|maskable-512|tab)\.png|icon-tab\.svg|manifest\.webmanifest|favicon\.ico)$/.test(path) || path === '/privacy' || path === '/terms' || path === '/refunds') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
   if (path === '/unlock' && req.method === 'POST') { const f = await formBody(req); return unlock(req, res, String(f.get('code') || '').trim()); }
   if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });
+  if (path === '/robots.txt' || path === '/sitemap.xml') return route(req, res);   // search engines read these even while the site is locked
   const q = url.searchParams.get('code'); if (q && CODE && !hasAccess(req)) { url.searchParams.delete('code'); return unlock(req, res, q.trim(), url.pathname + (url.search || '')); }
   if (hasAccess(req) || path === '/api/stripe/webhook' || path.startsWith('/api/bot/')) return route(req, res);
   if (path.includes('/api/')) return json(res, { error: 'locked' }, 401);
-  return html(res, lockPage(), 401); };
+  return html(res, lockPage(), path === '/' ? 200 : 401); };   // the front door answers 200, so search engines can list Oversite while it's in preview
 
 http.createServer((req, res) => {
   // on every answer: no sniffing file types, no other site framing Oversite (clickjacking), no plugins, and https only once seen over https
