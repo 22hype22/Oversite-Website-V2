@@ -114,7 +114,7 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'calls/clear' && M === 'POST') { const k = String((await jsonBody(req)).key || ''); if (!/^[\w .:@#-]{1,120}$/.test(k)) return json(res, { error: 'Bad call.' }, 400);
     const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
     communities.saveSettings(c.id, s); c.settings.cleared = s.cleared; f.bcast('callclear', JSON.stringify({ key: k, by: user.roblox_name || user.name || '' })); return json(res, { ok: true }); }
-  if (rest.startsWith('v2/server') && M === 'GET') { const s = await f.snapshot(); res.writeHead(s.status, { 'content-type': 'application/json', 'cache-control': 'no-store', ...s.headers }); return res.end(s.body); }
+  if (rest.startsWith('v2/server') && M === 'GET') { const s = await f.snapshot(); res.writeHead(s.status || 502, { 'content-type': 'application/json', 'cache-control': 'no-store', ...s.headers }); return res.end(s.body); }
   if (rest === 'cal') { if (M === 'GET') return json(res, calOf(c)); if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner can move the map calibration.' }, 403);
     const j = await jsonBody(req), num = v => typeof v === 'number' && Number.isFinite(v);
     c.settings.cal = j.clear ? [] : (Array.isArray(j.manual) ? j.manual.filter(p => p && num(p.sx) && num(p.sz) && num(p.wx) && num(p.wy)).slice(0, 20).map(p => ({ name: String(p.name || 'Point').slice(0, 60), sx: p.sx, sz: p.sz, wx: p.wx, wy: p.wy })) : c.settings.cal);

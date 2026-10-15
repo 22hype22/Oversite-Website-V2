@@ -104,9 +104,14 @@ export const robloxStart = async (user, username) => {
   const hit = r?.data?.[0]; if (!hit) return { error: `No Roblox account is called "${username}".` };
   const p = phrase(); roblox.start(user.id, String(hit.id), hit.name, p); return { id: String(hit.id), name: hit.name, phrase: p }; };
 export const robloxVerify = async user => { const p = roblox.pending(user.id); if (!p || p.expires < Date.now()) return { error: 'The code expired. Start again.' };
-  let r; try { r = await fetch(`https://users.roblox.com/v1/users/${p.roblox_id}`).then(x => x.json()); } catch (e) { return { error: 'Roblox did not answer. Try again in a moment.' }; }
-  const norm = s => String(s || '').toLowerCase().replace(/[^a-z]+/g, ' ').trim();
-  if (!norm(r.description).includes(norm(p.phrase))) return { error: 'The phrase is not on your profile yet. Roblox can take a minute to save it, then try again.' };
+  // a fresh copy of the profile (the query string gets past Roblox's cache, so a bio saved a moment ago is seen)
+  let r, st = 0; try { const x = await fetch(`https://users.roblox.com/v1/users/${p.roblox_id}?t=${Date.now()}`, { headers: { accept: 'application/json', 'cache-control': 'no-cache' }, signal: AbortSignal.timeout(8000) }); st = x.status; r = await x.json().catch(() => ({})); }
+  catch (e) { console.log(`roblox verify: ${p.roblox_name}: ${e.message}`); return { error: 'Roblox did not answer. Try again in a moment.' }; }
+  if (st !== 200 || typeof r?.description !== 'string') { console.log(`roblox verify: ${p.roblox_name}: Roblox answered ${st}`); return { error: st === 429 ? 'Roblox is busy right now. Wait a minute and press Verify again.' : 'Roblox did not answer properly. Try again in a moment.' }; }
+  // the four words in any order, anywhere in the bio, whatever is around them
+  const words = s => new Set(String(s || '').toLowerCase().split(/[^a-z]+/).filter(Boolean)), have = words(r.description), want = [...words(p.phrase)];
+  if (!want.every(w => have.has(w))) { console.log(`roblox verify: ${p.roblox_name}: phrase not found (${want.filter(w => have.has(w)).length}/${want.length} words${/#{3,}/.test(r.description) ? ', Roblox hid some words with ####' : ''})`);
+    return { error: /#{3,}/.test(r.description) ? 'Roblox hid part of your bio with ####, so the words can’t be read. Start again for new words, or try “Log in with Roblox”.' : 'The words aren’t on your profile yet. Roblox can take a minute to save your bio, then press Verify again.' }; }
   const name = r.name || p.roblox_name; roblox.clear(user.id);
   const existing = users.byRoblox(p.roblox_id);                         // the same person already has an account (another device): fold this one into it
   if (existing && existing.id !== user.id) { users.merge(user.id, existing.id); return { ok: true, name, mergedInto: existing.id }; }

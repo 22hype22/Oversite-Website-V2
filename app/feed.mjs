@@ -118,7 +118,7 @@ export class Feed {
   kick(uid = null) { for (const r of this.clients) if (uid == null || r.uid === uid) r.write('event: reload\ndata: {}\n\n'); }
   // one request at a time per server, and a failed answer is reused for a few seconds, so many callers can't multiply requests to ER:LC
   snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return Promise.resolve(this.snap); if (this.failSnap && Date.now() - this.failSnap.t < 4000) return Promise.resolve(this.failSnap);
-    return this.inflight || (this.inflight = this.snapshotNow().then(s => { if (s.status !== 200) this.failSnap = { ...s, t: Date.now() }; return s; }).finally(() => { this.inflight = null; })); }
+    return this.snapP || (this.snapP = this.snapshotNow().then(s => { if (s.status !== 200) this.failSnap = { ...s, t: Date.now() }; return s; }).finally(() => { this.snapP = null; })); }   // snapP, not inflight: that one counts the live feed's own requests
   async snapshotNow() { if (!this.key) return { status: 401, body: NOKEY, headers: {} };
     if (!appKey() && !this.soloOk()) return { status: 403, body: SOLO_WAIT, headers: {} };
     try { const up = await fetch(UPSTREAM + QUERY, { headers: erlcHeaders(this.key) }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) { this.snap = out; try { this.onSnap?.(body); } catch (e) {} } return out; }
