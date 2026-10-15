@@ -608,11 +608,41 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 <label>Issued<input id="lIss" type="date"></label>
 <fieldset class="wide lprem" id="lPrem"><legend>${pbadge(13)} Premium</legend><label>Finish<select id="lFin"><option value="">Standard</option><option value="gold">Gold</option><option value="holo">Holographic</option><option value="obsidian">Obsidian</option></select></label><label>Occupation<input id="lOcc" maxlength="20" placeholder="Your team in game"></label><label class="wide">Signature<input id="lSig" maxlength="24" placeholder="Your display name"></label><p class="hint wide" id="lPremNote"></p></fieldset>
 <div class="row wide"><button class="btn pri">Save license</button><span class="msg" id="licmsg"></span></div></form>` : '<p class="note">Link your Roblox account first. Your license uses your Roblox photo and username.</p>'}</section>
+<section class="card" id="mdtset"><h2 class="hrow">Your MDT<span class="ms-pb">${pbadge(14)} Premium</span></h2><p class="note">How the MDT looks and sounds for you, on every server and every device you sign in on.</p>
+<div class="ms-prev" aria-hidden="true"><div class="ms-tab" id="msTab"><div class="ms-scr" id="msScr"><div class="ms-side"><i class="on"></i><i></i><i></i><i></i><b>Panic</b></div><div class="ms-main"><h4>FD 4120</h4><p></p><p class="s"></p><div class="ms-st"><em class="on">10-8</em><em>10-76</em><em>10-23</em><em>10-19</em></div></div></div></div></div>
+<form id="msf" class="licf" autocomplete="off"><fieldset class="wide ms-fs" id="msFs">
+<label class="wide">Call alert<span class="ms-pl"><select id="msCall"></select><button type="button" class="btn sm ms-play" data-play="call" aria-label="Play the call alert"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></button></span></label>
+<label class="wide">Panic alarm<span class="ms-pl"><select id="msPanic"></select><button type="button" class="btn sm ms-play" data-play="panic" aria-label="Play the panic alarm"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></button></span></label>
+<label class="wide">Alert volume<span class="ms-vol"><input type="range" id="msVol" min="0" max="100" step="5"><output id="msVolO">90%</output></span></label>
+<div class="wide ms-g"><span>Accent</span><div class="ms-sw" id="msAcc" role="radiogroup" aria-label="Accent"></div></div>
+<div class="wide ms-g"><span>Wallpaper</span><div class="ms-sw ms-wl" id="msWall" role="radiogroup" aria-label="Wallpaper"></div></div>
+<div class="wide ms-g"><span>Tablet</span><div class="ms-sw" id="msFrame" role="radiogroup" aria-label="Tablet colour"></div></div>
+<label class="wide">Map<select id="msMap"><option value="">The one I picked last on each device</option><option value="3d-light">3D</option><option value="3d-dark">3D Dark</option><option value="2d-light">2D</option><option value="2d-dark">2D Dark</option></select></label>
+</fieldset><p class="hint wide" id="msNote"></p>
+<div class="row wide"><button class="btn pri" id="msSave">Save MDT</button><button type="button" class="btn" id="msReset">Defaults</button><span class="msg" id="msMsg"></span></div></form></section>
 <section class="card"><h2>Sign out</h2><p class="note">Signs you out on this device. You'll need your sign-in again to get back in.</p><form method="post" action="/auth/logout" style="margin:0"><button class="btn danger">Sign out</button></form></section>
-</div></div></main><script src="/license-card.js?v=4"></script>
+</div></div></main><script src="/license-card.js?v=4"></script><script src="/mdt-setup.js?v=1"></script>
 <style>.licw{position:relative;width:100%;max-width:400px;aspect-ratio:400/250;margin:6px 0 14px}.licw .lcard{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(var(--ls,1))}
 .licf{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.licf label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim);min-width:0}.licf .wide{grid-column:1/-1}
-.ap-b{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--hair)}.ap-b:first-of-type{border-top:0}.ap-b b{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ap-b span{font-size:12px;color:var(--faint)}.licf input,.licf select{width:100%;min-width:0}.lprem{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin:4px 0 0;padding:12px 12px 4px;border:1px solid rgba(232,179,58,.25);border-radius:12px}.lprem legend{display:flex;align-items:center;gap:6px;padding:0 6px;font-size:12px;font-weight:600;color:#E8B33A}.lprem legend .vb{margin:0}.lprem .hint{margin:0 0 6px}.lprem.off{opacity:.55}.licf .lh{display:grid;grid-template-columns:1fr 1fr;gap:6px}.licf .row{align-items:center;gap:12px}</style>`, script: `
+.ap-b{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--hair)}.ap-b:first-of-type{border-top:0}.ap-b b{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ap-b span{font-size:12px;color:var(--faint)}.licf input,.licf select{width:100%;min-width:0}.lprem{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin:4px 0 0;padding:12px 12px 4px;border:1px solid rgba(232,179,58,.25);border-radius:12px}.lprem legend{display:flex;align-items:center;gap:6px;padding:0 6px;font-size:12px;font-weight:600;color:#E8B33A}.lprem legend .vb{margin:0}.lprem .hint{margin:0 0 6px}.lprem.off{opacity:.55}.licf .lh{display:grid;grid-template-columns:1fr 1fr;gap:6px}.licf .row{align-items:center;gap:12px}
+.ms-pb{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#E8B33A}.ms-pb .vb{margin:0}
+.ms-fs{display:contents;border:0;margin:0;padding:0}.ms-fs[disabled] ~ .row .btn{opacity:.5}
+.ms-pl,.ms-vol{display:flex;gap:6px;align-items:center}.ms-pl select{flex:1}.ms-play{flex:none;width:40px;padding:0;justify-content:center;align-self:stretch}
+.ms-vol input{flex:1;accent-color:#E8B33A}.ms-vol output{width:40px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.ms-g{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--dim)}.ms-sw{display:flex;flex-wrap:wrap;gap:8px}
+.ms-sw button{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:0;border:0;background:none;color:var(--dim);font:inherit;font-size:11.5px;cursor:pointer}
+.ms-sw button i{display:block;width:30px;height:30px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1px rgba(255,255,255,.14) inset;transition:box-shadow .15s}
+.ms-sw.ms-wl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}.ms-sw.ms-wl button i{width:100%;height:36px;border-radius:8px;background-color:#0C0D0F}
+.ms-sw button[aria-checked="true"]{color:var(--ink)}.ms-sw button[aria-checked="true"] i{box-shadow:0 0 0 2px var(--bg,#0B0B0C),0 0 0 4px #E8B33A}
+.ms-sw button:focus-visible{outline:none}.ms-sw button:focus-visible i{box-shadow:0 0 0 2px var(--bg,#0B0B0C),0 0 0 4px #4C8DFF}.ms-sw button:disabled{cursor:default}
+.ms-prev{max-width:400px;margin:6px 0 16px}.ms-tab{border-radius:20px;padding:8px;background:#1B1C1F;box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.07) inset,0 0 0 3px #121316 inset;aspect-ratio:16/10}
+.ms-scr{--fd:#E0453B;--fd-soft:rgba(224,69,59,.14);height:100%;border-radius:13px;overflow:hidden;background:#0C0D0F;display:flex}
+.ms-side{width:26%;display:flex;flex-direction:column;gap:6px;padding:12px 8px;border-right:1px solid rgba(255,255,255,.08)}.ms-side i{height:12px;border-radius:5px;background:rgba(255,255,255,.06)}.ms-side i.on{background:rgba(255,255,255,.14)}
+.ms-side b{margin-top:auto;height:20px;border-radius:6px;border:1.5px solid #E0453B;color:#FF8A82;font-size:9px;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;justify-content:center}
+.ms-main{flex:1;padding:14px}.ms-main h4{margin:0 0 8px;font-size:15px;color:#E9EAEC}.ms-main p{height:8px;width:60%;margin:0 0 6px;border-radius:4px;background:rgba(255,255,255,.08)}.ms-main p.s{width:38%}
+.ms-st{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px}.ms-st em{font-style:normal;font-size:10.5px;font-weight:600;color:#C9CBD0;text-align:center;padding:9px 0;border-radius:7px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07)}
+.ms-st em.on{color:#fff;background:var(--fd-soft);border-color:var(--fd)}
+#mdtset.off .ms-prev,#mdtset.off .licf{opacity:.55}</style>`, script: `
 /* Premium for your account: buy, manage billing, boost a server */
 {const pm=document.getElementById('premium'),M=document.getElementById('apMsg');if(pm){let plan='year';pm.querySelectorAll('[data-plan]').forEach(b=>b.onclick=()=>{plan=b.dataset.plan;pm.querySelectorAll('[data-plan]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
   const go=async(url,body,btn)=>{if(btn)btn.disabled=true;try{const j=await api(url,body||{});if(j.url){location.href=j.url;return}location.hash='premium';location.reload()}catch(e){if(btn)btn.disabled=false;say(M,e.message)}};
@@ -629,6 +659,24 @@ fetch('/api/me/license',{cache:'no-store'}).then(r=>r.json()).then(fill).catch((
 $('licf').addEventListener('input',draw);$('licf').addEventListener('change',draw);
 $('licf').addEventListener('submit',async e=>{e.preventDefault();const m=$('licmsg');try{fill(await api('/api/me/license',vals()));say(m,'License saved.',true)}catch(x){say(m,x.message)}});
 if(location.hash==='#license')setTimeout(()=>$('license').scrollIntoView({block:'start'}),50)})();
+/* your own MDT setup (Premium): pick, preview, play and save */
+(()=>{const box=document.getElementById('mdtset');if(!box||!window.MdtLook||!window.MdtSounds)return;const $=id=>document.getElementById(id),K=MdtLook.NAMES;let S={},D={},prem=false;
+const opts=(el,o)=>{el.innerHTML=Object.entries(o).map(([v,n])=>'<option value="'+v+'">'+n+'</option>').join('')};opts($('msCall'),MdtSounds.CALL);opts($('msPanic'),MdtSounds.PANIC);
+const sw=(el,key,bg)=>{el.innerHTML=Object.entries(K[key]).map(([v,n])=>'<button type="button" role="radio" data-k="'+key+'" data-v="'+v+'" style="--c:'+bg(v)+'"><i></i>'+n+'</button>').join('')};
+sw($('msAcc'),'accent',v=>MdtLook.ACC[v]||'conic-gradient(#4C8DFF 0 33%,#E0453B 0 66%,#E9C24C 0)');sw($('msWall'),'wall',v=>MdtLook.WALL[v]||'#0C0D0F');
+sw($('msFrame'),'frame',v=>({graphite:'#2A2B2F'})[v]||(MdtLook.FRAME[v]||[])[0]);
+let st=document.createElement('style');document.head.appendChild(st);
+const draw=()=>{st.textContent=MdtLook.css(S,'#msScr','#msTab');$('msWall').style.setProperty('--fd',MdtLook.ACC[S.accent]||'#E0453B');box.querySelectorAll('.ms-sw button').forEach(b=>{const on=S[b.dataset.k]===b.dataset.v;b.setAttribute('aria-checked',on);b.tabIndex=on?0:-1});$('msVolO').textContent=S.vol+'%'};
+const fill=j=>{prem=j.premium;D=j.defaults||D;S={...j.setup};$('msCall').value=S.call;$('msPanic').value=S.panic;$('msVol').value=S.vol;$('msMap').value=S.map||'';$('msFs').disabled=!prem;$('msSave').disabled=!prem;$('msReset').disabled=!prem;box.classList.toggle('off',!prem);box.querySelectorAll('.ms-sw button').forEach(b=>b.disabled=!prem);
+  $('msNote').innerHTML=prem?'Saved to your account. The MDT picks it up next time you open a CAD. Switching the map in the CAD saves it here too.':'Your own alert sounds, MDT colours and map style come with <a href="/account#premium">Premium</a>.';draw()};
+box.addEventListener('click',e=>{const b=e.target.closest('.ms-sw button');if(b&&prem){S[b.dataset.k]=b.dataset.v;draw()}const p=e.target.closest('[data-play]');if(p){const v=+$('msVol').value;p.dataset.play==='call'?MdtSounds.call($('msCall').value,2,v):MdtSounds.panic($('msPanic').value,v)}});
+box.addEventListener('keydown',e=>{const b=e.target.closest('.ms-sw button');if(!b||!/^Arrow(Left|Right|Up|Down)$/.test(e.key))return;e.preventDefault();const all=[...b.parentElement.children],i=all.indexOf(b),n=all[(i+(/Right|Down/.test(e.key)?1:all.length-1))%all.length];n.focus();n.click()});
+$('msf').addEventListener('input',e=>{if(e.target.id==='msVol'){S.vol=+e.target.value;draw()}});
+$('msf').addEventListener('change',e=>{S.call=$('msCall').value;S.panic=$('msPanic').value;S.map=$('msMap').value;draw()});
+$('msReset').onclick=()=>{fill({premium:prem,defaults:D,setup:{...D}})};
+$('msf').addEventListener('submit',async e=>{e.preventDefault();const m=$('msMsg');try{fill({premium:true,defaults:D,...await api('/api/me/mdt',S)});say(m,'Saved.',true)}catch(x){say(m,x.message)}});
+fetch('/api/me/mdt',{cache:'no-store'}).then(r=>r.json()).then(fill).catch(()=>{});
+if(location.hash==='#mdtset')setTimeout(()=>box.scrollIntoView({block:'start'}),50)})();
 const cn=document.getElementById('cname'),cs=document.getElementById('cslug'),sp=document.getElementById('slugp');let touched=false;
 const slugify=x=>x.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
 cn.addEventListener('input',()=>{if(!touched){cs.value=slugify(cn.value);sp.textContent=cs.value||'liberty-county'}});

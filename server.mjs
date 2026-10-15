@@ -19,6 +19,7 @@ import * as police from './app/police.mjs';
 import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
 import * as career from './app/career.mjs';
+import * as mdtprefs from './app/mdtprefs.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -53,10 +54,12 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 
 // ── the CAD page, with this community's settings injected ──
+// a Premium person's saved map style wins over whatever this browser last used, so every device opens on the same map
+const mapPref = p => { const m = /^(2d|3d)-(light|dark)$/.exec(p?.map || ''); return m ? `try{localStorage.setItem('ov.mapstyle','{"dim":"${m[1]}","theme":"${m[2]}"}')}catch(e){}` : ''; };
 let mapHtml = null, mapMtime = 0;
 const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const prem = premium.isPremium(c), cfg = { premium: prem, logo: prem && profile.iconSource(c) ? `/c/${c.slug}/icon` : '', license: prem ? c.settings.licenseStyle || null : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: ranksFor(c, prem), gold: users.premiumRoblox(), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
-  const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};</script>`;
+  const prem = premium.isPremium(c), cfg = { premium: prem, logo: prem && profile.iconSource(c) ? `/c/${c.slug}/icon` : '', license: prem ? c.settings.licenseStyle || null : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: ranksFor(c, prem), gold: users.premiumRoblox(), setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
+  const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};${mapPref(cfg.setup)}</script>`;
   return mapHtml.replace(/<head>/i, `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, `<title>${pages.esc(c.name)} · Oversite</title>`); };
 
 // ── Roblox headshots ──
@@ -281,6 +284,10 @@ const globalApi = async (req, res, rest) => {
   if ((rest === 'me/premium/checkout' || rest === 'me/premium/portal') && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     try { const r = rest.endsWith('checkout') ? await premium.checkoutUser(user, String((await jsonBody(req)).plan || ''), origin(req)) : await premium.portalUser(user, origin(req)); return json(res, r, r.error ? 400 : 200); }
     catch (e) { console.log(`premium account ${rest}: ${user.roblox_name}: ${e.message}`); return json(res, { error: 'Payments could not be reached. Try again in a minute.' }, 502); } }
+  // your own MDT setup (Premium): sounds, the tablet's look, the map style; every server's CAD uses it
+  if (rest === 'me/mdt' && req.method === 'GET') return json(res, { premium: premium.userInfo(user).on, setup: mdtprefs.get(user.id), defaults: mdtprefs.DEFAULTS });
+  if (rest === 'me/mdt' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
+    if (!premium.userInfo(user).on) return json(res, { error: 'Your own MDT setup comes with Premium.' }, 403); return json(res, { ok: true, setup: mdtprefs.save(user.id, await jsonBody(req)) }); }
   if (rest === 'me/license' && req.method === 'GET') return json(res, await licenseOf(user, premium.userInfo(user).on));
   if (rest === 'me/license' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     return json(res, await saveLicense(user, await jsonBody(req), premium.userInfo(user).on)); }

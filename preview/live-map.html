@@ -1125,6 +1125,7 @@
 </style>
 <script src="/dropdown.js?v=1" defer></script>
 <script src="/license-card.js?v=4" defer></script>
+<script src="/mdt-setup.js?v=1" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
   .mtabs{display:none}
@@ -2033,9 +2034,10 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   // ── call tone: two short beeps, three for priority 1 (needs one click anywhere first, browsers block audio before that) ──
   let actx = null, soundOn = true; try { soundOn = localStorage.getItem('oversite.sound') !== 'off'; } catch (e) {}
   const sndBtn = document.getElementById('warnSound'); sndBtn.setAttribute('aria-pressed', soundOn);
-  const unlock = () => { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state === 'suspended') actx.resume(); };
+  const unlock = () => { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state === 'suspended') actx.resume(); window.MdtSounds?.unlock(); };
   addEventListener('pointerdown', unlock, { once: true }); addEventListener('keydown', unlock, { once: true });
   const tone = pri => { if (!soundOn) return; unlock(); if (!actx || actx.state !== 'running') return;
+    const M = window.OVERSITE?.setup; if (M && window.MdtSounds) { MdtSounds.call(M.call, pri, M.vol); return; }   // a Premium person's own alert sound and volume
     const t0 = actx.currentTime, master = actx.createGain(); master.gain.value = 0.9; master.connect(actx.destination);
     const beep = (t, f1, f2, d, g) => { const o = actx.createOscillator(), e = actx.createGain(); o.type = 'square'; o.frequency.setValueAtTime(f1, t); o.frequency.linearRampToValueAtTime(f2, t + d);
       e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(g, t + 0.015); e.gain.setValueAtTime(g, t + d - 0.03); e.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(e).connect(master); o.start(t); o.stop(t + d + 0.02); };
@@ -2639,7 +2641,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       for (let i = 0; i < 4; i++) { const o = actx.createOscillator(), g = actx.createGain(); o.type = 'square'; o.frequency.setValueAtTime(i % 2 ? 660 : 990, t0 + i * .32);
         g.gain.setValueAtTime(0.0001, t0 + i * .32); g.gain.exponentialRampToValueAtTime(0.12, t0 + i * .32 + .02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * .32 + .3); o.connect(g).connect(actx.destination); o.start(t0 + i * .32); o.stop(t0 + i * .32 + .31); } } catch (e) {} };
   // the panic alarm, like ER:LC's: a burst of fast high beeps, again and again while the panic is open
-  const beeps = (n = 8) => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state !== 'running') actx.resume(); const t0 = actx.currentTime + .02;
+  const beeps = (n = 8) => { const M = window.OVERSITE?.setup; if (M && window.MdtSounds) { MdtSounds.panic(M.panic, M.vol); return; } try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state !== 'running') actx.resume(); const t0 = actx.currentTime + .02;
       for (let i = 0; i < n; i++) { const t = t0 + i * .13, o = actx.createOscillator(), g = actx.createGain(); o.type = 'square'; o.frequency.setValueAtTime(1180, t);
         g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + .006); g.gain.setValueAtTime(0.09, t + .07); g.gain.exponentialRampToValueAtTime(0.0001, t + .08);
         o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .09); } } catch (e) {} };
@@ -4005,6 +4007,16 @@ body.voice-snap .stage{transition:none!important}
   window.tagHTML = u => { const h = base(u); if (!window.isGold(u)) return h;
     return h.replace(/<div class="s">[\s\S]*?<\/div>/, '<div class="s">' + (u.crew || []).map((n, i) => e(n) + window.goldCheck((u.crewIds || [])[i])).join(', ') + '</div>'); };
   if ((window.UNITS || []).length) dispatchEvent(new CustomEvent('units'));   // the page is big: units can arrive before this runs, so draw them again with the checks
+ })();
+</script>
+<script>
+/* a Premium person's own MDT setup, saved on their account (Account, MDT setup): accent, wallpaper and tablet colour here,
+   alert sounds in the call tone and panic alarm, and the map style, which is saved back whenever they switch it */
+(() => { const M = (window.OVERSITE || {}).setup; if (!M) return;
+  addEventListener('DOMContentLoaded', () => { const c = window.MdtLook?.css(M, '#mdt .screen', '#mdt .tablet'); if (c) { const st = document.createElement('style'); st.textContent = c; document.head.appendChild(st); } });   // mdt-setup.js is deferred: ready by now
+  let first = null, t = 0;
+  addEventListener('maptheme', e => { const v = e.detail.dim + '-' + e.detail.theme; if (first === null) { first = v; return; } if (v === first) return; first = v;
+    clearTimeout(t); t = setTimeout(() => fetch('/api/me/mdt', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ map: v }) }).catch(() => {}), 800); });
  })();
 </script>
 </body>
