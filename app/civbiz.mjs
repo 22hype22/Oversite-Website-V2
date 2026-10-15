@@ -6,6 +6,7 @@
 import { db, now, users, communities } from './db.mjs';
 import * as premium from './premium.mjs';
 import { POSTALS } from './postals.mjs';
+import { TASKS, makeGame, fillText, pickTasks, houseName, NAMES, MIN_GAME_MS } from './tasks.mjs';
 import { T, money, DAY, GDAY, GWEEK, background, conf, ensure, move, bizMove, biz, note, who, hooks, staffSet } from './civ.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS civ_shifts (id INTEGER PRIMARY KEY, biz_id INTEGER NOT NULL REFERENCES civ_biz(id) ON DELETE CASCADE, user_id INTEGER NOT NULL,
@@ -27,7 +28,9 @@ CREATE TABLE IF NOT EXISTS civ_jobs (id INTEGER PRIMARY KEY, biz_id INTEGER NOT 
   item_id INTEGER, req_id INTEGER, label TEXT NOT NULL DEFAULT '', steps TEXT NOT NULL, step INTEGER NOT NULL DEFAULT 0, arrived INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'Active', started INTEGER NOT NULL, ended INTEGER, pay INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX IF NOT EXISTS civ_jobs_u ON civ_jobs (user_id, status);`);
-for (const [t, col] of [['civ_items', "meta TEXT NOT NULL DEFAULT '{}'"], ['civ_biz', "office TEXT NOT NULL DEFAULT ''"], ['civ_staff', 'hourly INTEGER NOT NULL DEFAULT 0'], ['civ_staff', 'manager INTEGER NOT NULL DEFAULT 0'], ['civ_staff', 'commission INTEGER NOT NULL DEFAULT 0'],
+db.exec(`CREATE TABLE IF NOT EXISTS civ_board (biz_id INTEGER NOT NULL REFERENCES civ_biz(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, tasks TEXT NOT NULL, day INTEGER NOT NULL, PRIMARY KEY (biz_id, user_id));`);
+for (const [t, col] of [['civ_jobs', 'step_at INTEGER NOT NULL DEFAULT 0'], ['civ_jobs', "scores TEXT NOT NULL DEFAULT '[]'"], ['civ_jobs', 'mult REAL NOT NULL DEFAULT 1'], ['civ_jobs', 'far INTEGER NOT NULL DEFAULT 0'],
+  ['civ_items', "meta TEXT NOT NULL DEFAULT '{}'"], ['civ_biz', "office TEXT NOT NULL DEFAULT ''"], ['civ_staff', 'hourly INTEGER NOT NULL DEFAULT 0'], ['civ_staff', 'manager INTEGER NOT NULL DEFAULT 0'], ['civ_staff', 'commission INTEGER NOT NULL DEFAULT 0'],
   ['civ_biz', 'online INTEGER NOT NULL DEFAULT 0'], ['civ_biz', "color TEXT NOT NULL DEFAULT ''"], ['civ_biz', "tagline TEXT NOT NULL DEFAULT ''"], ['civ_biz', "places TEXT NOT NULL DEFAULT '[]'"],
   ['civ_biz', "ad TEXT NOT NULL DEFAULT ''"], ['civ_biz', 'ad_until INTEGER NOT NULL DEFAULT 0'], ['civ_biz', 'loan_left INTEGER NOT NULL DEFAULT 0'], ['civ_biz', 'loan_weekly INTEGER NOT NULL DEFAULT 0'],
   ['civ_biz', 'loan_next INTEGER NOT NULL DEFAULT 0']]) { try { db.exec(`ALTER TABLE ${t} ADD COLUMN ${col}`); } catch (e) {} }
@@ -266,9 +269,11 @@ export const startJob = (c, user, j, pos) => { const cur = myJob(c.id, user.id);
   q('INSERT INTO civ_jobs (biz_id, user_id, kind, item_id, req_id, label, steps, started) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(z.id, user.id, G.name, item, req ? req.id : null, T(label, 60), JSON.stringify(steps), now());
   return { ok: true }; };
 // what a job pays: the server's pay per job, more for long taxi rides; the business earns half of it on top
+const farMult = steps => { let d = 0; const S = steps.filter(x => !x.game); for (let i = 1; i < S.length; i++) d += Math.hypot(S[i].x - S[i - 1].x, S[i].z - S[i - 1].z); return 0.6 + Math.min(2, d / 2000); };
 const jobPay = (c, z, steps) => { const base = conf(c).showpay || 0; if (!gigOf(z).far) return base; let d = 0; for (let i = 1; i < steps.length; i++) d += Math.hypot(steps[i].x - steps[i - 1].x, steps[i].z - steps[i - 1].z);
   return Math.round(base * (0.6 + Math.min(2, d / 2000))); };
-const finishJob = (c, jb) => { const z = biz(c.id, jb.biz_id), pay = z ? jobPay(c, z, JSON.parse(jb.steps)) : 0;
+const finishJob = (c, jb) => { const z = biz(c.id, jb.biz_id), steps = JSON.parse(jb.steps), sc = JSON.parse(jb.scores || '[]'), quality = sc.length ? 0.75 + 0.5 * sc.reduce((a, b) => a + b, 0) / sc.length : 1;
+  const pay = !z ? 0 : jb.kind === 'task' ? Math.round((conf(c).showpay || 0) * (jb.mult || 1) * quality * (jb.far ? farMult(steps) : 1)) : jobPay(c, z, steps);
   q("UPDATE civ_jobs SET status = 'Done', ended = ?, pay = ? WHERE id = ?").run(now(), pay, jb.id);
   if (pay) { ensure(c, jb.user_id); move(c.id, jb.user_id, pay, 'wage', `${jb.label} for ${z.name}`); bizMove(z.id, Math.round(pay / 2), `${jb.label} by ${who(jb.user_id)}`); }
   if (jb.req_id) { const r = q('SELECT * FROM civ_requests WHERE id = ?').get(jb.req_id); if (r) note(c.id, r.user_id, `${z?.name || 'The agency'} showed you ${r.item}.`); } };
@@ -278,12 +283,52 @@ export const observe = (c, body) => { const jobs = q("SELECT j.* FROM civ_jobs j
   const pos = new Map((snap.Players || []).map(p => [String(p.Player || '').split(':')[0].toLowerCase(), p.Location]));
   for (const jb of jobs) { if (t - jb.started > JOB_MAX) { q("UPDATE civ_jobs SET status = 'Failed', ended = ? WHERE id = ?").run(t, jb.id); note(c.id, jb.user_id, `${jb.label} ran out of time.`); continue; }
     const u = users.byId(jb.user_id), L = u && pos.get(String(u.roblox_name || '').toLowerCase()); if (!L || !Number.isFinite(+L.LocationX)) continue;
-    const steps = JSON.parse(jb.steps), st = steps[jb.step]; if (!st) continue; const d = Math.hypot(+L.LocationX - st.x, +L.LocationZ - st.z);
+    const steps = JSON.parse(jb.steps), st = steps[jb.step]; if (!st || st.game) continue; const d = Math.hypot(+L.LocationX - st.x, +L.LocationZ - st.z);
     if (!jb.arrived) { if (d <= RADIUS) { if (st.wait) q('UPDATE civ_jobs SET arrived = ? WHERE id = ?').run(t, jb.id); else jb.arrived = t - 1; } }
     else if (d > LEAVE) { q('UPDATE civ_jobs SET arrived = 0 WHERE id = ?').run(jb.id); continue; }   // drove off too soon: the wait starts over
     const arrived = jb.arrived || +(q('SELECT arrived FROM civ_jobs WHERE id = ?').get(jb.id).arrived);
-    if (arrived && t - arrived >= st.wait) { if (jb.step + 1 >= steps.length) finishJob(c, jb); else q('UPDATE civ_jobs SET step = step + 1, arrived = 0 WHERE id = ?').run(jb.id); } } };
-const jobRow = jb => { if (!jb) return null; const steps = JSON.parse(jb.steps); return { id: jb.id, kind: jb.kind, label: jb.label, step: jb.step, steps: steps.map(x => ({ label: x.label, wait: x.wait, what: x.what, x: x.x, z: x.z })), arrived: jb.arrived, started: jb.started, max: JOB_MAX, r: RADIUS }; };
+    if (arrived && t - arrived >= st.wait) { if (jb.step + 1 >= steps.length) finishJob(c, jb); else q('UPDATE civ_jobs SET step = step + 1, arrived = 0, step_at = ? WHERE id = ?').run(t, jb.id); } } };
+const jobRow = jb => { if (!jb) return null; const steps = JSON.parse(jb.steps); return { id: jb.id, kind: jb.kind, label: jb.label, step: jb.step, stepAt: jb.step_at,
+  steps: steps.map(x => x.game ? { game: x.game, what: x.what, p: x.p } : { label: x.label, wait: x.wait, what: x.what, x: x.x, z: x.z }), arrived: jb.arrived, started: jb.started, max: JOB_MAX, r: RADIUS }; };
+
+// ── the task board: three tasks for each worker at each business, a new one in each slot that's taken, all new each in-game day ──
+const dayNo = () => Math.floor(now() / GDAY);
+const newEntry = (z, t) => { const listings = q("SELECT * FROM civ_items WHERE biz_id = ? AND kind = 'Listing' AND live = 1").all(z.id).filter(i => spotOf(metaOf(i).pos));
+  const li = listings.length && Math.random() < 0.7 ? listings[Math.floor(Math.random() * listings.length)] : null;
+  return { t, client: NAMES[Math.floor(Math.random() * NAMES.length)], house: li ? li.name : houseName(), houseItem: li ? li.id : null, n: 1 + Math.floor(Math.random() * 12), place: 'Postal ' + (100 + Math.floor(Math.random() * 900)) }; };
+const boardOf = (z, uid) => { const r = q('SELECT * FROM civ_board WHERE biz_id = ? AND user_id = ?').get(z.id, uid); let B = r && r.day === dayNo() ? JSON.parse(r.tasks) : null;
+  if (!B || B.length !== 3 || B.some(e => !(TASKS[z.kind] || TASKS.Store)[e.t])) { B = pickTasks(z.kind, 3).map(t => newEntry(z, t)); q('INSERT OR REPLACE INTO civ_board (biz_id, user_id, tasks, day) VALUES (?, ?, ?, ?)').run(z.id, uid, JSON.stringify(B), dayNo()); }
+  return B; };
+const taskView = (z, e, base) => { const T0 = (TASKS[z.kind] || TASKS.Store)[e.t]; return { title: fillText(T0.title, e), pay: Math.round(base * T0.pay), steps: T0.steps.map(x => ({ do: x.do, what: fillText(x.what, e), game: x.game || null })), far: !!T0.far }; };
+export const takeTask = (c, user, j, pos) => { const z = biz(c.id, j.id); if (!z || !worksAt(z, user.id)) return { error: 'You do not work there.' };
+  const no = inactive(z); if (no) return no; if (myJob(c.id, user.id)) return { error: 'Finish the task you’re on first.' };
+  const sh = myShift(c.id, user.id); if (!sh || sh.biz_id !== z.id) return { error: `Clock in at ${z.name} first.` };
+  const last = q("SELECT ended FROM civ_jobs WHERE user_id = ? AND status = 'Done' ORDER BY ended DESC LIMIT 1").get(user.id); if (last && now() - last.ended < 20e3) return { error: 'Take a breather: you can start another task in a few seconds.' };
+  const B = boardOf(z, user.id), slot = Math.max(0, Math.min(2, +j.slot || 0)), e = B[slot], T0 = (TASKS[z.kind] || TASKS.Store)[e.t];
+  const drives = T0.steps.some(x => x.do === 'drive'); if (drives && !pos) return { error: 'Oversite can’t see you in game right now. Join the server on the civilian team and try again.' };
+  const base = spotOf(z.office) || (pos ? { x: Math.round(pos.x), z: Math.round(pos.z), label: pos.label || 'where you started' } : null);
+  const li = e.houseItem ? q('SELECT * FROM civ_items WHERE id = ? AND biz_id = ?').get(e.houseItem, z.id) : null, housePos = li ? spotOf(metaOf(li).pos) : null;
+  const used = new Set(); let from = pos || base || { x: 2600, z: 2600 }, house = null;
+  const steps = T0.steps.map(x => { if (x.do === 'game') return makeGame(x, z.kind, e);
+    let p; if (x.to === 'base') p = base; else if (x.to === 'house') p = house || (house = housePos ? { ...housePos, label: e.house } : { ...pickSpot(from, used), label: e.house }); else p = pickSpot(from, used);
+    used.add(p.label); from = p; return { x: p.x, z: p.z, label: x.to === 'house' ? e.house : p.label, wait: (x.wait || 0) * 1000, what: fillText(x.what, e) }; });
+  q('INSERT INTO civ_jobs (biz_id, user_id, kind, item_id, label, steps, started, step_at, mult, far) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(z.id, user.id, 'task', li ? li.id : null, T(fillText(T0.title, e), 80), JSON.stringify(steps), now(), now(), T0.pay, T0.far ? 1 : 0);
+  B[slot] = newEntry(z, pickTasks(z.kind, 3).find(t => !B.some((o, k) => k !== slot && o.t === t)) ?? e.t); q('UPDATE civ_board SET tasks = ? WHERE biz_id = ? AND user_id = ?').run(JSON.stringify(B), z.id, user.id);
+  return { ok: true }; };
+// play the mini-game on the current step: a score from 0 to 1 (half or better passes), or for negotiate, an offer the other side answers
+export const playGame = (c, user, j) => { const jb = myJob(c.id, user.id); if (!jb) return { error: 'You are not on a task.' };
+  const steps = JSON.parse(jb.steps), st = steps[jb.step]; if (!st || !st.game) return { error: 'There is no mini-game on this step.' };
+  const adv = score => { const sc = [...JSON.parse(jb.scores || '[]'), Math.max(0, Math.min(1.1, score))]; q('UPDATE civ_jobs SET scores = ?, step = step + 1, step_at = ? WHERE id = ?').run(JSON.stringify(sc), now(), jb.id);
+    if (jb.step + 1 >= steps.length) finishJob(c, { ...jb, scores: JSON.stringify(sc) }); };
+  if (st.game === 'negotiate') { const P = st.p, offer = Math.round(+j.offer || 0); if (!(offer > 0)) return { error: 'Name your price.' };
+    if (offer <= P.last) { adv(Math.min(1.05, P.last / P.ask)); return { ok: true, result: { accepted: true, price: P.last } }; }
+    if (offer <= st.secret.max) { adv(Math.min(1.05, offer / P.ask)); return { ok: true, result: { accepted: true, price: offer } }; }
+    P.round++; if (P.round >= P.rounds) { adv(0.3); return { ok: true, result: { walked: true } }; }
+    P.last = Math.min(st.secret.max, Math.round((P.last + (offer - P.last) * (0.35 + Math.random() * 0.2)) / 500) * 500);
+    q('UPDATE civ_jobs SET steps = ? WHERE id = ?').run(JSON.stringify(steps), jb.id); return { ok: true, result: { counter: P.last, round: P.round, rounds: P.rounds } }; }
+  if (now() - (jb.step_at || jb.started) < (MIN_GAME_MS[st.game] || 3000)) return { error: 'Slow down a little.' };
+  const score = Math.max(0, Math.min(1, +j.score || 0)); if (score < 0.5) return { ok: true, result: { retry: true } };
+  adv(score); return { ok: true, result: { passed: true } }; };
 // the last few jobs someone finished, for the Work tab
 const doneJobs = (cid, uid) => q("SELECT j.label, j.pay, j.ended, b.name FROM civ_jobs j JOIN civ_biz b ON b.id = j.biz_id WHERE b.community_id = ? AND j.user_id = ? AND j.status = 'Done' ORDER BY j.ended DESC LIMIT 5").all(cid, uid);
 
@@ -318,4 +363,5 @@ export const state = (c, user) => { const t = now(), sp = premium.isPremium(c), 
     queue[z.id] = { name: z.name, kind: z.kind, office: spotOf(z.office), pending: q("SELECT * FROM civ_requests WHERE biz_id = ? AND status = 'Pending' ORDER BY at").all(z.id).map(reqRow),
       done: q("SELECT * FROM civ_requests WHERE biz_id = ? AND status <> 'Pending' ORDER BY decided DESC LIMIT 5").all(z.id).map(reqRow),
       listings: z.kind === 'Real estate' ? q("SELECT * FROM civ_items WHERE biz_id = ? AND kind = 'Listing' ORDER BY price").all(z.id).map(itemRow) : [] }; }
-  return { shops, shift, bizx, workx, requests: mine, queue, job: jobRow(myJob(c.id, user.id)), done: doneJobs(c.id, user.id), gigs: GIGS, btypes: KINDS, ptypes: PTYPES, showpay: conf(c).showpay || 0, prem: { server: sp, me }, limits: LIMITS, colors: COLORS }; };
+  const pay = conf(c).showpay || 0, boards = {}; for (const z of q('SELECT * FROM civ_biz WHERE community_id = ?').all(c.id).filter(z => worksAt(z, user.id))) boards[z.id] = boardOf(z, user.id).map(e => taskView(z, e, pay));
+  return { shops, shift, bizx, workx, requests: mine, queue, boards, job: jobRow(myJob(c.id, user.id)), done: doneJobs(c.id, user.id), gigs: GIGS, btypes: KINDS, ptypes: PTYPES, showpay: conf(c).showpay || 0, prem: { server: sp, me }, limits: LIMITS, colors: COLORS }; };

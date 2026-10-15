@@ -6,7 +6,7 @@
 <title>Oversite Live Map</title>
 <link rel="icon" href="/favicon.ico?v=5" sizes="32x32"><link rel="icon" type="image/svg+xml" href="/icon-tab.svg?v=5"><link rel="icon" type="image/png" href="/icon-tab.png?v=5">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Caveat:wght@500&family=Special+Elite&display=swap">
 <style>
   :root{
     --bg:#0B0B0C;
@@ -1167,6 +1167,79 @@
   .cv-spot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}.cv-spot small{flex:1;min-width:0;color:var(--dim);font-size:11.5px}
   .cv-item{padding:8px 0;border-bottom:1px solid var(--line)}.cv-item .cv-inl{margin-top:0}.cv-item .cv-spot{margin-top:6px}.cv-add{border-bottom:0}
   .cv-lab label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--faint);flex:1 1 90px;min-width:0}.cv-lab label input{width:100%}.cv-lab label.chk{flex:0 0 auto;flex-direction:row;font-size:12px;color:var(--ink)}
+  .cdock .screen{position:relative}
+  /* task board: tickets with a torn stub */
+  .tk-off{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:12px 14px;border-radius:12px;border:1px dashed var(--line)}.tk-off b{font-size:13.5px}.tk-off p{margin:3px 0 0;font-size:12px;color:var(--dim)}.tk-off small{color:var(--faint);font-size:11.5px}
+  .tk-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:10px}
+  .tk{position:relative;display:flex;flex-direction:column;gap:9px;padding:13px 14px 12px 20px;border-radius:12px;background:#17181b;border:1px solid #26282d}
+  .tk::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:7px;border-right:1px dashed #33363c;background:radial-gradient(circle at 0 50%,#0d0e10 4px,transparent 4.5px) 0 0/7px 14px repeat-y}
+  .tk-top{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .tk-pay{font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0;color:#0d0e10;background:#E8B33A;padding:4px 7px;border-radius:5px}
+  .tk-title{font-size:14px;line-height:1.3;color:#ECEDEF}
+  .tk-route{list-style:none;margin:0;padding:0;display:grid;gap:0}.tk-route li{position:relative;display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--dim)}
+  .tk-route li+li::before{content:"";position:absolute;left:7px;top:-6px;height:10px;border-left:1.5px dotted #44474e}
+  .tk-route svg{flex:none;color:#7d8189}.tk-route li.g svg{color:#E8B33A}.tk-route li span{flex:1;min-width:0}.tk-route em{font-style:normal;font-size:10px;color:#E8B33A;border:1px solid rgba(232,179,58,.35);border-radius:4px;padding:1px 5px;white-space:nowrap}
+  .tk-go{font:600 12.5px/1 inherit;color:#0d0e10;background:#ECEDEF;border:0;border-radius:9px;padding:10px 14px;cursor:pointer;transition:transform .12s cubic-bezier(.23,1,.32,1),background-color .15s ease}.tk-go:active{transform:scale(.97)}.tk-go:disabled{opacity:.5}
+  @media (hover:hover) and (pointer:fine){.tk-go:hover{background:#fff}}
+  .tk .tk-go{margin-top:auto}
+  /* the overlay */
+  .cv-game{position:absolute;inset:34px 0 0;z-index:30;display:grid;place-items:center;padding:16px;background:rgba(7,8,9,.86);backdrop-filter:blur(5px)}.cv-game[hidden]{display:none}
+  .g-win{position:relative;width:min(680px,100%);max-height:100%;overflow:auto;border-radius:16px;background:#141518;border:1px solid #2a2c31;padding:16px 18px 14px;box-shadow:0 30px 70px rgba(0,0,0,.55);animation:gIn .24s cubic-bezier(.23,1,.32,1)}
+  @keyframes gIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+  .g-win header{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin-bottom:14px}.g-win header span{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#E8B33A}.g-win header b{grid-row:2;font-size:16px;color:#ECEDEF}.g-later{grid-row:1/3;grid-column:2;align-self:start;font:inherit;font-size:12px;color:var(--dim);background:none;border:1px solid #2a2c31;border-radius:8px;padding:6px 10px;cursor:pointer}
+  .g-msg{min-height:18px;margin:10px 0 0;font-size:12.5px;color:var(--dim)}.g-msg.bad{color:#F0A0A0}.g-msg.ok{color:#7FD8AE}.g-acts{display:flex;justify-content:flex-end;margin-top:12px}
+  .g-done{text-align:center;padding:30px 22px 24px}.g-done b{font-size:21px}.g-done p{color:var(--dim);font-size:13px;margin:8px 0 18px}
+  .g-stamp{position:absolute;right:22px;top:46%;padding:6px 14px;border:3px solid #C8372D;border-radius:6px;color:#C8372D;font:700 26px/1 "Special Elite",ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;transform:rotate(-12deg);opacity:.9;mix-blend-mode:multiply;animation:gStamp .38s cubic-bezier(.2,1.6,.4,1);pointer-events:none}
+  .g-stamp.green{border-color:#2E8B57;color:#2E8B57;mix-blend-mode:normal;background:rgba(10,12,12,.55)}
+  @keyframes gStamp{from{transform:rotate(-12deg) scale(2.2);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:.9}}
+  /* paperwork: a manila file and a typed form */
+  .pw{display:grid;grid-template-columns:180px 1fr;gap:14px;align-items:start}
+  .pw-file{position:relative;padding:16px 12px 12px;border-radius:4px 10px 10px 10px;background:#C9A15E;color:#2b2112;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);transform:rotate(-1.2deg)}
+  .pw-file::before{content:"";position:absolute;left:0;top:-9px;width:62px;height:10px;border-radius:5px 5px 0 0;background:#C9A15E}
+  .pw-file small{font:700 10px/1 ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;opacity:.75}.pw-file p{margin:9px 0 0;font:13px/1.25 "Special Elite",ui-monospace,monospace}.pw-file p span{display:block;font:600 9.5px/1.3 system-ui;letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+  .pw-file .clip{position:absolute;right:14px;top:-14px;width:10px;height:34px;border:2.5px solid #9aa0a8;border-radius:6px}
+  .pw-paper{position:relative;padding:16px 18px 14px;border-radius:3px;background:#F3EEDF linear-gradient(transparent 31px,rgba(30,60,140,.08) 32px) 0 6px/100% 32px;color:#1d1f24;box-shadow:0 1px 0 #d8d1bd,0 12px 26px rgba(0,0,0,.35)}
+  .pw-head{display:grid;grid-template-columns:1fr auto;border-bottom:2px solid #1d1f24;padding-bottom:6px;margin-bottom:6px}.pw-head small{font:600 9.5px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#6b6556}.pw-head b{grid-row:2;font:18px/1.2 "Special Elite",ui-monospace,monospace}.pw-head i{grid-row:1/3;grid-column:2;align-self:end;font:12px "Special Elite",ui-monospace,monospace;font-style:normal;color:#6b6556}
+  .pw-line{position:relative;display:grid;grid-template-columns:110px 1fr;align-items:end;gap:8px;min-height:32px}.pw-line>span{font:600 9.5px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;color:#6b6556;padding-bottom:7px}
+  .pw-val{font:22px/1.1 Caveat,"Segoe Print","Bradley Hand",cursive;color:#9b9584;text-align:left;background:none;border:0;border-bottom:1px solid #b9b19c;padding:2px 2px 3px;cursor:pointer}.pw-val.set{color:#1D3B8F}
+  .pw-line.bad .pw-val{color:#C8372D;border-bottom-color:#C8372D;border-radius:40%;box-shadow:0 0 0 2px rgba(200,55,45,.5)}
+  .pw-opts{position:absolute;left:110px;right:0;top:100%;z-index:2;display:flex;flex-wrap:wrap;gap:6px;padding:8px;border-radius:8px;background:#fffdf6;box-shadow:0 10px 24px rgba(0,0,0,.25)}.pw-opts[hidden]{display:none}
+  .pw-opts button{font:19px/1.1 Caveat,cursive;color:#1D3B8F;background:#f3eedf;border:1px solid #ded6c0;border-radius:6px;padding:4px 10px;cursor:pointer}
+  @media (hover:hover) and (pointer:fine){.pw-opts button:hover{background:#e9e1c9}}
+  .pw-sign{position:relative;margin-top:12px}.pw-sign span{font:600 9.5px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;color:#6b6556}.pw-sign canvas{display:block;width:100%;height:70px;border-bottom:1.5px solid #1d1f24;touch-action:none;cursor:crosshair}.pw-sign i{position:absolute;left:2px;bottom:6px;font-style:normal;font-size:18px;color:#6b6556}
+  /* talk: someone across the counter */
+  .pt-who{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid #24262b}.pt-av{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;font-weight:600;color:#0d0e10;background:hsl(var(--h) 55% 70%)}.pt-who b{font-size:14px}
+  .pt-mood{display:flex;gap:3px;margin-top:6px}.pt-mood i{width:18px;height:5px;border-radius:3px;background:#2a2c31;transition:background-color .3s ease}.pt-mood i.lo{background:#E05A47}.pt-mood i.on{background:#E8B33A}.pt-mood i.hi{background:#3FBF8A}
+  .pt-chat{display:flex;flex-direction:column;gap:6px;max-height:230px;overflow:auto;padding:12px 2px}
+  .pt-b{max-width:80%;margin:0;padding:8px 12px;border-radius:14px 14px 14px 4px;background:#24262b;color:#ECEDEF;font-size:13px;line-height:1.4;animation:gBub .2s cubic-bezier(.23,1,.32,1)}.pt-b.me{align-self:flex-end;border-radius:14px 14px 4px 14px;background:#E8B33A;color:#1b1406}
+  @keyframes gBub{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .pt-replies{display:grid;gap:6px}.pt-replies button{text-align:left;font:inherit;font-size:13px;color:#ECEDEF;background:#1b1c20;border:1px solid #2e3036;border-radius:10px;padding:9px 12px;cursor:pointer;transition:border-color .15s ease,background-color .15s ease}
+  @media (hover:hover) and (pointer:fine){.pt-replies button:hover{border-color:#E8B33A;background:#211f1a}}
+  /* negotiate: two price tags and a patience meter */
+  .ng-table{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:10px}.ng-tag{position:relative;padding:12px 14px 12px 26px;border-radius:6px 12px 12px 6px;background:#F3EEDF;color:#1d1f24}
+  .ng-tag::before{content:"";position:absolute;left:10px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:#141518}.ng-tag small{display:block;font:600 9.5px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:#6b6556}.ng-tag b{font:22px/1.3 "Special Elite",ui-monospace,monospace}
+  .ng-tag.them{background:#E8B33A}.ng-tag.them small{color:#4a3a12}
+  .ng-pat{display:flex;align-items:center;gap:4px;margin-top:10px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}.ng-pat span{margin-right:6px}.ng-pat i{width:22px;height:5px;border-radius:3px;background:#2a2c31}.ng-pat i.on{background:#E8B33A}
+  .ng-chat{max-height:150px}
+  .ng-ctl{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px}.ng-v{font:20px/1 "Special Elite",ui-monospace,monospace;color:#ECEDEF;min-width:118px}.ng-ctl input{accent-color:#E8B33A;min-width:0}
+  /* steady hands: a viewfinder or a torque gauge */
+  .tm-vf{position:relative;height:190px;border-radius:10px;overflow:hidden;background:#0b0f12}.tm-scene{position:absolute;inset:0;display:grid;place-items:center}.tm-scene svg{width:100%;height:100%;transition:filter .05s linear}
+  .tm-vf .c{position:absolute;width:22px;height:22px;border:2px solid rgba(255,255,255,.7)}.c.tl{left:14px;top:14px;border-right:0;border-bottom:0}.c.tr{right:14px;top:14px;border-left:0;border-bottom:0}.c.bl{left:14px;bottom:14px;border-right:0;border-top:0}.c.br{right:14px;bottom:14px;border-left:0;border-top:0}
+  .tm-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}.tm-flash.go{animation:gFlash .35s ease-out}@keyframes gFlash{from{opacity:.85}to{opacity:0}}
+  .tm-gauge{display:grid;place-items:center;height:150px}.tm-gauge svg{width:min(320px,100%);height:100%}
+  .tm-bar{position:relative;height:12px;margin:14px 0 12px;border-radius:999px;background:#24262b;overflow:hidden}.tm-bar .zone{position:absolute;top:0;bottom:0;background:rgba(63,191,138,.55);border-radius:999px}.tm-bar .mk{position:absolute;top:0;bottom:0;width:4px;margin-left:-2px;border-radius:2px;background:#E8B33A}
+  .tm-bar.good{animation:gOk .3s ease}.tm-bar.bad{animation:gNo .3s ease}@keyframes gOk{50%{box-shadow:0 0 0 3px rgba(63,191,138,.55)}}@keyframes gNo{50%{box-shadow:0 0 0 3px rgba(224,90,71,.55)}}
+  .tm-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.tm-done{display:flex;gap:6px}.tm-done i{width:14px;height:14px;border-radius:50%;border:2px solid #3a3d44}.tm-done i.on{background:#3FBF8A;border-color:#3FBF8A}
+  /* memory: an order ticket, then the cards */
+  .sq-ticket{position:relative;width:min(300px,100%);margin:0 auto;padding:16px 18px 22px;background:#F7F3E8;color:#1d1f24;font-family:"Special Elite",ui-monospace,monospace;transform:rotate(.6deg);box-shadow:0 12px 26px rgba(0,0,0,.35)}
+  .sq-ticket small{font:600 9.5px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#6b6556}.sq-ticket b{display:block;font-size:17px;margin:4px 0 6px;border-bottom:1px dashed #9c947f;padding-bottom:6px}.sq-ticket ol{margin:0;padding-left:22px;font-size:15px;line-height:1.85}
+  .sq-tear{position:absolute;left:0;right:0;bottom:-6px;height:12px;background:radial-gradient(circle at 6px 0,transparent 6px,#F7F3E8 6.5px) -6px 0/12px 12px repeat-x}
+  .sq-tray{display:flex;gap:6px;flex-wrap:wrap;min-height:40px;padding:8px;border-radius:10px;background:#0d0e10;border:1px solid #24262b}.sq-tray span{flex:1 1 70px;min-height:24px;border-radius:6px;border:1px dashed #33363c;font-size:11.5px;display:grid;place-items:center;color:#ECEDEF}.sq-tray span.on{border:0;background:#2a2c31;animation:gBub .2s ease}
+  .sq-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:12px}.sq-cards button{font:inherit;font-size:13px;color:#1d1f24;background:#ECE6D3;border:0;border-radius:10px;padding:14px 10px;cursor:pointer;box-shadow:0 3px 0 #b9b19c;transition:transform .12s cubic-bezier(.23,1,.32,1)}
+  .sq-cards button:active{transform:translateY(2px);box-shadow:0 1px 0 #b9b19c}.sq-cards button:disabled{opacity:.25;cursor:default}.sq-cards button.bad{animation:gShake .4s}@keyframes gShake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  @media (prefers-reduced-motion:reduce){.g-win,.pt-b,.g-stamp,.sq-tray span.on{animation:none}.tm-flash.go{animation-duration:.01s}}
+  @media (max-width:640px){.pw{grid-template-columns:1fr}.pw-line{grid-template-columns:90px 1fr}.pw-opts{left:90px}.ng-ctl{grid-template-columns:1fr auto}.ng-v{grid-column:1/-1}}
+  .cv-jobnav-g{margin:12px 0 4px}
   .cv-listing{margin:8px 0 0}.cv-req{margin-top:8px}.cv-req summary{cursor:pointer;font-size:12.5px;color:var(--ink);display:inline-block;padding:5px 11px;border:1px solid var(--line);border-radius:999px}.cv-req[open] summary{border-color:rgba(255,255,255,.35)}
   .cv-idea{font:inherit;font-size:11.5px;color:var(--ink);background:none;border:1px dashed var(--line);border-radius:999px;padding:3px 9px;cursor:pointer;margin:2px 2px 0 0}.cv-shop[style*="--bc"]{border-left:3px solid var(--bc)}
   .cv-tag{color:var(--bc,#E9EAEC)!important;font-weight:500}
@@ -1483,6 +1556,7 @@
     <span class="cam"></span>
     <div class="screen">
       <div class="sbar"><span id="cvClock">00:00</span><span class="sb-mid" id="cvTop">Civilian</span><span class="sb-r" id="cvTopBal"></span></div>
+      <div class="cv-game" id="cvGame" hidden></div>
       <div class="tbody">
         <nav class="tside" role="tablist" aria-label="Civilian apps" id="cvTabs">
           <div class="crest" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Civilian</div>
@@ -4250,7 +4324,7 @@ body.voice-snap .stage{transition:none!important}
     return L && Number.isFinite(+L.LocationX) ? [+L.LocationX, +L.LocationZ] : null; };
   const DIRS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
   const trackJob = () => { const J = D?.job, big = page.querySelectorAll('.cv-jobnav'), small = page.querySelectorAll('.cv-jobnav-s'); if (!J || (!big.length && !small.length)) return;
-    const st = J.steps[J.step]; if (!st) return; const me = myPos(), left = st.wait && J.arrived ? Math.max(0, J.arrived + st.wait - Date.now()) : 0; let h, s;
+    const st = J.steps[J.step]; if (!st) return; if (st.game) { small.forEach(e => { e.textContent = 'mini-game waiting'; }); return; } const me = myPos(), left = st.wait && J.arrived ? Math.max(0, J.arrived + st.wait - Date.now()) : 0; let h, s;
     if (J.arrived && st.wait) { h = `<b class="cv-big">${mmss(left)}</b><span>${esc(st.what)}. Stay close until the timer runs out.</span>`; s = mmss(left) + ' left'; }
     else if (!me) { h = '<b class="cv-big">–</b><span>Join the server in game to see how far it is.</span>'; s = esc(st.label); }
     else { const dx = st.x - me[0], dz = st.z - me[1], d = Math.hypot(dx, dz), mi = d * 2000 / 5355 / 1609 * 1.2, deg = Math.atan2(dx, -dz) * 180 / Math.PI, dist = mi < 0.1 ? Math.round(mi * 5280) + ' ft' : mi.toFixed(2) + ' mi';
@@ -4258,18 +4332,106 @@ body.voice-snap .stage{transition:none!important}
       else { h = `<i class="cv-arrow" style="transform:rotate(${deg.toFixed(0)}deg)" aria-hidden="true">↑</i><b class="cv-big">${dist}</b><span>${DIRS[Math.round(((deg % 360) + 360) % 360 / 45) % 8]} to ${esc(st.label)}</span>`; s = dist + ' to ' + esc(st.label); } }
     big.forEach(e => { e.innerHTML = h; }); small.forEach(e => { e.innerHTML = s; }); };
   setInterval(trackJob, 1000);
-  const jobCard = () => { const J = D.job; if (!J) return '';
-    return `<div class="cv-jobcard"><div class="h"><div><small>On a job</small><b>${esc(J.label)}</b></div><button class="st-btn" data-jobstop="1">Stop</button></div><div class="cv-jobnav"></div>
-      <ol class="cv-steps">${J.steps.map((x, i) => `<li class="${i < J.step ? 'done' : i === J.step ? 'on' : ''}"><b>${esc(x.what)}</b><small>${esc(x.label)}${x.wait ? ' · stay ' + waitText(x.wait) : ''}</small></li>`).join('')}</ol></div>`; };
+  const jobCard = () => { const J = D.job; if (!J) return ''; const cur = J.steps[J.step] || {};
+    return `<div class="cv-jobcard"><div class="h"><div><small>On a task</small><b>${esc(J.label)}</b></div><button class="st-btn" data-jobstop="1">Stop</button></div>${cur.game ? `<div class="cv-jobnav-g"><button class="tk-go" data-play="1">Play: ${esc(cur.what)}</button></div>` : '<div class="cv-jobnav"></div>'}
+      <ol class="cv-steps">${J.steps.map((x, i) => `<li class="${i < J.step ? 'done' : i === J.step ? 'on' : ''}"><b>${esc(x.what)}</b><small>${x.game ? 'Mini-game: ' + esc((GNAME || {})[x.game] || '') : esc(x.label) + (x.wait ? ' · stay ' + waitText(x.wait) : '')}</small></li>`).join('')}</ol></div>`; };
   const clockBtn = id => D.shift ? (D.shift.biz === id ? '<button class="st-btn" data-clock="out">Clock out</button>' : '') : `<button class="st-btn" data-clock="${id}">Clock in</button>`;
-  // the job a workplace offers: start it while on shift there (real estate: pick the listing to show)
-  const gigBox = (id, kind) => { const G = gigOf(kind), on = D.shift && D.shift.biz === id, pay = D.showpay || 0, Q = (D.queue || {})[id] || {};
-    const head = `<div class="cv-gig"><div><b>${esc(plural(G.name))}</b><p>${esc(G.how)}</p><small>${pay ? `Pays you ${G.far ? 'about ' : ''}${money(pay)}${G.far ? ' (more for long rides)' : ''}, and the business earns half that too.` : 'Pays nothing on this server yet.'}</small></div>`;
-    if (!on) return head + `<div class="acts">${D.shift ? `<small>You're on shift somewhere else.</small>` : `<button class="st-btn" data-clock="${id}">Clock in to start</button>`}</div></div>`;
-    if (D.job) return head + '<div class="acts"><small>Finish the job you are on first.</small></div></div>';
-    if (G.listing) { const L = (Q.listings || []).filter(l => l.live);
-      return head + (L.length ? '<div class="cv-pick">' + L.map(l => `<button class="st-btn" data-show="${l.id}"${l.pos ? '' : ' disabled title="Set where this house is first, in Menu"'}>Show ${esc(l.name)}</button>`).join('') + '</div>' : '<small>Add a listing under Business, Menu first.</small>') + '</div>'; }
-    return head + `<div class="acts"><button class="btn" data-job="${id}">Start a ${esc(G.name.toLowerCase())}</button></div></div>`; };
+  // ── task boards: three tickets per workplace while you're on shift ──
+  const GNAME = { paperwork: 'Paperwork', pitch: 'Talk', negotiate: 'Negotiate', timing: 'Steady hands', sequence: 'Memory' };
+  const ICO = { drive: '<path d="M5 16h14M6.5 16 8 11h8l1.5 5M7 19v-3M17 19v-3"/><circle cx="8.5" cy="16.5" r=".6"/><circle cx="15.5" cy="16.5" r=".6"/>', paperwork: '<path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 15h5M10 18h3"/>',
+    pitch: '<path d="M5 6h14v9H10l-4 3v-3H5z"/>', negotiate: '<path d="M4 9h11M11 5l4 4-4 4M20 15H9M13 11l-4 4 4 4"/>', timing: '<circle cx="12" cy="13" r="7"/><path d="M12 13l3-3M12 3v2"/>', sequence: '<path d="M9 6h10M9 12h10M9 18h10M5 6h.01M5 12h.01M5 18h.01"/>' };
+  const ico = k => `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[k] || ICO.drive}</svg>`;
+  const taskBoard = (id, kind) => { const on = D.shift && D.shift.biz === id, B = (D.boards || {})[id] || [];
+    if (!on) return `<div class="tk-off"><div><b>Task board</b><p>Clock in to get your tasks${B.length ? `: ${esc(B.slice(0, 2).map(t => t.title.charAt(0).toLowerCase() + t.title.slice(1)).join(', '))}, and more` : ''}.</p></div>${D.shift ? `<small>You're on shift somewhere else.</small>` : `<button class="st-btn" data-clock="${id}">Clock in</button>`}</div>`;
+    if (D.job) return '<div class="tk-off"><div><b>Task board</b><p>Finish the task you are on, then pick the next one here.</p></div></div>';
+    return `<div class="tk-board">${B.map((t, i) => `<div class="tk"><div class="tk-top"><span>Task ${String(i + 1).padStart(2, '0')}</span><span class="tk-pay">${t.far ? '~' : ''}${money(t.pay)}</span></div><b class="tk-title">${esc(t.title)}</b>
+      <ol class="tk-route">${t.steps.map(x => `<li class="${x.do === 'game' ? 'g' : 'd'}">${ico(x.do === 'game' ? x.game : 'drive')}<span>${esc(x.what)}</span>${x.do === 'game' ? `<em>${esc(GNAME[x.game] || '')}</em>` : ''}</li>`).join('')}</ol>
+      <button class="tk-go" data-task="${i}">Take this task</button></div>`).join('')}</div>`; };
+  // ── mini-games, in an overlay on the tablet so its refresh never interrupts one ──
+  const gbox = $('cvGame'); let gameKey = '', gameOff = '', hold = 0;
+  const pickOne = a => a[Math.floor(Math.random() * a.length)];
+  const inits = n => String(n || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase(), hue = n => [...String(n || '')].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+  const gameDone = async score => { const j = await post('/biz/game', { score }).catch(e => ({ error: e.message })); if (j.error) { gmsg(j.error, true); return null; } if (j.state) { D = j.state; render(); } return j.result || {}; };
+  const gmsg = (t, bad) => { const m = gbox.querySelector('.g-msg'); if (m) { m.textContent = t; m.className = 'g-msg' + (bad ? ' bad' : ' ok'); } };
+  const closeGame = () => { gbox.hidden = true; gbox.innerHTML = ''; gameOff = gameKey; };
+  const frame = (st, cls, inner) => `<div class="g-win ${cls}"><header><span>${esc(GNAME[st.game] || '')}</span><b>${esc(st.what)}</b><button class="g-later" data-gclose="1">Later</button></header>${inner}<p class="g-msg"></p></div>`;
+  const stamp = (el, text, cls = '') => { const s = document.createElement('div'); s.className = 'g-stamp ' + cls; s.textContent = text; el.appendChild(s); };
+  const finished = (text, sub) => (hold = Date.now() + 1600, setTimeout(() => { if (gbox.hidden) return; gbox.innerHTML = `<div class="g-win g-done"><b>${esc(text)}</b><p>${esc(sub || (D.job ? 'On to the next step.' : 'Task complete. The pay is in your wallet.'))}</p><button class="tk-go" data-gclose="1">Continue</button></div>`; gameOff = ''; }, 1100));
+  const openGame = () => { const J = D.job, st = J && J.steps[J.step]; if (!st || !st.game) return; gameKey = J.id + ':' + J.step; gbox.hidden = false; const P = st.p || {}, firm = (D.shift && D.shift.name) || 'Liberty County';
+    // paperwork: copy the client file onto the form by hand, sign it, file it
+    if (st.game === 'paperwork') { const pickd = {};
+      gbox.innerHTML = frame(st, 'g-pw', `<div class="pw"><div class="pw-file"><span class="clip"></span><small>Client file</small>${P.fields.map(f => `<p><span>${esc(f.k)}</span>${esc(f.v)}</p>`).join('')}</div>
+        <div class="pw-paper"><div class="pw-head"><small>${esc(firm)}</small><b>${esc(P.title || 'Form')}</b><i>${esc(P.ref || '')}</i></div>
+          ${P.fields.map((f, i) => `<div class="pw-line" data-pl="${i}"><span>${esc(f.k)}</span><button type="button" class="pw-val" data-pv="${i}">fill in</button><div class="pw-opts" hidden>${f.opts.map(o => `<button type="button" data-po="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`).join('')}
+          <div class="pw-sign"><span>Signature</span><canvas width="420" height="80"></canvas><i>×</i></div></div></div><div class="g-acts"><button class="tk-go" data-gsubmit="1">File the papers</button></div>`);
+      gbox.querySelectorAll('[data-pv]').forEach(b => { b.onclick = () => { gbox.querySelectorAll('.pw-opts').forEach(o => { o.hidden = o !== b.nextElementSibling || !o.hidden; }); }; });
+      gbox.querySelectorAll('[data-po]').forEach(b => { b.onclick = () => { const L = b.closest('.pw-line'), i = +L.dataset.pl; pickd[i] = b.dataset.po; const v = L.querySelector('.pw-val'); v.textContent = b.dataset.po; v.classList.add('set'); L.classList.remove('bad'); b.parentElement.hidden = true; }; });
+      const cv = gbox.querySelector('.pw-sign canvas'), cx = cv.getContext('2d'); let ink = 0, last = null; cx.strokeStyle = '#1D3B8F'; cx.lineWidth = 2.4; cx.lineCap = 'round'; cx.lineJoin = 'round';
+      const at = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; };
+      cv.onpointerdown = e => { cv.setPointerCapture(e.pointerId); last = at(e); }; cv.onpointerup = () => { last = null; };
+      cv.onpointermove = e => { if (!last) return; const p = at(e); cx.beginPath(); cx.moveTo(...last); cx.lineTo(...p); cx.stroke(); ink += Math.hypot(p[0] - last[0], p[1] - last[1]); last = p; };
+      gbox.querySelector('[data-gsubmit]').onclick = async () => { if (P.fields.some((f, i) => !pickd[i])) return gmsg('Every line needs filling in.', true); if (ink < 60) return gmsg('It isn’t signed yet.', true);
+        const wrong = P.fields.map((f, i) => pickd[i] !== f.v); gbox.querySelectorAll('.pw-line').forEach((L, i) => L.classList.toggle('bad', wrong[i]));
+        const right = wrong.filter(w => !w).length, r = await gameDone(right / P.fields.length);
+        if (r?.retry) gmsg(`${right} of ${P.fields.length} lines match the file. Fix the ones circled in red.`, true);
+        else if (r?.passed) { stamp(gbox.querySelector('.pw-paper'), right === P.fields.length ? 'Approved' : 'Filed'); finished(right === P.fields.length ? 'Not a single mistake.' : 'Filed, with a correction or two.'); } }; }
+    // talk: a conversation; good answers lift their mood, bad ones sink it
+    if (st.game === 'pitch') { let k = 0, total = 0, mood = 2; const who = P.who || 'Customer', REACT = [['Wow. Okay.', 'That’s not great.', 'Excuse me?'], ['Hmm. Okay.', 'If you say so.', 'Right…'], ['That’s reassuring.', 'Okay, I like that.', 'Good to know, thanks.']];
+      gbox.innerHTML = frame(st, 'g-pt', `<div class="pt-who"><span class="pt-av" style="--h:${hue(who)}">${esc(inits(who))}</span><div><b>${esc(who)}</b><div class="pt-mood" aria-label="Mood">${'<i></i>'.repeat(5)}</div></div></div><div class="pt-chat"></div><div class="pt-replies"></div>`);
+      const chat = gbox.querySelector('.pt-chat'), reps = gbox.querySelector('.pt-replies'), say = (t, me) => { const b = document.createElement('p'); b.className = 'pt-b' + (me ? ' me' : ''); b.textContent = t; chat.appendChild(b); chat.scrollTop = chat.scrollHeight; };
+      const showMood = () => gbox.querySelectorAll('.pt-mood i').forEach((i, n) => { i.className = n <= mood ? (mood >= 3 ? 'hi' : mood <= 1 ? 'lo' : 'on') : ''; });
+      const ask = () => { const q = P.qs[k]; say(q.q.replace(/^[“"]|[”"]$/g, '')); reps.innerHTML = q.a.map(([t], i) => `<button type="button" data-a="${i}">${esc(t)}</button>`).join('');
+        reps.querySelectorAll('[data-a]').forEach(b => { b.onclick = async () => { const v = q.a[+b.dataset.a][1]; reps.innerHTML = ''; say(b.textContent, true); total += v; mood = Math.max(0, Math.min(4, mood + (v === 1 ? 1 : v ? 0 : -1))); showMood();
+          await new Promise(r => setTimeout(r, 650)); say(pickOne(REACT[v === 1 ? 2 : v ? 1 : 0])); k++; await new Promise(r => setTimeout(r, 700));
+          if (k < P.qs.length) return ask(); const r = await gameDone(total / P.qs.length);
+          if (r?.retry) { k = 0; total = 0; mood = 2; showMood(); chat.innerHTML = ''; gmsg(`${who.split(' ')[0]} isn’t convinced. Start over.`, true); ask(); } else if (r?.passed) finished(total / P.qs.length > .8 ? `${who.split(' ')[0]} loved you.` : `${who.split(' ')[0]} is happy enough.`); }; }); };
+      showMood(); ask(); }
+    // negotiate: counter their offer; push too hard and they walk
+    if (st.game === 'negotiate') { const who = P.who || 'The buyer', first = who.split(' ')[0];
+      gbox.innerHTML = frame(st, 'g-ng', `<div class="ng-table"><div class="ng-tag ask"><small>Asking</small><b>${money(P.ask)}</b></div><div class="ng-tag them"><small>${esc(first)} offers</small><b class="ng-last">${money(P.last)}</b></div></div>
+        <div class="ng-pat"><span>Patience</span>${'<i></i>'.repeat(P.rounds)}</div><div class="pt-chat ng-chat"></div>
+        <div class="ng-ctl"><b class="ng-v"></b><input type="range" step="500" aria-label="Your price"><button class="tk-go" data-gsubmit="1">Counter</button></div>`);
+      const chat = gbox.querySelector('.ng-chat'), r = gbox.querySelector('[type=range]'), v = gbox.querySelector('.ng-v'), say = (t, me) => { const b = document.createElement('p'); b.className = 'pt-b' + (me ? ' me' : ''); b.textContent = t; chat.appendChild(b); chat.scrollTop = chat.scrollHeight; };
+      const sync = () => { r.min = P.last; r.max = Math.round(P.ask * 1.1); if (+r.value < P.last) r.value = Math.round((P.last + P.ask) / 2 / 500) * 500; v.textContent = money(+r.value); gbox.querySelector('.ng-last').textContent = money(P.last); gbox.querySelectorAll('.ng-pat i').forEach((i, n) => { i.className = n < P.rounds - P.round ? 'on' : ''; }); };
+      r.value = Math.round((P.last + P.ask) / 2 / 500) * 500; r.oninput = sync; sync(); say(P.label === 'settlement' ? `We’re prepared to settle at ${money(P.last)}.` : `We love it. We could do ${money(P.last)}.`);
+      gbox.querySelector('[data-gsubmit]').onclick = async e => { const btn = e.currentTarget; btn.disabled = true; say(`How about ${money(+r.value)}?`, true);
+        const res = await post('/biz/game', { offer: +r.value }).catch(x => ({ error: x.message })); btn.disabled = false; if (res.error) return gmsg(res.error, true); if (res.state) { D = res.state; render(); } const o = res.result || {};
+        await new Promise(x => setTimeout(x, 600));
+        if (o.accepted) { say(pickOne(['Deal.', 'You’ve got a deal.', 'Alright, let’s do it.'])); stamp(gbox.querySelector('.ng-table'), P.label === 'settlement' ? 'Settled' : 'Sold', 'green'); finished(`Deal at ${money(o.price)}.`); }
+        else if (o.walked) { say('We’re going to keep looking. Thanks for your time.'); finished('They walked away.', 'You still get something for the effort.'); }
+        else { P.last = o.counter; P.round = o.round; sync(); say(pickOne([`We can stretch to ${money(o.counter)}.`, `Best I can do is ${money(o.counter)}.`, `Meet me at ${money(o.counter)}?`])); } }; }
+    // steady hands: hit while the needle is in the green (a torque gauge), or while the shot is sharp (a camera)
+    if (st.game === 'timing') { const cam = P.look === 'camera';
+      gbox.innerHTML = frame(st, 'g-tm' + (cam ? ' cam' : ''), (cam ? `<div class="tm-vf"><div class="tm-scene"><svg viewBox="0 0 200 110" aria-hidden="true"><path d="M0 92h200v18H0z" fill="#26323a"/><path d="M40 92V55l35-28 35 28v37z" fill="#3c4a54"/><path d="M110 92V62h55v30z" fill="#33414a"/><path d="M60 92V70h14v22zM88 66h12v10H88zM122 70h12v9h-12zM144 70h12v9h-12z" fill="#e8b33a" opacity=".55"/><circle cx="168" cy="22" r="9" fill="#f1e3b8" opacity=".6"/></svg></div><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="tm-flash"></div></div>`
+        : `<div class="tm-gauge"><svg viewBox="0 0 200 120" aria-hidden="true"><path d="M20 110a80 80 0 0 1 160 0" fill="none" stroke="#2a2c31" stroke-width="16" stroke-linecap="round"/><path class="tm-arc" fill="none" stroke="#3FBF8A" stroke-width="16"/><line class="tm-needle" x1="100" y1="110" x2="100" y2="42" stroke="#E8B33A" stroke-width="4" stroke-linecap="round"/><circle cx="100" cy="110" r="8" fill="#E8B33A"/></svg></div>`)
+        + `<div class="tm-bar"><i class="zone"></i><i class="mk"></i></div><div class="tm-row"><div class="tm-done"></div><button class="tk-go" data-gsubmit="1">${esc(P.verb || 'Go')}</button></div>`);
+      const bar = gbox.querySelector('.tm-bar'), mk = gbox.querySelector('.mk'), zone = gbox.querySelector('.zone'), done = gbox.querySelector('.tm-done'), arc = gbox.querySelector('.tm-arc'), needle = gbox.querySelector('.tm-needle'), scene = gbox.querySelector('.tm-scene svg');
+      let x = 0, dir = 1, hits = 0, miss = 0, z0 = 0, w = 0.18, raf = 0, t0 = performance.now(), busyG = false;
+      const pol = f => { const a = Math.PI * (1 - f); return [100 + 80 * Math.cos(a), 110 - 80 * Math.sin(a)]; };
+      const placeZone = () => { z0 = 0.1 + Math.random() * (0.8 - w); zone.style.left = z0 * 100 + '%'; zone.style.width = w * 100 + '%'; if (arc) { const [a1, b1] = pol(z0), [a2, b2] = pol(z0 + w); arc.setAttribute('d', `M${a1.toFixed(1)} ${b1.toFixed(1)}A80 80 0 0 1 ${a2.toFixed(1)} ${b2.toFixed(1)}`); } };
+      const pips = () => { done.innerHTML = Array.from({ length: P.hits }, (_, n) => `<i class="${n < hits ? 'on' : ''}"></i>`).join(''); };
+      placeZone(); pips();
+      const tick = t => { const dt = Math.min(50, t - t0); t0 = t; x += dir * dt / 1000 * (P.speed || 1) * (1 + hits * 0.12); if (x > 1) { x = 1; dir = -1; } if (x < 0) { x = 0; dir = 1; } mk.style.left = x * 100 + '%';
+        if (needle) needle.setAttribute('transform', `rotate(${(x * 180 - 90).toFixed(1)} 100 110)`); if (scene) scene.style.filter = `blur(${Math.min(6, Math.abs(x - (z0 + w / 2)) * 22).toFixed(1)}px)`;
+        if (!gbox.hidden && gbox.contains(mk)) raf = requestAnimationFrame(tick); }; raf = requestAnimationFrame(tick);
+      gbox.querySelector('[data-gsubmit]').onclick = async () => { if (busyG) return; const ok = x >= z0 && x <= z0 + w; ok ? hits++ : miss++; bar.classList.remove('good', 'bad'); void bar.offsetWidth; bar.classList.add(ok ? 'good' : 'bad');
+        if (cam && ok) { const f = gbox.querySelector('.tm-flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); } pips(); if (ok) placeZone();
+        if (miss >= 4) { hits = 0; miss = 0; pips(); gmsg('Too many misses. Start that again.', true); return; } gmsg(ok ? pickOne(['Nice.', 'Good one.', 'Clean.']) : 'Missed it.', !ok);
+        if (hits >= P.hits) { busyG = true; cancelAnimationFrame(raf); const r = await gameDone(hits / (hits + miss)); busyG = false; if (r?.passed) finished(miss ? 'Done.' : 'Not one miss.'); else if (r?.retry) { hits = 0; miss = 0; pips(); raf = requestAnimationFrame(tick); } } };
+      gbox.querySelector('[data-gsubmit]').focus(); }
+    // memory: read the ticket, then put things together in the same order
+    if (st.game === 'sequence') { const items = P.items; let mist = 0, k = 0;
+      const learn = () => { gbox.innerHTML = frame(st, 'g-sq', `<div class="sq-ticket"><small>${esc(firm)}</small><b>Order of work</b><ol>${items.map(t => `<li>${esc(t)}</li>`).join('')}</ol><span class="sq-tear"></span></div><div class="g-acts"><button class="tk-go" data-gsubmit="1">Got it</button></div>`); gbox.querySelector('[data-gsubmit]').onclick = playSeq; };
+      const playSeq = () => { k = 0; const mix = items.map((t, i) => i).sort(() => Math.random() - .5);
+        gbox.innerHTML = frame(st, 'g-sq', `<div class="sq-tray">${items.map(() => '<span></span>').join('')}</div><div class="sq-cards">${mix.map(i => `<button type="button" data-si="${i}">${esc(items[i])}</button>`).join('')}</div>`);
+        const tray = gbox.querySelectorAll('.sq-tray span');
+        gbox.querySelectorAll('[data-si]').forEach(b => { b.onclick = async () => { if (+b.dataset.si === k) { b.disabled = true; tray[k].textContent = items[k]; tray[k].className = 'on'; k++;
+            if (k === items.length) { const r = await gameDone(Math.max(0, 1 - mist * 0.2)); if (r?.passed) finished(mist ? 'Got there.' : 'Perfect, first try.'); else if (r?.retry) { mist = 0; learn(); gmsg('Too many mix-ups. Read it again.', true); } } }
+          else { mist++; b.classList.add('bad'); setTimeout(() => b.classList.remove('bad'), 420); gmsg(mist >= 3 ? 'Mixed up. Read the ticket again.' : 'Not that one yet.', true); if (mist >= 3) { mist = 0; setTimeout(learn, 700); } } }; }); };
+      learn(); } };
+  gbox.addEventListener('click', e => { if (e.target.closest('[data-gclose]')) { const done = !!gbox.querySelector('.g-done'); closeGame(); if (done) { gameOff = ''; autoGame(); } } });
+  // a task that reaches a mini-game opens it by itself (once; "Later" puts it away until you press Play)
+  const autoGame = () => { const J = D?.job, st = J && J.steps[J.step], key = J ? J.id + ':' + J.step : ''; if (st && st.game && gbox.hidden && key !== gameOff) openGame(); if ((!st || !st.game) && !gbox.hidden && !gbox.querySelector('.g-done') && Date.now() > hold) closeGame(); };
   const RQS = { Pending: ['Waiting', ''], Accepted: ['Accepted', 'good'], Declined: ['Declined', 'bad'], Cancelled: ['Cancelled', ''] };
   const infoText = r => Object.entries(r.info || {}).filter(([k]) => k !== 'type').map(([, v]) => esc(v)).join(' · ');
   // a business's request queue, for everyone who works there
@@ -4313,7 +4475,7 @@ body.voice-snap .stage{transition:none!important}
     const places = [...(D.owned || []).map(z => ({ id: z.id, name: z.name, kind: z.kind, title: z.role === 'owner' ? 'Owner' : 'Manager', boss: true })), ...W.filter(w => !(D.owned || []).some(z => z.id === w.id))];
     const place = w => { const x = (D.workx || {})[w.id] || {}, pay = w.boss ? '' : [w.wage ? money(w.wage) + ' a week' : '', x.hourly ? money(x.hourly) + ' an hour on shift' : '', x.commission ? x.commission + '% of the bills you send' : ''].filter(Boolean).join(' · ');
       return `<div class="cv-home mine" data-biz="${w.id}"><h3>${esc(w.name)} ${pill(w.title, 'good')}${D.shift && D.shift.biz === w.id ? pill('On shift', 'good') : ''}</h3><p>${esc(w.kind)}${pay ? ' · ' + pay : ''}</p>
-        ${gigBox(w.id, w.kind)}${queueHtml(w.id)}
+        ${taskBoard(w.id, w.kind)}${queueHtml(w.id)}
         ${w.boss ? '' : `<details class="cv-more"><summary>More</summary><div class="cv-inl"><input data-f="to" placeholder="Bill a customer: Roblox name" maxlength="40"><input data-f="amount" type="number" min="1" placeholder="Amount"><input data-f="memo" placeholder="For" maxlength="60"><button class="st-btn" data-inv="${w.id}">Send bill</button></div><div class="acts"><button class="st-btn" data-quit="${w.id}" data-name="${esc(w.name)}">Quit this job</button></div></details>`}</div>`; };
     const hiring = J.filter(j => !j.own && !W.some(w => w.id === j.id));
     $('cvJobs').innerHTML = jobCard() + shiftLine()
@@ -4416,7 +4578,7 @@ body.voice-snap .stage{transition:none!important}
     if (D.off) { $('cvTopBal').textContent = ''; $('cvSub').textContent = 'Switched off';
       $('cvHome').innerHTML = `<div class="st-empty">The civilian economy is switched off on this server.${isOwner ? ' Turn it on under Server.' : ''}</div>`; renderId(); renderServer(); return; }
     $('cvTopBal').textContent = money(D.balance); renderHome(); renderBills(); renderCars(); renderId(); renderRecord(); renderHousing(); renderShops(); renderJobs(); renderBiz(); renderServer();
-    $('cvTop').textContent = D.shift ? 'On shift · ' + D.shift.name : 'Civilian'; };
+    $('cvTop').textContent = D.job ? 'On a task · ' + D.job.label : D.shift ? 'On shift · ' + D.shift.name : 'Civilian'; autoGame(); };
 
   // ── actions ──
   page.addEventListener('click', e => { const pay = e.target.closest('[data-pay]'), st = e.target.closest('[data-stolen]');
@@ -4447,7 +4609,9 @@ body.voice-snap .stage{transition:none!important}
     if (d.spot) return go('/biz/spot', { id, item: +d.spot });
     if (d.show !== undefined && b.matches('[data-show]')) { if (!d.show) return alert('That listing is gone.'); return go('/biz/job', { id, item: +d.show, req: +d.req || 0 }); }
     if (d.job) return go('/biz/job', { id: +d.job });
-    if (d.jobstop) { if (confirm('Stop this job? It won’t pay.')) go('/biz/job', { stop: true }); return; }
+    if (d.task !== undefined && b.matches('[data-task]')) return go('/biz/task', { id, slot: +d.task });
+    if (d.play) { gameOff = ''; return openGame(); }
+    if (d.jobstop) { if (confirm('Stop this task? It won’t pay.')) go('/biz/job', { stop: true }); return; }
     if (d.goto) return show(d.goto);
     if (d.bt) { const [zid, t] = d.bt.split(':'); bizTab[zid] = t; renderBiz(); return; }
     if (d.clock) return go('/biz/clock', d.clock === 'out' ? { out: true } : { id: +d.clock });

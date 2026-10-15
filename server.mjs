@@ -229,6 +229,8 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'biz/clock') return ok(civbiz.clock(c, user, j, liveSide(c, user)));
     if (sub === 'biz/spot') return ok(civbiz.setSpot(c, user, j, posOf(c, user)));
     if (sub === 'biz/job') return ok(civbiz.startJob(c, user, j, posOf(c, user)));
+    if (sub === 'biz/task') return ok(civbiz.takeTask(c, user, j, posOf(c, user)));
+    if (sub === 'biz/game') return ok(civbiz.playGame(c, user, j));
     const BIZ2 = { 'biz/request': civbiz.request, 'biz/respond': civbiz.respond, 'biz/cancel': civbiz.cancelRequest, 'biz/item': civbiz.saveItem, 'biz/buy': civbiz.buy, 'biz/staffx': civbiz.staffx, 'biz/bonus': civbiz.bonus, 'biz/loan': civbiz.loan, 'biz/brand': civbiz.brand, 'biz/ad': civbiz.advertise, 'biz/review': civbiz.review };
     if (BIZ2[sub]) return ok(BIZ2[sub](c, user, j));
     if (sub === 'biz/admin') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can do that.' }, 403); return ok(civ.bizAdmin(c, j)); }
