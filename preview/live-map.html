@@ -1117,6 +1117,52 @@
   @media (max-width:980px){.st-acts{grid-template-columns:repeat(3,1fr)}}
   @media (prefers-reduced-motion:reduce){.st-dlg{transition:opacity .15s}}
   /* staff:end */
+  /* civ:start  Civilian tab: the staff tablet's layout, in its own colour */
+  body[data-view="civ"] .cdock{transform:translateX(-50%);pointer-events:auto}
+  body[data-view="civ"] .rail,body[data-view="civ"] .stage{transform:translateX(calc(-100% - 60px));opacity:0;pointer-events:none}
+  body[data-view="civ"] .pins{display:none}
+  body[data-view="civ"] .view::after{opacity:.3}
+  .cdock .screen{--fd:#3FBF8A;--fd-soft:rgba(63,191,138,.14)}
+  .cv-bal{padding:18px 18px 16px;border-radius:14px;background:linear-gradient(135deg,rgba(63,191,138,.16),rgba(63,191,138,.03));border:1px solid rgba(63,191,138,.26);margin-bottom:16px}
+  .cv-bal small{display:block;font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em}
+  .cv-bal b{display:block;font-size:30px;font-weight:600;letter-spacing:-.01em;margin-top:4px;font-variant-numeric:tabular-nums}
+  .cv-bal .row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11.5px;color:var(--dim)}
+  .cv-amt{font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;font-size:12.5px}
+  .cv-amt.in{color:#7FD8AE}
+  .cv-form label{display:block;font-size:12px;font-weight:500;color:var(--mute);margin-bottom:12px}
+  .cv-form input:not([type=checkbox]),.cv-form select,.cv-form textarea{display:block;width:100%;margin-top:5px;font:inherit;font-size:14px;color:#E9EAEC;background:#141518;border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;outline:0;resize:vertical}
+  .cv-form input:focus,.cv-form select:focus,.cv-form textarea:focus{border-color:rgba(255,255,255,.35)}
+  .cv-form select option{background:#1C1C1F}
+  .cv-form .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  .cv-form .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px}
+  .cv-form .chk{display:flex;align-items:center;gap:8px;color:#E9EAEC;font-size:13px}.cv-form .chk input{accent-color:var(--fd);width:16px;height:16px;margin:0}
+  .cv-msg{font-size:12px;color:var(--dim);min-height:16px;margin:2px 0 12px}
+  .cv-msg.err{color:#F0A0A0}.cv-msg.ok{color:#7FD8AE}
+  .cv-note{font-size:11.5px;color:var(--faint);line-height:1.5;margin:0 0 14px}
+  .cv-note a{color:var(--dim)}
+  .st-pill.bad{color:#F0A0A0;background:rgba(226,75,75,.14)}.st-pill.good{color:#7FD8AE;background:rgba(63,191,138,.14)}
+  .cv-sw{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);cursor:pointer}.cv-sw input{accent-color:var(--fd);width:15px;height:15px;margin:0}
+  .cv-plate{display:inline-flex;align-items:center;justify-content:center;min-width:74px;padding:3px 7px;border-radius:5px;background:#F1F2EE;color:#16264A;border:1.5px solid #16264A;font:700 12.5px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;flex:none}
+  .cv-btn-red{border-color:rgba(226,75,75,.45);background:rgba(226,75,75,.18);color:#fff}.cv-btn-red:hover{background:rgba(226,75,75,.28)}
+  .cdock .tside [data-p="911"]{color:#F0A0A0}
+  .cv-home{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+  .cv-home h3{margin:0;font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cv-home p{margin:3px 0 0;font-size:12px;color:var(--dim)}
+  .cv-home .facts{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 0;font-size:12px;color:var(--mute)}.cv-home .facts b{display:block;color:#E9EAEC;font-weight:600;font-size:13px;font-variant-numeric:tabular-nums}
+  .cv-home .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .cv-home.mine{border-color:rgba(63,191,138,.35);background:rgba(63,191,138,.05)}
+  .cdock .tside button svg{flex:none}
+  .cv-inl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .cv-inl input,.cv-inl select{font:inherit;font-size:12.5px;color:#E9EAEC;background:#141518;border:1px solid var(--line);border-radius:var(--r);padding:6px 9px;outline:0;min-width:0;flex:1 1 120px}
+  .cv-inl input:focus{border-color:rgba(255,255,255,.35)}
+  .cv-bg{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .cv-sub{font-size:11.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 4px}
+  .cv-warn{font-size:12px;color:#F0A0A0;margin-top:8px}
+  .cv-car{flex-wrap:wrap}
+  @media (max-width:760px){body[data-view="civ"] .cdock{transform:none}.cv-form .grid3{grid-template-columns:1fr 1fr}.cv-car .cv-pills{order:3;flex-basis:100%;padding-left:84px}}
+  body[data-view="staff"] .sdock.cdock{transform:translateX(calc(-50% + 100vw));pointer-events:none}
+  @media (max-width:760px){body[data-view="staff"] .sdock.cdock{transform:translateX(100vw)}}
+  /* civ:end */
   .bar .mark img.own{height:30px;width:30px;border-radius:8px;object-fit:cover;filter:none;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
   #mdt .crest .crest-ic{width:20px;height:20px;border-radius:6px;object-fit:cover}
   .prem-lock{position:absolute;inset:0;z-index:30;display:grid;place-items:center;padding:24px;text-align:center;background:rgba(12,13,15,.94);border-radius:inherit}
@@ -1226,6 +1272,7 @@
     <button role="tab" aria-selected="false" data-view="mdt" data-dept="pd">Law Enforcement</button>
     <button role="tab" aria-selected="false" data-view="mdt" data-dept="fd">Fire Department</button>
     <button role="tab" aria-selected="false" data-view="mdt" data-dept="dot">Department of Transportation</button>
+    <button role="tab" aria-selected="false" data-view="civ">Civilian</button>
     <button role="tab" aria-selected="false" data-view="staff">Server Staff</button>
     <button role="tab" aria-selected="false" data-view="status">Status &amp; Updates</button>
   </nav>
@@ -1395,6 +1442,45 @@
 <dialog class="st-dlg" id="stDlg"><form method="dialog"><h2 id="stDlgT">Warn</h2><p id="stDlgP"></p><textarea id="stDlgR" maxlength="180"></textarea><div class="st-chips" id="stDlgC"></div>
   <div class="acts"><span class="msg" id="stDlgM"></span><button type="button" class="st-btn" id="stDlgX">Cancel</button><button class="st-go" id="stDlgGo">Send</button></div></form></dialog>
 <!-- staff:end -->
+<!-- civ:start -->
+<aside class="sdock cdock" id="civMdt" aria-label="Civilian" aria-hidden="true">
+  <div class="tablet">
+    <span class="cam"></span>
+    <div class="screen">
+      <div class="sbar"><span id="cvClock">00:00</span><span class="sb-mid" id="cvTop">Civilian</span><span class="sb-r" id="cvTopBal"></span></div>
+      <div class="tbody">
+        <nav class="tside" role="tablist" aria-label="Civilian apps" id="cvTabs">
+          <div class="crest" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Civilian</div>
+          <button role="tab" data-p="home" aria-selected="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg>Wallet</button>
+          <button role="tab" data-p="bills" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Bills<i class="badge" id="cvBillsN" hidden>0</i></button>
+          <button role="tab" data-p="cars" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/><path d="M9.5 17h5M4 12h16"/></svg>Vehicles</button>
+          <button role="tab" data-p="home2" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10M10 20v-6h4v6"/></svg>Housing</button>
+          <button role="tab" data-p="jobs" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/></svg>Jobs</button>
+          <button role="tab" data-p="biz" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10h18M10 20v-5h4v5"/></svg>Business<i class="badge" id="cvBizN" hidden>0</i></button>
+          <button role="tab" data-p="id" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.8 16a3.4 3.4 0 0 1 6.4 0M14.5 10h4M14.5 13.5h3"/></svg>My ID</button>
+          <button role="tab" data-p="record" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg>Record</button>
+          <button role="tab" data-p="911" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>Call 911</button>
+          <button role="tab" data-p="server" aria-selected="false" id="cvServerTab" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Server</button>
+          <div class="tuser" aria-hidden="true"><i id="cvMeAv">CV</i><small id="cvMe">Civilian</small></div>
+        </nav>
+        <div class="tscreens">
+          <section class="tscreen cv-pane on" data-p="home"><div class="thead"><div><h2>Wallet</h2><small id="cvSub">Loading…</small></div></div><div id="cvHome"></div></section>
+          <section class="tscreen cv-pane" data-p="bills"><div class="thead"><div><h2>Bills</h2><small>Fines, registration and insurance. Unpaid bills take a late fee after their due date.</small></div></div><div id="cvBills"></div></section>
+          <section class="tscreen cv-pane" data-p="cars"><div class="thead"><div><h2>Vehicles</h2><small>Cars you have driven in game. Registration and insurance are billed weekly.</small></div></div><div id="cvCars"></div></section>
+          <section class="tscreen cv-pane" data-p="home2"><div class="thead"><div><h2>Housing</h2><small>Buy, take a mortgage or rent. Rent, mortgage and property tax are billed weekly.</small></div></div><div id="cvHousing"></div></section>
+          <section class="tscreen cv-pane" data-p="jobs"><div class="thead"><div><h2>Jobs</h2><small>Businesses hiring in this server. Every application comes with a background check.</small></div></div><div id="cvJobs"></div></section>
+          <section class="tscreen cv-pane" data-p="biz"><div class="thead"><div><h2>Business</h2><small>Run your own: hire staff, pay wages and bill customers.</small></div></div><div id="cvBiz"></div></section>
+          <section class="tscreen cv-pane" data-p="id"><div class="thead"><div><h2>My ID</h2><small>Your character. Police see this when they run your name.</small></div><button class="btn" type="submit" form="cvIdF">Save</button></div><form class="cv-form" id="cvIdF" autocomplete="off"></form></section>
+          <section class="tscreen cv-pane" data-p="record"><div class="thead"><div><h2>Record</h2><small>Citations, warnings and arrests written against you</small></div></div><div id="cvRecord"></div></section>
+          <section class="tscreen cv-pane" data-p="911"><div class="thead"><div><h2>Call 911</h2><small>Your call goes straight to dispatch</small></div><button class="btn" type="submit" form="cv911F">Call</button></div><form class="cv-form" id="cv911F" autocomplete="off"></form><div id="cvCalls"></div></section>
+          <section class="tscreen cv-pane" data-p="server"><div class="thead"><div><h2>Server economy</h2><small>Money and bills for everyone in this server</small></div></div><div id="cvServer"></div></section>
+        </div>
+      </div>
+    </div>
+    <button class="mdt-close" id="cvClose" type="button" aria-label="Close civilian tab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+</aside>
+<!-- civ:end -->
 <!-- ─────────── MDT: iPad on the map ─────────── -->
 <aside class="mdt-dock" id="mdt" aria-label="Mobile Data Terminal" aria-hidden="true">
   <div class="tablet">
@@ -2750,6 +2836,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       ${actions(p.name, p.rid, '')}
       ${L && !L.none ? `<h4>Driver's license</h4><div class="pd-kv"><div><span>License no.</span><b>${esc(L.num)}</b></div><div><span>Age</span><b>${esc(L.age || '–')}</b></div><div><span>Sex</span><b>${esc(L.gndr || '–')}</b></div><div><span>Issued</span><b>${esc(L.iss || '–')}</b></div>
         <div><span>Height</span><b>${esc(L.hgt || '–')}</b></div><div><span>Weight</span><b>${esc(L.wgt || '–')}</b></div><div><span>Hair / eyes</span><b>${esc([L.hair, L.eyes].filter(Boolean).join(' / ') || '–')}</b></div><div><span>Address</span><b title="${esc(L.addr)}">${esc(L.addr || '–')}</b></div></div>` : ''}
+      ${j.character ? `<h4>Character</h4><div class="pd-kv"><div><span>Name</span><b>${esc([j.character.first, j.character.last].filter(Boolean).join(' ') || '–')}</b></div><div><span>Born</span><b>${esc(j.character.dob || '–')}</b></div><div><span>Phone</span><b>${esc(j.character.phone || '–')}</b></div><div><span>Occupation</span><b>${esc(j.character.occupation || '–')}</b></div><div><span>Address</span><b title="${esc(j.character.address || '')}">${esc(j.character.address || '–')}</b></div></div>` : ''}
       ${j.flags.length ? `<h4>Open warrants and BOLOs</h4><div class="pd-list">${j.flags.map(histRow).join('')}</div>` : ''}
       <h4>Vehicles</h4>${j.vehicles.length ? `<div class="pd-list">${j.vehicles.map(v => `<button type="button" class="pd-it" data-plate="${esc(v.plate)}">${plate(v.plate)}<div><b>${esc(v.model)}</b><small>${v.hex ? `<span class="pd-sw" style="background:${esc(v.hex)}"></span>` : ''}${esc([v.color, 'reg ' + v.reg, 'ins ' + v.ins].join(' · '))}</small></div><span class="when">${v.stolen ? tag('Stolen', 'R') : esc(ago(v.last_seen))}</span></button>`).join('')}</div>` : '<p class="pd-empty" style="padding:10px 0;text-align:left">No vehicles seen under this name.</p>'}
       <h4>Criminal history</h4><div class="pd-sum"><span><b>${n('arrest')}</b>arrests</span><span><b>${n('citation')}</b>citations</span><span><b>${n('warning')}</b>warnings</span><span><b>${n('stop')}</b>stops</span><span><b>${n('warrant')}</b>warrants</span></div>
@@ -3993,6 +4080,192 @@ body.voice-snap .stage{transition:none!important}
   const _show = show; show = p => { _show(p); if (p === 'map') { requestAnimationFrame(() => { fitted = false; drawMap(); }); } };
   const _render = render; render = () => { _render(); drawMap(); };
   show('player');
+})();
+</script>
+<script id="civ">
+/* Civilian tab: every member's wallet, bills, cars, character, record and 911 line. The server (app/civ.mjs) keeps the money; this only shows it and sends what you ask for */
+(() => {
+  const OV = window.OVERSITE, tab = document.querySelector('.menu [data-view="civ"]'), page = document.getElementById('civMdt'); if (!tab || !page) return;
+  const $ = id => document.getElementById(id);
+  const toDispatch = () => document.querySelector('.menu [data-view="dispatch"]').click(); $('cvClose').addEventListener('click', toDispatch);
+  const clock = () => { $('cvClock').textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }; clock(); setInterval(clock, 15000);
+  if (!OV) { page.querySelector('.tscreens').innerHTML = '<div class="st-gate" style="height:100%"><div><b>Civilian</b>Open your server\'s CAD from the dashboard to use your wallet, bills and 911.</div></div>'; return; }
+  const API = OV.api + '/civ', post = (p, b) => fetch(API + p, { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(b || {}) }).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong.'); return j; });
+  const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = n => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n || 0)).toLocaleString('en-US');
+  const day = ms => new Date(ms).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const when = ms => new Date(ms).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const ago = ms => { const s = Math.max(0, (Date.now() - ms) / 1000); return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + 'm ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + 'd ago'; };
+  const ini = n => (n || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '?';
+  const RK = { member: 1, mod: 2, staff: 3, admin: 3, co_owner: 4, owner: 5 }[OV.role] || 0, isOwner = RK >= 4;
+  let D = null, timer = 0, pane = 'home';
+  $('cvMe').textContent = OV.me || OV.user || 'Civilian'; $('cvMeAv').textContent = ini($('cvMe').textContent);
+  if (/^\d+$/.test(OV.rid || '')) $('cvMeAv').insertAdjacentHTML('beforeend', `<img src="/rbx/avatar/${OV.rid}" alt="" onerror="this.remove()">`);
+
+  // ── data ──
+  const load = async () => { try { const r = await fetch(API + '/state'); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Could not load.'); D = j; render(); }
+    catch (e) { $('cvSub').textContent = e.message; } };
+  const start = () => { if (timer) return; load(); timer = setInterval(() => { if (!document.hidden) load(); }, 20000); };
+  const stop = () => { clearInterval(timer); timer = 0; };
+  addEventListener('viewchange', e => { const on = e.detail === 'civ'; page.setAttribute('aria-hidden', !on); on ? start() : stop(); });
+  const act = async (p, body, msgEl, okText) => { document.activeElement?.blur?.(); if (msgEl) { msgEl.className = 'cv-msg'; msgEl.textContent = 'Working…'; }
+    try { const j = await post(p, body); if (j.state) { D = j.state; render(); } if (msgEl) { msgEl.className = 'cv-msg ok'; msgEl.textContent = okText || 'Done.'; } return j; }
+    catch (e) { if (msgEl) { msgEl.className = 'cv-msg err'; msgEl.textContent = e.message; } else alert(e.message); return null; } };
+
+  // ── panes ──
+  const show = p => { pane = p; document.querySelectorAll('#cvTabs [data-p]').forEach(b => b.setAttribute('aria-selected', b.dataset.p === p)); page.querySelectorAll('.cv-pane').forEach(s => s.classList.toggle('on', s.dataset.p === p)); };
+  $('cvTabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) show(b.dataset.p); });
+  const open = () => (D.bills || []).filter(b => b.status === 'Open' || b.status === 'Overdue');
+  const pill = (t, cls) => `<span class="st-pill ${cls || ''}">${esc(t)}</span>`;
+  const billPill = b => b.status === 'Paid' ? pill('Paid', 'good') : b.status === 'Overdue' ? pill('Overdue', 'bad') : b.status === 'Void' ? pill('Void') : pill('Due ' + day(b.due));
+  const billRow = b => `<div class="st-row"><span class="grow"><b>${esc(b.label)}</b><br><small>Issued ${esc(day(b.issued))}${b.late ? ' · late fee added' : ''}${b.paid_at ? ' · paid ' + esc(day(b.paid_at)) : ''}</small></span>${billPill(b)}<span class="cv-amt">${money(b.amount)}</span>${b.status === 'Open' || b.status === 'Overdue' ? `<button class="st-btn" data-pay="${b.id}">Pay</button>` : ''}</div>`;
+  const TXK = { deposit: 'Deposit', bill: 'Bill', grant: 'From staff', charge: 'Staff charge', housing: 'Housing', notice: 'Notice', wage: 'Wage', business: 'Business' };
+  const renderHome = () => { const due = open(), owe = due.reduce((s, b) => s + b.amount, 0), cf = D.conf || {};
+    $('cvSub').textContent = due.length ? `${due.length} bill${due.length > 1 ? 's' : ''} to pay` : 'All paid up';
+    $('cvHome').innerHTML = `<div class="cv-bal"><small>Balance</small><b>${money(D.balance)}</b><div class="row"><span>${cf.weekly && D.nextPay ? `Next weekly payment of ${money(cf.weekly)} on ${esc(day(D.nextPay))}` : 'No weekly payment on this server'}</span>
+        <label class="cv-sw" title="Pays a bill from your balance the moment it is due, when you have the money"><input type="checkbox" id="cvAuto" ${D.autopay ? 'checked' : ''}>Autopay bills</label></div></div>
+      ${D.linked ? '' : '<p class="cv-note">Link your Roblox account on <a href="/account">your account page</a> so your cars and record show up here.</p>'}
+      <div class="st-h"><span>Bills due</span><span>${due.length ? money(owe) : ''}</span></div>
+      ${due.length ? due.map(billRow).join('') : '<div class="st-empty">Nothing to pay right now.</div>'}
+      <div class="st-h" style="margin-top:16px"><span>Recent activity</span></div>
+      ${(D.tx || []).length ? D.tx.map(t => `<div class="st-row"><span class="grow"><b>${esc(t.memo || TXK[t.kind] || t.kind)}</b><br><small>${esc(TXK[t.kind] || t.kind)} · ${esc(when(t.at))}</small></span><span class="cv-amt ${t.amount > 0 ? 'in' : ''}">${t.amount > 0 ? '+' : ''}${money(t.amount)}</span></div>`).join('') : '<div class="st-empty">No money in or out yet.</div>'}`; };
+  const renderBills = () => { const due = open(); $('cvBillsN').textContent = due.length; $('cvBillsN').hidden = !due.length;
+    $('cvBills').innerHTML = (D.bills || []).length ? D.bills.map(billRow).join('') : '<div class="st-empty">No bills. Fines, registration and insurance show up here when they are due.</div>'; };
+  const regPill = v => v === 'Valid' ? pill('Valid', 'good') : pill(v || 'Unknown', v ? 'bad' : '');
+  const insPill = v => v === 'Active' || v === 'Valid' ? pill(v, 'good') : pill(v || 'Unknown', v ? 'bad' : '');
+  const renderCars = () => { const v = D.vehicles || [];
+    $('cvCars').innerHTML = v.length ? v.map(c => `<div class="st-row cv-car"><span class="cv-plate">${esc(c.plate)}</span><span class="grow"><b>${esc(c.model || 'Vehicle')}</b><br><small>${c.color ? esc(c.color) + ' · ' : ''}seen ${esc(ago(c.last_seen))}</small></span>
+        <span class="cv-pills" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><small style="color:var(--faint)">Reg</small>${regPill(c.reg)}<small style="color:var(--faint)">Ins</small>${insPill(c.ins)}${c.stolen ? pill('Stolen', 'bad') : ''}</span>
+        <button class="st-btn" data-stolen="${esc(c.plate)}" data-on="${c.stolen ? '' : '1'}">${c.stolen ? 'Recovered' : 'Report stolen'}</button></div>`).join('')
+      : `<div class="st-empty">${D.linked ? 'No cars yet. Drive one in game and it shows up here.' : 'Link your Roblox account to see your cars.'}</div>`; };
+  const ID_FIELDS = [['first', 'First name', 'text', 30], ['last', 'Last name', 'text', 30], ['dob', 'Date of birth', 'date', 10], ['phone', 'Phone', 'text', 20], ['address', 'Address', 'text', 80], ['occupation', 'Occupation', 'text', 40]];
+  let idShown = false;
+  const renderId = () => { if (idShown && $('cvIdF').contains(document.activeElement)) return; const ch = D.character || {}; idShown = true;
+    $('cvIdF').innerHTML = `<div class="grid2">${ID_FIELDS.map(([k, l, t, n]) => `<label>${l}<input name="${k}" type="${t}" maxlength="${n}" value="${esc(ch[k] || '')}"${k === 'first' || k === 'last' ? ' required' : ''}></label>`).join('')}</div>
+      <div class="cv-msg" id="cvIdMsg"></div><p class="cv-note">Your driver's license is on <a href="/account?from=/${esc(OV.slug || '')}#license">your account page</a>.</p>`; };
+  const KINDS = { citation: 'Citation', warning: 'Warning', arrest: 'Arrest' };
+  const renderRecord = () => { const r = D.record || [];
+    $('cvRecord').innerHTML = r.length ? r.map(x => `<div class="st-row" style="align-items:flex-start"><span class="grow"><b>${pill(KINDS[x.kind] || x.kind, x.kind === 'arrest' ? 'bad' : '')} ${esc(x.charges.map(c => (c.count > 1 ? c.count + 'x ' : '') + c.title).join(', ') || x.reason || 'No charges listed')}</b><br>
+        <small>${esc(when(x.at))}${x.location ? ' · ' + esc(x.location) : ''}${x.by ? ' · by ' + esc(x.by) : ''}${x.jail ? ' · ' + x.jail + ' months' : ''}</small></span>
+        ${x.fine ? `<span class="cv-amt">${money(x.fine)}</span>${x.paid ? pill('Paid', 'good') : pill('Unpaid', 'bad')}` : ''}</div>`).join('')
+      : `<div class="st-empty">${D.linked ? 'Clean record. Nothing written against you.' : 'Link your Roblox account to see your record.'}</div>`; };
+  let callShown = false;
+  const DEPTS = { pd: 'Police', fd: 'Fire and medical', dot: 'Tow and roadside (DOT)' };
+  const renderCall = () => { if (!callShown) { callShown = true;
+      $('cv911F').innerHTML = `<div class="grid2"><label>Service<select name="dept">${Object.entries(DEPTS).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label><label>Where<input name="location" maxlength="80" placeholder="Postal or place" required></label></div>
+        <label>What is happening<textarea name="details" rows="3" maxlength="300" required></textarea></label><div class="cv-msg" id="cv911Msg"></div>`; }
+    const c = D.calls || []; $('cvCalls').innerHTML = `<div class="st-h"><span>Your recent calls</span></div>` + (c.length ? c.map(x => `<div class="st-row"><span class="grow"><b>${esc(x.details)}</b><br><small>${esc(DEPTS[x.dept] || x.dept)} · ${esc(x.location)} · ${esc(ago(x.at))}</small></span></div>`).join('') : '<div class="st-empty">No calls yet.</div>'); };
+  const MODE = { own: 'Owned', mortgage: 'Mortgage', rent: 'Renting' };
+  const renderHousing = () => { const H = D.homes || [], M = D.market || [];
+    const mine = H.map(h => `<div class="cv-home mine"><h3>${esc(h.name)} ${pill(MODE[h.mode] || h.mode, 'good')}</h3><p>${esc(h.kind)}${h.address ? ' · ' + esc(h.address) : ''} · since ${esc(day(h.since))}</p>
+        <div class="facts">${h.mode === 'rent' ? `<span>Rent a week<b>${money(h.rent)}</b></span>` : ''}${h.mode === 'mortgage' ? `<span>Mortgage a week<b>${money(h.loan_weekly)}</b></span><span>Left to pay<b>${money(h.loan_left)}</b></span>` : ''}${h.tax ? `<span>Property tax a week<b>${money(h.tax)}</b></span>` : ''}${h.mode !== 'rent' ? `<span>Sells for<b>${money(h.price * 0.8)}</b></span>` : ''}</div>
+        <div class="acts"><button class="st-btn" data-out="${h.id}" data-mode="${h.mode}" data-name="${esc(h.name)}">${h.mode === 'rent' ? 'Move out' : 'Sell'}</button></div></div>`).join('');
+    const list = M.map(p => { const t = p.terms; return `<div class="cv-home"><h3>${esc(p.name)}</h3><p>${esc(p.kind)}${p.address ? ' · ' + esc(p.address) : ''}</p>
+        <div class="facts">${p.price ? `<span>Price<b>${money(p.price)}</b></span><span>Mortgage<b>${money(t.down)} down, ${money(t.loan_weekly)} a week for ${t.weeks} weeks</b></span><span>Property tax a week<b>${money(t.tax)}</b></span>` : ''}${p.rent ? `<span>Rent a week<b>${money(p.rent)}</b></span>` : ''}</div>
+        <div class="acts">${p.price ? `<button class="st-btn" data-in="${p.id}" data-how="cash">Buy for ${money(t.cash)}</button><button class="st-btn" data-in="${p.id}" data-how="mortgage">Mortgage (${money(t.down)} down)</button>` : ''}${p.rent ? `<button class="st-btn" data-in="${p.id}" data-how="rent">Rent (${money(p.rent)} now)</button>` : ''}</div></div>`; }).join('');
+    $('cvHousing').innerHTML = (H.length ? `<div class="st-h"><span>Your home${H.length > 1 ? 's' : ''}</span></div>${mine}` : '')
+      + `<div class="st-h"${H.length ? ' style="margin-top:16px"' : ''}><span>On the market</span><span>${M.length || ''}</span></div>`
+      + (list || `<div class="st-empty">No homes on the market right now.${(isOwner || D.admin) ? ' Add some under Server.' : ''}</div>`)
+      + '<p class="cv-note" style="margin-top:12px">Leave a housing bill unpaid for ' + (D.conf.evict || 7) + ' days past its due date and you lose the home: renters are evicted and owners repossessed.</p>'; };
+  // ── jobs and businesses ──
+  const bgPills = g => [g.felonies ? pill(g.felonies + ' felon' + (g.felonies > 1 ? 'ies' : 'y'), 'bad') : pill('No felonies', 'good'), pill(g.arrests + ' arrest' + (g.arrests === 1 ? '' : 's'), g.arrests ? 'bad' : 'good'),
+    g.lastArrest ? pill('Last arrest ' + day(g.lastArrest)) : '', g.warrants ? pill(g.warrants + ' active warrant' + (g.warrants > 1 ? 's' : ''), 'bad') : pill('No warrants', 'good'),
+    pill(g.license ? 'License on file' : 'No license', g.license ? 'good' : 'bad'), g.debt ? pill(g.debt + ' overdue bill' + (g.debt > 1 ? 's' : ''), 'bad') : '', g.citations ? pill(g.citations + ' citation' + (g.citations > 1 ? 's' : '')) : ''].join('');
+  const busy = id => { const el = $(id); return el && el.contains(document.activeElement) && document.activeElement.matches('input,select,textarea'); };
+  const APPST = { Pending: '', Hired: 'good', Declined: 'bad' };
+  const renderJobs = () => { if (busy('cvJobs')) return; const J = D.jobs || [], W = D.work || [], A = D.apps || [];
+    $('cvJobs').innerHTML = `<div class="cv-home"><h3>Your background check</h3><p>What a business sees when you apply. Arrests, warrants and unpaid bills can cost you the job.</p><div class="cv-bg">${bgPills(D.bg || {})}</div></div>`
+      + (W.length ? `<div class="st-h" style="margin-top:16px"><span>Where you work</span></div>` + W.map(w => `<div class="cv-home mine"><h3>${esc(w.name)} ${pill(w.title, 'good')}</h3><p>${esc(w.kind)} · ${w.wage ? money(w.wage) + ' a week' : 'unpaid'} · since ${esc(day(w.hired))}</p>
+          <div class="cv-inl" data-biz="${w.id}"><input data-f="to" placeholder="Bill a customer: Roblox name" maxlength="40"><input data-f="amount" type="number" min="1" placeholder="Amount"><input data-f="memo" placeholder="For" maxlength="60"><button class="st-btn" data-inv="${w.id}">Send bill</button><button class="st-btn" data-quit="${w.id}" data-name="${esc(w.name)}">Quit</button></div></div>`).join('') : '')
+      + `<div class="st-h" style="margin-top:16px"><span>Hiring now</span><span>${J.filter(j => !j.own).length || ''}</span></div>`
+      + (J.filter(j => !j.own).map(j => `<div class="cv-home"><h3>${esc(j.name)}</h3><p>${esc(j.kind)}${j.address ? ' · ' + esc(j.address) : ''}</p>${j.about ? `<p style="color:var(--ink);margin-top:6px">${esc(j.about)}</p>` : ''}
+          ${j.reqs.length ? `<p style="margin-top:6px">Requires ${esc(j.reqs.join(', '))}.</p>` : ''}
+          ${j.blocked.length ? `<div class="cv-warn">Your background check shows ${esc(j.blocked.join(', '))}, so they will not take you.</div>` : `<div class="cv-inl" data-biz="${j.id}"><input data-f="note" maxlength="500" placeholder="Why should they hire you? (optional)"><button class="st-btn" data-apply="${j.id}">Apply</button></div>`}</div>`).join('')
+        || '<div class="st-empty">Nobody is hiring right now.</div>')
+      + (A.length ? `<div class="st-h" style="margin-top:16px"><span>Your applications</span></div>` + A.map(a => `<div class="st-row"><span class="grow"><b>${esc(a.name)}</b><br><small>${esc(when(a.at))}</small></span>${pill(a.status === 'Pending' ? 'Waiting' : a.status, APPST[a.status])}</div>`).join('') : ''); };
+  const BST = { Active: 'good', Suspended: 'bad', Held: 'bad' }, BSTT = { Active: 'Licensed', Suspended: 'License overdue', Held: 'On hold by staff' };
+  const REQL = [['warrants', 'No active warrants'], ['felony', 'No felony convictions'], ['license', "Driver's license on file"], ['debt', 'No overdue bills']];
+  const renderBiz = () => { const O = D.owned || [], napps = O.reduce((n, z) => n + z.apps.length, 0); $('cvBizN').textContent = napps; $('cvBizN').hidden = !napps;
+    if (busy('cvBiz')) return; const cf = D.conf || {}, kinds = D.kinds || [];
+    const one = z => `<div class="cv-home mine" data-biz="${z.id}"><h3>${esc(z.name)} ${pill(BSTT[z.status] || z.status, BST[z.status])}${z.hiring ? pill('Hiring') : ''}</h3><p>${esc(z.kind)}${z.address ? ' · ' + esc(z.address) : ''}</p>
+        <div class="facts"><span>Business account<b>${money(z.balance)}</b></span><span>Staff<b>${z.staff.length}</b></span><span>Wages a week<b>${money(z.staff.reduce((n, w) => n + w.wage, 0))}</b></span>${cf.bizlic ? `<span>License a week<b>${money(cf.bizlic)}</b></span>` : ''}</div>
+        <div class="cv-inl"><input data-f="cash" type="number" min="1" placeholder="Amount"><button class="st-btn" data-cash="in">Put in</button><button class="st-btn" data-cash="out">Take out</button></div>
+        ${z.apps.length ? `<div class="cv-sub">Applications</div>` + z.apps.map(a => `<div class="st-row" style="display:block"><b>${esc(a.name || a.who)}</b>${a.name ? ` <small>@${esc(a.who)}</small>` : ''} <small>· ${esc(ago(a.at))}</small>${a.note ? `<p style="margin:4px 0 0;font-size:12px;color:var(--ink)">${esc(a.note)}</p>` : ''}
+          <div class="cv-bg">${bgPills(a.bg || {})}</div><div class="cv-inl" data-app="${a.id}"><input data-f="title" placeholder="Job title" maxlength="40" value="Employee"><input data-f="wage" type="number" min="0" placeholder="Wage a week"><button class="st-btn" data-hire="${a.id}">Hire</button><button class="st-btn" data-decline="${a.id}">Decline</button></div></div>`).join('') : ''}
+        <div class="cv-sub">Staff</div>${z.staff.length ? z.staff.map(w => `<div class="st-row" style="flex-wrap:wrap"><span class="grow"><b>${esc(w.name || w.who)}</b><br><small>@${esc(w.who)} · since ${esc(day(w.hired))}</small></span>
+          <span class="cv-inl" style="margin:0;flex:0 1 330px" data-user="${w.user}"><input data-f="title" value="${esc(w.title)}" maxlength="40"><input data-f="wage" type="number" min="0" value="${w.wage}" style="flex-basis:80px"><button class="st-btn" data-wage="${w.user}">Save</button><button class="st-btn" data-fire="${w.user}">Let go</button></span></div>`).join('') : '<div class="st-empty" style="padding:12px">No staff yet. Turn on hiring below.</div>'}
+        <div class="cv-sub">Bill a customer</div><div class="cv-inl"><input data-f="to" placeholder="Roblox name" maxlength="40"><input data-f="amount" type="number" min="1" placeholder="Amount"><input data-f="memo" placeholder="For" maxlength="60"><button class="st-btn" data-inv="${z.id}">Send bill</button></div>
+        <div class="cv-sub">Details and hiring</div><form class="cv-form" data-bizf="${z.id}"><div class="grid3"><label>Type<select name="kind">${kinds.map(k => `<option${k === z.kind ? ' selected' : ''}>${k}</option>`).join('')}</select></label><label>Address<input name="address" maxlength="80" value="${esc(z.address)}"></label><label>No arrests in the last (days, 0 = off)<input name="clean" type="number" min="0" max="365" value="${z.reqs.clean}"></label></div>
+          <label>About<input name="about" maxlength="300" value="${esc(z.about)}" placeholder="What you do, shown on the job board"></label>
+          <label class="chk"><input type="checkbox" name="hiring"${z.hiring ? ' checked' : ''}>Hiring: show on the job board</label>
+          <div class="grid2">${REQL.map(([k, l]) => `<label class="chk"><input type="checkbox" name="${k}"${z.reqs[k] ? ' checked' : ''}>${l}</label>`).join('')}</div>
+          <div class="cv-inl" style="margin-top:0"><button class="btn" type="submit">Save</button><button class="st-btn" type="button" data-close="${z.id}" data-name="${esc(z.name)}" style="margin-left:auto">Close business</button></div></form>
+        ${z.ledger.length ? `<div class="cv-sub">Business account</div>` + z.ledger.map(l => `<div class="st-row"><span class="grow"><b>${esc(l.memo)}</b><br><small>${esc(when(l.at))}</small></span><span class="cv-amt ${l.amount > 0 ? 'in' : ''}">${l.amount > 0 ? '+' : ''}${money(l.amount)}</span></div>`).join('') : ''}</div>`;
+    $('cvBiz').innerHTML = O.map(one).join('') + (O.length < 2 ? `<div class="st-h" style="margin-top:${O.length ? 16 : 0}px"><span>Register a business</span><span>${cf.bizfee ? money(cf.bizfee) + ' fee' : 'Free'}</span></div>
+      <form class="cv-form" id="cvBizNew"><div class="grid3"><label>Name<input name="name" maxlength="50" required placeholder="Bob's Towing"></label><label>Type<select name="kind">${kinds.map(k => `<option>${k}</option>`).join('')}</select></label><label>Address<input name="address" maxlength="80" placeholder="Postal 214"></label></div>
+      <label>About<input name="about" maxlength="300" placeholder="What you do"></label><p class="cv-note">The license renews at ${money(cf.bizlic || 0)} a week. Leave it unpaid for ${cf.evict || 7} days and the business is suspended until it is paid.</p><div class="cv-msg" id="cvBizMsg"></div><button class="btn" type="submit">Register</button></form>` : ''); };
+  let srvShown = false;
+  const renderServer = () => { const can = isOwner || D.admin; $('cvServerTab').hidden = !can; if (!can) { if (pane === 'server') show('home'); return; }
+    if (srvShown && $('cvServer').contains(document.activeElement)) return; srvShown = true; const cf = D.conf || {};
+    $('cvServer').innerHTML = (isOwner ? `<form class="cv-form" id="cvSetF"><label class="chk"><input type="checkbox" name="on" ${cf.on ? 'checked' : ''}>Civilian economy on</label>
+        <div class="grid3"><label>Starting money<input name="start" type="number" min="0" value="${cf.start}"></label><label>Weekly payment<input name="weekly" type="number" min="0" value="${cf.weekly}"></label><label>Late fee (%)<input name="late" type="number" min="0" max="100" value="${cf.late}"></label>
+        <label>Registration a week<input name="reg" type="number" min="0" value="${cf.reg}"></label><label>Insurance a week<input name="ins" type="number" min="0" value="${cf.ins}"></label><label>Days to pay<input name="grace" type="number" min="1" max="14" value="${cf.grace}"></label></div>
+        <div class="st-h" style="margin-top:6px"><span>Housing</span></div><div class="grid3"><label>Property tax a year (%)<input name="tax" type="number" min="0" max="20" value="${cf.tax}"></label><label>Mortgage down payment (%)<input name="down" type="number" min="0" max="100" value="${cf.down}"></label><label>Mortgage interest (%)<input name="rate" type="number" min="0" max="100" value="${cf.rate}"></label>
+        <label>Mortgage length (weeks)<input name="weeks" type="number" min="1" max="260" value="${cf.weeks}"></label><label>Days overdue before eviction<input name="evict" type="number" min="1" max="60" value="${cf.evict}"></label></div>
+        <div class="st-h" style="margin-top:6px"><span>Businesses</span></div><div class="grid3"><label>Registration fee<input name="bizfee" type="number" min="0" value="${cf.bizfee}"></label><label>License a week<input name="bizlic" type="number" min="0" value="${cf.bizlic}"></label></div>
+        <div class="cv-msg" id="cvSetMsg"></div><button class="btn" type="submit">Save settings</button></form>` : '')
+      + (D.admin && !D.off ? `<form class="cv-form" id="cvGrantF" style="margin-top:22px"><div class="st-h"><span>Give or take money</span></div><div class="grid3"><label>Roblox name<input name="user" maxlength="40" required></label><label>Amount<input name="amount" type="number" placeholder="500 or -200" required></label><label>Note<input name="memo" maxlength="80" placeholder="Optional"></label></div>
+        <div class="cv-msg" id="cvGrantMsg"></div><button class="btn" type="submit">Send</button></form>` : '')
+      + (D.admin && !D.off ? `<div class="st-h" style="margin-top:22px"><span>Homes</span><span>${(D.props || []).length || ''}</span></div>
+        ${(D.props || []).map(p => `<div class="st-row"><span class="grow"><b>${esc(p.name)}</b><br><small>${esc(p.kind)}${p.address ? ' · ' + esc(p.address) : ''}${p.price ? ' · ' + money(p.price) : ''}${p.rent ? ' · ' + money(p.rent) + ' a week' : ''}</small></span>
+          ${p.who ? `${pill((MODE[p.mode] || p.mode) + ': ' + p.who, 'good')}<button class="st-btn" data-evict="${p.id}" data-name="${esc(p.name)}">Remove them</button>` : `${pill('On the market')}<button class="st-btn" data-edit="${p.id}">Edit</button><button class="st-btn" data-drop="${p.id}">Delete</button>`}</div>`).join('') || '<div class="st-empty">No homes yet. Add the first one below.</div>'}
+        <form class="cv-form" id="cvPropF" style="margin-top:14px"><input type="hidden" name="pid"><div class="grid3"><label>Name<input name="name" maxlength="50" placeholder="12 Maple Street" required></label><label>Type<select name="kind">${['House', 'Apartment', 'Mansion', 'Trailer', 'Farm', 'Condo'].map(k => `<option>${k}</option>`).join('')}</select></label><label>Address or postal<input name="address" maxlength="80" placeholder="Postal 214"></label>
+        <label>Price (0 = not for sale)<input name="price" type="number" min="0" value="0"></label><label>Rent a week (0 = not for rent)<input name="rent" type="number" min="0" value="0"></label></div>
+        <div class="cv-msg" id="cvPropMsg"></div><button class="btn" type="submit" id="cvPropBtn">Add home</button></form>` : '')
+      + (D.admin && !D.off ? `<div class="st-h" style="margin-top:22px"><span>Businesses</span><span>${(D.allBiz || []).length || ''}</span></div>` + ((D.allBiz || []).map(z => `<div class="st-row"><span class="grow"><b>${esc(z.name)}</b><br><small>${esc(z.kind)} · owned by ${esc(z.owner)} · ${z.staff} staff · ${money(z.balance)}</small></span>${pill(BSTT[z.status] || z.status, BST[z.status])}
+          <button class="st-btn" data-hold="${z.id}" data-on="${z.status === 'Held' ? '' : '1'}">${z.status === 'Held' ? 'Release' : 'Hold'}</button><button class="st-btn" data-bizrm="${z.id}" data-name="${esc(z.name)}">Close</button></div>`).join('') || '<div class="st-empty">No businesses yet.</div>') : ''); };
+  const render = () => { if (!D) return;
+    if (D.off) { $('cvTopBal').textContent = ''; $('cvSub').textContent = 'Switched off';
+      $('cvHome').innerHTML = `<div class="st-empty">The civilian economy is switched off on this server.${isOwner ? ' Turn it on under Server.' : ''}</div>`; renderServer(); return; }
+    $('cvTopBal').textContent = money(D.balance); renderHome(); renderBills(); renderCars(); renderId(); renderRecord(); renderCall(); renderHousing(); renderJobs(); renderBiz(); renderServer(); };
+
+  // ── actions ──
+  page.addEventListener('click', e => { const pay = e.target.closest('[data-pay]'), st = e.target.closest('[data-stolen]');
+    if (pay) { pay.disabled = true; act('/pay', { id: +pay.dataset.pay }).finally(() => { pay.disabled = false; }); }
+    if (st) { st.disabled = true; act('/stolen', { plate: st.dataset.stolen, on: !!st.dataset.on }).finally(() => { st.disabled = false; }); }
+    const inn = e.target.closest('[data-in]'), out = e.target.closest('[data-out]'), ev = e.target.closest('[data-evict]'), dr = e.target.closest('[data-drop]'), ed = e.target.closest('[data-edit]');
+    if (inn && confirm(`${inn.textContent}?`)) { inn.disabled = true; act('/home', { id: +inn.dataset.in, how: inn.dataset.how }).finally(() => { inn.disabled = false; }); }
+    if (out && confirm(out.dataset.mode === 'rent' ? `Move out of ${out.dataset.name}?` : `Sell ${out.dataset.name}? You get 80% of the price, less what is left on the mortgage.`)) act('/home', { id: +out.dataset.out, out: true });
+    if (ev && confirm(`Remove whoever lives in ${ev.dataset.name}? It goes back on the market.`)) { srvShown = false; act('/prop', { id: +ev.dataset.evict, evict: true }); }
+    if (dr && confirm('Delete this home?')) { srvShown = false; act('/prop', { id: +dr.dataset.drop, drop: true }); }
+    const btn = e.target.closest('button'); if (btn && !btn.closest('form[data-bizf]') || btn?.dataset.close) bizClick(btn);
+    if (ed) { const p = (D.props || []).find(x => x.id === +ed.dataset.edit), f = $('cvPropF'); if (!p || !f) return;
+      f.pid.value = p.id; for (const k of ['name', 'kind', 'address', 'price', 'rent']) f.elements[k].value = p[k]; $('cvPropBtn').textContent = 'Save home'; f.elements.name.focus(); } });
+  page.addEventListener('change', e => { if (e.target.id === 'cvAuto') act('/autopay', { on: e.target.checked }); });
+  const fields = f => Object.fromEntries(new FormData(f).entries());
+  const val = (el, k) => el?.querySelector(`[data-f="${k}"]`)?.value ?? '';
+  const bizClick = b => { const d = b.dataset, box = b.closest('[data-biz]'), row = b.closest('.cv-inl'), id = box ? +box.dataset.biz : 0, go = (p, body) => { b.disabled = true; act(p, body).finally(() => { b.disabled = false; }); };
+    if (d.apply) go('/job/apply', { id: +d.apply, note: val(row, 'note') });
+    else if (d.quit) { if (confirm(`Quit ${d.name}?`)) go('/job/quit', { id: +d.quit }); }
+    else if (d.inv) { const a = +val(row, 'amount'); if (!val(row, 'to') || !(a > 0)) return alert('Enter who to bill and how much.'); go('/biz/invoice', { id: +d.inv, to: val(row, 'to'), amount: a, memo: val(row, 'memo') }); }
+    else if (d.cash) { const a = +val(row, 'cash'); if (!(a > 0)) return alert('Enter an amount.'); go('/biz/cash', { id, amount: d.cash === 'in' ? a : -a }); }
+    else if (d.hire) go('/biz/decide', { app: +d.hire, hire: true, title: val(row, 'title'), wage: +val(row, 'wage') || 0 });
+    else if (d.decline) { if (confirm('Turn this application down?')) go('/biz/decide', { app: +d.decline, hire: false }); }
+    else if (d.wage) go('/biz/staff', { id, user: +d.wage, title: val(row, 'title'), wage: +val(row, 'wage') || 0 });
+    else if (d.fire) { if (confirm('Let them go?')) go('/biz/staff', { id, user: +d.fire, fire: true }); }
+    else if (d.close) { if (confirm(`Close ${d.name}? Its money comes back to you and its staff lose their jobs.`)) go('/biz/close', { id: +d.close }); }
+    else if (d.hold) { srvShown = false; go('/biz/admin', { id: +d.hold, suspend: !!d.on }); }
+    else if (d.bizrm) { if (confirm(`Close ${d.name} for good?`)) { srvShown = false; go('/biz/admin', { id: +d.bizrm, remove: true }); } } };
+  page.addEventListener('submit', async e => { e.preventDefault(); const f = e.target;
+    if (f.id === 'cvIdF') { await act('/character', fields(f), $('cvIdMsg'), 'Saved. Police see this when they run your name.'); }
+    if (f.id === 'cv911F') { const j = await act('/911', fields(f), $('cv911Msg'), 'Your call is on the dispatch board.'); if (j) { f.location.value = ''; f.details.value = ''; } }
+    if (f.id === 'cvBizNew') { const j = await act('/biz/open', fields(f), $('cvBizMsg'), 'Registered.'); if (j) f.reset(); }
+    if (f.dataset.bizf) { const v = fields(f), body = { id: +f.dataset.bizf, kind: v.kind, address: v.address, about: v.about, clean: +v.clean || 0 };
+      for (const k of ['hiring', 'warrants', 'felony', 'license', 'debt']) body[k] = !!v[k]; document.activeElement?.blur(); await act('/biz/edit', body); }
+    if (f.id === 'cvPropF') { const v = fields(f); srvShown = false; await act('/prop', { name: v.name, kind: v.kind, address: v.address, price: v.price, rent: v.rent, id: +v.pid || 0 }, $('cvPropMsg'), 'Saved.'); }
+    if (f.id === 'cvSetF') { const v = fields(f), body = { on: !!v.on }; for (const k of ['start', 'weekly', 'late', 'reg', 'ins', 'grace', 'tax', 'down', 'weeks', 'rate', 'evict', 'bizfee', 'bizlic']) body[k] = +v[k];
+      srvShown = false; await act('/settings', body, $('cvSetMsg'), 'Saved.'); }
+    if (f.id === 'cvGrantF') { const j = await act('/grant', fields(f), $('cvGrantMsg'), 'Done.'); if (j) f.reset(); } });
 })();
 </script>
 <script>
