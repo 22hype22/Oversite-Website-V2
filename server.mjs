@@ -23,6 +23,7 @@ import * as career from './app/career.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
 import * as staffhub from './app/staffhub.mjs';
+import * as civ from './app/civ.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -53,7 +54,8 @@ const msg = (res, user, title, text, action, status = 200) => page(res, pages.me
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
 const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f);
-  f.onSnap = body => { police.observe(c.id, body); career.observe(c.id, body); staffhub.observe(c.id, body); };                                                          // plates, owners and players for the PD lookups
+  f.onSnap = body => { police.observe(c.id, body); career.observe(c.id, body); staffhub.observe(c.id, body); };
+  f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 
@@ -184,11 +186,28 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'status' && M === 'POST') { const j = await jsonBody(req), r = police.setStatus(c.id, j.unit, String(j.st || ''), user.roblox_name || user.name);
     if (r.ok) f.bcast('unitstatus', JSON.stringify({ unit: r.unit, st: r.st })); return json(res, r, r.error ? 400 : 200); }
   // the law enforcement MDT: lookups, warrants, BOLOs, citations, warnings, arrests and traffic stops, shared by the whole server
+  // the Civilian tab (app/civ.mjs): every member has an account, a character, bills and 911
+  if (rest.startsWith('civ/')) { const sub = rest.slice(4), ok = r => json(res, r.error ? r : { ...r, state: civ.state(c, user, can(role, 'admin')) }, r.error ? 400 : 200);
+    if (sub === 'state' && M === 'GET') return json(res, civ.state(c, user, can(role, 'admin')));
+    if (M !== 'POST') return json(res, { error: 'Not found.' }, 404);
+    const j = await jsonBody(req);
+    if (sub === 'settings') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change this.' }, 403); return ok(civ.saveConf(c, j, () => communities.saveSettings(c.id, c.settings))); }
+    if (!civ.conf(c).on) return json(res, { error: 'The civilian economy is switched off on this server.' }, 403);
+    if (sub === 'character') return ok(civ.saveChar(c, user, j));
+    if (sub === 'pay') return ok(civ.pay(c, user, j.id));
+    if (sub === 'autopay') return ok(civ.setAutopay(c, user, !!j.on));
+    if (sub === 'stolen') { const v = police.vehicle(c.id, j.plate); if (v.error || String(v.vehicle.owner_rid) !== String(user.roblox_id)) return json(res, { error: 'That is not your car.' }, 403);
+      police.setVehicle(c.id, v.vehicle.plate, { stolen: !!j.on }); return ok({ ok: true }); }
+    if (sub === '911') { if (auth.limited(req, 'civ911', 4, 60000)) return json(res, { error: 'Too many calls. Wait a minute.' }, 429); return ok(civ.call911(c, user, j)); }
+    if (sub === 'grant') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can give or take money.' }, 403); return ok(civ.grant(c, user.roblox_name || user.name, j)); }
+    return json(res, { error: 'Not found.' }, 404); }
   if (rest.startsWith('pd/')) { const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, by = { uid: user.id, name: user.roblox_name || user.name, supervisor: police.isSupervisor(c.id, user.id, can(role, 'admin'), ranksFor(c, premium.isPremium(c)).pd) };
     const prem = premium.isPremium(c), cut = prem ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5, recent = L => cut ? L.filter(r => r.at >= cut || r.status === 'Active' || r.status === 'Pending') : L;   // free servers see the last 30 days
     if (sub === 'config' && M === 'GET') return json(res, { penal: police.PENAL, rank: police.pdRank(c.id, user.id), supervisor: by.supervisor, admin: can(role, 'admin'), me: by.name, premium: prem, recordDays: prem ? 0 : premium.FREE_RECORD_DAYS });
     if (sub === 'search' && M === 'GET') return json(res, police.search(c.id, qs.get('q')));
-    if (sub === 'person' && M === 'GET') { const r = await police.person(c.id, qs.get('id') || qs.get('name'), licenseOf); if (r.history) r.history = recent(r.history); return json(res, r, r.error ? 404 : 200); }
+    if (sub === 'person' && M === 'GET') { const r = await police.person(c.id, qs.get('id') || qs.get('name'), licenseOf); if (r.history) r.history = recent(r.history);
+      const who = r.person?.rid && users.byRoblox(r.person.rid); if (who) r.character = civ.charOf(c.id, who.id);   // the character they made in the Civilian tab
+      return json(res, r, r.error ? 404 : 200); }
     if (sub === 'vehicle' && M === 'GET') { const r = police.vehicle(c.id, qs.get('plate')); if (r.history) r.history = recent(r.history); return json(res, r, r.error ? 404 : 200); }
     if (sub === 'vehicle' && M === 'POST') { const j = await jsonBody(req), r = police.setVehicle(c.id, j.plate, j); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records' && M === 'GET') return json(res, { records: recent(police.list(c.id, { kind: qs.get('kind') || '', status: qs.get('status') || '', mine: qs.get('mine') === '1' }, user.id)) });
@@ -699,7 +718,7 @@ http.createServer((req, res) => {
     msg(res, u, 'Something went wrong', 'Oversite hit an error loading this page. Try again in a moment. If it keeps happening, let us know.', { href: '/', label: 'Home' }, 500); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
 staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), staffhub.observe);
-supporter.start(); premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);
+supporter.start(); civ.start(); premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);
 // once: the old owner link left extra "Owner" members behind; on servers a site admin made, they go back to plain members
 // (in-game staff still get their in-game rank in the CAD), and the server's creator can sort out anyone else from the Team tab
 // Premium launch: servers Oversite's own team runs get it for good; every server that existed before gets 30 days free, so nobody loses the Staff CAD or voice overnight

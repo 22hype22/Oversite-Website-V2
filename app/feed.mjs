@@ -64,7 +64,7 @@ export class Feed {
       if (up.status === 429) { this.holdUntil = Date.now() + Math.max(1, +headers['retry-after'] || 30) * 1000; this.penaltyUntil = Date.now() + 180000; this.n429++; this.bcast('err', JSON.stringify({ status: 429, retry_after: +headers['retry-after'] || 30 })); }
       else if (up.ok) { if (seq > this.shown) { this.shown = seq; let out = body;
           if (full) { try { this.joins = JSON.parse(body).JoinLogs || []; } catch (e) {} } else if (this.joins) out = body.replace(/}\s*$/, `,"JoinLogs":${JSON.stringify(this.joins)}}`);
-          out = this.steady(out, taken); if (out) out = this.withDuty(out, taken);
+          out = this.steady(out, taken); if (out) out = this.withDuty(out, taken); if (out && this.withExtra) { try { out = this.withExtra(out) || out; } catch (e) {} }
           if (out) { this.snap = { t: Date.now(), taken, status: up.status, body: out, headers }; this.bcast('server', out, taken); try { this.onSnap?.(out); } catch (e) {} if (this.lastEv) this.gapEv = ema(this.gapEv, taken - this.lastEv); this.lastEv = taken;
             if (this.moved) { if (this.lastMove && taken - this.lastMove < 10000) this.moveEv = ema(this.moveEv, taken - this.lastMove); this.lastMove = taken; } } } }
       else { let j = {}; try { j = JSON.parse(body); } catch (e) {} this.bcast('err', JSON.stringify({ status: up.status, ...j })); this.noteErr(up.status, j); this.holdUntil = Date.now() + (up.status === 403 || up.status === 401 ? 15000 : 3000); }

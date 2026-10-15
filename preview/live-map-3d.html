@@ -1117,6 +1117,39 @@
   @media (max-width:980px){.st-acts{grid-template-columns:repeat(3,1fr)}}
   @media (prefers-reduced-motion:reduce){.st-dlg{transition:opacity .15s}}
   /* staff:end */
+  /* civ:start  Civilian tab: the staff tablet's layout, in its own colour */
+  body[data-view="civ"] .cdock{transform:translateX(-50%);pointer-events:auto}
+  body[data-view="civ"] .rail,body[data-view="civ"] .stage{transform:translateX(calc(-100% - 60px));opacity:0;pointer-events:none}
+  body[data-view="civ"] .pins{display:none}
+  body[data-view="civ"] .view::after{opacity:.3}
+  .cdock .screen{--fd:#3FBF8A;--fd-soft:rgba(63,191,138,.14)}
+  .cv-bal{padding:18px 18px 16px;border-radius:14px;background:linear-gradient(135deg,rgba(63,191,138,.16),rgba(63,191,138,.03));border:1px solid rgba(63,191,138,.26);margin-bottom:16px}
+  .cv-bal small{display:block;font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em}
+  .cv-bal b{display:block;font-size:30px;font-weight:600;letter-spacing:-.01em;margin-top:4px;font-variant-numeric:tabular-nums}
+  .cv-bal .row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11.5px;color:var(--dim)}
+  .cv-amt{font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;font-size:12.5px}
+  .cv-amt.in{color:#7FD8AE}
+  .cv-form label{display:block;font-size:12px;font-weight:500;color:var(--mute);margin-bottom:12px}
+  .cv-form input:not([type=checkbox]),.cv-form select,.cv-form textarea{display:block;width:100%;margin-top:5px;font:inherit;font-size:14px;color:#E9EAEC;background:#141518;border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;outline:0;resize:vertical}
+  .cv-form input:focus,.cv-form select:focus,.cv-form textarea:focus{border-color:rgba(255,255,255,.35)}
+  .cv-form select option{background:#1C1C1F}
+  .cv-form .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  .cv-form .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px}
+  .cv-form .chk{display:flex;align-items:center;gap:8px;color:#E9EAEC;font-size:13px}.cv-form .chk input{accent-color:var(--fd);width:16px;height:16px;margin:0}
+  .cv-msg{font-size:12px;color:var(--dim);min-height:16px;margin:2px 0 12px}
+  .cv-msg.err{color:#F0A0A0}.cv-msg.ok{color:#7FD8AE}
+  .cv-note{font-size:11.5px;color:var(--faint);line-height:1.5;margin:0 0 14px}
+  .cv-note a{color:var(--dim)}
+  .st-pill.bad{color:#F0A0A0;background:rgba(226,75,75,.14)}.st-pill.good{color:#7FD8AE;background:rgba(63,191,138,.14)}
+  .cv-sw{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);cursor:pointer}.cv-sw input{accent-color:var(--fd);width:15px;height:15px;margin:0}
+  .cv-plate{display:inline-flex;align-items:center;justify-content:center;min-width:74px;padding:3px 7px;border-radius:5px;background:#F1F2EE;color:#16264A;border:1.5px solid #16264A;font:700 12.5px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;flex:none}
+  .cv-btn-red{border-color:rgba(226,75,75,.45);background:rgba(226,75,75,.18);color:#fff}.cv-btn-red:hover{background:rgba(226,75,75,.28)}
+  .cdock .tside [data-p="911"]{color:#F0A0A0}
+  .cv-car{flex-wrap:wrap}
+  @media (max-width:760px){body[data-view="civ"] .cdock{transform:none}.cv-form .grid3{grid-template-columns:1fr 1fr}.cv-car .cv-pills{order:3;flex-basis:100%;padding-left:84px}}
+  body[data-view="staff"] .sdock.cdock{transform:translateX(calc(-50% + 100vw));pointer-events:none}
+  @media (max-width:760px){body[data-view="staff"] .sdock.cdock{transform:translateX(100vw)}}
+  /* civ:end */
   .bar .mark img.own{height:30px;width:30px;border-radius:8px;object-fit:cover;filter:none;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
   #mdt .crest .crest-ic{width:20px;height:20px;border-radius:6px;object-fit:cover}
   .prem-lock{position:absolute;inset:0;z-index:30;display:grid;place-items:center;padding:24px;text-align:center;background:rgba(12,13,15,.94);border-radius:inherit}
@@ -1270,6 +1303,7 @@
     <button role="tab" aria-selected="false" data-view="mdt" data-dept="pd">Law Enforcement</button>
     <button role="tab" aria-selected="false" data-view="mdt" data-dept="fd">Fire Department</button>
     <button role="tab" aria-selected="false" data-view="mdt" data-dept="dot">Department of Transportation</button>
+    <button role="tab" aria-selected="false" data-view="civ">Civilian</button>
     <button role="tab" aria-selected="false" data-view="staff">Server Staff</button>
     <button role="tab" aria-selected="false" data-view="status">Status &amp; Updates</button>
   </nav>
@@ -1439,6 +1473,39 @@
 <dialog class="st-dlg" id="stDlg"><form method="dialog"><h2 id="stDlgT">Warn</h2><p id="stDlgP"></p><textarea id="stDlgR" maxlength="180"></textarea><div class="st-chips" id="stDlgC"></div>
   <div class="acts"><span class="msg" id="stDlgM"></span><button type="button" class="st-btn" id="stDlgX">Cancel</button><button class="st-go" id="stDlgGo">Send</button></div></form></dialog>
 <!-- staff:end -->
+<!-- civ:start -->
+<aside class="sdock cdock" id="civMdt" aria-label="Civilian" aria-hidden="true">
+  <div class="tablet">
+    <span class="cam"></span>
+    <div class="screen">
+      <div class="sbar"><span id="cvClock">00:00</span><span class="sb-mid" id="cvTop">Civilian</span><span class="sb-r" id="cvTopBal"></span></div>
+      <div class="tbody">
+        <nav class="tside" role="tablist" aria-label="Civilian apps" id="cvTabs">
+          <div class="crest" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Civilian</div>
+          <button role="tab" data-p="home" aria-selected="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg>Wallet</button>
+          <button role="tab" data-p="bills" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Bills<i class="badge" id="cvBillsN" hidden>0</i></button>
+          <button role="tab" data-p="cars" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-5l2-5h14l2 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/><path d="M9.5 17h5M4 12h16"/></svg>Vehicles</button>
+          <button role="tab" data-p="id" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.8 16a3.4 3.4 0 0 1 6.4 0M14.5 10h4M14.5 13.5h3"/></svg>My ID</button>
+          <button role="tab" data-p="record" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg>Record</button>
+          <button role="tab" data-p="911" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>Call 911</button>
+          <button role="tab" data-p="server" aria-selected="false" id="cvServerTab" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Server</button>
+          <div class="tuser" aria-hidden="true"><i id="cvMeAv">CV</i><small id="cvMe">Civilian</small></div>
+        </nav>
+        <div class="tscreens">
+          <section class="tscreen cv-pane on" data-p="home"><div class="thead"><div><h2>Wallet</h2><small id="cvSub">Loading…</small></div></div><div id="cvHome"></div></section>
+          <section class="tscreen cv-pane" data-p="bills"><div class="thead"><div><h2>Bills</h2><small>Fines, registration and insurance. Unpaid bills take a late fee after their due date.</small></div></div><div id="cvBills"></div></section>
+          <section class="tscreen cv-pane" data-p="cars"><div class="thead"><div><h2>Vehicles</h2><small>Cars you have driven in game. Registration and insurance are billed weekly.</small></div></div><div id="cvCars"></div></section>
+          <section class="tscreen cv-pane" data-p="id"><div class="thead"><div><h2>My ID</h2><small>Your character. Police see this when they run your name.</small></div><button class="btn" type="submit" form="cvIdF">Save</button></div><form class="cv-form" id="cvIdF" autocomplete="off"></form></section>
+          <section class="tscreen cv-pane" data-p="record"><div class="thead"><div><h2>Record</h2><small>Citations, warnings and arrests written against you</small></div></div><div id="cvRecord"></div></section>
+          <section class="tscreen cv-pane" data-p="911"><div class="thead"><div><h2>Call 911</h2><small>Your call goes straight to dispatch</small></div><button class="btn" type="submit" form="cv911F">Call</button></div><form class="cv-form" id="cv911F" autocomplete="off"></form><div id="cvCalls"></div></section>
+          <section class="tscreen cv-pane" data-p="server"><div class="thead"><div><h2>Server economy</h2><small>Money and bills for everyone in this server</small></div></div><div id="cvServer"></div></section>
+        </div>
+      </div>
+    </div>
+    <button class="mdt-close" id="cvClose" type="button" aria-label="Close civilian tab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+</aside>
+<!-- civ:end -->
 <!-- ─────────── MDT: iPad on the map ─────────── -->
 <aside class="mdt-dock" id="mdt" aria-label="Mobile Data Terminal" aria-hidden="true">
   <div class="tablet">
@@ -2801,6 +2868,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       ${actions(p.name, p.rid, '')}
       ${L && !L.none ? `<h4>Driver's license</h4><div class="pd-kv"><div><span>License no.</span><b>${esc(L.num)}</b></div><div><span>Age</span><b>${esc(L.age || '–')}</b></div><div><span>Sex</span><b>${esc(L.gndr || '–')}</b></div><div><span>Issued</span><b>${esc(L.iss || '–')}</b></div>
         <div><span>Height</span><b>${esc(L.hgt || '–')}</b></div><div><span>Weight</span><b>${esc(L.wgt || '–')}</b></div><div><span>Hair / eyes</span><b>${esc([L.hair, L.eyes].filter(Boolean).join(' / ') || '–')}</b></div><div><span>Address</span><b title="${esc(L.addr)}">${esc(L.addr || '–')}</b></div></div>` : ''}
+      ${j.character ? `<h4>Character</h4><div class="pd-kv"><div><span>Name</span><b>${esc([j.character.first, j.character.last].filter(Boolean).join(' ') || '–')}</b></div><div><span>Born</span><b>${esc(j.character.dob || '–')}</b></div><div><span>Phone</span><b>${esc(j.character.phone || '–')}</b></div><div><span>Occupation</span><b>${esc(j.character.occupation || '–')}</b></div><div><span>Address</span><b title="${esc(j.character.address || '')}">${esc(j.character.address || '–')}</b></div></div>` : ''}
       ${j.flags.length ? `<h4>Open warrants and BOLOs</h4><div class="pd-list">${j.flags.map(histRow).join('')}</div>` : ''}
       <h4>Vehicles</h4>${j.vehicles.length ? `<div class="pd-list">${j.vehicles.map(v => `<button type="button" class="pd-it" data-plate="${esc(v.plate)}">${plate(v.plate)}<div><b>${esc(v.model)}</b><small>${v.hex ? `<span class="pd-sw" style="background:${esc(v.hex)}"></span>` : ''}${esc([v.color, 'reg ' + v.reg, 'ins ' + v.ins].join(' · '))}</small></div><span class="when">${v.stolen ? tag('Stolen', 'R') : esc(ago(v.last_seen))}</span></button>`).join('')}</div>` : '<p class="pd-empty" style="padding:10px 0;text-align:left">No vehicles seen under this name.</p>'}
       <h4>Criminal history</h4><div class="pd-sum"><span><b>${n('arrest')}</b>arrests</span><span><b>${n('citation')}</b>citations</span><span><b>${n('warning')}</b>warnings</span><span><b>${n('stop')}</b>stops</span><span><b>${n('warrant')}</b>warrants</span></div>
@@ -4044,6 +4112,107 @@ body.voice-snap .stage{transition:none!important}
   const _show = show; show = p => { _show(p); if (p === 'map') { requestAnimationFrame(() => { fitted = false; drawMap(); }); } };
   const _render = render; render = () => { _render(); drawMap(); };
   show('player');
+})();
+</script>
+<script id="civ">
+/* Civilian tab: every member's wallet, bills, cars, character, record and 911 line. The server (app/civ.mjs) keeps the money; this only shows it and sends what you ask for */
+(() => {
+  const OV = window.OVERSITE, tab = document.querySelector('.menu [data-view="civ"]'), page = document.getElementById('civMdt'); if (!tab || !page) return;
+  const $ = id => document.getElementById(id);
+  const toDispatch = () => document.querySelector('.menu [data-view="dispatch"]').click(); $('cvClose').addEventListener('click', toDispatch);
+  const clock = () => { $('cvClock').textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }; clock(); setInterval(clock, 15000);
+  if (!OV) { page.querySelector('.tscreens').innerHTML = '<div class="st-gate" style="height:100%"><div><b>Civilian</b>Open your server\'s CAD from the dashboard to use your wallet, bills and 911.</div></div>'; return; }
+  const API = OV.api + '/civ', post = (p, b) => fetch(API + p, { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(b || {}) }).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong.'); return j; });
+  const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = n => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n || 0)).toLocaleString('en-US');
+  const day = ms => new Date(ms).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const when = ms => new Date(ms).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const ago = ms => { const s = Math.max(0, (Date.now() - ms) / 1000); return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + 'm ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + 'd ago'; };
+  const ini = n => (n || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '?';
+  const RK = { member: 1, mod: 2, staff: 3, admin: 3, co_owner: 4, owner: 5 }[OV.role] || 0, isOwner = RK >= 4;
+  let D = null, timer = 0, pane = 'home';
+  $('cvMe').textContent = OV.me || OV.user || 'Civilian'; $('cvMeAv').textContent = ini($('cvMe').textContent);
+  if (/^\d+$/.test(OV.rid || '')) $('cvMeAv').insertAdjacentHTML('beforeend', `<img src="/rbx/avatar/${OV.rid}" alt="" onerror="this.remove()">`);
+
+  // ── data ──
+  const load = async () => { try { const r = await fetch(API + '/state'); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Could not load.'); D = j; render(); }
+    catch (e) { $('cvSub').textContent = e.message; } };
+  const start = () => { if (timer) return; load(); timer = setInterval(() => { if (!document.hidden) load(); }, 20000); };
+  const stop = () => { clearInterval(timer); timer = 0; };
+  addEventListener('viewchange', e => { const on = e.detail === 'civ'; page.setAttribute('aria-hidden', !on); on ? start() : stop(); });
+  const act = async (p, body, msgEl, okText) => { if (msgEl) { msgEl.className = 'cv-msg'; msgEl.textContent = 'Working…'; }
+    try { const j = await post(p, body); if (j.state) { D = j.state; render(); } if (msgEl) { msgEl.className = 'cv-msg ok'; msgEl.textContent = okText || 'Done.'; } return j; }
+    catch (e) { if (msgEl) { msgEl.className = 'cv-msg err'; msgEl.textContent = e.message; } else alert(e.message); return null; } };
+
+  // ── panes ──
+  const show = p => { pane = p; document.querySelectorAll('#cvTabs [data-p]').forEach(b => b.setAttribute('aria-selected', b.dataset.p === p)); page.querySelectorAll('.cv-pane').forEach(s => s.classList.toggle('on', s.dataset.p === p)); };
+  $('cvTabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) show(b.dataset.p); });
+  const open = () => (D.bills || []).filter(b => b.status === 'Open' || b.status === 'Overdue');
+  const pill = (t, cls) => `<span class="st-pill ${cls || ''}">${esc(t)}</span>`;
+  const billPill = b => b.status === 'Paid' ? pill('Paid', 'good') : b.status === 'Overdue' ? pill('Overdue', 'bad') : b.status === 'Void' ? pill('Void') : pill('Due ' + day(b.due));
+  const billRow = b => `<div class="st-row"><span class="grow"><b>${esc(b.label)}</b><br><small>Issued ${esc(day(b.issued))}${b.late ? ' · late fee added' : ''}${b.paid_at ? ' · paid ' + esc(day(b.paid_at)) : ''}</small></span>${billPill(b)}<span class="cv-amt">${money(b.amount)}</span>${b.status === 'Open' || b.status === 'Overdue' ? `<button class="st-btn" data-pay="${b.id}">Pay</button>` : ''}</div>`;
+  const TXK = { deposit: 'Deposit', bill: 'Bill', grant: 'From staff', charge: 'Staff charge' };
+  const renderHome = () => { const due = open(), owe = due.reduce((s, b) => s + b.amount, 0), cf = D.conf || {};
+    $('cvSub').textContent = due.length ? `${due.length} bill${due.length > 1 ? 's' : ''} to pay` : 'All paid up';
+    $('cvHome').innerHTML = `<div class="cv-bal"><small>Balance</small><b>${money(D.balance)}</b><div class="row"><span>${cf.weekly && D.nextPay ? `Next weekly payment of ${money(cf.weekly)} on ${esc(day(D.nextPay))}` : 'No weekly payment on this server'}</span>
+        <label class="cv-sw" title="Pays a bill from your balance the moment it is due, when you have the money"><input type="checkbox" id="cvAuto" ${D.autopay ? 'checked' : ''}>Autopay bills</label></div></div>
+      ${D.linked ? '' : '<p class="cv-note">Link your Roblox account on <a href="/account">your account page</a> so your cars and record show up here.</p>'}
+      <div class="st-h"><span>Bills due</span><span>${due.length ? money(owe) : ''}</span></div>
+      ${due.length ? due.map(billRow).join('') : '<div class="st-empty">Nothing to pay right now.</div>'}
+      <div class="st-h" style="margin-top:16px"><span>Recent activity</span></div>
+      ${(D.tx || []).length ? D.tx.map(t => `<div class="st-row"><span class="grow"><b>${esc(t.memo || TXK[t.kind] || t.kind)}</b><br><small>${esc(TXK[t.kind] || t.kind)} · ${esc(when(t.at))}</small></span><span class="cv-amt ${t.amount > 0 ? 'in' : ''}">${t.amount > 0 ? '+' : ''}${money(t.amount)}</span></div>`).join('') : '<div class="st-empty">No money in or out yet.</div>'}`; };
+  const renderBills = () => { const due = open(); $('cvBillsN').textContent = due.length; $('cvBillsN').hidden = !due.length;
+    $('cvBills').innerHTML = (D.bills || []).length ? D.bills.map(billRow).join('') : '<div class="st-empty">No bills. Fines, registration and insurance show up here when they are due.</div>'; };
+  const regPill = v => v === 'Valid' ? pill('Valid', 'good') : pill(v || 'Unknown', v ? 'bad' : '');
+  const insPill = v => v === 'Active' || v === 'Valid' ? pill(v, 'good') : pill(v || 'Unknown', v ? 'bad' : '');
+  const renderCars = () => { const v = D.vehicles || [];
+    $('cvCars').innerHTML = v.length ? v.map(c => `<div class="st-row cv-car"><span class="cv-plate">${esc(c.plate)}</span><span class="grow"><b>${esc(c.model || 'Vehicle')}</b><br><small>${c.color ? esc(c.color) + ' · ' : ''}seen ${esc(ago(c.last_seen))}</small></span>
+        <span class="cv-pills" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><small style="color:var(--faint)">Reg</small>${regPill(c.reg)}<small style="color:var(--faint)">Ins</small>${insPill(c.ins)}${c.stolen ? pill('Stolen', 'bad') : ''}</span>
+        <button class="st-btn" data-stolen="${esc(c.plate)}" data-on="${c.stolen ? '' : '1'}">${c.stolen ? 'Recovered' : 'Report stolen'}</button></div>`).join('')
+      : `<div class="st-empty">${D.linked ? 'No cars yet. Drive one in game and it shows up here.' : 'Link your Roblox account to see your cars.'}</div>`; };
+  const ID_FIELDS = [['first', 'First name', 'text', 30], ['last', 'Last name', 'text', 30], ['dob', 'Date of birth', 'date', 10], ['phone', 'Phone', 'text', 20], ['address', 'Address', 'text', 80], ['occupation', 'Occupation', 'text', 40]];
+  let idShown = false;
+  const renderId = () => { if (idShown && $('cvIdF').contains(document.activeElement)) return; const ch = D.character || {}; idShown = true;
+    $('cvIdF').innerHTML = `<div class="grid2">${ID_FIELDS.map(([k, l, t, n]) => `<label>${l}<input name="${k}" type="${t}" maxlength="${n}" value="${esc(ch[k] || '')}"${k === 'first' || k === 'last' ? ' required' : ''}></label>`).join('')}</div>
+      <div class="cv-msg" id="cvIdMsg"></div><p class="cv-note">Your driver's license is on <a href="/account?from=/${esc(OV.slug || '')}#license">your account page</a>.</p>`; };
+  const KINDS = { citation: 'Citation', warning: 'Warning', arrest: 'Arrest' };
+  const renderRecord = () => { const r = D.record || [];
+    $('cvRecord').innerHTML = r.length ? r.map(x => `<div class="st-row" style="align-items:flex-start"><span class="grow"><b>${pill(KINDS[x.kind] || x.kind, x.kind === 'arrest' ? 'bad' : '')} ${esc(x.charges.map(c => (c.count > 1 ? c.count + 'x ' : '') + c.title).join(', ') || x.reason || 'No charges listed')}</b><br>
+        <small>${esc(when(x.at))}${x.location ? ' · ' + esc(x.location) : ''}${x.by ? ' · by ' + esc(x.by) : ''}${x.jail ? ' · ' + x.jail + ' months' : ''}</small></span>
+        ${x.fine ? `<span class="cv-amt">${money(x.fine)}</span>${x.paid ? pill('Paid', 'good') : pill('Unpaid', 'bad')}` : ''}</div>`).join('')
+      : `<div class="st-empty">${D.linked ? 'Clean record. Nothing written against you.' : 'Link your Roblox account to see your record.'}</div>`; };
+  let callShown = false;
+  const DEPTS = { pd: 'Police', fd: 'Fire and medical', dot: 'Tow and roadside (DOT)' };
+  const renderCall = () => { if (!callShown) { callShown = true;
+      $('cv911F').innerHTML = `<div class="grid2"><label>Service<select name="dept">${Object.entries(DEPTS).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label><label>Where<input name="location" maxlength="80" placeholder="Postal or place" required></label></div>
+        <label>What is happening<textarea name="details" rows="3" maxlength="300" required></textarea></label><div class="cv-msg" id="cv911Msg"></div>`; }
+    const c = D.calls || []; $('cvCalls').innerHTML = `<div class="st-h"><span>Your recent calls</span></div>` + (c.length ? c.map(x => `<div class="st-row"><span class="grow"><b>${esc(x.details)}</b><br><small>${esc(DEPTS[x.dept] || x.dept)} · ${esc(x.location)} · ${esc(ago(x.at))}</small></span></div>`).join('') : '<div class="st-empty">No calls yet.</div>'); };
+  let srvShown = false;
+  const renderServer = () => { const can = isOwner || D.admin; $('cvServerTab').hidden = !can; if (!can) { if (pane === 'server') show('home'); return; }
+    if (srvShown && $('cvServer').contains(document.activeElement)) return; srvShown = true; const cf = D.conf || {};
+    $('cvServer').innerHTML = (isOwner ? `<form class="cv-form" id="cvSetF"><label class="chk"><input type="checkbox" name="on" ${cf.on ? 'checked' : ''}>Civilian economy on</label>
+        <div class="grid3"><label>Starting money<input name="start" type="number" min="0" value="${cf.start}"></label><label>Weekly payment<input name="weekly" type="number" min="0" value="${cf.weekly}"></label><label>Late fee (%)<input name="late" type="number" min="0" max="100" value="${cf.late}"></label>
+        <label>Registration a week<input name="reg" type="number" min="0" value="${cf.reg}"></label><label>Insurance a week<input name="ins" type="number" min="0" value="${cf.ins}"></label><label>Days to pay<input name="grace" type="number" min="1" max="14" value="${cf.grace}"></label></div>
+        <div class="cv-msg" id="cvSetMsg"></div><button class="btn" type="submit">Save settings</button></form>` : '')
+      + (D.admin && !D.off ? `<form class="cv-form" id="cvGrantF" style="margin-top:22px"><div class="st-h"><span>Give or take money</span></div><div class="grid3"><label>Roblox name<input name="user" maxlength="40" required></label><label>Amount<input name="amount" type="number" placeholder="500 or -200" required></label><label>Note<input name="memo" maxlength="80" placeholder="Optional"></label></div>
+        <div class="cv-msg" id="cvGrantMsg"></div><button class="btn" type="submit">Send</button></form>` : ''); };
+  const render = () => { if (!D) return;
+    if (D.off) { $('cvTopBal').textContent = ''; $('cvSub').textContent = 'Switched off';
+      $('cvHome').innerHTML = `<div class="st-empty">The civilian economy is switched off on this server.${isOwner ? ' Turn it on under Server.' : ''}</div>`; renderServer(); return; }
+    $('cvTopBal').textContent = money(D.balance); renderHome(); renderBills(); renderCars(); renderId(); renderRecord(); renderCall(); renderServer(); };
+
+  // ── actions ──
+  page.addEventListener('click', e => { const pay = e.target.closest('[data-pay]'), st = e.target.closest('[data-stolen]');
+    if (pay) { pay.disabled = true; act('/pay', { id: +pay.dataset.pay }).finally(() => { pay.disabled = false; }); }
+    if (st) { st.disabled = true; act('/stolen', { plate: st.dataset.stolen, on: !!st.dataset.on }).finally(() => { st.disabled = false; }); } });
+  page.addEventListener('change', e => { if (e.target.id === 'cvAuto') act('/autopay', { on: e.target.checked }); });
+  const fields = f => Object.fromEntries(new FormData(f).entries());
+  page.addEventListener('submit', async e => { e.preventDefault(); const f = e.target;
+    if (f.id === 'cvIdF') { await act('/character', fields(f), $('cvIdMsg'), 'Saved. Police see this when they run your name.'); }
+    if (f.id === 'cv911F') { const j = await act('/911', fields(f), $('cv911Msg'), 'Your call is on the dispatch board.'); if (j) { f.location.value = ''; f.details.value = ''; } }
+    if (f.id === 'cvSetF') { const v = fields(f), body = { on: !!v.on }; for (const k of ['start', 'weekly', 'late', 'reg', 'ins', 'grace']) body[k] = +v[k];
+      srvShown = false; await act('/settings', body, $('cvSetMsg'), 'Saved.'); }
+    if (f.id === 'cvGrantF') { const j = await act('/grant', fields(f), $('cvGrantMsg'), 'Done.'); if (j) f.reset(); } });
 })();
 </script>
 <script>
