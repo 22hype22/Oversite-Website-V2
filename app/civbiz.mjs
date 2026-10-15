@@ -297,7 +297,7 @@ const newEntry = (z, t) => { const listings = q("SELECT * FROM civ_items WHERE b
   const li = listings.length && Math.random() < 0.7 ? listings[Math.floor(Math.random() * listings.length)] : null;
   return { t, client: NAMES[Math.floor(Math.random() * NAMES.length)], house: li ? li.name : houseName(), houseItem: li ? li.id : null, n: 1 + Math.floor(Math.random() * 12), place: 'Postal ' + (100 + Math.floor(Math.random() * 900)) }; };
 const boardOf = (z, uid) => { const r = q('SELECT * FROM civ_board WHERE biz_id = ? AND user_id = ?').get(z.id, uid); let B = r && r.day === dayNo() ? JSON.parse(r.tasks) : null;
-  if (!B || B.length !== 3 || B.some(e => !(TASKS[z.kind] || TASKS.Store)[e.t])) { B = pickTasks(z.kind, 3).map(t => newEntry(z, t)); q('INSERT OR REPLACE INTO civ_board (biz_id, user_id, tasks, day) VALUES (?, ?, ?, ?)').run(z.id, uid, JSON.stringify(B), dayNo()); }
+  if (!B || B.length !== Math.min(4, (TASKS[z.kind] || TASKS.Store).length) || B.some(e => !(TASKS[z.kind] || TASKS.Store)[e.t])) { B = pickTasks(z.kind, 4).map(t => newEntry(z, t)); q('INSERT OR REPLACE INTO civ_board (biz_id, user_id, tasks, day) VALUES (?, ?, ?, ?)').run(z.id, uid, JSON.stringify(B), dayNo()); }
   return B; };
 const taskView = (z, e, base) => { const T0 = (TASKS[z.kind] || TASKS.Store)[e.t]; return { title: fillText(T0.title, e), pay: Math.round(base * T0.pay), steps: T0.steps.map(x => ({ do: x.do, what: fillText(x.what, e), game: x.game || null })), far: !!T0.far }; };
 export const takeTask = (c, user, j, pos) => { const z = biz(c.id, j.id); if (!z || !worksAt(z, user.id)) return { error: 'You do not work there.' };
@@ -313,7 +313,7 @@ export const takeTask = (c, user, j, pos) => { const z = biz(c.id, j.id); if (!z
     let p; if (x.to === 'base') p = base; else if (x.to === 'house') p = house || (house = housePos ? { ...housePos, label: e.house } : { ...pickSpot(from, used), label: e.house }); else p = pickSpot(from, used);
     used.add(p.label); from = p; return { x: p.x, z: p.z, label: x.to === 'house' ? e.house : p.label, wait: (x.wait || 0) * 1000, what: fillText(x.what, e) }; });
   q('INSERT INTO civ_jobs (biz_id, user_id, kind, item_id, label, steps, started, step_at, mult, far) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(z.id, user.id, 'task', li ? li.id : null, T(fillText(T0.title, e), 80), JSON.stringify(steps), now(), now(), T0.pay, T0.far ? 1 : 0);
-  B[slot] = newEntry(z, pickTasks(z.kind, 3).find(t => !B.some((o, k) => k !== slot && o.t === t)) ?? e.t); q('UPDATE civ_board SET tasks = ? WHERE biz_id = ? AND user_id = ?').run(JSON.stringify(B), z.id, user.id);
+  B[slot] = newEntry(z, pickTasks(z.kind, 4).find(t => !B.some((o, k) => k !== slot && o.t === t)) ?? e.t); q('UPDATE civ_board SET tasks = ? WHERE biz_id = ? AND user_id = ?').run(JSON.stringify(B), z.id, user.id);
   return { ok: true }; };
 // play the mini-game on the current step: a score from 0 to 1 (half or better passes), or for negotiate, an offer the other side answers
 export const playGame = (c, user, j) => { const jb = myJob(c.id, user.id); if (!jb) return { error: 'You are not on a task.' };
@@ -324,7 +324,7 @@ export const playGame = (c, user, j) => { const jb = myJob(c.id, user.id); if (!
     if (offer <= P.last) { adv(Math.min(1.05, P.last / P.ask)); return { ok: true, result: { accepted: true, price: P.last } }; }
     if (offer <= st.secret.max) { adv(Math.min(1.05, offer / P.ask)); return { ok: true, result: { accepted: true, price: offer } }; }
     P.round++; if (P.round >= P.rounds) { adv(0.3); return { ok: true, result: { walked: true } }; }
-    P.last = Math.min(st.secret.max, Math.round((P.last + (offer - P.last) * (0.35 + Math.random() * 0.2)) / 500) * 500);
+    const u = P.unit || 500; P.last = Math.min(st.secret.max, Math.round((P.last + (offer - P.last) * (0.35 + Math.random() * 0.2)) / u) * u);
     q('UPDATE civ_jobs SET steps = ? WHERE id = ?').run(JSON.stringify(steps), jb.id); return { ok: true, result: { counter: P.last, round: P.round, rounds: P.rounds } }; }
   if (now() - (jb.step_at || jb.started) < (MIN_GAME_MS[st.game] || 3000)) return { error: 'Slow down a little.' };
   const score = Math.max(0, Math.min(1, +j.score || 0)); if (score < 0.5) return { ok: true, result: { retry: true } };

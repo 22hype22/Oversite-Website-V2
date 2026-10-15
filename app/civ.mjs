@@ -254,8 +254,12 @@ export const bizCash = (c, user, j) => { const z = mine(c, user, j.id); if (!z) 
   if (a < 0 && z.balance + a < 0) return { error: `The business only has ${money(z.balance)}.` };
   const m = move(c.id, user.id, -a, 'business', a > 0 ? `Put into ${z.name}` : `Taken from ${z.name}`); if (m.error) return m;
   bizMove(z.id, a, a > 0 ? 'Owner put money in' : 'Owner took money out'); return { ok: true }; };
+// closing pays off any loan from the business account first; the owner covers what the account can't, and gets the rest
 export const closeBiz = (c, user, j) => { const z = mine(c, user, j.id); if (!z) return { error: 'That is not your business.' };
-  if (z.balance) move(c.id, user.id, z.balance, 'business', `Closed ${z.name}`, true);
+  if (String(j.name || '').trim().toLowerCase() !== z.name.trim().toLowerCase()) return { error: `Type ${z.name} to confirm.` };
+  const net = z.balance - (z.loan_left || 0);
+  if (net < 0) { const m = move(c.id, user.id, net, 'business', `Paid off ${z.name}'s loan to close it`); if (m.error) return { error: `Closing pays off the loan first. ${z.name} is ${money(-net)} short and you don't have that much.` }; }
+  else if (net) move(c.id, user.id, net, 'business', `Closed ${z.name}`, true);
   for (const w of q('SELECT user_id FROM civ_staff WHERE biz_id = ?').all(z.id)) note(c.id, w.user_id, `${z.name} closed. You no longer work there.`);
   q('DELETE FROM civ_biz WHERE id = ?').run(z.id); return { ok: true }; };
 export const apply = (c, user, j) => { const z = biz(c.id, j.id); ensure(c, user.id);

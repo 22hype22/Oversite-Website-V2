@@ -18,7 +18,14 @@ export const TASKS = {
     { title: 'Meet {client} about a new home', pay: 1.3, steps: [D('rand', 20, 'Meet {client}'), G('pitch', 'Win {client} over')] },
     { title: 'Sell {house}', pay: 2.4, steps: [D('house', 60, 'Show the buyer {house}'), G('negotiate', 'Agree on a price'), G('paperwork', 'Sign the contract', { form: 'sale' })] },
     { title: 'Take listing photos of {house}', pay: 1.1, steps: [D('house', 15, 'Get to {house}'), G('timing', 'Snap the photos', { hits: 3, verb: 'Snap', look: 'camera' })] },
-    { title: 'Put up a For Sale sign at {house}', pay: 0.8, steps: [D('house', 20, 'Put up the sign')] }],
+    { title: 'Put up a For Sale sign at {house}', pay: 0.8, steps: [D('house', 20, 'Put up the sign')] },
+    { title: 'Host an open house at {house}', pay: 1.5, steps: [D('house', 40, 'Open up {house} for visitors'), G('pitch', 'Answer the visitors’ questions')] },
+    { title: 'Stage {house} for buyers', pay: 1.2, steps: [D('house', 15, 'Get to {house}'), G('sequence', 'Set up the living room', { set: 'stage' })] },
+    { title: 'Appraise {house}', pay: 1.3, steps: [D('house', 25, 'Walk through {house}'), G('paperwork', 'Write up the appraisal', { form: 'appraise' })] },
+    { title: 'Win a new listing from {client}', pay: 1.6, steps: [D('rand', 15, 'Meet {client} at their home'), G('pitch', 'Convince {client} to sell with you', { bank: 'seller' }), G('paperwork', 'Sign the listing agreement', { form: 'listing' })] },
+    { title: 'Rent out {house} to {client}', pay: 1.7, steps: [D('house', 30, 'Show {client} around {house}'), G('negotiate', 'Agree on the rent', { what2: 'rent' }), G('paperwork', 'Sign the lease', { form: 'lease' })] },
+    { title: 'Inspect {house} before closing', pay: 1.2, steps: [D('house', 20, 'Get to {house}'), G('sequence', 'Check the house top to bottom', { set: 'inspect' })] },
+    { title: 'Hand {client} the keys to {house}', pay: 1.4, steps: [D('rand', 10, 'Pick up {client}'), D('house', 20, 'Walk {client} through {house}'), G('paperwork', 'Sign the closing papers', { form: 'closing' })] }],
   Restaurant: [
     { title: 'Cook an order for table {n}', pay: 0.8, steps: [G('sequence', 'Follow the recipe', { set: 'recipe' })] },
     { title: 'Deliver food to {client}', pay: 1.2, steps: [D('base', 15, 'Bag the order'), D('rand', 15, 'Hand it to {client}')] },
@@ -106,6 +113,11 @@ const PITCH = {
     ['“How are the schools?”', 'Show them the ratings for the nearby schools', 'Say kids seem happy around here', 'Say you don’t have kids'],
     ['“Can we move in quickly?”', 'Explain the closing timeline step by step', 'Promise next week without checking', 'Shrug'],
     ['“What’s wrong with the house?”', 'Be upfront about the old roof and the fix', 'Say nothing, it’s perfect', 'Say they’ll find out']],
+  seller: [['“Why should I sell with you?”', 'Show them the homes you sold nearby and how fast', 'Say you’re the best, just trust you', 'Say every agent is the same'],
+    ['“What do you think it’s worth?”', 'Walk through what sold on the street this year', 'Name the biggest number you can', 'Say whatever they want to hear'],
+    ['“What’s your commission?”', 'Explain it up front and what it covers', 'Say you’ll sort that out later', 'Dodge the question'],
+    ['“How long will it take to sell?”', 'Give an honest range for this market', 'Promise it’ll sell in a week', 'Say no idea'],
+    ['“Should I fix anything first?”', 'Point out the cheap fixes that add value', 'Tell them to redo the whole kitchen', 'Say don’t bother']],
   Medical: [['“Is it serious?”', 'Explain calmly what you see and what happens next', 'Say probably not', 'Say you’re not sure, good luck'],
     ['“Will it hurt?”', 'Be honest and explain how you’ll keep it to a minimum', 'Say not at all', 'Say yes, a lot'],
     ['“Do I need the hospital?”', 'Check the signs and explain when they should go', 'Tell them no without checking', 'Tell them to look it up']],
@@ -128,20 +140,27 @@ const PITCH = {
 const SEQ = { recipe: ['Bun', 'Sauce', 'Patty', 'Cheese', 'Lettuce', 'Bun'], shelves: ['Cereal', 'Bread', 'Milk', 'Eggs', 'Juice'], snacks: ['Chips', 'Candy', 'Drinks', 'Jerky', 'Gum'],
   phone: ['Insert SIM', 'Power on', 'Pick language', 'Connect Wi-Fi', 'Sign in', 'Restore backup'], clean: ['Unload', 'Strip', 'Clean barrel', 'Oil', 'Reassemble'],
   outdoors: ['Tents', 'Sleeping bags', 'Rods', 'Boots', 'Lanterns'], feed: ['Chickens', 'Cows', 'Pigs', 'Horses', 'Water troughs'], popcorn: ['Kernels', 'Oil', 'Heat', 'Butter', 'Salt'],
-  oil: ['Lift the car', 'Drain the oil', 'New filter', 'Add oil', 'Check the level'], vault: ['$100s', '$50s', '$20s', '$10s', 'Coins'], news: ['Breaking news', 'Local', 'Weather', 'Sports', 'Goodnight'] };
+  oil: ['Lift the car', 'Drain the oil', 'New filter', 'Add oil', 'Check the level'], vault: ['$100s', '$50s', '$20s', '$10s', 'Coins'], news: ['Breaking news', 'Local', 'Weather', 'Sports', 'Goodnight'],
+  stage: ['Rug', 'Sofa', 'Coffee table', 'Lamp', 'Plants', 'Art'], inspect: ['Roof', 'Attic', 'Wiring', 'Plumbing', 'Foundation'] };
 // paperwork: which fields the form has, and the form's own heading
 const FORMS = { sale: ['Purchase agreement', ['Client', 'Address', 'Price', 'Closing date']], inspect: ['Health inspection', ['Inspector', 'Kitchen', 'Fridge temp', 'Result']],
   transfer: ['Firearm transfer', ['Buyer', 'Item', 'ID number', 'Result']], impound: ['Impound notice', ['Owner', 'Plate', 'Location', 'Fee']],
   incident: ['Incident report', ['Reported by', 'Location', 'Time', 'What happened']], intake: ['Patient intake', ['Patient', 'Age', 'Complaint', 'Allergies']],
-  contract: ['Agreement', ['Client', 'Other party', 'Amount', 'Signed on']], account: ['New account', ['Customer', 'Address', 'Account type', 'Opening deposit']] };
+  contract: ['Agreement', ['Client', 'Other party', 'Amount', 'Signed on']], account: ['New account', ['Customer', 'Address', 'Account type', 'Opening deposit']],
+  appraise: ['Appraisal report', ['Address', 'Bedrooms', 'Condition', 'Value']], listing: ['Listing agreement', ['Seller', 'Address', 'List price', 'Commission']],
+  lease: ['Residential lease', ['Tenant', 'Address', 'Rent a week', 'Move-in']], closing: ['Closing statement', ['Buyer', 'Address', 'Price', 'Keys handed over']] };
 const VALS = { Client: () => pick(NAMES), Buyer: () => pick(NAMES), Owner: () => pick(NAMES), Customer: () => pick(NAMES), Patient: () => pick(NAMES), 'Reported by': () => pick(NAMES), 'Other party': () => pick(NAMES),
   Inspector: () => pick(NAMES), Address: () => houseName(), Location: () => 'Postal ' + (100 + Math.floor(Math.random() * 1100)), Price: () => '$' + (Math.floor(80 + Math.random() * 420) * 1000).toLocaleString('en-US'),
   Amount: () => '$' + (Math.floor(2 + Math.random() * 98) * 1000).toLocaleString('en-US'), Fee: () => '$' + (150 + Math.floor(Math.random() * 6) * 50), 'Opening deposit': () => '$' + (100 + Math.floor(Math.random() * 40) * 50),
   'Closing date': () => pick(['June 4', 'June 12', 'July 1', 'July 19', 'Aug 8', 'Sept 2']), 'Signed on': () => pick(['June 4', 'June 12', 'July 1', 'July 19']), Time: () => pick(['9:15 PM', '11:40 PM', '2:05 AM', '6:30 PM']),
   Kitchen: () => pick(['Clean', 'Needs work']), 'Fridge temp': () => pick(['36°F', '38°F', '41°F', '45°F']), Result: () => pick(['Pass', 'Fail', 'Approved', 'Denied']), Item: () => pick(['Pistol', 'Hunting rifle', 'Shotgun']),
   'ID number': () => String(100000 + Math.floor(Math.random() * 899999)), Plate: () => pick(['LC4-219', 'RTX 882', '7KDA021', 'MOV 551']), 'What happened': () => pick(['Fight in the lobby', 'Broken window', 'Trespassing', 'Lost child']),
-  Age: () => String(18 + Math.floor(Math.random() * 60)), Complaint: () => pick(['Sprained ankle', 'Fever', 'Cut hand', 'Headache']), Allergies: () => pick(['None', 'Penicillin', 'Peanuts']), 'Account type': () => pick(['Checking', 'Savings']) };
-const PEOPLE = new Set(['Client', 'Customer', 'Patient', 'Buyer', 'Owner']);
+  Age: () => String(18 + Math.floor(Math.random() * 60)), Complaint: () => pick(['Sprained ankle', 'Fever', 'Cut hand', 'Headache']), Allergies: () => pick(['None', 'Penicillin', 'Peanuts']), 'Account type': () => pick(['Checking', 'Savings']),
+  Seller: () => pick(NAMES), Tenant: () => pick(NAMES), Bedrooms: () => String(1 + Math.floor(Math.random() * 5)), Condition: () => pick(['Excellent', 'Good', 'Fair', 'Needs work']),
+  Value: () => '$' + (Math.floor(80 + Math.random() * 420) * 1000).toLocaleString('en-US'), 'List price': () => '$' + (Math.floor(80 + Math.random() * 420) * 1000).toLocaleString('en-US'),
+  Commission: () => pick(['2%', '2.5%', '3%', '4%']), 'Rent a week': () => '$' + ((30 + Math.floor(Math.random() * 120)) * 50).toLocaleString('en-US'), 'Move-in': () => pick(['June 1', 'June 15', 'July 1', 'Aug 1']),
+  'Keys handed over': () => pick(['Yes, 2 sets', 'Yes, 3 sets', 'Yes, 1 set']) };
+const PEOPLE = new Set(['Client', 'Customer', 'Patient', 'Buyer', 'Owner', 'Seller', 'Tenant']);
 // each field shows the right value among three wrong ones
 const choices = (k, right) => { const out = new Set([right]); for (let i = 0; i < 20 && out.size < 4; i++) out.add((VALS[k] || (() => right))()); return shuffle([...out]); };
 
@@ -151,11 +170,12 @@ export const makeGame = (st, kind, ctx) => {
   if (st.game === 'paperwork') { const [title, keys] = FORMS[st.form] || FORMS.sale;
     const fields = keys.map(k => { const v = PEOPLE.has(k) ? ctx.client : k === 'Address' && ctx.house ? ctx.house : (VALS[k] || (() => '—'))(); return { k, v, opts: choices(k, v) }; });
     return { game: 'paperwork', what: fill(st.what), p: { title, fields, ref: 'No. ' + (10000 + Math.floor(Math.random() * 89999)) } }; }
-  if (st.game === 'pitch') { const bank = PITCH[kind] || PITCH._; const qs = shuffle(bank).slice(0, 3).map(([q, best, ok, bad]) => ({ q: fill(q), a: shuffle([[best, 1], [ok, .5], [bad, 0]]) }));
+  if (st.game === 'pitch') { const bank = PITCH[st.bank] || PITCH[kind] || PITCH._; const qs = shuffle(bank).slice(0, 3).map(([q, best, ok, bad]) => ({ q: fill(q), a: shuffle([[best, 1], [ok, .5], [bad, 0]]) }));
     return { game: 'pitch', what: fill(st.what), p: { qs, who: ctx.client } }; }
-  if (st.game === 'negotiate') { const ask = st.what2 === 'settlement' ? (20 + Math.floor(Math.random() * 60)) * 1000 : (120 + Math.floor(Math.random() * 380)) * 1000;
-    const max = Math.round(ask * (0.88 + Math.random() * 0.14) / 500) * 500, open = Math.round(ask * (0.7 + Math.random() * 0.1) / 500) * 500;
-    return { game: 'negotiate', what: fill(st.what), p: { ask, open, round: 0, rounds: 4, last: open, who: ctx.client, label: st.what2 === 'settlement' ? 'settlement' : 'price' }, secret: { max } }; }
+  if (st.game === 'negotiate') { const rent = st.what2 === 'rent', u = rent ? 50 : 500;
+    const ask = st.what2 === 'settlement' ? (20 + Math.floor(Math.random() * 60)) * 1000 : rent ? (40 + Math.floor(Math.random() * 110)) * 50 : (120 + Math.floor(Math.random() * 380)) * 1000;
+    const max = Math.round(ask * (0.88 + Math.random() * 0.14) / u) * u, open = Math.round(ask * (0.7 + Math.random() * 0.1) / u) * u;
+    return { game: 'negotiate', what: fill(st.what), p: { ask, open, round: 0, rounds: 4, last: open, unit: u, who: ctx.client, label: st.what2 === 'settlement' ? 'settlement' : rent ? 'rent' : 'price' }, secret: { max } }; }
   if (st.game === 'timing') return { game: 'timing', what: fill(st.what), p: { hits: st.hits || 3, verb: st.verb || 'Go', look: st.look || 'gauge', speed: 0.9 + Math.random() * 0.5 } };
   if (st.game === 'sequence') return { game: 'sequence', what: fill(st.what), p: { items: SEQ[st.set] || SEQ.shelves } };
   return { game: st.game, what: fill(st.what), p: {} }; };

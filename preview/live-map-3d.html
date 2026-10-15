@@ -1192,6 +1192,21 @@
   .g-stamp{position:absolute;right:22px;top:46%;padding:6px 14px;border:3px solid #C8372D;border-radius:6px;color:#C8372D;font:700 26px/1 "Special Elite",ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;transform:rotate(-12deg);opacity:.9;mix-blend-mode:multiply;animation:gStamp .38s cubic-bezier(.2,1.6,.4,1);pointer-events:none}
   .g-stamp.green{border-color:#2E8B57;color:#2E8B57;mix-blend-mode:normal;background:rgba(10,12,12,.55)}
   @keyframes gStamp{from{transform:rotate(-12deg) scale(2.2);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:.9}}
+  /* closing a business: a notice of closure */
+  .cl-win{width:min(500px,100%)}.pw-paper.cl-paper{background:#F3EEDF;padding-bottom:18px}.cl-paper .g-stamp{top:auto;bottom:70px;right:28px}
+  .cl-biz{margin:10px 0 2px}.cl-biz b{display:block;font:22px/1.15 "Special Elite",ui-monospace,monospace}.cl-biz span{font:600 10px/1.4 system-ui;letter-spacing:.08em;text-transform:uppercase;color:#6b6556}
+  .cl-sec{margin:14px 0 6px;padding-bottom:5px;border-bottom:1px solid #d8d1bd;font:600 9.5px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#6b6556}
+  .cl-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:3px 0;font:14px/1.3 "Special Elite",ui-monospace,monospace}.cl-row b{font-weight:400;font-variant-numeric:tabular-nums}.cl-row.neg b{color:#B3362C}
+  .cl-row.tot{margin-top:5px;padding-top:7px;border-top:1.5px solid #1d1f24}.cl-row.tot span{font-weight:700}.cl-row.tot b{font-size:18px}
+  .cl-staff{display:flex;flex-wrap:wrap;gap:6px;margin:0}.cl-staff span{padding:5px 8px;border:1px dashed #b9b19c;border-radius:4px;font:13px/1 "Special Elite",ui-monospace,monospace;text-decoration:line-through;text-decoration-color:rgba(179,54,44,.75)}
+  .cl-staff i,.cl-gone{margin:0;font:13px/1.45 "Special Elite",ui-monospace,monospace;font-style:normal;color:#3a3d44}
+  .cl-sign{display:block;margin-top:18px}.cl-sign span{font:600 9.5px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;color:#6b6556}.cl-sign span b{letter-spacing:0;text-transform:none;font-size:11px;color:#1d1f24}
+  .cl-sign input{display:block;width:100%;margin-top:4px;padding:2px 2px 4px;font:28px/1.1 Caveat,"Segoe Print","Bradley Hand",cursive;color:#1D3B8F;background:transparent;border:0;border-bottom:1.5px solid #1d1f24;border-radius:0;outline:none}
+  .cl-sign input:focus-visible{box-shadow:0 1.5px 0 #1D3B8F}.cl-sign input:disabled{opacity:1}
+  .cl-acts{gap:8px}.cl-go{font:inherit;font-size:13px;font-weight:600;color:#fff;background:#B3362C;border:0;border-radius:9px;padding:9px 14px;cursor:pointer;transition:background-color .15s ease,transform .1s ease}
+  .cl-go:disabled{background:#33292a;color:#8d7f7d;cursor:not-allowed}.cl-go:not(:disabled):active{transform:scale(.97)}
+  @media (hover:hover) and (pointer:fine){.cl-go:not(:disabled):hover{background:#C8372D}}
+  @media (prefers-reduced-motion:reduce){.cl-go{transition:background-color .15s ease}}
   /* paperwork: a manila file and a typed form */
   .pw{display:grid;grid-template-columns:180px 1fr;gap:14px;align-items:start}
   .pw-file{position:relative;padding:16px 12px 12px;border-radius:4px 10px 10px 10px;background:#C9A15E;color:#2b2112;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);transform:rotate(-1.2deg)}
@@ -1601,6 +1616,7 @@
     <div class="screen">
       <div class="sbar"><span id="cvClock">00:00</span><span class="sb-mid" id="cvTop">Civilian</span><span class="sb-r" id="cvTopBal"></span></div>
       <div class="cv-game" id="cvGame" hidden></div>
+      <div class="cv-game" id="cvShut" hidden></div>
       <div class="tbody">
         <nav class="tside" role="tablist" aria-label="Civilian apps" id="cvTabs">
           <div class="crest" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Civilian</div>
@@ -4439,18 +4455,18 @@ body.voice-snap .stage{transition:none!important}
       showMood(); ask(); }
     // negotiate: counter their offer; push too hard and they walk
     if (st.game === 'negotiate') { const who = P.who || 'The buyer', first = who.split(' ')[0];
-      gbox.innerHTML = frame(st, 'g-ng', `<div class="ng-table"><div class="ng-tag ask"><small>Asking</small><b>${money(P.ask)}</b></div><div class="ng-tag them"><small>${esc(first)} offers</small><b class="ng-last">${money(P.last)}</b></div></div>
+      gbox.innerHTML = frame(st, 'g-ng', `<div class="ng-table"><div class="ng-tag ask"><small>Asking${P.label === 'rent' ? ' a week' : ''}</small><b>${money(P.ask)}</b></div><div class="ng-tag them"><small>${esc(first)} offers</small><b class="ng-last">${money(P.last)}</b></div></div>
         <div class="ng-pat"><span>Patience</span>${'<i></i>'.repeat(P.rounds)}</div><div class="pt-chat ng-chat"></div>
-        <div class="ng-ctl"><b class="ng-v"></b><input type="range" step="500" aria-label="Your price"><button class="tk-go" data-gsubmit="1">Counter</button></div>`);
-      const chat = gbox.querySelector('.ng-chat'), r = gbox.querySelector('[type=range]'), v = gbox.querySelector('.ng-v'), say = (t, me) => { const b = document.createElement('p'); b.className = 'pt-b' + (me ? ' me' : ''); b.textContent = t; chat.appendChild(b); chat.scrollTop = chat.scrollHeight; };
-      const sync = () => { r.min = P.last; r.max = Math.round(P.ask * 1.1); if (+r.value < P.last) r.value = Math.round((P.last + P.ask) / 2 / 500) * 500; v.textContent = money(+r.value); gbox.querySelector('.ng-last').textContent = money(P.last); gbox.querySelectorAll('.ng-pat i').forEach((i, n) => { i.className = n < P.rounds - P.round ? 'on' : ''; }); };
-      r.value = Math.round((P.last + P.ask) / 2 / 500) * 500; r.oninput = sync; sync(); say(P.label === 'settlement' ? `We’re prepared to settle at ${money(P.last)}.` : `We love it. We could do ${money(P.last)}.`);
-      gbox.querySelector('[data-gsubmit]').onclick = async e => { const btn = e.currentTarget; btn.disabled = true; say(`How about ${money(+r.value)}?`, true);
+        <div class="ng-ctl"><b class="ng-v"></b><input type="range" step="${P.unit || 500}" aria-label="Your price"><button class="tk-go" data-gsubmit="1">Counter</button></div>`);
+      const U = P.unit || 500, wk = P.label === 'rent' ? ' a week' : '', chat = gbox.querySelector('.ng-chat'), r = gbox.querySelector('[type=range]'), v = gbox.querySelector('.ng-v'), say = (t, me) => { const b = document.createElement('p'); b.className = 'pt-b' + (me ? ' me' : ''); b.textContent = t; chat.appendChild(b); chat.scrollTop = chat.scrollHeight; };
+      const sync = () => { r.min = P.last; r.max = Math.round(P.ask * 1.1); if (+r.value < P.last) r.value = Math.round((P.last + P.ask) / 2 / U) * U; v.textContent = money(+r.value) + wk; gbox.querySelector('.ng-last').textContent = money(P.last); gbox.querySelectorAll('.ng-pat i').forEach((i, n) => { i.className = n < P.rounds - P.round ? 'on' : ''; }); };
+      r.value = Math.round((P.last + P.ask) / 2 / U) * U; r.oninput = sync; sync(); say(P.label === 'settlement' ? `We’re prepared to settle at ${money(P.last)}.` : P.label === 'rent' ? `We love the place. We could do ${money(P.last)} a week.` : `We love it. We could do ${money(P.last)}.`);
+      gbox.querySelector('[data-gsubmit]').onclick = async e => { const btn = e.currentTarget; btn.disabled = true; say(`How about ${money(+r.value)}${wk}?`, true);
         hold = Date.now() + 3200; const res = await post('/biz/game', { offer: +r.value }).catch(x => ({ error: x.message })); btn.disabled = false; if (res.error) return gmsg(res.error, true); if (res.state) { D = res.state; render(); } const o = res.result || {};
         await new Promise(x => setTimeout(x, 600));
-        if (o.accepted) { say(pickOne(['Deal.', 'You’ve got a deal.', 'Alright, let’s do it.'])); stamp(gbox.querySelector('.ng-table'), P.label === 'settlement' ? 'Settled' : 'Sold', 'green'); finished(`Deal at ${money(o.price)}.`); }
+        if (o.accepted) { say(pickOne(['Deal.', 'You’ve got a deal.', 'Alright, let’s do it.'])); stamp(gbox.querySelector('.ng-table'), P.label === 'settlement' ? 'Settled' : P.label === 'rent' ? 'Leased' : 'Sold', 'green'); finished(`Deal at ${money(o.price)}${wk}.`); }
         else if (o.walked) { say('We’re going to keep looking. Thanks for your time.'); finished('They walked away.', 'You still get something for the effort.'); }
-        else { P.last = o.counter; P.round = o.round; sync(); say(pickOne([`We can stretch to ${money(o.counter)}.`, `Best I can do is ${money(o.counter)}.`, `Meet me at ${money(o.counter)}?`])); } }; }
+        else { P.last = o.counter; P.round = o.round; sync(); say(pickOne([`We can stretch to ${money(o.counter)}${wk}.`, `Best I can do is ${money(o.counter)}${wk}.`, `Meet me at ${money(o.counter)}${wk}?`])); } }; }
     // steady hands: hit while the needle is in the green (a torque gauge), or while the shot is sharp (a camera)
     if (st.game === 'timing') { const cam = P.look === 'camera';
       gbox.innerHTML = frame(st, 'g-tm' + (cam ? ' g-cam' : ''), (cam ? `<div class="tm-vf"><div class="tm-scene"><svg viewBox="0 0 200 110" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M0 92h200v18H0z" fill="#26323a"/><path d="M40 92V55l35-28 35 28v37z" fill="#3c4a54"/><path d="M110 92V62h55v30z" fill="#33414a"/><path d="M60 92V70h14v22zM88 66h12v10H88zM122 70h12v9h-12zM144 70h12v9h-12z" fill="#e8b33a" opacity=".55"/><circle cx="168" cy="22" r="9" fill="#f1e3b8" opacity=".6"/></svg></div><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="tm-flash"></div></div>`
@@ -4545,13 +4561,41 @@ body.voice-snap .stage{transition:none!important}
   const BST = { Active: 'good', Suspended: 'bad', Held: 'bad' }, BSTT = { Active: 'Licensed', Suspended: 'License overdue', Held: 'On hold by staff' };
   const REQL = [['warrants', 'No active warrants'], ['felony', 'No felony convictions'], ['license', "Driver's license on file"], ['debt', 'No overdue bills']];
   const bizTab = {};
+  // ── closing a business: a notice of closure that shows where the money goes, signed by typing the name ──
+  const clBox = $('cvShut'); let clFrom = null, clDone = false;
+  const clOff = () => { clBox.hidden = true; clBox.innerHTML = ''; document.removeEventListener('keydown', clKey); if (clFrom?.isConnected) clFrom.focus(); };
+  const clKey = e => { if (e.key === 'Escape' && !clDone) clOff(); };
+  clBox.addEventListener('click', e => { if (!clDone && (e.target === clBox || e.target.closest('[data-clx]'))) clOff(); });
+  const openClose = (id, from) => { const z = (D.owned || []).find(x => x.id === id); if (!z) return;
+    const X = (D.bizx || {})[id] || {}, K = (D.btypes || {})[z.kind] || { menu: 'Menu' }, loan = (X.loan || {}).left || 0, net = z.balance - loan, n = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
+    const row = (l, v, cls = '') => `<div class="cl-row ${cls}"><span>${l}</span><b>${v}</b></div>`;
+    const gone = [(X.items || []).length ? n(X.items.length, K.menu.toLowerCase() === 'listings' ? 'listing' : 'item') : '', X.ad ? 'the ad in Shops (no refund)' : '', (X.reviews || []).length ? n(X.reviews.length, 'review') : '',
+      z.apps.length ? n(z.apps.length, 'open application') : '', 'its sales and account history'].filter(Boolean);
+    clFrom = from; clDone = false; clBox.hidden = false;
+    clBox.innerHTML = `<div class="g-win cl-win" role="dialog" aria-modal="true" aria-labelledby="clT"><header><span>Close business</span><b id="clT">This can’t be undone</b></header>
+      <div class="pw-paper cl-paper"><div class="pw-head"><small>Liberty County business registry</small><b>Notice of closure</b><i>No. ${String(id).padStart(5, '0')}</i></div>
+        <div class="cl-biz"><b>${esc(z.name)}</b><span>${esc(z.kind)}${z.address ? ' · ' + esc(z.address) : ''}</span></div>
+        <div class="cl-sec">Final accounts</div>${row('Business account', money(z.balance))}${loan ? row('Loan paid off', '−' + money(loan), 'neg') : ''}
+        ${row(net >= 0 ? 'Paid to you' : 'You pay to close', money(Math.abs(net)), 'tot' + (net < 0 ? ' neg' : ''))}
+        <div class="cl-sec">Staff let go</div><p class="cl-staff">${z.staff.length ? z.staff.map(w => `<span>${esc(w.name || w.who)}</span>`).join('') : '<i>No one on the books.</i>'}</p>
+        <div class="cl-sec">Gone for good</div><p class="cl-gone">${esc(gone.join(', ').replace(/, ([^,]*)$/, ' and $1').replace(/^./, c => c.toUpperCase()))}.</p>
+        <label class="cl-sign"><span>Sign by typing <b>${esc(z.name)}</b></span><input autocomplete="off" spellcheck="false" maxlength="60" aria-label="Type ${esc(z.name)} to confirm"></label></div>
+      <p class="g-msg" role="status"></p><div class="g-acts cl-acts"><button class="st-btn" data-clx="1">Keep it open</button><button class="cl-go" disabled>Close ${esc(z.name)}</button></div></div>`;
+    const inp = clBox.querySelector('.cl-sign input'), go = clBox.querySelector('.cl-go'), msg = clBox.querySelector('.g-msg'), ok = () => inp.value.trim().toLowerCase() === z.name.trim().toLowerCase();
+    inp.oninput = () => { go.disabled = !ok(); }; inp.onkeydown = e => { if (e.key === 'Enter' && ok()) go.click(); };
+    go.onclick = async () => { go.disabled = true; go.textContent = 'Closing…'; msg.textContent = ''; msg.className = 'g-msg';
+      try { const j = await post('/biz/close', { id, name: inp.value }); clDone = true; inp.disabled = true; stamp(clBox.querySelector('.cl-paper'), 'Closed');
+        clBox.querySelector('.cl-acts').innerHTML = ''; msg.className = 'g-msg ok'; msg.textContent = net > 0 ? `${money(net)} is in your account.` : net < 0 ? `${money(-net)} came out of your account to clear the loan.` : `${z.name} is closed.`;
+        if (j.state) { D = j.state; render(); } setTimeout(() => { clDone = false; clOff(); }, 1800); }
+      catch (e) { msg.className = 'g-msg bad'; msg.textContent = e.message; go.textContent = `Close ${z.name}`; go.disabled = !ok(); } };
+    document.addEventListener('keydown', clKey); inp.focus(); };
   const renderBiz = () => { const O = D.owned || [], napps = O.reduce((n, z) => n + z.apps.length + (((D.queue || {})[z.id] || {}).pending || []).length, 0); $('cvBizN').textContent = napps; $('cvBizN').hidden = !napps;
     if (busy('cvBiz')) return; const cf = D.conf || {}, kinds = D.kinds || [];
     const L = D.limits || {}, COLS = D.colors || [];
-    const one = z => { const X = (D.bizx || {})[z.id] || { items: [], onShift: [], sales: [], loan: {}, places: [], reviews: [] }, own = z.role === 'owner', prem = !!X.prem, max = prem ? L.itemsPrem : L.items, I = X.insights, Q = (D.queue || {})[z.id] || { pending: [] }, G = gigOf(z.kind);
+    const one = z => { const X = (D.bizx || {})[z.id] || { items: [], onShift: [], sales: [], loan: {}, places: [], reviews: [] }, own = z.role === 'owner', prem = !!X.prem, max = prem ? L.itemsPrem : L.items, I = X.insights, Q = (D.queue || {})[z.id] || { pending: [] };
       const K = (D.btypes || {})[z.kind] || (D.btypes || {}).Other || { menu: 'Menu', kinds: ['Product', 'Service'], ex: [] }, PT = D.ptypes || ['House'];
-      const TABS = [['home', 'Overview'], ['menu', K.menu], ['staff', 'Staff', z.apps.length], ['req', 'Requests', Q.pending.length], ['grow', 'Grow'], ...(own ? [['set', 'Settings']] : [])];
-      const tab = TABS.some(t => t[0] === bizTab[z.id]) ? bizTab[z.id] : 'home';
+      const TABS = [['tasks', 'Tasks'], ['home', 'Overview'], ['menu', K.menu], ['staff', 'Staff', z.apps.length], ['req', 'Requests', Q.pending.length], ['grow', 'Grow'], ...(own ? [['set', 'Settings']] : [])];
+      const tab = TABS.some(t => t[0] === bizTab[z.id]) ? bizTab[z.id] : 'tasks';
       const staffRow = w => { const lockedMgr = w.manager && !own;
         return `<div class="st-row" style="flex-wrap:wrap"><span class="grow"><b>${esc(w.name || w.who)}</b>${w.manager ? ' ' + pill('Manager') : ''}<br><small>@${esc(w.who)} · since ${esc(day(w.hired))}</small></span>
         ${lockedMgr ? '<small style="color:var(--faint)">Only the owner can change a manager</small>' : `<span class="cv-inl cv-lab" style="margin:0;flex:1 1 100%" data-user="${w.user}"><label>Title<input data-f="title" value="${esc(w.title)}" maxlength="40"></label><label>A week<input data-f="wage" type="number" min="0" value="${w.wage}"></label><label>An hour on shift<input data-f="hourly" type="number" min="0" value="${w.hourly || 0}"></label>
@@ -4563,15 +4607,16 @@ body.voice-snap .stage{transition:none!important}
       const itemRow = i => `<div class="cv-item"><div class="cv-inl" data-item="${i.id}"><input data-f="name" value="${esc(i.name)}" maxlength="40" aria-label="Name"><input data-f="price" type="number" min="1" value="${i.price}" aria-label="${i.kind === 'Listing' && i.deal === 'Rent' ? 'Rent a week' : 'Price'}" style="flex:0 1 100px">${K.kinds.length > 1 ? kindSel(i.kind) : `<input type="hidden" data-f="kind" value="${i.kind}">`}${i.kind === 'Listing' ? listingFields(i) : ''}<input data-f="about" value="${esc(i.about)}" maxlength="100" placeholder="Description" aria-label="Description"><label class="chk"><input type="checkbox" data-f="live"${i.live ? ' checked' : ''}>Listed</label><button class="st-btn" data-itemsave="${i.id}">Save</button><button class="st-btn" data-itemdel="${i.id}">Remove</button></div>
         ${i.kind === 'Listing' ? `<div class="cv-spot"><small>${i.pos ? 'House location set (' + esc(i.pos.label || 'saved') + ')' : 'No location yet: stand at the house in game, then press'}</small><button class="st-btn" data-spot="${i.id}">${i.pos ? 'Move it to where I am' : 'Set location here'}</button></div>` : ''}</div>`;
       let body = '';
+      if (tab === 'tasks') body = `<p style="margin:0">Everyone who works here, you included, gets their own board of tasks each in-game day. Each one pays whoever does it about ${money(D.showpay || 0)} and the business half that${K.kinds.includes('Listing') ? '. Houses you list with a location turn up in the tasks' : ''}.</p>${taskBoard(z.id, z.kind)}`;
       if (tab === 'home') body = `<div class="facts"><span>Business account<b>${money(z.balance)}</b></span><span>Staff<b>${z.staff.length}</b></span><span>Wages a week<b>${money(z.staff.reduce((n, w) => n + w.wage, 0))}</b></span>${cf.bizlic ? `<span>License a week<b>${money(cf.bizlic)}</b></span>` : ''}</div>
-        <div class="cv-how"><b>How ${esc(z.name)} makes money</b><ul><li>Staff clock in and do <b>${esc(plural(G.name).toLowerCase())}</b> in game (Work tab). Each pays them ${money(D.showpay || 0)} and the business ${money(Math.round((D.showpay || 0) / 2))}.</li>
+        <div class="cv-how"><b>How ${esc(z.name)} makes money</b><ul><li>Everyone on shift takes tasks from the <b>Tasks</b> tab: drives across the map, paperwork, deals and mini-games. Each pays them about ${money(D.showpay || 0)} and the business about ${money(Math.round((D.showpay || 0) / 2))}.</li>
           <li>${K.kinds.includes('Listing') ? 'Customers request viewings and make offers on your listings; you accept and bill them.' : K.kinds[0] === 'Product' ? 'Customers buy from your ' + esc(K.menu.toLowerCase()) + ' in Shops while someone is on shift.' : 'Customers send requests for your ' + esc(K.menu.toLowerCase()) + '; you accept and bill them.'}</li><li>You can bill anyone directly under Requests.</li></ul></div>
         <div class="cv-sub">On shift now</div><div class="st-row"><span class="grow">${X.onShift.length ? X.onShift.map(x => `<b>${esc(x.who)}</b> <small>${dur(Date.now() - x.start)}</small>`).join(', ') : '<small>Nobody. The business is closed until someone clocks in.</small>'}</span>${clockBtn(z.id)}</div>
         <div class="cv-spot"><small>Business location: ${X.office ? esc(X.office.label || 'set') : 'not set. Jobs start and end where you start them'}</small><button class="st-btn" data-office="${z.id}">Set to where I'm standing</button></div>
         ${own ? `<div class="cv-sub">Business account</div><div class="cv-inl"><input data-f="cash" type="number" min="1" placeholder="Amount"><button class="st-btn" data-cash="in">Put money in</button><button class="st-btn" data-cash="out">Take money out</button></div>` : ''}
         ${X.sales.length ? '<div class="cv-sub">Recent sales</div>' + X.sales.map(x => `<div class="st-row"><span class="grow"><b>${esc(x.item)}${x.qty > 1 ? ' ×' + x.qty : ''}</b><br><small>${esc(x.who)} · ${esc(when(x.at))}</small></span><span class="cv-amt in">+${money(x.amount)}</span></div>`).join('') : ''}
         ${own && z.ledger.length ? `<details class="cv-more"><summary>Account history</summary>` + z.ledger.map(l => `<div class="st-row"><span class="grow"><b>${esc(l.memo)}</b><br><small>${esc(when(l.at))}</small></span><span class="cv-amt ${l.amount > 0 ? 'in' : ''}">${l.amount > 0 ? '+' : ''}${money(l.amount)}</span></div>`).join('') + '</details>' : ''}`;
-      if (tab === 'menu') body = `<p style="margin:0 0 6px">${K.kinds.includes('Listing') ? 'Your listings: homes you sell or rent. Customers request a viewing or make an offer in Shops. Set where each house is so staff can do showings.' : K.kinds[0] === 'Product' ? 'What you sell. Products are bought in Shops while someone is on shift; services are requests you accept and bill.' : 'What you offer. Customers send a request in Shops; you accept it and bill them.'} ${X.items.length} of ${max}.</p>
+      if (tab === 'menu') body = `<p style="margin:0 0 6px">${K.kinds.includes('Listing') ? 'Your listings: homes you sell or rent. Customers request a viewing or make an offer in Shops. Set where each house is: houses with a location turn up in your tasks, so the showings, open houses, photos and sales happen at the real house.' : K.kinds[0] === 'Product' ? 'What you sell. Products are bought in Shops while someone is on shift; services are requests you accept and bill.' : 'What you offer. Customers send a request in Shops; you accept it and bill them.'} ${X.items.length} of ${max}.</p>
         ${X.items.map(itemRow).join('')}
         ${X.items.length < max ? `<div class="cv-item cv-add"><div class="cv-inl" data-item="0"><input data-f="name" maxlength="40" placeholder="${K.kinds[0] === 'Listing' ? 'New listing, like 12 Maple Street' : 'New ' + K.kinds[0].toLowerCase() + (K.ex[0] ? ', like ' + esc(K.ex[0]) : '')}"><input data-f="price" type="number" min="1" placeholder="Price" style="flex:0 1 100px">${K.kinds.length > 1 ? kindSel(K.kinds[0]) : `<input type="hidden" data-f="kind" value="${K.kinds[0]}">`}${K.kinds[0] === 'Listing' ? listingFields({}) : ''}<input data-f="about" maxlength="100" placeholder="Description (optional)"><button class="st-btn" data-itemadd="${z.id}">Add</button></div>
           ${K.ex.length ? `<p style="margin:6px 0 0">Ideas: ${K.ex.map(x => `<button type="button" class="cv-idea" data-idea="${esc(x)}">${esc(x)}</button>`).join(' ')}</p>` : ''}</div>` : `<p>That's the most you can list.${prem ? '' : ` Premium raises it to ${L.itemsPrem}.`}</p>`}`;
@@ -4598,7 +4643,7 @@ body.voice-snap .stage{transition:none!important}
       return `<div class="cv-home mine cv-bizcard" data-biz="${z.id}"${prem && X.color ? ` style="border-left:3px solid ${esc(X.color)}"` : ''}><h3>${esc(z.name)} ${pill(BSTT[z.status] || z.status, BST[z.status])}${X.onShift.length ? pill('Open', 'good') : pill('Closed')}${own ? '' : pill('You manage it')}${prem ? '<span class="cv-pb">Premium</span>' : ''}</h3><p>${esc(z.kind)}${z.address ? ' · ' + esc(z.address) : ''}${own ? '' : ' · owned by @' + esc(z.owner)}</p>
         <div class="cv-btabs" role="tablist">${TABS.map(([k, l, n]) => `<button type="button" role="tab" data-bt="${z.id}:${k}" aria-selected="${k === tab}">${esc(l)}${n ? `<i>${n}</i>` : ''}</button>`).join('')}</div><div class="cv-bbody">${body}</div></div>`; };
     const ownN = O.filter(z => z.role === 'owner').length, maxBiz = D.prem && (D.prem.server || D.prem.me) ? L.bizPrem : L.biz;
-    $('cvBiz').innerHTML = shiftBar() + (O.length ? '' : `<div class="cv-hello"><b>Run your own business</b><p>Pick a type: a restaurant, a taxi company, a tow yard, a real estate agency and more. Each comes with its own job your staff do in game, a ${'menu'} customers buy from in Shops, and money coming in. Hire people from the job board and grow it.</p></div>`)
+    $('cvBiz').innerHTML = shiftBar() + (O.length ? '' : `<div class="cv-hello"><b>Run your own business</b><p>Pick a type: a restaurant, a taxi company, a tow yard, a real estate agency and more. Each comes with its own tasks and mini-games you and your staff do in game, a ${'menu'} customers buy from in Shops, and money coming in. Hire people from the job board and grow it.</p></div>`)
       + O.map(one).join('') + (ownN < maxBiz ? `<details class="cv-more"${O.length ? '' : ' open'} style="margin-top:${O.length ? 16 : 0}px"><summary>Register a ${O.length ? 'new ' : ''}business · ${cf.bizfee ? money(cf.bizfee) : 'free'}</summary>
       <form class="cv-form" id="cvBizNew" style="margin-top:10px"><div class="grid3"><label>Name<input name="name" maxlength="50" required placeholder="Bob's Towing"></label><label>Type<select name="kind" id="cvBizKind">${kinds.map(k => `<option>${k}</option>`).join('')}</select></label><label>Address<input name="address" maxlength="80" placeholder="Postal 214"></label></div>
       <p class="cv-note" id="cvBizKindHow">${esc(gigOf(kinds[0]).how)}</p>
@@ -4684,7 +4729,7 @@ body.voice-snap .stage{transition:none!important}
     else if (d.decline) { if (confirm('Turn this application down?')) go('/biz/decide', { app: +d.decline, hire: false }); }
     else if (d.wage) go('/biz/staffx', { id, user: +d.wage, title: val(row, 'title'), wage: +val(row, 'wage') || 0, hourly: +val(row, 'hourly') || 0, commission: +val(row, 'commission') || 0, manager: row.querySelector('[data-f="manager"]') ? on('manager') : !!((D.owned || []).find(z => z.id === id)?.staff.find(w => w.user === +d.wage)?.manager) });
     else if (d.fire) { if (confirm('Let them go?')) go('/biz/staffx', { id, user: +d.fire, fire: true }); }
-    else if (d.close) { if (confirm(`Close ${d.name}? Its money comes back to you and its staff lose their jobs.`)) go('/biz/close', { id: +d.close }); }
+    else if (d.close) openClose(+d.close, b);
     else if (d.hold) { srvShown = false; go('/biz/admin', { id: +d.hold, suspend: !!d.on }); }
     else if (d.bizrm) { if (confirm(`Close ${d.name} for good?`)) { srvShown = false; go('/biz/admin', { id: +d.bizrm, remove: true }); } } };
   page.addEventListener('submit', async e => { e.preventDefault(); const f = e.target;
