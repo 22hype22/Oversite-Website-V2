@@ -1151,12 +1151,8 @@
   .cv-shift i{width:8px;height:8px;border-radius:50%;background:#3FBF8A;box-shadow:0 0 0 4px rgba(63,191,138,.18);flex:none}.cv-shift span{flex:1;min-width:0}
   .cv-shop{position:relative;overflow:hidden}.cv-job{border-color:rgba(232,179,58,.45);background:rgba(232,179,58,.08)}.cv-job i{background:#E8B33A;box-shadow:0 0 0 4px rgba(232,179,58,.2)}
   .cv-hello{padding:16px 18px;border-radius:14px;margin-bottom:14px;border:1px solid rgba(63,191,138,.3);background:linear-gradient(135deg,rgba(63,191,138,.12),rgba(63,191,138,.02))}.cv-hello b{font-size:15px}.cv-hello p{margin:6px 0 0;font-size:12.5px;color:var(--dim);line-height:1.55}
-  .cv-jobcard{border:1px solid rgba(232,179,58,.45);background:linear-gradient(160deg,rgba(232,179,58,.12),rgba(232,179,58,.03));border-radius:14px;padding:14px 16px;margin-bottom:14px}
-  .cv-jobcard .h{display:flex;align-items:center;justify-content:space-between;gap:10px}.cv-jobcard .h small{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#E8B33A}.cv-jobcard .h b{font-size:16px}
   .cv-jobnav{display:flex;align-items:center;gap:12px;margin:12px 0 4px;min-height:44px}.cv-big{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}.cv-jobnav span{font-size:12.5px;color:var(--dim)}
   .cv-arrow{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:rgba(232,179,58,.18);color:#E8B33A;font-style:normal;font-size:22px;font-weight:700;transition:transform .4s cubic-bezier(.23,1,.32,1)}
-  .cv-steps{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}.cv-steps li{display:flex;flex-direction:column;padding:8px 10px 8px 30px;border-radius:10px;position:relative;font-size:12.5px;color:var(--faint)}.cv-steps li small{font-size:11.5px}
-  .cv-steps li::before{content:"";position:absolute;left:11px;top:13px;width:9px;height:9px;border-radius:50%;border:2px solid currentColor}.cv-steps li.on{color:#E9EAEC;background:rgba(255,255,255,.05)}.cv-steps li.on::before{border-color:#E8B33A;background:#E8B33A}.cv-steps li.done{color:#7FD8AE}.cv-steps li.done::before{background:#3FBF8A;border-color:#3FBF8A}
   @media (prefers-reduced-motion:reduce){.cv-arrow{transition:none}}
   .cv-gig{margin-top:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.025)}.cv-gig b{font-size:14px}.cv-gig p{margin:3px 0 4px;color:var(--ink);font-size:12.5px}.cv-gig small{color:var(--dim);font-size:11.5px}.cv-gig .acts{margin-top:10px}.cv-pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.cv-pick .st-btn:disabled{opacity:.45;cursor:not-allowed}
   .cv-more{margin-top:10px}.cv-more>summary{cursor:pointer;font-size:12px;color:var(--dim)}.cv-more[open]>summary{margin-bottom:6px}
@@ -1169,19 +1165,33 @@
   .cv-lab label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--faint);flex:1 1 90px;min-width:0}.cv-lab label input{width:100%}.cv-lab label.chk{flex:0 0 auto;flex-direction:row;font-size:12px;color:var(--ink)}
   .cdock .screen{position:relative}
   /* task board: tickets with a torn stub */
-  .tk-off{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:12px 14px;border-radius:12px;border:1px dashed var(--line)}.tk-off b{font-size:13.5px}.tk-off p{margin:3px 0 0;font-size:12px;color:var(--dim)}.tk-off small{color:var(--faint);font-size:11.5px}
-  .tk-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:10px}
-  .tk{position:relative;display:flex;flex-direction:column;gap:9px;padding:13px 14px 12px 20px;border-radius:12px;background:#17181b;border:1px solid #26282d}
-  .tk::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:7px;border-right:1px dashed #33363c;background:radial-gradient(circle at 0 50%,#0d0e10 4px,transparent 4.5px) 0 0/7px 14px repeat-y}
-  .tk-top{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
-  .tk-pay{font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0;color:#0d0e10;background:#E8B33A;padding:4px 7px;border-radius:5px}
-  .tk-title{font-size:14px;line-height:1.3;color:#ECEDEF}
-  .tk-route{list-style:none;margin:0;padding:0;display:grid;gap:0}.tk-route li{position:relative;display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:var(--dim)}
-  .tk-route li+li::before{content:"";position:absolute;left:7px;top:-6px;height:10px;border-left:1.5px dotted #44474e}
-  .tk-route svg{flex:none;color:#7d8189}.tk-route li.g svg{color:#E8B33A}.tk-route li span{flex:1;min-width:0}.tk-route em{font-style:normal;font-size:10px;color:#E8B33A;border:1px solid rgba(232,179,58,.35);border-radius:4px;padding:1px 5px;white-space:nowrap}
+  /* task boards: a sheet of work orders on a clip, like the paperwork in the games */
+  .wo{position:relative;margin-top:16px}
+  .wo-clip{position:absolute;left:50%;top:-7px;z-index:1;width:84px;height:16px;margin-left:-42px;border-radius:5px 5px 3px 3px;background:linear-gradient(#c3c8cf,#80868f);box-shadow:0 2px 3px rgba(0,0,0,.35)}
+  .wo-clip::before{content:"";position:absolute;left:28px;right:28px;top:-7px;height:9px;border:2.5px solid #9aa0a8;border-bottom:0;border-radius:6px 6px 0 0}
+  .wo-paper{position:relative;padding:20px 16px 4px 0;border-radius:3px;background:#F3EEDF;color:#1d1f24;box-shadow:0 1px 0 #d8d1bd,0 10px 24px rgba(0,0,0,.35)}
+  .wo-paper::before{content:"";position:absolute;left:40px;top:0;bottom:0;border-left:1.5px solid rgba(200,55,45,.4)}
+  .wo-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 0 8px 52px;border-bottom:2px solid #1d1f24}.wo-head b{font:17px/1.2 "Special Elite",ui-monospace,monospace}
+  .wo-head span{font:600 9.5px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:#6b6556;white-space:nowrap}
+  .wo-row{display:grid;grid-template-columns:40px 1fr auto auto;align-items:center;gap:0 12px;padding:11px 0;border-bottom:1px solid #ddd5c0}.wo-row:last-child{border-bottom:0}
+  .wo-n{justify-self:center;font:13px/1 "Special Elite",ui-monospace,monospace;color:#8d877a}
+  .wo-main{min-width:0}.wo-main b{display:block;font:15px/1.25 "Special Elite",ui-monospace,monospace}.wo-main p{margin:3px 0 0;font-size:12px;line-height:1.4;color:#5e5c55}
+  .wo-pay{font:26px/1 Caveat,"Segoe Print","Bradley Hand",cursive;color:#1D3B8F;white-space:nowrap}
+  .wo-btn{font:13px/1 "Special Elite",ui-monospace,monospace;color:#1d1f24;background:transparent;border:1.5px solid #1d1f24;border-radius:3px;padding:7px 12px;cursor:pointer;transition:background-color .15s ease,color .15s ease,transform .1s ease}
+  .wo-btn:active{transform:translateY(1px)}.wo-btn:disabled{opacity:.5;cursor:default}.wo-btn.solid{background:#1d1f24;color:#F3EEDF}
+  @media (hover:hover) and (pointer:fine){.wo-btn:not(:disabled):hover{background:#1d1f24;color:#F3EEDF}.wo-btn.solid:not(:disabled):hover{background:#33363d}}
+  .wo-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 10px 52px;border-top:1px solid #ddd5c0;font:13px/1.3 "Special Elite",ui-monospace,monospace;color:#4a4d55}
+  .wo-none{margin:0;padding:12px 0 12px 52px;font:13px "Special Elite",ui-monospace,monospace;color:#6b6556}
+  .wo-link{font:12px system-ui;color:#6b6556;background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+  .wo-steps{list-style:none;margin:0;padding:6px 0 8px}.wo-steps li{display:grid;grid-template-columns:40px 1fr;gap:0 12px;padding:7px 0;color:#9a9486}
+  .wo-steps li b{display:block;font:14px/1.3 "Special Elite",ui-monospace,monospace}.wo-steps small{font-size:11.5px}.wo-steps li.on{color:#1d1f24}.wo-steps li.done{color:#6b6556}.wo-steps li.done b{text-decoration:line-through;text-decoration-color:rgba(29,31,36,.35)}
+  .wo-box{justify-self:center;position:relative;width:14px;height:14px;margin-top:2px;border:1.5px solid currentColor;border-radius:2px}
+  .wo-steps li.done .wo-box::after{content:"✓";position:absolute;left:0;top:-13px;font:28px/1 Caveat,cursive;color:#1D3B8F}
+  .wo .cv-jobnav{margin:12px 0 2px;padding-left:52px}.wo .cv-big{font:24px/1 "Special Elite",ui-monospace,monospace;color:#1d1f24}.wo .cv-jobnav span{color:#4a4d55}.wo .cv-arrow{background:none;border:1.5px solid #1d1f24;color:#1d1f24}
+  .wo-play{padding:12px 0 2px 52px}
+  @media (max-width:640px){.wo-row{grid-template-columns:40px 1fr auto}.wo-row .wo-btn{grid-column:2/-1;justify-self:start;margin-top:8px}}
   .tk-go{font:600 12.5px/1 inherit;color:#0d0e10;background:#ECEDEF;border:0;border-radius:9px;padding:10px 14px;cursor:pointer;transition:transform .12s cubic-bezier(.23,1,.32,1),background-color .15s ease}.tk-go:active{transform:scale(.97)}.tk-go:disabled{opacity:.5}
   @media (hover:hover) and (pointer:fine){.tk-go:hover{background:#fff}}
-  .tk .tk-go{margin-top:auto}
   /* the overlay */
   .cv-game{position:absolute;inset:34px 0 0;z-index:30;display:grid;place-items:center;padding:16px;background:rgba(7,8,9,.86);backdrop-filter:blur(5px)}.cv-game[hidden]{display:none}
   .g-win{position:relative;width:min(680px,100%);max-height:100%;overflow:auto;border-radius:16px;background:#141518;border:1px solid #2a2c31;padding:16px 18px 14px;box-shadow:0 30px 70px rgba(0,0,0,.55);animation:gIn .24s cubic-bezier(.23,1,.32,1)}
@@ -1254,7 +1264,6 @@
   .sq-cards button:active{transform:translateY(2px);box-shadow:0 1px 0 #b9b19c}.sq-cards button:disabled{opacity:.25;cursor:default}.sq-cards button.bad{animation:gShake .4s}@keyframes gShake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
   @media (prefers-reduced-motion:reduce){.g-win,.pt-b,.g-stamp,.sq-tray span.on{animation:none}.tm-flash.go{animation-duration:.01s}}
   @media (max-width:640px){.pw{grid-template-columns:1fr}.pw-line{grid-template-columns:90px 1fr}.pw-opts{left:90px}.ng-ctl{grid-template-columns:1fr auto}.ng-v{grid-column:1/-1}}
-  .cv-jobnav-g{margin:12px 0 4px}
   .cv-listing{margin:8px 0 0}.cv-req{margin-top:8px}.cv-req summary{cursor:pointer;font-size:12.5px;color:var(--ink);display:inline-block;padding:5px 11px;border:1px solid var(--line);border-radius:999px}.cv-req[open] summary{border-color:rgba(255,255,255,.35)}
   .cv-idea{font:inherit;font-size:11.5px;color:var(--ink);background:none;border:1px dashed var(--line);border-radius:999px;padding:3px 9px;cursor:pointer;margin:2px 2px 0 0}.cv-shop[style*="--bc"]{border-left:3px solid var(--bc)}
   .cv-tag{color:var(--bc,#E9EAEC)!important;font-weight:500}
@@ -4400,20 +4409,16 @@ body.voice-snap .stage{transition:none!important}
     big.forEach(e => { e.innerHTML = h; }); small.forEach(e => { e.innerHTML = s; }); };
   setInterval(trackJob, 1000);
   const jobCard = () => { const J = D.job; if (!J) return ''; const cur = J.steps[J.step] || {};
-    return `<div class="cv-jobcard"><div class="h"><div><small>On a task</small><b>${esc(J.label)}</b></div><button class="st-btn" data-jobstop="1">Stop</button></div>${cur.game ? `<div class="cv-jobnav-g"><button class="tk-go" data-play="1">Play: ${esc(cur.what)}</button></div>` : '<div class="cv-jobnav"></div>'}
-      <ol class="cv-steps">${J.steps.map((x, i) => `<li class="${i < J.step ? 'done' : i === J.step ? 'on' : ''}"><b>${esc(x.what)}</b><small>${x.game ? 'Mini-game: ' + esc((GNAME || {})[x.game] || '') : esc(x.label) + (x.wait ? ' · stay ' + waitText(x.wait) : '')}</small></li>`).join('')}</ol></div>`; };
+    return `<div class="wo"><i class="wo-clip" aria-hidden="true"></i><div class="wo-paper"><div class="wo-head"><b>${esc(J.label)}</b><button class="wo-link" data-jobstop="1">Stop this task</button></div>${cur.game ? `<div class="wo-play"><button class="wo-btn solid" data-play="1">${esc(cur.what)}</button></div>` : '<div class="cv-jobnav"></div>'}
+      <ol class="wo-steps">${J.steps.map((x, i) => `<li class="${i < J.step ? 'done' : i === J.step ? 'on' : ''}"><span class="wo-box"></span><div><b>${esc(x.what)}</b><small>${x.game ? esc((GNAME || {})[x.game] || '') : esc(x.label) + (x.wait ? ' · stay ' + waitText(x.wait) : '')}</small></div></li>`).join('')}</ol></div></div>`; };
   const clockBtn = id => D.shift ? (D.shift.biz === id ? '<button class="st-btn" data-clock="out">Clock out</button>' : '') : `<button class="st-btn" data-clock="${id}">Clock in</button>`;
-  // ── task boards: three tickets per workplace while you're on shift ──
+  // ── task boards: a sheet of work orders per workplace, taken while you're on shift ──
   const GNAME = { paperwork: 'Paperwork', pitch: 'Talk', negotiate: 'Negotiate', timing: 'Steady hands', sequence: 'Memory' };
-  const ICO = { drive: '<path d="M5 16h14M6.5 16 8 11h8l1.5 5M7 19v-3M17 19v-3"/><circle cx="8.5" cy="16.5" r=".6"/><circle cx="15.5" cy="16.5" r=".6"/>', paperwork: '<path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 15h5M10 18h3"/>',
-    pitch: '<path d="M5 6h14v9H10l-4 3v-3H5z"/>', negotiate: '<path d="M4 9h11M11 5l4 4-4 4M20 15H9M13 11l-4 4 4 4"/>', timing: '<circle cx="12" cy="13" r="7"/><path d="M12 13l3-3M12 3v2"/>', sequence: '<path d="M9 6h10M9 12h10M9 18h10M5 6h.01M5 12h.01M5 18h.01"/>' };
-  const ico = k => `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[k] || ICO.drive}</svg>`;
-  const taskBoard = (id, kind) => { const on = D.shift && D.shift.biz === id, B = (D.boards || {})[id] || [];
-    if (!on) return `<div class="tk-off"><div><b>Task board</b><p>Clock in to get your tasks${B.length ? `: ${esc(B.slice(0, 2).map(t => t.title.charAt(0).toLowerCase() + t.title.slice(1)).join(', '))}, and more` : ''}.</p></div>${D.shift ? `<small>You're on shift somewhere else.</small>` : `<button class="st-btn" data-clock="${id}">Clock in</button>`}</div>`;
-    if (D.job) return '<div class="tk-off"><div><b>Task board</b><p>Finish the task you are on, then pick the next one here.</p></div></div>';
-    return `<div class="tk-board">${B.map((t, i) => `<div class="tk"><div class="tk-top"><span>Task ${String(i + 1).padStart(2, '0')}</span><span class="tk-pay">${t.far ? '~' : ''}${money(t.pay)}</span></div><b class="tk-title">${esc(t.title)}</b>
-      <ol class="tk-route">${t.steps.map(x => `<li class="${x.do === 'game' ? 'g' : 'd'}">${ico(x.do === 'game' ? x.game : 'drive')}<span>${esc(x.what)}</span>${x.do === 'game' ? `<em>${esc(GNAME[x.game] || '')}</em>` : ''}</li>`).join('')}</ol>
-      <button class="tk-go" data-task="${i}">Take this task</button></div>`).join('')}</div>`; };
+  const taskBoard = (id, kind) => { const on = D.shift && D.shift.biz === id, B = (D.boards || {})[id] || [], can = on && !D.job;
+    const route = t => t.steps.map((x, i) => i ? x.what.charAt(0).toLowerCase() + x.what.slice(1) : x.what).join(', then ');
+    const foot = can ? '' : `<div class="wo-foot">${D.job ? '<span>Finish the task you’re on, then take the next one.</span>' : D.shift ? '<span>You’re clocked in somewhere else.</span>' : `<span>Clock in to take one.</span><button class="wo-btn" data-clock="${id}">Clock in</button>`}</div>`;
+    return `<div class="wo"><i class="wo-clip" aria-hidden="true"></i><div class="wo-paper"><div class="wo-head"><b>Work orders</b><span>${B.length} today</span></div>
+      ${B.map((t, i) => `<div class="wo-row"><span class="wo-n">${i + 1}.</span><div class="wo-main"><b>${esc(t.title)}</b><p>${esc(route(t))}</p></div><span class="wo-pay">${t.far ? '~' : ''}${money(t.pay)}</span>${can ? `<button class="wo-btn" data-task="${i}">Take</button>` : ''}</div>`).join('') || '<p class="wo-none">Nothing on the sheet today.</p>'}${foot}</div></div>`; };
   // ── mini-games, in an overlay on the tablet so its refresh never interrupts one ──
   const gbox = $('cvGame'); let gameKey = '', gameOff = '', hold = 0;
   const pickOne = a => a[Math.floor(Math.random() * a.length)];
