@@ -201,6 +201,9 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === '911') { if (auth.limited(req, 'civ911', 4, 60000)) return json(res, { error: 'Too many calls. Wait a minute.' }, 429); return ok(civ.call911(c, user, j)); }
     if (sub === 'grant') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can give or take money.' }, 403); return ok(civ.grant(c, user.roblox_name || user.name, j)); }
     if (sub === 'home') return ok(j.out ? civ.moveOut(c, user, j) : civ.moveIn(c, user, j));
+    const BIZ = { 'biz/open': civ.openBiz, 'biz/edit': civ.editBiz, 'biz/cash': civ.bizCash, 'biz/close': civ.closeBiz, 'biz/decide': civ.decide, 'biz/staff': civ.staffSet, 'biz/invoice': civ.invoice, 'job/apply': civ.apply, 'job/quit': civ.quit };
+    if (BIZ[sub]) return ok(BIZ[sub](c, user, j));
+    if (sub === 'biz/admin') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can do that.' }, 403); return ok(civ.bizAdmin(c, j)); }
     if (sub === 'prop') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can manage homes.' }, 403); return ok(j.drop || j.evict ? civ.dropProp(c, j) : civ.saveProp(c, j)); }
     return json(res, { error: 'Not found.' }, 404); }
   if (rest.startsWith('pd/')) { const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, by = { uid: user.id, name: user.roblox_name || user.name, supervisor: police.isSupervisor(c.id, user.id, can(role, 'admin'), ranksFor(c, premium.isPremium(c)).pd) };
