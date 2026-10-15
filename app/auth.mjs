@@ -40,10 +40,12 @@ export const discordFinish = async (req, params) => {
       else { users.update(u.id, { roblox_id: rid, roblox_name: rb.name, roblox_via: 'discord' }); roblox.clear(u.id); u = users.byId(u.id); } } } catch (e) {}
   return { user: u, next: safeNext(next) }; };
 
-// ── the visitor's IP, for rate limits. Railway's proxy adds the real address to the end of X-Forwarded-For; anything before it
-// was sent by the browser and can be made up, so the last public address is the one to trust ──
+// ── the visitor's IP, for rate limits. Railway's edge sets X-Real-IP to the visitor's address (one sent by the browser is
+// overwritten; checked on the live site), while X-Forwarded-For can start with anything the browser made up and ends with
+// Railway's own edge address, shared by everyone. Without X-Real-IP (running locally): the last public hop, then the socket ──
 const PRIVATE = /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|169\.254\.|::1$|f[cd][0-9a-f]{2}:|fe80:)/i;
-export const clientIp = req => { const hops = String(req.headers['x-forwarded-for'] || '').split(',').map(s => s.trim().replace(/^::ffff:/i, '')).filter(Boolean);
+export const clientIp = req => { const real = String(req.headers['x-real-ip'] || '').trim(); if (/^[0-9a-f.:]{3,45}$/i.test(real)) return real.replace(/^::ffff:/i, '');
+  const hops = String(req.headers['x-forwarded-for'] || '').split(',').map(s => s.trim().replace(/^::ffff:/i, '')).filter(Boolean);
   for (let i = hops.length - 1; i >= 0; i--) if (!PRIVATE.test(hops[i])) return hops[i];
   return String(req.socket?.remoteAddress || '').replace(/^::ffff:/i, '') || hops[0] || ''; };
 // rate-limit maps are cleaned out now and then, so lots of different addresses can't grow them for ever
