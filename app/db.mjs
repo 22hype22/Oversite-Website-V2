@@ -122,6 +122,7 @@ export const users = {
   setPremium: (id, until) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(id); if (!u) return 0;
     return u.roblox_id ? q('UPDATE users SET premium_until = ? WHERE roblox_id = ?').run(until, u.roblox_id).changes : q('UPDATE users SET premium_until = ? WHERE id = ?').run(until, id).changes; },
   premiumUntil: id => q('SELECT premium_until AS t FROM users WHERE id = ?').get(id)?.t || 0,
+  premiumRoblox: () => q('SELECT DISTINCT roblox_id AS r FROM users WHERE premium_until > ? AND roblox_id IS NOT NULL').all(now()).map(x => String(x.r)),   // the gold check in the CAD
   billing: id => { try { return JSON.parse(q('SELECT premium_bill AS b FROM users WHERE id = ?').get(id)?.b || '{}'); } catch (e) { return {}; } },
   setBilling: (id, b) => q('UPDATE users SET premium_bill = ? WHERE id = ?').run(JSON.stringify(b || {}), id),
   verifiedRoblox: () => new Set(q('SELECT DISTINCT roblox_id FROM users WHERE verified = 1 AND roblox_id IS NOT NULL').all().map(r => String(r.roblox_id))),

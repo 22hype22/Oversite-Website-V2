@@ -256,7 +256,10 @@ const mkBus = (color, lights) => { const g = new THREE.Group(); g.rotation.order
   g.userData.paint = paint; g.userData.pitch = 0; g.userData.roll = 0; scene.add(g); return g; };
 const dropCar = c => { scene.remove(c); c.userData.paint?.dispose(); };
 let UN = window.UNITS || []; const COL = { pd: 0x4C8DFF, fd: 0xE24B4B, dot: 0xE9C24C };
-const carFor = (u, i) => mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept], u.dept === 'pd' || u.dept === 'fd');
+const GOLD_RING = new THREE.MeshBasicMaterial({ color: 0xE8B33A, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false });
+const carFor = (u, i) => { const g = mkBus(i === 0 ? 0xF0F2F5 : COL[u.dept], u.dept === 'pd' || u.dept === 'fd');
+  if (window.isGold && window.isGold(u)) { const r = new THREE.Mesh(new THREE.RingGeometry(10, 12, 40), GOLD_RING); r.rotation.x = -Math.PI / 2; r.position.y = 0.6; g.add(r); }   // an Oversite Premium player's car wears a gold ring
+  return g; };
 let cars = UN.map(carFor);
 addEventListener('units', () => { for (const c of cars) dropCar(c); UN = window.UNITS || []; cars = UN.map(carFor); });
 const incident = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 12), new THREE.MeshBasicMaterial({ color: 0xE24B4B }));
