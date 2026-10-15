@@ -50,8 +50,8 @@ export const money = n => '$' + Math.round(n).toLocaleString('en-US');
 // housing: tax is a yearly % of the price, billed by the week; a mortgage takes `down`% up front and the rest plus `rate`% over `weeks`;
 // `evict` is how many days a housing bill may sit overdue before the home is lost
 // businesses: `bizfee` to register, `bizlic` a week to keep the license
-const DEFAULTS = { on: true, start: 5000, weekly: 750, reg: 150, ins: 200, late: 10, grace: 3, tax: 2, down: 20, weeks: 26, rate: 10, evict: 7, bizfee: 2500, bizlic: 250 };
-const LIMITS = { start: [0, 1e7], weekly: [0, 1e6], reg: [0, 1e5], ins: [0, 1e5], late: [0, 100], grace: [1, 14], tax: [0, 20], down: [0, 100], weeks: [1, 260], rate: [0, 100], evict: [1, 60], bizfee: [0, 1e7], bizlic: [0, 1e6] };
+const DEFAULTS = { on: true, start: 5000, weekly: 750, reg: 150, ins: 200, late: 10, grace: 3, tax: 2, down: 20, weeks: 26, rate: 10, evict: 7, bizfee: 2500, bizlic: 250, showpay: 200 };
+const LIMITS = { start: [0, 1e7], weekly: [0, 1e6], reg: [0, 1e5], ins: [0, 1e5], late: [0, 100], grace: [1, 14], tax: [0, 20], down: [0, 100], weeks: [1, 260], rate: [0, 100], evict: [1, 60], bizfee: [0, 1e7], bizlic: [0, 1e6], showpay: [0, 1e5] };
 export const conf = c => { const s = c.settings.civ || {}, out = { ...DEFAULTS };
   for (const k of Object.keys(LIMITS)) if (Number.isFinite(+s[k])) out[k] = Math.min(LIMITS[k][1], Math.max(LIMITS[k][0], Math.round(+s[k])));
   out.on = s.on !== false; out.since = +s.since || 0; return out; };

@@ -55,7 +55,7 @@ const msg = (res, user, title, text, action, status = 200) => page(res, pages.me
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
 const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f);
-  f.onSnap = body => { police.observe(c.id, body, (communities.byId(c.id) || c).settings.teams); career.observe(c.id, body); staffhub.observe(c.id, body); };
+  f.onSnap = body => { police.observe(c.id, body, (communities.byId(c.id) || c).settings.teams); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
@@ -65,6 +65,10 @@ const liveSide = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Dat
   let j; try { j = JSON.parse(sn.body); } catch (e) { return undefined; }
   const p = (j.Players || []).find(x => String(x.Player || '').split(':')[1] === String(user.roblox_id)); if (!p) return null;
   return (c.settings.teams || {})[p.Team] || 'civ'; };
+// where someone is standing in game right now ({ x, z, label }), from the latest snapshot; null when unknown
+const posOf = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Date.now() - sn.t > 60000 || !user.roblox_id) return null;
+  let j; try { j = JSON.parse(sn.body); } catch (e) { return null; } const p = (j.Players || []).find(x => String(x.Player || '').split(':')[1] === String(user.roblox_id)), L = p?.Location;
+  if (!L || !Number.isFinite(+L.LocationX)) return null; return { x: +L.LocationX, z: +L.LocationZ, label: [L.PostalCode ? 'Postal ' + L.PostalCode : '', L.StreetName || ''].filter(Boolean).join(', ') }; };
 // the cars someone has spawned in game right now, from the same snapshot; null when there's no fresh data
 const spawnedBy = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Date.now() - sn.t > 180000 || !user.roblox_name) return null;
   let j; try { j = JSON.parse(sn.body); } catch (e) { return null; } const me = String(user.roblox_name).toLowerCase();
@@ -223,7 +227,9 @@ const communityApi = async (req, res, slug, rest) => {
     const BIZ = { 'biz/open': civ.openBiz, 'biz/edit': civ.editBiz, 'biz/cash': civ.bizCash, 'biz/close': civ.closeBiz, 'biz/decide': civ.decide, 'biz/staff': civ.staffSet, 'biz/invoice': civ.invoice, 'job/apply': civ.apply, 'job/quit': civ.quit };
     if (BIZ[sub]) return ok(BIZ[sub](c, user, j));
     if (sub === 'biz/clock') return ok(civbiz.clock(c, user, j, liveSide(c, user)));
-    const BIZ2 = { 'biz/item': civbiz.saveItem, 'biz/buy': civbiz.buy, 'biz/staffx': civbiz.staffx, 'biz/bonus': civbiz.bonus, 'biz/loan': civbiz.loan, 'biz/brand': civbiz.brand, 'biz/ad': civbiz.advertise, 'biz/review': civbiz.review };
+    if (sub === 'biz/spot') return ok(civbiz.setSpot(c, user, j, posOf(c, user)));
+    if (sub === 'biz/job') return ok(civbiz.startJob(c, user, j, posOf(c, user)));
+    const BIZ2 = { 'biz/request': civbiz.request, 'biz/respond': civbiz.respond, 'biz/cancel': civbiz.cancelRequest, 'biz/item': civbiz.saveItem, 'biz/buy': civbiz.buy, 'biz/staffx': civbiz.staffx, 'biz/bonus': civbiz.bonus, 'biz/loan': civbiz.loan, 'biz/brand': civbiz.brand, 'biz/ad': civbiz.advertise, 'biz/review': civbiz.review };
     if (BIZ2[sub]) return ok(BIZ2[sub](c, user, j));
     if (sub === 'biz/admin') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can do that.' }, 403); return ok(civ.bizAdmin(c, j)); }
     if (sub === 'prop') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can manage homes.' }, 403); return ok(j.drop || j.evict ? civ.dropProp(c, j) : civ.saveProp(c, j)); }
