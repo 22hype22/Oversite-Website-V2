@@ -288,7 +288,7 @@ export const observe = (c, body) => { const jobs = q("SELECT j.* FROM civ_jobs j
     else if (d > LEAVE) { q('UPDATE civ_jobs SET arrived = 0 WHERE id = ?').run(jb.id); continue; }   // drove off too soon: the wait starts over
     const arrived = jb.arrived || +(q('SELECT arrived FROM civ_jobs WHERE id = ?').get(jb.id).arrived);
     if (arrived && t - arrived >= st.wait) { if (jb.step + 1 >= steps.length) finishJob(c, jb); else q('UPDATE civ_jobs SET step = step + 1, arrived = 0, step_at = ? WHERE id = ?').run(t, jb.id); } } };
-const jobRow = jb => { if (!jb) return null; const steps = JSON.parse(jb.steps); return { id: jb.id, kind: jb.kind, label: jb.label, step: jb.step, stepAt: jb.step_at,
+const jobRow = jb => { if (!jb) return null; const steps = JSON.parse(jb.steps); return { id: jb.id, kind: jb.kind, label: jb.label, biz: q('SELECT name FROM civ_biz WHERE id = ?').get(jb.biz_id)?.name || '', step: jb.step, stepAt: jb.step_at,
   steps: steps.map(x => x.game ? { game: x.game, what: x.what, p: x.p } : { label: x.label, wait: x.wait, what: x.what, x: x.x, z: x.z }), arrived: jb.arrived, started: jb.started, max: JOB_MAX, r: RADIUS }; };
 
 // ── the task board: three tasks for each worker at each business, a new one in each slot that's taken, all new each in-game day ──
@@ -303,8 +303,7 @@ const taskView = (z, e, base) => { const T0 = (TASKS[z.kind] || TASKS.Store)[e.t
 export const takeTask = (c, user, j, pos) => { const z = biz(c.id, j.id); if (!z || !worksAt(z, user.id)) return { error: 'You do not work there.' };
   const no = inactive(z); if (no) return no; if (myJob(c.id, user.id)) return { error: 'Finish the task you’re on first.' };
   const sh = myShift(c.id, user.id); if (!sh || sh.biz_id !== z.id) return { error: `Clock in at ${z.name} first.` };
-  const last = q("SELECT ended FROM civ_jobs WHERE user_id = ? AND status = 'Done' ORDER BY ended DESC LIMIT 1").get(user.id); if (last && now() - last.ended < 20e3) return { error: 'Take a breather: you can start another task in a few seconds.' };
-  const B = boardOf(z, user.id), slot = Math.max(0, Math.min(2, +j.slot || 0)), e = B[slot], T0 = (TASKS[z.kind] || TASKS.Store)[e.t];
+  const B = boardOf(z, user.id), slot = Math.max(0, Math.min(B.length - 1, +j.slot || 0)), e = B[slot], T0 = (TASKS[z.kind] || TASKS.Store)[e.t];
   const drives = T0.steps.some(x => x.do === 'drive'); if (drives && !pos) return { error: 'Oversite can’t see you in game right now. Join the server on the civilian team and try again.' };
   const base = spotOf(z.office) || (pos ? { x: Math.round(pos.x), z: Math.round(pos.z), label: pos.label || 'where you started' } : null);
   const li = e.houseItem ? q('SELECT * FROM civ_items WHERE id = ? AND biz_id = ?').get(e.houseItem, z.id) : null, housePos = li ? spotOf(metaOf(li).pos) : null;

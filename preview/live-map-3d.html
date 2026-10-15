@@ -1147,9 +1147,8 @@
   .cv-sw{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);cursor:pointer}.cv-sw input{accent-color:var(--fd);width:15px;height:15px;margin:0}
   .cv-plate{display:inline-flex;align-items:center;justify-content:center;min-width:74px;padding:3px 7px;border-radius:5px;background:#F1F2EE;color:#16264A;border:1.5px solid #16264A;font:700 12.5px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;flex:none}
   .cv-btn-red{border-color:rgba(226,75,75,.45);background:rgba(226,75,75,.18);color:#fff}.cv-btn-red:hover{background:rgba(226,75,75,.28)}
-  .cv-shift{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;margin-bottom:14px;border-radius:12px;border:1px solid rgba(63,191,138,.35);background:rgba(63,191,138,.08);font-size:12.5px}
-  .cv-shift i{width:8px;height:8px;border-radius:50%;background:#3FBF8A;box-shadow:0 0 0 4px rgba(63,191,138,.18);flex:none}.cv-shift span{flex:1;min-width:0}
-  .cv-shop{position:relative;overflow:hidden}.cv-job{border-color:rgba(232,179,58,.45);background:rgba(232,179,58,.08)}.cv-job i{background:#E8B33A;box-shadow:0 0 0 4px rgba(232,179,58,.2)}
+  .cv-shift{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;margin-bottom:14px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:12.5px;color:var(--dim)}.cv-shift b{color:var(--ink)}.cv-shift>span{flex:1;min-width:0}
+  .cv-shop{position:relative;overflow:hidden}
   .cv-hello{padding:16px 18px;border-radius:14px;margin-bottom:14px;border:1px solid rgba(63,191,138,.3);background:linear-gradient(135deg,rgba(63,191,138,.12),rgba(63,191,138,.02))}.cv-hello b{font-size:15px}.cv-hello p{margin:6px 0 0;font-size:12.5px;color:var(--dim);line-height:1.55}
   .cv-jobnav{display:flex;align-items:center;gap:12px;margin:12px 0 4px;min-height:44px}.cv-big{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}.cv-jobnav span{font-size:12.5px;color:var(--dim)}
   .cv-arrow{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:rgba(232,179,58,.18);color:#E8B33A;font-style:normal;font-size:22px;font-weight:700;transition:transform .4s cubic-bezier(.23,1,.32,1)}
@@ -1165,6 +1164,19 @@
   .cv-lab label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;color:var(--faint);flex:1 1 90px;min-width:0}.cv-lab label input{width:100%}.cv-lab label.chk{flex:0 0 auto;flex-direction:row;font-size:12px;color:var(--ink)}
   .cdock .screen{position:relative}
   /* task board: tickets with a torn stub */
+  /* the task you're on: the satnav on the left, the trip on the right */
+  .trip{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(250px,1fr);margin:2px 0 14px;border-radius:16px;overflow:hidden;background:#141518;border:1px solid #2a2c31}
+  .trip-map.gpsnav{position:relative;inset:auto;z-index:auto;min-height:330px;border-radius:0}
+  .trip-chip{position:absolute;left:10px;bottom:10px;padding:6px 11px;border-radius:999px;background:rgba(20,21,24,.86);color:#ECEDEF;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}.trip-chip[hidden]{display:none}
+  .trip-info{display:flex;flex-direction:column;gap:14px;padding:16px}
+  .trip-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.trip-h small{display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#E8B33A}.trip-h b{display:block;margin-top:3px;font-size:16px;line-height:1.3;color:#ECEDEF}
+  .trip-now{padding:12px 14px;border-radius:12px;background:#1b1c20;border:1px solid #26282d}.trip-now small{font-size:11px;color:var(--faint)}.trip-now>b{display:block;margin-top:2px;font-size:15px;color:#ECEDEF}
+  .trip-now .facts{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:var(--mute)}.trip-now .facts b{display:block;color:#E9EAEC;font-weight:600;font-size:14px;font-variant-numeric:tabular-nums}
+  .trip-now p{margin:8px 0 0;font-size:12px;color:var(--dim)}.trip-now .tk-go{display:block;width:100%;margin-top:12px}
+  .trip-steps{list-style:none;margin:0;padding:0;display:grid;gap:2px}.trip-steps li{display:grid;grid-template-columns:22px 1fr;align-items:center;gap:10px;padding:5px 0;font-size:12.5px;color:var(--faint)}
+  .trip-steps span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid #33363c;font-size:11px;font-weight:600}.trip-steps b{font-weight:500}
+  .trip-steps li.on{color:#ECEDEF}.trip-steps li.on span{border-color:#E8B33A;color:#E8B33A}.trip-steps li.done{color:var(--dim)}.trip-steps li.done span{background:#3FBF8A;border-color:#3FBF8A;color:#0d0e10}
+  @media (max-width:760px){.trip{grid-template-columns:1fr}.trip-map.gpsnav{min-height:260px}}
   /* task boards: a sheet of work orders on a clip, like the paperwork in the games */
   .wo{position:relative;margin-top:16px}
   .wo-clip{position:absolute;left:50%;top:-7px;z-index:1;width:84px;height:16px;margin-left:-42px;border-radius:5px 5px 3px 3px;background:linear-gradient(#c3c8cf,#80868f);box-shadow:0 2px 3px rgba(0,0,0,.35)}
@@ -1178,17 +1190,10 @@
   .wo-main{min-width:0}.wo-main b{display:block;font:15px/1.25 "Special Elite",ui-monospace,monospace}.wo-main p{margin:3px 0 0;font-size:12px;line-height:1.4;color:#5e5c55}
   .wo-pay{font:26px/1 Caveat,"Segoe Print","Bradley Hand",cursive;color:#1D3B8F;white-space:nowrap}
   .wo-btn{font:13px/1 "Special Elite",ui-monospace,monospace;color:#1d1f24;background:transparent;border:1.5px solid #1d1f24;border-radius:3px;padding:7px 12px;cursor:pointer;transition:background-color .15s ease,color .15s ease,transform .1s ease}
-  .wo-btn:active{transform:translateY(1px)}.wo-btn:disabled{opacity:.5;cursor:default}.wo-btn.solid{background:#1d1f24;color:#F3EEDF}
+  .wo-btn:active{transform:translateY(1px)}.wo-btn:disabled{opacity:.45;cursor:default}.wo-btn.solid{background:#1d1f24;color:#F3EEDF}
   @media (hover:hover) and (pointer:fine){.wo-btn:not(:disabled):hover{background:#1d1f24;color:#F3EEDF}.wo-btn.solid:not(:disabled):hover{background:#33363d}}
   .wo-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 10px 52px;border-top:1px solid #ddd5c0;font:13px/1.3 "Special Elite",ui-monospace,monospace;color:#4a4d55}
   .wo-none{margin:0;padding:12px 0 12px 52px;font:13px "Special Elite",ui-monospace,monospace;color:#6b6556}
-  .wo-link{font:12px system-ui;color:#6b6556;background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
-  .wo-steps{list-style:none;margin:0;padding:6px 0 8px}.wo-steps li{display:grid;grid-template-columns:40px 1fr;gap:0 12px;padding:7px 0;color:#9a9486}
-  .wo-steps li b{display:block;font:14px/1.3 "Special Elite",ui-monospace,monospace}.wo-steps small{font-size:11.5px}.wo-steps li.on{color:#1d1f24}.wo-steps li.done{color:#6b6556}.wo-steps li.done b{text-decoration:line-through;text-decoration-color:rgba(29,31,36,.35)}
-  .wo-box{justify-self:center;position:relative;width:14px;height:14px;margin-top:2px;border:1.5px solid currentColor;border-radius:2px}
-  .wo-steps li.done .wo-box::after{content:"✓";position:absolute;left:0;top:-13px;font:28px/1 Caveat,cursive;color:#1D3B8F}
-  .wo .cv-jobnav{margin:12px 0 2px;padding-left:52px}.wo .cv-big{font:24px/1 "Special Elite",ui-monospace,monospace;color:#1d1f24}.wo .cv-jobnav span{color:#4a4d55}.wo .cv-arrow{background:none;border:1.5px solid #1d1f24;color:#1d1f24}
-  .wo-play{padding:12px 0 2px 52px}
   @media (max-width:640px){.wo-row{grid-template-columns:40px 1fr auto}.wo-row .wo-btn{grid-column:2/-1;justify-self:start;margin-top:8px}}
   .tk-go{font:600 12.5px/1 inherit;color:#0d0e10;background:#ECEDEF;border:0;border-radius:9px;padding:10px 14px;cursor:pointer;transition:transform .12s cubic-bezier(.23,1,.32,1),background-color .15s ease}.tk-go:active{transform:scale(.97)}.tk-go:disabled{opacity:.5}
   @media (hover:hover) and (pointer:fine){.tk-go:hover{background:#fff}}
@@ -1203,7 +1208,7 @@
   .g-stamp.green{border-color:#2E8B57;color:#2E8B57;mix-blend-mode:normal;background:rgba(10,12,12,.55)}
   @keyframes gStamp{from{transform:rotate(-12deg) scale(2.2);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:.9}}
   /* closing a business: a notice of closure */
-  .cl-win{width:min(500px,100%)}.pw-paper.cl-paper{background:#F3EEDF;padding-bottom:18px}.cl-paper .g-stamp{top:auto;bottom:70px;right:28px}
+  .cl-win{width:min(500px,100%)}.ask-win{width:min(400px,100%)}.ask-p{margin:-4px 0 4px;font-size:13.5px;line-height:1.5;color:var(--dim)}.pw-paper.cl-paper{background:#F3EEDF;padding-bottom:18px}.cl-paper .g-stamp{top:auto;bottom:70px;right:28px}
   .cl-biz{margin:10px 0 2px}.cl-biz b{display:block;font:22px/1.15 "Special Elite",ui-monospace,monospace}.cl-biz span{font:600 10px/1.4 system-ui;letter-spacing:.08em;text-transform:uppercase;color:#6b6556}
   .cl-sec{margin:14px 0 6px;padding-bottom:5px;border-bottom:1px solid #d8d1bd;font:600 9.5px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:#6b6556}
   .cl-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:3px 0;font:14px/1.3 "Special Elite",ui-monospace,monospace}.cl-row b{font-weight:400;font-variant-numeric:tabular-nums}.cl-row.neg b{color:#B3362C}
@@ -3441,6 +3446,7 @@ body.voice-snap .stage{transition:none!important}
     for (const m of M) { const a = Math.abs(m.d) * 180 / Math.PI, r = m.d > 0; m.k = a > 150 ? 'uturn' : a > 62 ? (r ? 'right' : 'left') : (r ? 'slight-right' : 'slight-left');
       m.t = a > 150 ? 'Make a U-turn' : a > 62 ? (r ? 'Turn right' : 'Turn left') : (r ? 'Bear right' : 'Bear left'); }
     M.push({ at: C[C.length - 1], k: 'arrive', t: 'Arrive at the call' }); return { P, C, M }; };
+  window.NAVKIT = { build, svg, fmt, W2M, FT };   // the civilian tab draws its task directions with these too
   const route = (u, c) => { const pts = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; const b = build(pts); R = b.P; cum = b.C; man = b.M; rAt = performance.now(); spoke = {}; };
   // where you are along the route: the nearest point on it, and how far along that is
   const along = (x, y) => { let best = Infinity, at = 0, px = R[0][0], py = R[0][1];
@@ -4393,13 +4399,55 @@ body.voice-snap .stage{transition:none!important}
   const plural = n => /[^aeiou]y$/.test(n) ? n.slice(0, -1) + 'ies' : /s$/.test(n) ? n : n + 's';
   const waitText = w => w >= 60000 ? Math.round(w / 60000) + ' min' : Math.round(w / 1000) + 's';
   // a compact line on every pane while you're on shift or on a job; the full job card lives in Work
-  const shiftLine = () => D.shift ? `<div class="cv-shift"><i></i><span>On shift at <b>${esc(D.shift.name)}</b> for ${dur(Date.now() - D.shift.start)}${D.shift.hourly ? ' · ' + money(D.shift.hourly) + ' an hour' : ''}</span><button class="st-btn" data-clock="out">Clock out</button></div>` : '';
-  const shiftBar = () => (D.job ? `<div class="cv-shift cv-job"><i></i><span><b>${esc(D.job.label)}</b> · ${esc((D.job.steps[D.job.step] || {}).what || '')} · <span class="cv-jobnav-s"></span></span><button class="st-btn" data-goto="jobs">Open</button></div>` : '') + shiftLine();
+  const shiftLine = () => D.shift ? `<div class="cv-shift"><span>On shift at <b>${esc(D.shift.name)}</b> for ${dur(Date.now() - D.shift.start)}${D.shift.hourly ? ' · ' + money(D.shift.hourly) + ' an hour' : ''}</span><button class="st-btn" data-clock="out">Clock out</button></div>` : '';
+  const shiftBar = () => jobCard() + shiftLine();   // the task you're on, full size, at the top of every tab
   // live tracking: how far the next stop is and which way, from the CAD's own live player positions
   const myPos = () => { const P = window.live?.players ? window.live.players() : [], n = (OV.me || '').toLowerCase(), p = P.find(x => String(x.Player || '').split(':')[0].toLowerCase() === n), L = p && p.Location;
     return L && Number.isFinite(+L.LocationX) ? [+L.LocationX, +L.LocationZ] : null; };
   const DIRS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
-  const trackJob = () => { const J = D?.job, big = page.querySelectorAll('.cv-jobnav'), small = page.querySelectorAll('.cv-jobnav-s'); if (!J || (!big.length && !small.length)) return;
+  // ── the satnav on the trip card: heading-up map, the road route in blue, the next turn on top ──
+  const G2M = 2000 / 5355, gImg = new Image(); let gKey = '', gR = null, gC = null, gM = [], gAt = 0, gRot = null, gRaf = 0, gSrc = '';
+  const gRoute = (ux, uy, tx, ty) => { const b = window.NAVKIT.build(window.roadRoute ? window.roadRoute(ux, uy, tx, ty) : [[ux, uy], [tx, ty]]); gR = b.P; gC = b.C; gM = b.M; gAt = performance.now(); };
+  const gAlong = (x, y) => { let best = Infinity, at = 0, px = gR[0][0], py = gR[0][1];
+    for (let i = 0; i < gR.length - 1; i++) { const [ax, ay] = gR[i], [bx, by] = gR[i + 1], dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L)), qx = ax + dx * t, qy = ay + dy * t, d = Math.hypot(x - qx, y - qy);
+      if (d < best) { best = d; at = gC[i] + Math.sqrt(L) * t; px = qx; py = qy; } } return { off: best, at, px, py }; };
+  const gPoint = s => { let i = 0; while (i < gC.length - 2 && gC[i + 1] < s) i++; const t = (s - gC[i]) / ((gC[i + 1] - gC[i]) || 1); return [gR[i][0] + (gR[i + 1][0] - gR[i][0]) * t, gR[i][1] + (gR[i + 1][1] - gR[i][1]) * t]; };
+  const gSet = (el, v) => { if (el && el.textContent !== v) el.textContent = v; };
+  const gpsKick = () => { if (!gRaf && D?.job && page.querySelector('.trip')) gRaf = requestAnimationFrame(gpsFrame); };
+  const gpsFrame = () => { gRaf = 0; const K = window.NAVKIT, J = D?.job, boxes = [...page.querySelectorAll('.trip')].filter(b => b.offsetParent); if (!J || !boxes.length || !K) return; gRaf = requestAnimationFrame(gpsFrame);
+    const st = J.steps[J.step] || {}, me = myPos(), key = J.id + ':' + J.step; if (key !== gKey) { gKey = key; gR = null; gRot = null; }
+    let src = document.querySelector('#world img')?.currentSrc || document.querySelector('#world img')?.src || 'liberty-county.jpg'; if (/^https?:$/.test(location.protocol) && !/dark/.test(src)) src = 'liberty-county-hd.jpg'; if (src !== gSrc) { gSrc = src; gImg.src = src; }
+    const u = me && [me[0] * G2M, me[1] * G2M], last = J.steps.slice(0, J.step + 1).reverse().find(x => x.x != null), t = st.x != null ? [st.x * G2M, st.z * G2M] : null;
+    let ic = 'arrive', big = st.what || '', sub = '', chip = '', eta = '–', mi = '–', pos = null, want = -Math.PI / 2;
+    if (t && u) { if (!gR) gRoute(u[0], u[1], t[0], t[1]); pos = gAlong(u[0], u[1]); if (pos.off > 16 && performance.now() - gAt > 700) { gRoute(u[0], u[1], t[0], t[1]); pos = gAlong(u[0], u[1]); }
+      const total = gC[gC.length - 1], left = Math.max(0, total - pos.at) + Math.min(pos.off, 30), next = gM.find(m => m.at > pos.at + 4) || gM[gM.length - 1], dist = Math.max(0, next.at - pos.at);
+      const here = Math.hypot(st.x - me[0], st.z - me[1]) <= (J.r || 45), wl = st.wait && J.arrived ? Math.max(0, J.arrived + st.wait - Date.now()) : 0, miles = (left * K.W2M * K.FT / 5280).toFixed(1);
+      if (J.arrived && st.wait) { big = mmss(wl); sub = 'Stay close until the timer runs out'; eta = 'Here'; mi = '0 mi'; }
+      else if (here) { big = 'You’re here'; sub = st.wait ? 'The timer starts in a moment' : 'Finishing up…'; eta = 'Here'; mi = '0 mi'; }
+      else { ic = next.k; big = K.fmt(dist); sub = next.k === 'arrive' ? st.label : dist > 450 ? 'Continue, then ' + next.t.toLowerCase() : next.t; eta = Math.max(1, Math.round(left * K.W2M / (30 * 0.44704) / 60)) + ' min'; mi = miles + ' mi'; chip = miles + ' mi left'; }
+      const ahead = gPoint(Math.min(total, pos.at + 25)); want = Math.atan2(ahead[1] - pos.py, ahead[0] - pos.px) || 0; }
+    else if (t) { big = 'Not in game'; sub = 'Join the server to get directions'; }
+    else { ic = 'arrive'; sub = 'Ready when you are'; }
+    if (gRot == null) gRot = want; let dr = want - gRot; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); gRot += dr * 0.25;
+    const cx = u || t || (last ? [last.x * G2M, last.z * G2M] : [1000, 1000]);
+    for (const box of boxes) { const icEl = box.querySelector('.nav-ic'); if (icEl.dataset.k !== ic) { icEl.dataset.k = ic; icEl.innerHTML = K.svg(ic); }
+      gSet(box.querySelector('.nav-top b'), big); gSet(box.querySelector('.nav-top span'), sub); const ch = box.querySelector('.trip-chip'); ch.hidden = !chip; gSet(ch, chip);
+      gSet(box.querySelector('[data-f="eta"]'), eta); gSet(box.querySelector('[data-f="mi"]'), mi);
+      const cv = box.querySelector('canvas'), ctx = cv.getContext('2d'), r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+      if (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
+      const sc = cv.height / 300, ox = cv.width / 2, oy = cv.height * (u && t ? 0.7 : 0.55);
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = /darkmode/.test(gSrc) ? '#111113' : /-dark\./.test(gSrc) ? '#04070E' : '#3E6972'; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.setTransform(sc, 0, 0, sc, ox, oy); ctx.rotate(-gRot - Math.PI / 2); ctx.translate(-cx[0], -cx[1]);
+      if (gImg.complete && gImg.naturalWidth) ctx.drawImage(gImg, 0, 0, 2000, 2000);
+      if (pos && gR) { const rest = [[pos.px, pos.py]]; for (let i = 0; i < gR.length; i++) if (gC[i] > pos.at) rest.push(gR[i]);
+        ctx.lineJoin = ctx.lineCap = 'round'; const line = (w, col) => { ctx.beginPath(); ctx.moveTo(u[0], u[1]); for (const q of rest) ctx.lineTo(q[0], q[1]); ctx.strokeStyle = col; ctx.lineWidth = w / sc; ctx.stroke(); };
+        line(16 * dpr, 'rgba(8,30,70,.85)'); line(10 * dpr, '#2F7BF6'); }
+      if (t) { ctx.beginPath(); ctx.arc(t[0], t[1], 11 * dpr / sc, 0, Math.PI * 2); ctx.fillStyle = '#E24B4B'; ctx.fill(); ctx.lineWidth = 3 * dpr / sc; ctx.strokeStyle = '#fff'; ctx.stroke(); }
+      if (u) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); const ux = ox / dpr, uy = oy / dpr;   // you: the same blue arrow as the MDT
+        ctx.beginPath(); ctx.arc(ux, uy, 20, 0, Math.PI * 2); ctx.fillStyle = 'rgba(47,123,246,.25)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(ux, uy, 13, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.beginPath(); ctx.arc(ux, uy, 10.5, 0, Math.PI * 2); ctx.fillStyle = '#2F7BF6'; ctx.fill();
+        if (pos) { ctx.beginPath(); ctx.moveTo(ux, uy - 7); ctx.lineTo(ux + 5.5, uy + 5); ctx.lineTo(ux, uy + 2.5); ctx.lineTo(ux - 5.5, uy + 5); ctx.closePath(); ctx.fillStyle = '#fff'; ctx.fill(); } } } };
+  const trackJob = () => { gpsKick(); const J = D?.job, big = page.querySelectorAll('.cv-jobnav'), small = page.querySelectorAll('.cv-jobnav-s'); if (!J || (!big.length && !small.length)) return;
     const st = J.steps[J.step]; if (!st) return; if (st.game) { small.forEach(e => { e.textContent = 'mini-game waiting'; }); return; } const me = myPos(), left = st.wait && J.arrived ? Math.max(0, J.arrived + st.wait - Date.now()) : 0; let h, s;
     if (J.arrived && st.wait) { h = `<b class="cv-big">${mmss(left)}</b><span>${esc(st.what)}. Stay close until the timer runs out.</span>`; s = mmss(left) + ' left'; }
     else if (!me) { h = '<b class="cv-big">–</b><span>Join the server in game to see how far it is.</span>'; s = esc(st.label); }
@@ -4408,17 +4456,22 @@ body.voice-snap .stage{transition:none!important}
       else { h = `<i class="cv-arrow" style="transform:rotate(${deg.toFixed(0)}deg)" aria-hidden="true">↑</i><b class="cv-big">${dist}</b><span>${DIRS[Math.round(((deg % 360) + 360) % 360 / 45) % 8]} to ${esc(st.label)}</span>`; s = dist + ' to ' + esc(st.label); } }
     big.forEach(e => { e.innerHTML = h; }); small.forEach(e => { e.innerHTML = s; }); };
   setInterval(trackJob, 1000);
-  const jobCard = () => { const J = D.job; if (!J) return ''; const cur = J.steps[J.step] || {};
-    return `<div class="wo"><i class="wo-clip" aria-hidden="true"></i><div class="wo-paper"><div class="wo-head"><b>${esc(J.label)}</b><button class="wo-link" data-jobstop="1">Stop this task</button></div>${cur.game ? `<div class="wo-play"><button class="wo-btn solid" data-play="1">${esc(cur.what)}</button></div>` : '<div class="cv-jobnav"></div>'}
-      <ol class="wo-steps">${J.steps.map((x, i) => `<li class="${i < J.step ? 'done' : i === J.step ? 'on' : ''}"><span class="wo-box"></span><div><b>${esc(x.what)}</b><small>${x.game ? esc((GNAME || {})[x.game] || '') : esc(x.label) + (x.wait ? ' · stay ' + waitText(x.wait) : '')}</small></div></li>`).join('')}</ol></div></div>`; };
+  // the task you're on: directions on the left (the MDT's satnav), the trip and its steps on the right
+  const jobCard = () => { const J = D.job; if (!J) return ''; const st = J.steps[J.step] || {};
+    return `<div class="trip"><div class="trip-map gpsnav"><canvas></canvas><div class="nav-top"><div class="nav-ic"></div><div><b></b><span></span></div></div><span class="trip-chip" hidden></span></div>
+      <div class="trip-info"><div class="trip-h"><div><small>${esc(J.biz || 'Task')}</small><b>${esc(J.label)}</b></div><button class="st-btn" data-jobstop="1">Stop</button></div>
+        <div class="trip-now">${st.game ? `<small>Step ${J.step + 1} of ${J.steps.length}</small><b>${esc(st.what)}</b><button class="tk-go" data-play="1">Start</button>`
+          : `<small>Next stop</small><b>${esc(st.label || st.what)}</b><div class="facts"><span>ETA<b data-f="eta">–</b></span><span>Distance<b data-f="mi">–</b></span><span>Step<b>${J.step + 1} of ${J.steps.length}</b></span></div>${st.wait ? `<p>Stay ${waitText(st.wait)} once you get there.</p>` : ''}`}</div>
+        <ol class="trip-steps">${J.steps.map((x, i) => `<li class="${i < J.step ? 'done' : i === J.step ? 'on' : ''}"><span>${i < J.step ? '✓' : i + 1}</span><b>${esc(x.what)}</b></li>`).join('')}</ol></div></div>`; };
   const clockBtn = id => D.shift ? (D.shift.biz === id ? '<button class="st-btn" data-clock="out">Clock out</button>' : '') : `<button class="st-btn" data-clock="${id}">Clock in</button>`;
   // ── task boards: a sheet of work orders per workplace, taken while you're on shift ──
   const GNAME = { paperwork: 'Paperwork', pitch: 'Talk', negotiate: 'Negotiate', timing: 'Steady hands', sequence: 'Memory' };
-  const taskBoard = (id, kind) => { const on = D.shift && D.shift.biz === id, B = (D.boards || {})[id] || [], can = on && !D.job;
+  let taking = null;   // { id, slot } while a Take is on its way, so a refresh can't re-enable the buttons
+  const taskBoard = (id, kind) => { const on = D.shift && D.shift.biz === id, B = (D.boards || {})[id] || [], can = on && !D.job, wait = taking && taking.id === id;
     const route = t => t.steps.map((x, i) => i ? x.what.charAt(0).toLowerCase() + x.what.slice(1) : x.what).join(', then ');
     const foot = can ? '' : `<div class="wo-foot">${D.job ? '<span>Finish the task you’re on, then take the next one.</span>' : D.shift ? '<span>You’re clocked in somewhere else.</span>' : `<span>Clock in to take one.</span><button class="wo-btn" data-clock="${id}">Clock in</button>`}</div>`;
     return `<div class="wo"><i class="wo-clip" aria-hidden="true"></i><div class="wo-paper"><div class="wo-head"><b>Work orders</b><span>${B.length} today</span></div>
-      ${B.map((t, i) => `<div class="wo-row"><span class="wo-n">${i + 1}.</span><div class="wo-main"><b>${esc(t.title)}</b><p>${esc(route(t))}</p></div><span class="wo-pay">${t.far ? '~' : ''}${money(t.pay)}</span>${can ? `<button class="wo-btn" data-task="${i}">Take</button>` : ''}</div>`).join('') || '<p class="wo-none">Nothing on the sheet today.</p>'}${foot}</div></div>`; };
+      ${B.map((t, i) => `<div class="wo-row"><span class="wo-n">${i + 1}.</span><div class="wo-main"><b>${esc(t.title)}</b><p>${esc(route(t))}</p></div><span class="wo-pay">${t.far ? '~' : ''}${money(t.pay)}</span>${can ? `<button class="wo-btn" data-task="${i}"${wait ? ' disabled' : ''}>${wait && taking.slot === i ? 'Taking…' : 'Take'}</button>` : ''}</div>`).join('') || '<p class="wo-none">Nothing on the sheet today.</p>'}${foot}</div></div>`; };
   // ── mini-games, in an overlay on the tablet so its refresh never interrupts one ──
   const gbox = $('cvGame'); let gameKey = '', gameOff = '', hold = 0;
   const pickOne = a => a[Math.floor(Math.random() * a.length)];
@@ -4571,6 +4624,13 @@ body.voice-snap .stage{transition:none!important}
   const clOff = () => { clBox.hidden = true; clBox.innerHTML = ''; document.removeEventListener('keydown', clKey); if (clFrom?.isConnected) clFrom.focus(); };
   const clKey = e => { if (e.key === 'Escape' && !clDone) clOff(); };
   clBox.addEventListener('click', e => { if (!clDone && (e.target === clBox || e.target.closest('[data-clx]'))) clOff(); });
+  // a small dialog for yes/no questions, in the CAD's own style, in place of the browser's confirm()
+  const paperAsk = ({ kicker, title, body, yes, no = 'Cancel' }) => new Promise(res => { clFrom = document.activeElement; clDone = false; clBox.hidden = false;
+    clBox.innerHTML = `<div class="g-win ask-win" role="alertdialog" aria-modal="true" aria-labelledby="askT" aria-describedby="askP"><header><span>${esc(kicker)}</span><b id="askT">${esc(title)}</b></header><p class="ask-p" id="askP">${esc(body)}</p>
+      <div class="g-acts cl-acts"><button class="st-btn" data-ask="0">${esc(no)}</button><button class="cl-go" data-ask="1">${esc(yes)}</button></div></div>`;
+    const done = v => { document.removeEventListener('keydown', key); clBox.removeEventListener('click', click); clOff(); res(v); };
+    const key = e => { if (e.key === 'Escape') done(false); }, click = e => { const b = e.target.closest('[data-ask]'); if (b || e.target === clBox) done(!!b && b.dataset.ask === '1'); };
+    document.addEventListener('keydown', key); clBox.addEventListener('click', click); clBox.querySelector('[data-ask="0"]').focus(); });
   const openClose = (id, from) => { const z = (D.owned || []).find(x => x.id === id); if (!z) return;
     const X = (D.bizx || {})[id] || {}, K = (D.btypes || {})[z.kind] || { menu: 'Menu' }, loan = (X.loan || {}).left || 0, net = z.balance - loan, n = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
     const row = (l, v, cls = '') => `<div class="cl-row ${cls}"><span>${l}</span><b>${v}</b></div>`;
@@ -4679,7 +4739,7 @@ body.voice-snap .stage{transition:none!important}
     if (D.off) { $('cvTopBal').textContent = ''; $('cvSub').textContent = 'Switched off';
       $('cvHome').innerHTML = `<div class="st-empty">The civilian economy is switched off on this server.${isOwner ? ' Turn it on under Server.' : ''}</div>`; renderId(); renderServer(); return; }
     $('cvTopBal').textContent = money(D.balance); renderHome(); renderBills(); renderCars(); renderId(); renderRecord(); renderHousing(); renderShops(); renderJobs(); renderBiz(); renderServer();
-    $('cvTop').textContent = D.job ? 'On a task · ' + D.job.label : D.shift ? 'On shift · ' + D.shift.name : 'Civilian'; autoGame(); };
+    $('cvTop').textContent = D.job ? D.job.label : D.shift ? 'On shift · ' + D.shift.name : 'Civilian'; autoGame(); };
 
   // ── actions ──
   page.addEventListener('click', e => { const pay = e.target.closest('[data-pay]'), st = e.target.closest('[data-stolen]');
@@ -4710,9 +4770,13 @@ body.voice-snap .stage{transition:none!important}
     if (d.spot) return go('/biz/spot', { id, item: +d.spot });
     if (d.show !== undefined && b.matches('[data-show]')) { if (!d.show) return alert('That listing is gone.'); return go('/biz/job', { id, item: +d.show, req: +d.req || 0 }); }
     if (d.job) return go('/biz/job', { id: +d.job });
-    if (d.task !== undefined && b.matches('[data-task]')) return go('/biz/task', { id, slot: +d.task });
+    if (d.task !== undefined && b.matches('[data-task]')) { if (taking) return; taking = { id, slot: +d.task };
+      b.closest('.wo').querySelectorAll('[data-task]').forEach(x => { x.disabled = true; }); b.textContent = 'Taking…';
+      act('/biz/task', { id, slot: +d.task }).then(r => { taking = null; render(); if (r) show('jobs'); }); return; }
     if (d.play) { gameOff = ''; return openGame(); }
-    if (d.jobstop) { if (confirm('Stop this task? It won’t pay.')) go('/biz/job', { stop: true }); return; }
+    if (d.jobstop) { const J = D.job; if (!J) return; const n = J.step;
+      paperAsk({ kicker: J.biz || 'Task', title: 'Stop this task?', body: `${n ? `You’ve done ${n} of ${J.steps.length} steps. ` : ''}A task only pays once every step is done, so stopping now pays nothing.`, yes: 'Stop task', no: 'Keep going' })
+        .then(y => { if (y) go('/biz/job', { stop: true }); }); return; }
     if (d.goto) return show(d.goto);
     if (d.bt) { const [zid, t] = d.bt.split(':'); bizTab[zid] = t; renderBiz(); return; }
     if (d.clock) return go('/biz/clock', d.clock === 'out' ? { out: true } : { id: +d.clock });
