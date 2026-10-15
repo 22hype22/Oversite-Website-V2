@@ -249,7 +249,7 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .srv .go{display:flex;gap:8px;flex:none}.srv .go .btn{padding:10px 18px}
 .btn.ghost{background:transparent}
 .btn.warnb{background:transparent;color:#F3A3A3;border-color:rgba(226,75,75,.35)}.btn.warnb:hover{background:rgba(226,75,75,.12);color:#FFC2C2}
-@media (max-width:620px){.srv{flex-wrap:wrap}.srv .go{width:100%}.srv .go .btn{flex:1}}
+@media (max-width:620px){.srv{flex-wrap:wrap}.srv .go{width:100%;flex-wrap:wrap}.srv .go .btn{flex:1 1 auto}}
 .hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 details.mk{margin-top:14px;border-top:1px solid var(--hair);padding-top:12px}
 details.mk summary{cursor:pointer;color:var(--dim);font-size:13px;list-style:none;display:flex;align-items:center;gap:8px;width:max-content}
@@ -623,8 +623,10 @@ const phArt = name => `<div class="ph-art" aria-hidden="true"><svg width="0" hei
 <foreignObject x="420" y="196" width="900" height="130"><div xmlns="http://www.w3.org/1999/xhtml" class="ph-who"><span>${name}</span>${pbadge(64)}</div></foreignObject>
 <rect class="sk" x="270" y="360" width="760" height="30" rx="15"/><rect class="sk" x="270" y="430" width="600" height="30" rx="15"/><rect class="sk" x="270" y="500" width="680" height="30" rx="15"/><rect class="sk" x="270" y="610" width="420" height="160" rx="22"/><rect class="sk" x="730" y="610" width="420" height="160" rx="22"/></svg></div>`;
 // a Premium member's card (the gold check, perks, boosts) sits at the bottom of the page, under their servers; the buy banner stays on top
-export const account = a => { const h = accountPage(a), i = h.indexOf('<section class="ph pho-on" id="premium">'); if (i < 0) return h;
-  const j = h.indexOf('</section>', i) + 10, k = h.indexOf('</main>', j); return k < 0 ? h : h.slice(0, i) + h.slice(j, k) + '<div style="margin-top:18px">' + h.slice(i, j) + '</div>' + h.slice(k); };
+// and Your MDT gets the full width there too, instead of a tall strip in the side column
+const toBottom = (h, start) => { const i = h.indexOf(start); if (i < 0) return h; const j = h.indexOf('</section>', i) + 10, k = h.indexOf('</main>', j);
+  return k < 0 ? h : h.slice(0, i) + h.slice(j, k) + '<div style="margin-top:18px">' + h.slice(i, j) + '</div>' + h.slice(k); };
+export const account = a => toBottom(toBottom(accountPage(a), '<section class="card" id="mdtset">'), '<section class="ph pho-on" id="premium">');
 const accountPage = ({ logo, user, comms, discord, back, prem = { on: false }, payments = false, justBought = false, boostable = [], beta = {}, discordPerk = {} }) => layout({ title: 'Your account · Oversite', logo, user, body: `
 <main class="acct">${back ? `<div class="row" style="margin:0 0 18px"><a class="btn sm" href="${esc(back)}">&larr; Back to the CAD</a></div>` : ''}
 <div class="prof"><span class="pic">${esc((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase())}${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.remove()">` : ''}</span>
@@ -676,7 +678,7 @@ ${user.roblox_name ? `<button class="btn sm" id="switch">Switch</button>` : `<a 
 ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a class="btn sm discord" href="/auth/discord?next=/account">Connect</a>` : ''}</div>
 </section>
 <section class="card" id="mdtset"><h2 class="hrow">Your MDT<span class="ms-pb">${pbadge(14)} Premium</span></h2><p class="note">How the MDT looks and sounds for you, on every server and every device you sign in on.</p>
-<div class="ms-prev" aria-hidden="true"><div class="ms-tab" id="msTab"><div class="ms-scr" id="msScr"><div class="ms-side"><i class="on"></i><i></i><i></i><i></i><b>Panic</b></div><div class="ms-main"><h4>FD 4120</h4><p></p><p class="s"></p><div class="ms-st"><em class="on">10-8</em><em>10-76</em><em>10-23</em><em>10-19</em></div></div></div></div></div>
+<div class="ms-body"><div class="ms-prev" aria-hidden="true"><div class="ms-tab" id="msTab"><div class="ms-scr" id="msScr"><div class="ms-side"><i class="on"></i><i></i><i></i><i></i><b>Panic</b></div><div class="ms-main"><h4>FD 4120</h4><p></p><p class="s"></p><div class="ms-st"><em class="on">10-8</em><em>10-76</em><em>10-23</em><em>10-19</em></div></div></div></div></div>
 <form id="msf" class="licf" autocomplete="off"><fieldset class="wide ms-fs" id="msFs">
 <label class="wide">Call alert<span class="ms-pl"><select id="msCall"></select><button type="button" class="btn sm ms-play" data-play="call" aria-label="Play the call alert"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></button></span></label>
 <label class="wide">Panic alarm<span class="ms-pl"><select id="msPanic"></select><button type="button" class="btn sm ms-play" data-play="panic" aria-label="Play the panic alarm"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></button></span></label>
@@ -686,7 +688,7 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 <div class="wide ms-g"><span>Tablet</span><div class="ms-sw" id="msFrame" role="radiogroup" aria-label="Tablet colour"></div></div>
 <label class="wide">Map<select id="msMap"><option value="">The one I picked last on each device</option><option value="2d-light">Light</option><option value="2d-dark">Dark</option></select></label>
 </fieldset><p class="hint wide" id="msNote"></p>
-<div class="row wide"><button class="btn pri" id="msSave">Save MDT</button><button type="button" class="btn" id="msReset">Defaults</button><span class="msg" id="msMsg"></span></div></form></section>
+<div class="row wide"><button class="btn pri" id="msSave">Save MDT</button><button type="button" class="btn" id="msReset">Defaults</button><span class="msg" id="msMsg"></span></div></form></div></section>
 <section class="card"><h2>Sign out</h2><p class="note">Signs you out on this device. You'll need your sign-in again to get back in.</p><form method="post" action="/auth/logout" style="margin:0"><button class="btn danger">Sign out</button></form></section>
 </div></div></main><script src="/mdt-setup.js?v=1"></script>
 <style>.licw{position:relative;width:100%;max-width:400px;aspect-ratio:400/250;margin:6px 0 14px}.licw .lcard{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(var(--ls,1))}
@@ -702,7 +704,10 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 .ms-sw.ms-wl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}.ms-sw.ms-wl button i{width:100%;height:36px;border-radius:8px;background-color:#0C0D0F}
 .ms-sw button[aria-checked="true"]{color:var(--ink)}.ms-sw button[aria-checked="true"] i{box-shadow:0 0 0 2px var(--bg,#0B0B0C),0 0 0 4px #E8B33A}
 .ms-sw button:focus-visible{outline:none}.ms-sw button:focus-visible i{box-shadow:0 0 0 2px var(--bg,#0B0B0C),0 0 0 4px #4C8DFF}.ms-sw button:disabled{cursor:default}
-.ms-prev{max-width:400px;margin:6px 0 16px}.ms-tab{border-radius:20px;padding:8px;background:#1B1C1F;box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.07) inset,0 0 0 3px #121316 inset;aspect-ratio:16/10}
+.ms-prev{max-width:400px;margin:6px 0 16px}
+.ms-body{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:28px;align-items:start;margin-top:6px}.ms-body .ms-prev{max-width:none;margin:0}
+.ms-body .licf .ms-fs>*{grid-column:auto}.ms-body .licf .ms-fs>.ms-g:has(#msWall){grid-column:1/-1}
+@media (max-width:820px){.ms-body{grid-template-columns:1fr;gap:16px}.ms-body .licf .ms-fs>*{grid-column:1/-1}}.ms-tab{border-radius:20px;padding:8px;background:#1B1C1F;box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.07) inset,0 0 0 3px #121316 inset;aspect-ratio:16/10}
 .ms-scr{--fd:#E0453B;--fd-soft:rgba(224,69,59,.14);height:100%;border-radius:13px;overflow:hidden;background:#0C0D0F;display:flex}
 .ms-side{width:26%;display:flex;flex-direction:column;gap:6px;padding:12px 8px;border-right:1px solid rgba(255,255,255,.08)}.ms-side i{height:12px;border-radius:5px;background:rgba(255,255,255,.06)}.ms-side i.on{background:rgba(255,255,255,.14)}
 .ms-side b{margin-top:auto;height:20px;border-radius:6px;border:1.5px solid #E0453B;color:#FF8A82;font-size:9px;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;justify-content:center}
