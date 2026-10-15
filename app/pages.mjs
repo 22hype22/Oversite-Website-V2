@@ -316,7 +316,7 @@ export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', err
 <section class="hero wide notop"><div class="box">
 <div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div>
 <h1><span style="font-weight:400">Oversite</span> <b>CAD</b></h1>
-<p class="lead">A live dispatch system for ER:LC private servers. Every unit on a 3D map of Liberty County, live from your server.</p>
+<p class="lead">A live dispatch system for ER:LC private servers. Every unit on a live map of Liberty County, straight from your server.</p>
 <p class="note" style="margin:-6px 0 18px"><a href="/explore">Explore servers</a> without signing in.</p>
 <div class="paths">
 <form class="card path" id="codeform" autocomplete="off"><h2>Join your server</h2><p class="note">Enter your server's invite code.</p>
@@ -636,7 +636,7 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 <div class="wide ms-g"><span>Accent</span><div class="ms-sw" id="msAcc" role="radiogroup" aria-label="Accent"></div></div>
 <div class="wide ms-g"><span>Wallpaper</span><div class="ms-sw ms-wl" id="msWall" role="radiogroup" aria-label="Wallpaper"></div></div>
 <div class="wide ms-g"><span>Tablet</span><div class="ms-sw" id="msFrame" role="radiogroup" aria-label="Tablet colour"></div></div>
-<label class="wide">Map<select id="msMap"><option value="">The one I picked last on each device</option><option value="3d-light">3D</option><option value="2d-light">2D</option><option value="2d-dark">2D Dark</option></select></label>
+<label class="wide">Map<select id="msMap"><option value="">The one I picked last on each device</option><option value="2d-light">Light</option><option value="2d-dark">Dark</option></select></label>
 </fieldset><p class="hint wide" id="msNote"></p>
 <div class="row wide"><button class="btn pri" id="msSave">Save MDT</button><button type="button" class="btn" id="msReset">Defaults</button><span class="msg" id="msMsg"></span></div></form></section>
 <section class="card"><h2>Sign out</h2><p class="note">Signs you out on this device. You'll need your sign-in again to get back in.</p><form method="post" action="/auth/logout" style="margin:0"><button class="btn danger">Sign out</button></form></section>

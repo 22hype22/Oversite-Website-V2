@@ -85,7 +85,7 @@ export const DOCS = {
 <tr><td><code>ov_sess</code></td><td>Keeps you signed in.</td><td>30 days</td></tr>
 <tr><td><code>ov_access</code></td><td>Remembers the preview access code.</td><td>30 days</td></tr>
 <tr><td><code>ov_rbx</code>, <code>ov_dg</code></td><td>Protect the Roblox and Discord sign-in and bot-connect steps.</td><td>10 minutes</td></tr></table>
-<p>Your browser also keeps a few settings on your own device: your 2D or 3D map choice, whether you dismissed the graphics notice, reports you write in the department MDT, and whether you have already seen the opening animation this session. These never leave your device.</p>` },
+<p>Your browser also keeps a few settings on your own device: your light or dark map choice, reports you write in the department MDT, and whether you have already seen the opening animation this session. These never leave your device.</p>` },
       { id: 'keeping', h: 'How long we keep it', short: 'Your account stays until you ask us to delete it. Server data stays until the server is deleted; command history is kept for good.',
         body: `<ul><li>Your account and linked identities stay until you ask us to delete them. Unlinking Roblox removes it from your account straight away.</li>
 <li>When an owner deletes a server, its settings, codes, invites, member list, profile, icon, votes, staff records and command history are deleted with it.</li>
