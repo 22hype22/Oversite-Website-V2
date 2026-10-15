@@ -33,9 +33,9 @@ export const observe = (cid, body) => { const now = Date.now(); if (now - (LAST.
   for (const k of j.EmergencyCalls || []) for (const p of k.Players || []) { const rid = idOf(p); if (rid) add.run(cid, `${k.CallNumber}:${k.StartedAt}`, rid, k.Team || '', now); } };
 
 // servers nobody has the CAD open for are read once a minute, so shifts count either way
-export const start = (feedFor, keyOf) => setInterval(async () => {
+export const start = (feedFor, keyOf, also) => setInterval(async () => {
   for (const c of communities.all()) { if (c.suspended || !keyOf(c.id) || Date.now() - (LAST.get(c.id) || 0) < 55000) continue;
-    try { const s = await feedFor(c).snapshot(); if (s.status === 200) observe(c.id, s.body); } catch (e) {} } }, 60000);
+    try { const s = await feedFor(c).snapshot(); if (s.status === 200) { observe(c.id, s.body); also?.(c.id, s.body); } } catch (e) {} } }, 60000);   // also: staff auto shifts read the same answer
 
 // everything the career page shows, for one person (every account on their Roblox)
 export const stats = user => { if (!user?.roblox_id) return null; const rid = String(user.roblox_id), now = Date.now();

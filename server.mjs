@@ -11,6 +11,7 @@ import { RANKS, validRank, ranksFor, saveRanks, licenseOf, saveLicense } from '.
 import { serverPage } from './app/serverpage.mjs';
 import * as voice from './app/voice.mjs';
 import { voicePage } from './app/voicepage.mjs';
+import { staffHub, applyPage } from './app/staffpage.mjs';
 import { Feed, testKey, appSide, NOKEY, appKey, appId, appKeyChanged, authLink, erlcHeaders } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
@@ -21,6 +22,7 @@ import * as bounds from './app/bounds.mjs';
 import * as career from './app/career.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
+import * as staffhub from './app/staffhub.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -51,7 +53,7 @@ const msg = (res, user, title, text, action, status = 200) => page(res, pages.me
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
 const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f);
-  f.onSnap = body => { police.observe(c.id, body); career.observe(c.id, body); };                                                          // plates, owners and players for the PD lookups
+  f.onSnap = body => { police.observe(c.id, body); career.observe(c.id, body); staffhub.observe(c.id, body); };                                                          // plates, owners and players for the PD lookups
   f.onStream = res => res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 
@@ -97,6 +99,12 @@ const communityApi = async (req, res, slug, rest) => {
   if (!c) return json(res, { error: 'No such community.' }, 404);
   if (c.suspended && !isSiteAdmin(user)) return json(res, { error: 'This server is suspended.' }, 403);
   if (!user) return json(res, { error: 'Sign in first.' }, 401);
+  // applications: anyone signed in can read an open form and apply, member or not
+  { const ap = rest.match(/^apply\/(\d{1,9})$/);
+    if (ap && req.method === 'GET') { const fm = staffhub.form(c, ap[1]); return fm && fm.open ? json(res, { form: fm, mine: staffhub.myApps(c, user).filter(a => a.form_id === fm.id) }) : json(res, { error: 'This application is closed.' }, 404); }
+    if (ap && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
+      if (auth.limited(req, 'apply', 6, 60000)) return json(res, { error: 'Too many tries. Wait a minute.' }, 429);
+      const r = staffhub.apply(c, user, ap[1], (await jsonBody(req)).answers); return json(res, r, r.error ? 400 : 200); } }
   if (!role) return json(res, { error: 'You are not a member of this community.' }, 403);
   if (!user.roblox_name) return json(res, { error: 'Link your Roblox account first. Open the dashboard to link it.' }, 403);
   if (req.method !== 'GET' && req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
@@ -187,6 +195,26 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'records' && M === 'POST') { const r = police.create(c.id, by, await jsonBody(req)); if (r.ok) f.bcast('pdrec', JSON.stringify(r.record)); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records/act' && M === 'POST') { const j = await jsonBody(req), r = police.act(c.id, by, j); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: String(j.action || ''), _by: by.name })); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only an admin can delete records.' }, 403); const id = +(await jsonBody(req)).id || 0; police.remove(c.id, id); f.bcast('pdrec', JSON.stringify({ id, _deleted: true })); return json(res, { ok: true }); }
+    return json(res, { error: 'Not found.' }, 404); }
+  // staff management (app/staffhub.mjs): shifts, the weekly board, staff records, leave, applications. Mod and up.
+  if (rest.startsWith('sm/')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403);
+    const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, ok = r => json(res, r.error ? r : { ...r, state: staffhub.state(c, user, role) }, r.error ? 400 : 200);
+    if (sub === 'state' && M === 'GET') return json(res, staffhub.state(c, user, role));
+    if (sub === 'person' && M === 'GET') { const id = +qs.get('id') || user.id; if (id !== user.id && !can(role, 'admin')) return json(res, { error: 'Only admins and up can see other staff records.' }, 403); const r = staffhub.person(c, id); return json(res, r, r.error ? 404 : 200); }
+    if (sub === 'apps' && M === 'GET') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can read applications.' }, 403); return json(res, { form: staffhub.form(c, qs.get('form')), apps: staffhub.apps(c, qs.get('form'), qs.get('status')) }); }
+    if (M !== 'POST') return json(res, { error: 'Not found.' }, 404);
+    const j = await jsonBody(req);
+    if (sub === 'clock') return ok(staffhub.clock(c, user, String(j.action || ''), String(j.type || '')));
+    if (sub === 'end-for') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can end someone else’s shift.' }, 403); return ok(staffhub.endFor(c, user, j.user)); }
+    if (sub === 'action') return ok(staffhub.addAction(c, user, role, j));
+    if (sub === 'action/delete') return ok(staffhub.delAction(c, role, j.id));
+    if (sub === 'leave') return ok(staffhub.requestLeave(c, user, j));
+    if (sub === 'leave/decide') return ok(staffhub.decideLeave(c, user, role, j.id, !!j.approve));
+    if (sub === 'leave/cancel') return ok(staffhub.cancelLeave(c, user, j.id));
+    if (sub === 'settings') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change this.' }, 403); staffhub.saveConf(c, j); return ok({ ok: true }); }
+    if (sub === 'form') return ok(staffhub.saveForm(c, role, j));
+    if (sub === 'form/delete') return ok(staffhub.delForm(c, role, j.id));
+    if (sub === 'app/decide') return ok(staffhub.decideApp(c, user, role, j.id, !!j.accept, j.note, !!j.mod));
     return json(res, { error: 'Not found.' }, 404); }
   // signing in to a department's MDT with your license and rank; it stays until you sign out
   if (rest === 'mdt/signin' && M === 'POST') { const j = await jsonBody(req); if (!validRank(j.dept, j.rank, ranksFor(c, premium.isPremium(c)))) return json(res, { error: 'Pick your rank.' }, 400);
@@ -438,7 +466,7 @@ const route = async (req, res) => {
   if (vl && (vs !== vl[1] || !communities.bySlug(vs) || RESERVED.has(vs))) { const bySlug = !RESERVED.has(vs) && communities.bySlug(vs), hit = bySlug ? { c: bySlug } : auth.inviteByCode(req, vl[1]);
     if (hit?.c) return redirect(res, `/${hit.c.slug}/vote`, { 'cache-control': 'no-store' });
     return msg(res, auth.currentUser(req), hit?.error ? 'Too many tries' : 'Server not found', hit?.error || 'Check the vote link, or find the server on Explore.', { href: '/explore', label: 'Explore servers' }, hit?.error ? 429 : 404); }
-  const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|prox|about|vote))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
+  const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|prox|about|vote|staff|apply\/\d{1,9}))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
   if (sc) { const sub = short[2] || '', u = auth.currentUser(req); if (u) staffRole(sc, u);
     if (sub === '/vote') { path = `/s/${sc.slug}`; aboutPage = true; req.votePrompt = true; }
     else if (sub === '/about' || (!sub && !(u && members.role(sc.id, u.id)) && visible(sc.slug))) { path = `/s/${sc.slug}`; aboutPage = true; }
@@ -563,6 +591,8 @@ const route = async (req, res) => {
     if (!c) return msg(res, user, 'Community not found', 'Check the address, or ask your community for an invite link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
     if (c.suspended && !isSiteAdmin(user)) return msg(res, user, `${c.name} is suspended`, 'Oversite has suspended this server for breaking the Terms of Use, so its CAD is closed. The owner can contact support about it.', { href: '/support?topic=server', label: 'Contact support' }, 403);
     if (!user) return redirect(res, `/?next=${encodeURIComponent(url.pathname)}`);
+    const apm = sub.match(/^\/apply\/(\d{1,9})$/);   // an application form: open to anyone signed in, member or not
+    if (apm) return user.roblox_name ? page(res, applyPage({ logo: LOGO, user, c, id: apm[1] })) : redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname)}`);
     if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', { href: '/dashboard', label: 'Go to dashboard' }, 403);
     if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname + url.search)}`);   // no CAD without a linked Roblox account
     if (needsDiscord(c) && sub === '/') return can(role, 'co_owner') ? redirect(res, `/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
@@ -570,6 +600,7 @@ const route = async (req, res) => {
     if (sub === '/voice' && !req.prox) return redirect(res, `/${c.slug}/prox${url.search}`);   // the old address
     if (sub === '/voice' && !premium.isPremium(c)) return msg(res, user, 'Proximity chat is part of Premium', can(role, 'co_owner') ? 'Get Premium for this server to let players hear each other by distance in game.' : 'Ask your server owner to get Premium for proximity chat.', can(role, 'co_owner') ? { href: `/${c.slug}/settings#premium`, label: 'Get Premium' } : { href: `/${c.slug}`, label: 'Back to the CAD' });
     if (sub === '/voice') return page(res, voicePage({ logo: LOGO, user, c, settings: voice.voiceSettings(c), keyOk: !!communities.key(c.id), embed: url.searchParams.has('embed') }));
+    if (sub === '/staff') return can(role, 'mod') ? page(res, staffHub({ logo: LOGO, user, c })) : msg(res, user, 'Staff only', 'The staff page is for Mods and up.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
       return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c), ranks: ranksFor(c, premium.isPremium(c)), boost: premium.boostInfo(c, user)})); }
@@ -667,7 +698,7 @@ http.createServer((req, res) => {
     let u = null; try { u = auth.currentUser(req); } catch {}   // the database may be what broke
     msg(res, u, 'Something went wrong', 'Oversite hit an error loading this page. Try again in a moment. If it keeps happening, let us know.', { href: '/', label: 'Home' }, 500); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
-staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id));
+staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), staffhub.observe);
 supporter.start(); premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);
 // once: the old owner link left extra "Owner" members behind; on servers a site admin made, they go back to plain members
 // (in-game staff still get their in-game rank in the CAD), and the server's creator can sort out anyone else from the Team tab

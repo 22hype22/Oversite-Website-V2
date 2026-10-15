@@ -595,7 +595,7 @@ ${boostable.length ? boostable.map(b => `<div class="ap-b"><b>${esc(b.name)}</b>
 <div class="grid"><div>
 ${(() => { const row = c => { const owner = c.role === 'owner';
   return `<div class="srv"><span class="ic">${esc(c.name.slice(0, 1).toUpperCase())}<img src="/c/${esc(c.slug)}/icon" alt="" loading="lazy" onerror="this.remove()"></span><div class="tx"><b>${esc(c.name)}</b><small>${esc(RANK_LABEL[c.role] || c.role)}</small></div>
-<div class="go">${runs(c.role) ? `<a class="btn ghost" href="/${esc(c.slug)}/settings">Server settings</a>` : ''}${owner ? '' : `<button class="btn ghost" data-leave="${esc(c.slug)}" data-name="${esc(c.name)}">Leave</button>`}${c.setup ? (runs(c.role) ? `<a class="btn pri discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord</a>` : '<span class="tag warn">Being set up</span>') : `<a class="btn pri" href="/${esc(c.slug)}">Open CAD</a>`}</div></div>`; };
+<div class="go">${['owner', 'co_owner', 'admin', 'mod'].includes(c.role) && !c.setup ? `<a class="btn ghost" href="/${esc(c.slug)}/staff">Staff</a>` : ''}${runs(c.role) ? `<a class="btn ghost" href="/${esc(c.slug)}/settings">Server settings</a>` : ''}${owner ? '' : `<button class="btn ghost" data-leave="${esc(c.slug)}" data-name="${esc(c.name)}">Leave</button>`}${c.setup ? (runs(c.role) ? `<a class="btn pri discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord</a>` : '<span class="tag warn">Being set up</span>') : `<a class="btn pri" href="/${esc(c.slug)}">Open CAD</a>`}</div></div>`; };
   const mine = comms.filter(c => c.role === 'owner'), joined = comms.filter(c => c.role !== 'owner');
   return `<section class="card"><h2>Your servers</h2>${mine.length ? mine.map(row).join('') : '<p class="note">You don\'t own a server yet.</p>'}
 <details class="mk"${mine.length ? '' : ' open'}><summary>Make a new server</summary><p class="note">One per ER:LC server. Members join with its invite code.</p>
@@ -822,15 +822,15 @@ const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C' };
 // Free vs Premium, row by row: true is a check, false a cross, text says how much
 export const COMPARE = [['Dispatch live map, calls and units', true, true], ['Fire, Police and DOT MDTs', true, true], ['Panic button', true, true],
   ['Police lookup, tickets, warnings and BOLOs', true, true], ['Police records', 'Last 30 days', 'Kept forever'], ['Jurisdiction boundaries', true, true], ['Discord role linking', true, true],
-  ['Explore listing, vote link and reviews', true, true], ['Proximity chat', false, true], ['Server Staff CAD', false, true], ['Automatic plate and warrant checks', false, true],
+  ['Explore listing, vote link and reviews', true, true], ['Staff shifts, records, leave and applications', true, true], ['Automatic staff shifts while in game', false, true], ['Proximity chat', false, true], ['Server Staff CAD', false, true], ['Automatic plate and warrant checks', false, true],
   ['Your logo on the CAD and MDT', false, true], ['Custom license card', false, true], ['Your own MDT sign-in ranks', false, true], ['Explore ads', false, '3 a month'],
   ['Priority support and feature requests', false, true], ['Gold check next to your name, in the CAD too', false, true], ['Your career: hours on duty, calls and records', false, true],
   ['Gold, holographic and obsidian license cards', false, true], ['Your own MDT sounds, colours and map', false, true], ['Early access to new features', false, true], ['Supporter role in Oversite\'s Discord', false, true]];
 const CMP_YES = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-label="Included"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>', CMP_NO = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-label="Not included"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 const cmpCell = v => v === true ? `<td class="y">${CMP_YES}</td>` : v === false ? `<td class="n">${CMP_NO}</td>` : `<td class="t">${esc(v)}</td>`;
 export const compareTable = () => `<table class="cmp"><thead><tr><th>Feature</th><th>Free</th><th class="pr">Premium</th></tr></thead><tbody>${COMPARE.map(([f, a, b]) => `<tr><td>${esc(f)}</td>${cmpCell(a)}${cmpCell(b).replace('<td class="', '<td class="pr ')}</tr>`).join('')}</tbody></table>`;
-export const FREE_FEATURES = ['Dispatch live map, calls and units', 'Fire, Police and DOT MDTs', 'Panic button', 'Police lookup, tickets, warnings and BOLOs', 'Police records from the last 30 days', 'Discord role linking', 'Explore listing, vote link and reviews'];
-export const PREMIUM_FEATURES = ['Proximity chat', 'Server Staff CAD', 'Custom license card', '3 Explore ads a month', 'Police records kept forever', 'Automatic plate and warrant checks', 'Your logo on the CAD and MDT', 'Your own MDT sign-in ranks'];
+export const FREE_FEATURES = ['Dispatch live map, calls and units', 'Fire, Police and DOT MDTs', 'Panic button', 'Police lookup, tickets, warnings and BOLOs', 'Police records from the last 30 days', 'Discord role linking', 'Explore listing, vote link and reviews', 'Staff shifts, records, leave and applications'];
+export const PREMIUM_FEATURES = ['Proximity chat', 'Server Staff CAD', 'Custom license card', '3 Explore ads a month', 'Police records kept forever', 'Automatic plate and warrant checks', 'Your logo on the CAD and MDT', 'Your own MDT sign-in ranks', 'Automatic staff shifts while in game'];
 // what Premium on your own account adds, wherever you play (the list above is what a Premium server gets)
 export const PERSONAL_FEATURES = ['Gold check next to your name and on your unit', 'Your career: hours, calls and records', 'Gold, holographic and obsidian license cards', 'Your own MDT sounds, colours and map', 'Early access to new features', 'Supporter role in Oversite\'s Discord', 'Priority support and feature requests'];
 const PREM_CSS = `.pm-feat{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;column-gap:24px;border-top:1px solid var(--hair)}.pm-feat li{padding:9px 0;border-bottom:1px solid var(--hair);font-size:13.5px}
@@ -876,7 +876,7 @@ ${user && owned.length ? `<details class="mk" style="margin-top:14px"><summary>O
   script: `const s=document.getElementById('ppS'),g=document.getElementById('ppGo');if(s&&g)s.onchange=()=>{g.href='/'+s.value+'/settings#premium'};
 {let plan='year';document.querySelectorAll('.pp-buy [data-plan]').forEach(b=>b.onclick=()=>{plan=b.dataset.plan;document.querySelectorAll('.pp-buy [data-plan]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 const buy=document.getElementById('ppBuy');if(buy)buy.onclick=async()=>{buy.disabled=true;try{const j=await api('/api/me/premium/checkout',{plan});location.href=j.url}catch(e){buy.disabled=false;say(document.getElementById('ppMsg'),e.message)}}}` });
-const ST_CSS = `.stm{max-width:1060px}
+export const ST_CSS = `.stm{max-width:1060px}
 .st-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 22px}.st-top h1{margin:0}.st-top .lead{margin:6px 0 0}.st-top .btn{flex:none;margin-top:6px}
 .sx{display:grid;grid-template-columns:180px minmax(0,1fr);gap:28px;align-items:start}
 .st-nav{position:sticky;top:76px;display:flex;flex-direction:column;gap:2px}
