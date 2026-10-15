@@ -232,12 +232,12 @@ export const bizMove = (id, amount, memo) => { const z = q('SELECT balance FROM 
   q('UPDATE civ_biz SET balance = ? WHERE id = ?').run(bal, id); q('INSERT INTO civ_btx (biz_id, amount, balance, memo, at) VALUES (?, ?, ?, ?, ?)').run(id, Math.round(amount), bal, T(memo, 120), now()); };
 // app/civbiz.mjs fills these in: Premium managers who can run a business, how many businesses someone may own, and commission on a paid bill
 export const hooks = { manager: () => false, managed: () => [], maxBiz: () => 2, commission: () => {} };
-const BIZ_KINDS = ['Store', 'Restaurant', 'Mechanic', 'Towing', 'Taxi', 'Security', 'Law firm', 'Medical', 'Real estate', 'Bank', 'News', 'Other'];
+const BIZ_KINDS = ['Store', 'Restaurant', 'Mechanic', 'Towing', 'Taxi', 'Security', 'Law firm', 'Medical', 'Real estate', 'Bank', 'News'];   // each has its own job and catalog (app/civbiz.mjs)
 const mine = (c, user, id) => { const z = biz(c.id, id); return z && z.owner_id === user.id ? z : null; };
 const runs = (c, user, id) => { const z = biz(c.id, id); return z && (z.owner_id === user.id || hooks.manager(c, user, z)) ? z : null; };   // the owner, or a Premium manager
 const weekNo = cf => cf.since ? Math.floor((now() - cf.since) / GWEEK) : 0;
-export const openBiz = (c, user, j) => { const cf = conf(c), name = T(j.name, 50), kind = BIZ_KINDS.includes(j.kind) ? j.kind : 'Other'; ensure(c, user.id);
-  if (!name) return { error: 'Name the business.' };
+export const openBiz = (c, user, j) => { const cf = conf(c), name = T(j.name, 50), kind = BIZ_KINDS.includes(j.kind) ? j.kind : ''; ensure(c, user.id);
+  if (!name) return { error: 'Name the business.' }; if (!kind) return { error: 'Pick what kind of business it is.' };
   if (q('SELECT 1 FROM civ_biz WHERE community_id = ? AND lower(name) = lower(?)').get(c.id, name)) return { error: 'A business with that name already exists.' };
   const max = hooks.maxBiz(c, user); if (q('SELECT count(*) AS n FROM civ_biz WHERE community_id = ? AND owner_id = ?').get(c.id, user.id).n >= max) return { error: `You already own ${max} businesses.${max < 5 ? ' Premium lets you own up to 5.' : ''}` };
   const g = background(c, user.id); if (g.warrants) return { error: 'You have an active warrant. Sort it out before you register a business.' };
