@@ -5,7 +5,7 @@
 // The money moves through app/civ.mjs.
 import { db, now, users, communities } from './db.mjs';
 import * as premium from './premium.mjs';
-import { T, money, DAY, WEEK, conf, ensure, move, bizMove, biz, note, who, hooks, staffSet } from './civ.mjs';
+import { T, money, DAY, GDAY, GWEEK, conf, ensure, move, bizMove, biz, note, who, hooks, staffSet } from './civ.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS civ_shifts (id INTEGER PRIMARY KEY, biz_id INTEGER NOT NULL REFERENCES civ_biz(id) ON DELETE CASCADE, user_id INTEGER NOT NULL,
   start INTEGER NOT NULL, end INTEGER, pay INTEGER NOT NULL DEFAULT 0);
@@ -75,9 +75,9 @@ export const sweep = (c, sideOf) => { const t = now();
     missed.delete(s.id); endShift(c, s, side ? 'Clocked out: you joined a department team.' : 'Clocked out: you left the server.'); }
   const cf = conf(c);
   for (const z of q('SELECT * FROM civ_biz WHERE community_id = ? AND loan_left > 0 AND loan_next <= ?').all(c.id, t)) { const pay = Math.min(z.loan_weekly, z.loan_left);
-    if (z.balance >= pay) { bizMove(z.id, -pay, 'Loan payment'); q('UPDATE civ_biz SET loan_left = loan_left - ?, loan_next = loan_next + ? WHERE id = ?').run(pay, WEEK, z.id);
+    if (z.balance >= pay) { bizMove(z.id, -pay, 'Loan payment'); q('UPDATE civ_biz SET loan_left = loan_left - ?, loan_next = loan_next + ? WHERE id = ?').run(pay, GWEEK, z.id);
       if (z.loan_left - pay <= 0) note(c.id, z.owner_id, `${z.name}'s loan is paid off.`); }
-    else { const fee = Math.round(pay * (cf.late || 0) / 100); q('UPDATE civ_biz SET loan_left = loan_left + ?, loan_next = loan_next + ? WHERE id = ?').run(fee, WEEK, z.id);
+    else { const fee = Math.round(pay * (cf.late || 0) / 100); q('UPDATE civ_biz SET loan_left = loan_left + ?, loan_next = loan_next + ? WHERE id = ?').run(fee, GWEEK, z.id);
       note(c.id, z.owner_id, `${z.name} missed a loan payment of ${money(pay)}.${fee ? ` A ${money(fee)} late fee was added.` : ''}`); } } };
 
 // ── the storefront: what a business sells, bought from the Shops directory ──
@@ -114,7 +114,7 @@ export const bonus = (c, user, j) => { const z = runs(c, user, j.id); if (!z) re
   if (!Number.isFinite(a) || a < 1 || a > 1e6) return { error: 'Enter an amount.' }; if (z.balance < a) return { error: `The business only has ${money(z.balance)}.` };
   bizMove(z.id, -a, `Bonus, ${who(w.user_id)}`); ensure(c, w.user_id); move(c.id, w.user_id, a, 'wage', `Bonus from ${z.name}${j.memo ? ': ' + T(j.memo, 60) : ''}`); return { ok: true }; };
 
-// ── Premium: a business loan, repaid weekly from the business account over LIMITS.loanWeeks weeks at the server's interest rate ──
+// ── Premium: a business loan, repaid each in-game week from the business account over LIMITS.loanWeeks weeks at the server's interest rate ──
 const revenue = (zid, since) => q('SELECT coalesce(sum(amount), 0) AS n FROM civ_btx WHERE biz_id = ? AND at >= ? AND (memo LIKE \'Sale: %\' OR memo LIKE \'Paid: %\')').get(zid, since).n;
 const loanCap = z => Math.min(250000, 25000 + 2 * revenue(z.id, now() - 30 * DAY));
 export const loan = (c, user, j) => { const z = owns(c, user, j.id); if (!z) return { error: 'Only the owner can borrow.' }; if (!premOf(c, z)) return PREM_ERR;
@@ -123,7 +123,7 @@ export const loan = (c, user, j) => { const z = owns(c, user, j.id); if (!z) ret
   const no = inactive(z); if (no) return no; if (z.loan_left) return { error: 'Pay off the loan you have first.' };
   const a = Math.round(+j.amount), cap = loanCap(z); if (!Number.isFinite(a) || a < 1000) return { error: 'Borrow at least $1,000.' }; if (a > cap) return { error: `The bank lends this business up to ${money(cap)}.` };
   const total = Math.round(a * (1 + (conf(c).rate || 0) / 100)), weekly = Math.ceil(total / LIMITS.loanWeeks);
-  bizMove(z.id, a, 'Business loan'); q('UPDATE civ_biz SET loan_left = ?, loan_weekly = ?, loan_next = ? WHERE id = ?').run(total, weekly, now() + WEEK, z.id); return { ok: true }; };
+  bizMove(z.id, a, 'Business loan'); q('UPDATE civ_biz SET loan_left = ?, loan_weekly = ?, loan_next = ? WHERE id = ?').run(total, weekly, now() + GWEEK, z.id); return { ok: true }; };
 
 // ── Premium: look and reach ──
 export const brand = (c, user, j) => { const z = runs(c, user, j.id); if (!z) return { error: 'That is not your business.' }; if (!premOf(c, z)) return PREM_ERR;
@@ -133,7 +133,7 @@ export const advertise = (c, user, j) => { const z = runs(c, user, j.id); if (!z
   if (j.stop) { q("UPDATE civ_biz SET ad = '', ad_until = 0 WHERE id = ?").run(z.id); return { ok: true }; }
   const no = inactive(z); if (no) return no; const text = T(j.text, 90), days = Math.max(1, Math.min(7, Math.round(+j.days || 1))), cost = days * LIMITS.adDay;
   if (!text) return { error: 'Write the ad.' }; if (z.balance < cost) return { error: `${days} day${days > 1 ? 's' : ''} costs ${money(cost)}. The business has ${money(z.balance)}.` };
-  bizMove(z.id, -cost, `Ad for ${days} day${days > 1 ? 's' : ''}`); q('UPDATE civ_biz SET ad = ?, ad_until = ? WHERE id = ?').run(text, Math.max(now(), z.ad_until) + days * DAY, z.id); return { ok: true }; };
+  bizMove(z.id, -cost, `Ad for ${days} day${days > 1 ? 's' : ''}`); q('UPDATE civ_biz SET ad = ?, ad_until = ? WHERE id = ?').run(text, Math.max(now(), z.ad_until) + days * GDAY, z.id); return { ok: true }; };
 // a customer who bought there in the last 30 days can leave one review (Premium businesses collect them)
 const bought = (zid, uid) => !!q('SELECT 1 FROM civ_sales WHERE biz_id = ? AND user_id = ? AND at >= ?').get(zid, uid, now() - 30 * DAY)
   || !!q("SELECT 1 FROM civ_bills WHERE user_id = ? AND kind = 'inv' AND status = 'Paid' AND ref LIKE ? AND paid_at >= ?").get(uid, `inv:${zid}:%`, now() - 30 * DAY);

@@ -622,7 +622,10 @@ const phArt = name => `<div class="ph-art" aria-hidden="true"><svg width="0" hei
 <path class="smk" d="${OV_MARK}" transform="translate(262 198) scale(.25)"/>
 <foreignObject x="420" y="196" width="900" height="130"><div xmlns="http://www.w3.org/1999/xhtml" class="ph-who"><span>${name}</span>${pbadge(64)}</div></foreignObject>
 <rect class="sk" x="270" y="360" width="760" height="30" rx="15"/><rect class="sk" x="270" y="430" width="600" height="30" rx="15"/><rect class="sk" x="270" y="500" width="680" height="30" rx="15"/><rect class="sk" x="270" y="610" width="420" height="160" rx="22"/><rect class="sk" x="730" y="610" width="420" height="160" rx="22"/></svg></div>`;
-export const account = ({ logo, user, comms, discord, back, prem = { on: false }, payments = false, justBought = false, boostable = [], beta = {}, discordPerk = {} }) => layout({ title: 'Your account · Oversite', logo, user, body: `
+// a Premium member's card (the gold check, perks, boosts) sits at the bottom of the page, under their servers; the buy banner stays on top
+export const account = a => { const h = accountPage(a), i = h.indexOf('<section class="ph pho-on" id="premium">'); if (i < 0) return h;
+  const j = h.indexOf('</section>', i) + 10, k = h.indexOf('</main>', j); return k < 0 ? h : h.slice(0, i) + h.slice(j, k) + '<div style="margin-top:18px">' + h.slice(i, j) + '</div>' + h.slice(k); };
+const accountPage = ({ logo, user, comms, discord, back, prem = { on: false }, payments = false, justBought = false, boostable = [], beta = {}, discordPerk = {} }) => layout({ title: 'Your account · Oversite', logo, user, body: `
 <main class="acct">${back ? `<div class="row" style="margin:0 0 18px"><a class="btn sm" href="${esc(back)}">&larr; Back to the CAD</a></div>` : ''}
 <div class="prof"><span class="pic">${esc((user.roblox_name || user.name || '?').slice(0, 1).toUpperCase())}${user.roblox_id ? `<img src="/rbx/avatar/${esc(user.roblox_id)}" alt="" onerror="this.remove()">` : ''}</span>
 <div><h1><b>${esc(user.roblox_name || user.name)}</b>${user.verified ? vbadge(22) : ''}${(user.premium_until || 0) > Date.now() ? pbadge(22) : ''}</h1><p>${comms.length ? `Member of ${comms.length} server${comms.length === 1 ? '' : 's'}` : 'Not in any server yet'}${user.discord_id ? ' · Signs in with Discord' : ''}</p><div class="row" style="margin-top:10px"><a class="btn sm" href="/account/career">Your career</a></div></div></div>
@@ -944,7 +947,9 @@ export const ST_CSS = `.stm{max-width:1060px}
 .bd-map .bd-poly{cursor:pointer}.bd-map .bd-pt{cursor:move}.bd-map .bd-mid{cursor:copy}
 .bd-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1px solid var(--hair2);background:rgba(13,20,22,.86)}
 .bd-zoom button{width:34px;height:34px;border:0;background:transparent;color:var(--ink);font:500 17px/1 inherit;cursor:pointer}.bd-zoom button+button{border-top:1px solid var(--hair)}.bd-zoom button:hover{background:rgba(255,255,255,.06)}
-.bd-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}.bd-bar .hint{flex:1 1 220px;margin:0}
+.bd-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}
+.bd-area{padding:0;gap:0;overflow:hidden}.bd-area button{display:inline-flex;align-items:center;gap:7px;border:0;background:none;color:inherit;font:inherit;padding:6px 6px 6px 11px;cursor:pointer}.bd-area .x{padding:6px 10px 6px 6px;font-size:15px;line-height:1;opacity:.7}.bd-area .x:hover{opacity:1;color:#F3A3A3}
+.bd-other{cursor:pointer}.bd-bar .hint{flex:1 1 220px;margin:0}
 .bd-opts{margin:16px 0 0;padding:14px 0 0;border-top:1px solid var(--hair)}.bd-opts .hint{margin:6px 0 0}
 .bd-grace{display:flex;align-items:center;gap:12px;margin:10px 0}.bd-grace label{margin:0}
 .bd-h{font-size:13px;font-weight:600;margin:20px 0 6px}.bd-log{list-style:none;margin:0;padding:0;font-size:13px}
@@ -982,6 +987,7 @@ ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p
 <div class="bd-map"><svg id="bdSvg" preserveAspectRatio="xMidYMid slice" aria-label="Map. Click to add corners, drag to move around, scroll to zoom."></svg>
 <div class="bd-zoom"><button type="button" id="bdIn" aria-label="Zoom in">+</button><button type="button" id="bdOut" aria-label="Zoom out">&minus;</button><button type="button" id="bdFit" aria-label="Show the whole map">&#9634;</button></div></div>
 <div class="bd-bar"><button type="button" class="btn sm pri" id="bdDraw">Draw area</button><button type="button" class="btn sm" id="bdUndo" hidden>Undo corner</button><button type="button" class="btn sm danger" id="bdDel" disabled>Delete area</button><p class="hint" id="bdHint"></p></div>
+<div class="bd-row"><span class="bd-l">Areas</span><div class="bd-chips" id="bdAreas"></div></div>
 <div class="bd-opts"><label class="chk"><input type="checkbox" id="bdOn"${bnd.on ? ' checked' : ''}> Enforce the live preset in game</label>
 <div class="bd-grace"><label for="bdGrace">Time to get back</label><select id="bdGrace">${[15, 30, 45, 60, 90, 120, 180, 300].map(t => `<option value="${t}"${+bnd.grace === t ? ' selected' : ''}>${t < 60 ? t + ' seconds' : t / 60 + (t === 60 ? ' minute' : ' minutes')}</option>`).join('')}</select></div>
 <label class="chk"><input type="checkbox" id="bdStaff"${bnd.exemptStaff ? ' checked' : ''}> Leave server staff alone (in-game admins and mods)</label>
@@ -989,7 +995,7 @@ ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p
 <p class="hint">Oversite sends <code>:pm</code> when someone leaves and <code>:load</code> when their time is up, so the owner has to have allowed Oversite to run commands (General, ER:LC server).</p></div>
 <div class="row" style="margin-top:14px"><button class="btn pri" id="bdSave" disabled>Save</button><span class="hint" id="bdDirty" hidden>Unsaved changes</span></div><p class="msg" id="bdMsg"></p>
 <h3 class="bd-h">Recent</h3><ul class="bd-log" id="bdLog"></ul></section>
-<script src="/bounds-editor.js?v=8" defer></script></div>
+<script src="/bounds-editor.js?v=9" defer></script></div>
 <div class="st-pane" id="tab-profile" data-pane="profile" role="tabpanel" aria-labelledby="t-profile">
 ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.name.slice(0, 1).toUpperCase());
   const fact = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
