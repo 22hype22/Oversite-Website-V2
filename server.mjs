@@ -58,6 +58,12 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
+// which side someone is playing right now, from the server's latest ER:LC snapshot: 'pd' | 'fd' | 'dot' | 'civ', null when they
+// aren't in the server, undefined when there's no fresh data (then nothing is blocked, so an ER:LC outage never locks anyone out)
+const liveSide = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Date.now() - sn.t > 180000 || !user.roblox_id) return undefined;
+  let j; try { j = JSON.parse(sn.body); } catch (e) { return undefined; }
+  const p = (j.Players || []).find(x => String(x.Player || '').split(':')[1] === String(user.roblox_id)); if (!p) return null;
+  return (c.settings.teams || {})[p.Team] || 'civ'; };
 
 // ── the CAD page, with this community's settings injected ──
 // a Premium person's saved map style wins over whatever this browser last used, so every device opens on the same map
@@ -188,6 +194,9 @@ const communityApi = async (req, res, slug, rest) => {
   // the law enforcement MDT: lookups, warrants, BOLOs, citations, warnings, arrests and traffic stops, shared by the whole server
   // the Civilian tab (app/civ.mjs): every member has an account, a character, bills and 911
   if (rest.startsWith('civ/')) { const sub = rest.slice(4), ok = r => json(res, r.error ? r : { ...r, state: civ.state(c, user, can(role, 'admin')) }, r.error ? 400 : 200);
+    // players on a police, fire or DOT team in game don't use the Civilian tab (staff tools and owners excepted)
+    if (M === 'POST' && !can(role, 'co_owner') && !['settings', 'grant', 'prop', 'biz/admin'].includes(sub)) { const side = liveSide(c, user);
+      if (side && side !== 'civ') return json(res, { error: 'You’re on a department team in game. The Civilian tab is for players on the civilian team.' }, 403); }
     if (sub === 'state' && M === 'GET') return json(res, civ.state(c, user, can(role, 'admin')));
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404);
     const j = await jsonBody(req);
@@ -206,6 +215,9 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'biz/admin') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can do that.' }, 403); return ok(civ.bizAdmin(c, j)); }
     if (sub === 'prop') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can manage homes.' }, 403); return ok(j.drop || j.evict ? civ.dropProp(c, j) : civ.saveProp(c, j)); }
     return json(res, { error: 'Not found.' }, 404); }
+  // the police MDT answers players on a police team in game (owners and co-owners always; anyone while ER:LC data is unavailable)
+  if (rest.startsWith('pd/') && rest !== 'pd/config' && !can(role, 'co_owner')) { const side = liveSide(c, user);
+    if (side !== undefined && side !== 'pd') return json(res, { error: side ? 'The police MDT is for players on a police team in game.' : 'Join a police team in game to use the police MDT.' }, 403); }
   if (rest.startsWith('pd/')) { const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, by = { uid: user.id, name: user.roblox_name || user.name, supervisor: police.isSupervisor(c.id, user.id, can(role, 'admin'), ranksFor(c, premium.isPremium(c)).pd) };
     const prem = premium.isPremium(c), cut = prem ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5, recent = L => cut ? L.filter(r => r.at >= cut || r.status === 'Active' || r.status === 'Pending') : L;   // free servers see the last 30 days
     if (sub === 'config' && M === 'GET') return json(res, { penal: police.PENAL, rank: police.pdRank(c.id, user.id), supervisor: by.supervisor, admin: can(role, 'admin'), me: by.name, premium: prem, recordDays: prem ? 0 : premium.FREE_RECORD_DAYS });

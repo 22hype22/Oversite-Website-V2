@@ -110,7 +110,7 @@
   .menu button{font-size:12.5px;color:var(--dim);white-space:nowrap;padding:7px 12px;border-radius:999px;border:1px solid transparent;
     transition:color .18s cubic-bezier(.32,.72,0,1),background .18s cubic-bezier(.32,.72,0,1)}
   .menu button:hover{color:var(--ink);background:rgba(240,242,245,.05)}
-  .menu button.locked{opacity:.45}
+  .menu button.locked{opacity:.45}.menu button[hidden],.icons [hidden],#cvClose[hidden]{display:none!important}
   .menu button[aria-selected="true"]{color:var(--ink);font-weight:500;background:transparent}
   .menu button[aria-selected="true"]:hover{background:transparent}
   /* one shared pill slides behind the selected tab: clipped to a true oval (blur would otherwise show square corners),
@@ -2225,13 +2225,27 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const canOpen = dept => { if (!gated()) return true; const mine = myDept();
     if (!mine) { toastMsg(`You're not on the ${DEPT_NAME[dept]} team in game right now. Join it in ER:LC and its MDT opens here.`); return false; }
     if (mine !== dept) { toastMsg(`You're on the ${DEPT_NAME[mine] || mine} team in game. The ${DEPT_NAME[dept]} MDT is only for its members.`); return false; } return true; };
-  const setView = (v, dept) => { const real = v === 'mdt' ? 'dispatch' : v; document.body.dataset.view = real;
+  const setView = (v, dept) => { if (window.__civOnly && (v === 'dispatch' || v === 'mdt')) v = 'civ';   // players on the civilian team stay on their own tab
+    const real = v === 'mdt' ? 'dispatch' : v; document.body.dataset.view = real;
     for (const [k, id] of Object.entries(PAGES)) { const el = document.getElementById(id); if (el) el.hidden = real !== k; }
     tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.view === v && (v !== 'mdt' || t.dataset.dept === dept)));
     if (real !== 'dispatch') openMdt(false); else openMdt(v === 'mdt', dept);
     dispatchEvent(new CustomEvent('viewchange', { detail: real })); };
   const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const ok = !gated() || myDept() === t.dataset.dept; t.classList.toggle('locked', !ok); t.title = ok ? '' : 'For players on the ' + DEPT_NAME[t.dataset.dept] + ' team in game'; }); };
   updateLocks(); addEventListener('me', updateLocks);
+  // tabs follow your team in game: on the civilian team you see only the Civilian tab; on a department team you see Dispatch and
+  // every department (only yours opens) but not Civilian. Not in game: everything shows. Owners and co-owners always see it all.
+  const BOSS = ['owner', 'co_owner'].includes(window.OVERSITE?.role);
+  const onCivTeam = () => !!(window.ME && window.ME.team && !window.ME.dept);
+  const updateTabs = () => { if (!gated() || BOSS) return; const civ = onCivTeam(), dept = !!myDept(); window.__civOnly = civ;
+    const cvx = document.getElementById('cvClose'); if (cvx) cvx.hidden = civ;
+    tabs.forEach(t => { const v = t.dataset.view; t.hidden = civ ? (v === 'dispatch' || v === 'mdt') : dept ? v === 'civ' : false; });
+    if (mdtBtn) mdtBtn.hidden = civ;
+    const cur = document.body.dataset.view;
+    if (civ && cur === 'dispatch') setView('civ');                               // a civilian lands on their own tab
+    else if (dept && cur === 'civ') setView('dispatch');
+    placePill(true); };
+  addEventListener('me', updateTabs);
   // your MDT follows your team in game: switch teams and the old MDT closes and the new one opens; a refresh reopens the one you had open
   const OPEN_KEY = 'oversite.mdtopen.' + (window.OVERSITE?.slug || ''); let lastDept = myDept();
   const wasOpen = () => { try { return sessionStorage.getItem(OPEN_KEY) || ''; } catch (e) { return ''; } };
