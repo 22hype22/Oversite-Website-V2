@@ -232,7 +232,7 @@ export const bizMove = (id, amount, memo) => { const z = q('SELECT balance FROM 
   q('UPDATE civ_biz SET balance = ? WHERE id = ?').run(bal, id); q('INSERT INTO civ_btx (biz_id, amount, balance, memo, at) VALUES (?, ?, ?, ?, ?)').run(id, Math.round(amount), bal, T(memo, 120), now()); };
 // app/civbiz.mjs fills these in: Premium managers who can run a business, how many businesses someone may own, and commission on a paid bill
 export const hooks = { manager: () => false, managed: () => [], maxBiz: () => 2, commission: () => {} };
-const BIZ_KINDS = ['Store', 'Restaurant', 'Mechanic', 'Towing', 'Taxi', 'Security', 'Law firm', 'Medical', 'Real estate', 'Bank', 'News'];   // each has its own job and catalog (app/civbiz.mjs)
+const BIZ_KINDS = ['Store', 'Restaurant', 'Gas station', 'Tech store', 'Gun store', 'Outdoors store', 'Farm', 'Movie theater', 'Mechanic', 'Towing', 'Taxi', 'Security', 'Law firm', 'Medical', 'Real estate', 'Bank', 'News'];   // each has its own job and catalog (app/civbiz.mjs)
 const mine = (c, user, id) => { const z = biz(c.id, id); return z && z.owner_id === user.id ? z : null; };
 const runs = (c, user, id) => { const z = biz(c.id, id); return z && (z.owner_id === user.id || hooks.manager(c, user, z)) ? z : null; };   // the owner, or a Premium manager
 const weekNo = cf => cf.since ? Math.floor((now() - cf.since) / GWEEK) : 0;

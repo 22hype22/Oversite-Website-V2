@@ -6,7 +6,7 @@
 import { db, now, users, communities } from './db.mjs';
 import * as premium from './premium.mjs';
 import { POSTALS } from './postals.mjs';
-import { T, money, DAY, GDAY, GWEEK, conf, ensure, move, bizMove, biz, note, who, hooks, staffSet } from './civ.mjs';
+import { T, money, DAY, GDAY, GWEEK, background, conf, ensure, move, bizMove, biz, note, who, hooks, staffSet } from './civ.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS civ_shifts (id INTEGER PRIMARY KEY, biz_id INTEGER NOT NULL REFERENCES civ_biz(id) ON DELETE CASCADE, user_id INTEGER NOT NULL,
   start INTEGER NOT NULL, end INTEGER, pay INTEGER NOT NULL DEFAULT 0);
@@ -40,6 +40,12 @@ export const COLORS = ['#E8B33A', '#E05A47', '#E58A3C', '#4CB782', '#3FA7C9', '#
 export const KINDS = {
   Store: { menu: 'Products', kinds: ['Product', 'Service'], ex: ['Water bottle', 'Phone charger', 'Snack bar'] },
   Restaurant: { menu: 'Menu', kinds: ['Product', 'Service'], ex: ['Burger', 'Fries', 'Milkshake', 'Catering'] },
+  'Gas station': { menu: 'Products', kinds: ['Product', 'Service'], ask: [['where', 'Where are you?']], ex: ['Fuel fill-up', 'Car wash', 'Snacks', 'Energy drink'] },
+  'Tech store': { menu: 'Products', kinds: ['Product', 'Service'], ask: [['about', 'What needs fixing?']], ex: ['Phone', 'Laptop', 'Radio', 'Screen repair'] },
+  'Gun store': { menu: 'Products', kinds: ['Product', 'Service'], ask: [['about', 'Details']], ex: ['Pistol', 'Hunting rifle', 'Ammo box', 'Range time'] },
+  'Outdoors store': { menu: 'Products', kinds: ['Product', 'Service'], ask: [['about', 'Details']], ex: ['Fishing rod', 'Tent', 'Camping gear', 'Guided hike'] },
+  Farm: { menu: 'Produce', kinds: ['Product', 'Service'], ask: [['where', 'Delivery address']], ex: ['Fresh eggs', 'Milk', 'Hay bales', 'Bulk delivery'] },
+  'Movie theater': { menu: 'Tickets', kinds: ['Product', 'Service'], ask: [['when', 'When, and how many people']], ex: ['Movie ticket', 'Popcorn', 'Soda', 'Private screening'] },
   Mechanic: { menu: 'Services', kinds: ['Service', 'Product'], ask: [['vehicle', 'Vehicle or plate'], ['where', 'Where is it?']], ex: ['Oil change', 'Tire replacement', 'Full repair'] },
   Towing: { menu: 'Services', kinds: ['Service'], ask: [['where', 'Pickup location'], ['vehicle', 'Vehicle or plate']], ex: ['Local tow', 'Impound release', 'Roadside help'] },
   Taxi: { menu: 'Fares', kinds: ['Service'], ask: [['from', 'Pickup'], ['to', 'Destination']], ex: ['City ride', 'Cross-county ride', 'Airport ride'] },
@@ -125,6 +131,7 @@ export const buy = (c, user, j) => { const z = biz(c.id, j.id); if (!z) return {
   if (z.owner_id === user.id) return { error: 'You can’t buy from your own business.' };
   const it = q('SELECT * FROM civ_items WHERE id = ? AND biz_id = ? AND live = 1').get(+j.item || 0, z.id); if (!it) return { error: 'That isn’t on the menu any more.' };
   if (it.kind !== 'Product') return { error: 'Send a request for that one instead.' };
+  if (z.kind === 'Gun store') { const g = background(c, user.id); if (g.felonies || g.warrants) return { error: `${z.name} ran a background check: ${g.felonies ? 'a felony conviction' : 'an active warrant'} means no sale.` }; }
   const qty = Math.max(1, Math.min(20, Math.round(+j.qty || 1))), total = it.price * qty;
   if (!openShifts(z.id).length && !(z.online && premOf(c, z))) return { error: `${z.name} is closed. Come back when someone is working.` };
   ensure(c, user.id); const label = `${it.name}${qty > 1 ? ' ×' + qty : ''}`, m = move(c.id, user.id, -total, 'business', `${label} at ${z.name}`); if (m.error) return m;
@@ -219,6 +226,12 @@ const GAME = 5355 / 2000, SPOTS = Object.entries(POSTALS).map(([n, [x, z]]) => (
 export const GIGS = {
   Restaurant: { name: 'Delivery', how: 'Pick up the order at the restaurant, drive it to the customer and hand it over.', steps: [['base', 20, 'Pick up the order'], ['rand', 15, 'Hand over the order']] },
   Store: { name: 'Delivery', how: 'Load the order at the store, drive it to the customer and drop it off.', steps: [['base', 20, 'Load the order'], ['rand', 15, 'Drop it off']] },
+  'Gas station': { name: 'Fuel delivery', how: 'Fill the tanker at the station, drive out to a stranded driver and refuel their car.', steps: [['base', 25, 'Fill the tanker'], ['rand', 20, 'Refuel the car']] },
+  'Tech store': { name: 'Repair call', how: 'Drive to a customer, fix their phone or computer, and head back to the store.', steps: [['rand', 45, 'Fix the device'], ['base', 0, 'Back to the store']] },
+  'Gun store': { name: 'Stock pickup', how: 'Drive to the supplier, collect the shipment, and unload it at the store.', steps: [['rand', 30, 'Collect the shipment'], ['base', 20, 'Unload at the store']] },
+  'Outdoors store': { name: 'Delivery', how: 'Load the gear at the store, drive it out to the customer and drop it off.', steps: [['base', 20, 'Load the gear'], ['rand', 15, 'Drop it off']] },
+  Farm: { name: 'Harvest run', how: 'Drive out to a field, harvest the crop, and bring it back to the farm.', steps: [['rand', 60, 'Harvest the crop'], ['base', 20, 'Unload at the farm']] },
+  'Movie theater': { name: 'Poster run', how: 'Put up posters for the new movie at three spots around the county.', steps: [['rand', 15, 'Put up a poster'], ['rand', 15, 'Put up a poster'], ['rand', 15, 'Put up a poster']] },
   Taxi: { name: 'Fare', how: 'Pick up a passenger and drive them to their stop. Longer rides pay more.', steps: [['rand', 10, 'Pick up the passenger'], ['rand', 10, 'Drop them off']], far: true },
   Towing: { name: 'Tow job', how: 'Drive to a broken-down car, hook it up, and bring it back to the yard.', steps: [['rand', 45, 'Hook up the car'], ['base', 10, 'Drop it at the yard']] },
   Mechanic: { name: 'Roadside repair', how: 'Drive to a stranded driver and fix their car on the spot.', steps: [['rand', 60, 'Fix the car']] },
