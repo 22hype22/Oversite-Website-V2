@@ -28,6 +28,8 @@ import * as civbiz from './app/civbiz.mjs';
 import * as features from './app/features.mjs';
 import * as deptReports from './app/reports.mjs';
 import * as srvStatus from './app/status.mjs';
+import * as alerts from './app/alerts.mjs';
+import * as backup from './app/backup.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -392,7 +394,7 @@ const saveLicenseStyle = (c, j) => { if (!premium.isPremium(c)) return { error: 
 
 const globalApi = async (req, res, rest) => {
   // Stripe tells us about payments here; the signature is checked against the raw body
-  if (rest === 'stripe/webhook' && req.method === 'POST') { const raw = await body(req, 5e5); let r; try { r = await premium.webhook(raw, req.headers['stripe-signature']); } catch (e) { console.log('stripe webhook:', e.message); return json(res, { error: 'Try again.' }, 500); }
+  if (rest === 'stripe/webhook' && req.method === 'POST') { const raw = await body(req, 5e5); let r; try { r = await premium.webhook(raw, req.headers['stripe-signature']); if (r?.error) alerts.send('stripe', 'A Stripe webhook was turned away', `${r.error} If payments are going through, check the webhook signing secret on /admin.`, 'warn'); } catch (e) { console.log('stripe webhook:', e.message); alerts.send('stripe', 'A Stripe webhook failed', e.message, 'crit'); return json(res, { error: 'Try again.' }, 500); }
     return json(res, r, r.status || 200); }
   // a Premium server's own Discord bot reads its CAD with the key from Settings: Authorization: Bot <key>
   if (rest.startsWith('bot/v1/')) return botApi(req, res, rest.slice(7));
@@ -417,7 +419,7 @@ const globalApi = async (req, res, rest) => {
     return json(res, await saveLicense(user, await jsonBody(req), premium.userInfo(user).on)); }
   if (rest.startsWith('admin/') && !isSiteMod(user)) return json(res, { error: 'Not found.' }, 404);
   // payments, the ER:LC application, Premium grants and moderator access: site admins only
-  if (/^admin\/(erlc-app|premium|stripe|mod|supporter|beta-note)$/.test(rest) && !isSiteAdmin(user)) return json(res, { error: 'Only Oversite\'s owners can do that.' }, 403);
+  if (/^admin\/(erlc-app|premium|stripe|mod|supporter|beta-note|alerts|backup)$/.test(rest) && !isSiteAdmin(user)) return json(res, { error: 'Only Oversite\'s owners can do that.' }, 403);
   if (rest === 'admin/mod' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), u = users.byId(Number(j.id)); if (!u) return json(res, { error: 'No such person.' }, 404);
     if (isSiteAdmin(u)) return json(res, { error: 'That person is a site admin already.' }, 400); users.setSiteMod(u.id, !!j.on);
     console.log(`moderation: ${user.roblox_name || user.name} ${j.on ? 'made' : 'removed'} ${u.roblox_name || u.id} ${j.on ? 'a moderator' : 'as moderator'}`); return json(res, { ok: true, on: !!j.on }); }
@@ -453,6 +455,13 @@ const globalApi = async (req, res, rest) => {
     if (k && !w) { try { const r = await premium.setupStripe(origin(req), seal); console.log('stripe: webhook and billing page set up'); return json(res, { ...r, check: 'Saved. Oversite set up its webhook and billing page in Stripe. Premium payments are on.' }); }   // only the key: finish the rest automatically
       catch (e) { console.log('stripe setup:', e.message); return json(res, { ...premium.stripeStatus(), error: undefined, check: 'Key saved, but Stripe said: ' + e.message }); } }
     return json(res, premium.stripeStatus()); }
+  // alerts and backups: the Discord webhook alerts go to, a test message, the off-site copy, and a backup now
+  if (rest === 'admin/alerts' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), u = String(j.hook || '').trim();
+    if (u && !alerts.okHook(u)) return json(res, { error: 'That isn’t a Discord webhook link. In Discord: channel settings, Integrations, Webhooks, Copy Webhook URL.' }, 400);
+    if (u) alerts.setHook(u); if (j.clear) alerts.setHook(''); if (j.offsite != null) backup.setOffsite(!!j.offsite);
+    if (u || j.test) { const r = await alerts.send('test', 'Oversite alerts are on', `Set up by ${user.roblox_name || user.name}. Problems that need a person will show up here.`, 'info', true); if (r.error) return json(res, { ...alertsInfo(), error: r.error }, 400); }
+    console.log(`alerts: ${j.clear ? 'webhook cleared' : u ? 'webhook set' : 'settings changed'} by ${user.roblox_name || user.name}`); return json(res, alertsInfo()); }
+  if (rest === 'admin/backup' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const r = await backup.run('by hand'); return json(res, { ...alertsInfo(), ...r }, r.error ? 500 : 200); }
   if (rest === 'admin/support' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); support.close(Number((await jsonBody(req)).id)); return json(res, { tickets: support.open() }); }
   if (rest === 'admin/verify' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), id = Number(j.id);
     const n = j.kind === 'server' ? communities.setVerified(id, !!j.on) : j.kind === 'user' ? users.setVerified(id, !!j.on) : 0;
@@ -588,8 +597,12 @@ const route = async (req, res) => {
     const own = user && runsServer(c.id, user.id);
     const me = user ? { id: user.id, owner: own, admin: isSiteMod(user), can: !!user.roblox_name && !own, why: !user.roblox_name ? 'Link your Roblox account to write a review.' : own ? 'Reviews are from players. You can reply to any review below.' : '' } : null;
     return page(res, serverPage({ logo: LOGO, user, x, medals, players: stats.since(c.id, Date.now() - 864e5).map(r => [r.at, r.players]), voteTimes: voteDays(c.id, Date.now() - 15 * 864e5), list: reviewList(c.id), me, prompt: req.votePrompt ? { vote: true, roblox: !!user?.roblox_name, origin: origin(req), rank: x.votes > 0 ? [...all].sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name)).findIndex(y => y.id === x.id) + 1 : 0 } : null })); }
+  if (path === '/admin/backup' && req.method === 'GET') { const user = auth.currentUser(req); if (!isSiteAdmin(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
+    const b = url.searchParams.get('name') ? { name: url.searchParams.get('name') } : backup.latest(), p = b && backup.file(b.name); if (!p) return msg(res, user, 'No backup yet', 'The first one is made a couple of minutes after the site starts.', { href: '/admin', label: 'Back' }, 404);
+    console.log(`backup: ${b.name} downloaded by ${user.roblox_name || user.name}`);
+    res.writeHead(200, { 'content-type': 'application/gzip', 'content-disposition': `attachment; filename="${b.name}"`, 'cache-control': 'no-store' }); return createReadStream(p).pipe(res); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteMod(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
-    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus(), owner: isSiteAdmin(user), betaNote: siteSettings.get('beta_note') })); }
+    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus(), owner: isSiteAdmin(user), betaNote: siteSettings.get('beta_note'), alertsInfo: alertsInfo() })); }
   if (path === '/account/career') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account/career'); if (!user.roblox_name) return redirect(res, '/dashboard');
     return page(res, pages.career(premium.userInfo(user).on ? { logo: LOGO, user, stats: career.stats(user), prem: true } : { logo: LOGO, user, prem: false, tracked: career.stats(user)?.total || 0, payments: premium.stripeReady() })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');
@@ -807,6 +820,21 @@ const probeStatus = c => { const f = feeds.get(c.id), t = Date.now(), watching =
   try { communities.byId(c.id); P.db = { s: 'ok' }; } catch (e) { P.db = { s: 'down', why: 'Oversite couldn’t read this server’s saved data.' }; }
   return P; };
 srvStatus.start(probeStatus);
+// what /admin shows about alerts and backups
+const alertsInfo = () => { const L = backup.list(), d = backup.disk(); let last = null; try { last = JSON.parse(siteSettings.get('backup_last') || 'null'); } catch (e) {}
+  return { alerts: alerts.ready(), offsite: backup.offsite(), last, backups: L.slice(0, 6).map(b => ({ name: b.name, kind: b.kind, size: b.size, at: b.at })), count: L.length, disk: d && { used: d.used, free: d.free } }; };
+backup.start();
+// ER:LC failing for many servers at once is ER:LC's problem or Oversite's, not one owner's key: tell Oversite's owners
+setInterval(() => { const S = srvStatus.snapshot(), bad = S.filter(P => P.erlc && ['deg', 'down'].includes(P.erlc.s)), live = S.filter(P => P.erlc && ['ok', 'deg', 'down'].includes(P.erlc.s));
+  if (bad.length >= 3 && bad.length >= live.length / 2) alerts.send('erlc-wide', 'ER:LC is failing for many servers', `${bad.length} of ${live.length} servers can’t read ER:LC right now. The most common answer: ${bad.map(P => P.erlc.why).filter(Boolean).sort((a, b) => bad.filter(P => P.erlc.why === b).length - bad.filter(P => P.erlc.why === a).length)[0] || 'none'}`, 'crit'); }, 5 * 60000);
+// once a day, a short summary, so a quiet channel means things are fine rather than that alerts stopped
+setInterval(() => { const d = new Date(), day = d.toISOString().slice(0, 10); if (d.getUTCHours() !== 13 || siteSettings.get('digest_day') === day) return; siteSettings.set('digest_day', day);
+  const all = communities.all(), watching = [...feeds.values()].filter(f => f.clients.size).length, L = backup.list(), disk = backup.disk();
+  alerts.send('digest', 'Oversite today', [`${all.length} servers, ${watching} with the CAD open right now`, L[0] ? `Last backup ${Math.round((Date.now() - L[0].at) / 60000)} minutes ago, ${(L[0].size / 1048576).toFixed(1)} MB (${L.length} kept)` : 'No backups yet',
+    disk ? `Disk ${Math.round(disk.used * 100)}% used` : ''].filter(Boolean).join('\n'), 'info', true); }, 10 * 60000);
+// a crash: say so before Railway restarts the process; a promise nobody caught: say so and keep going
+process.on('uncaughtException', e => { console.error('uncaught:', e); alerts.send('crash', 'Oversite crashed and is restarting', String(e?.stack || e).slice(0, 1800), 'crit').finally(() => setTimeout(() => process.exit(1), 500)); setTimeout(() => process.exit(1), 4000); });
+process.on('unhandledRejection', e => { console.error('unhandled rejection:', e); alerts.send('rejection', 'Oversite hit an error it didn’t handle', String(e?.stack || e).slice(0, 1800), 'warn'); });
 staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), staffhub.observe);
 supporter.start(); civ.start();
 // business shifts end when the worker leaves the server or the civilian team; loans take their weekly payment

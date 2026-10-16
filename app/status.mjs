@@ -38,6 +38,7 @@ const track = (cid, part, st) => { const k = `${cid}:${part}`, z = streak.get(k)
   if (bad) z.last = st.why || ''; streak.set(k, z); };
 
 // every minute, for every server: probe(c) returns what each part looks like
+export const snapshot = () => [...current.values()];
 export const check = (c, P) => { current.set(c.id, P); for (const [part] of PARTS) { const st = P[part] || { s: 'idle' }; record(c.id, part, st.s); if (st.s !== 'idle' && st.s !== 'off') track(c.id, part, st); } };
 export const start = probe => { const pass = () => { for (const c of communities.all()) { if (c.suspended) continue; let P; try { P = probe(c); } catch (e) { continue; } check(c, P); }
     q('DELETE FROM status_days WHERE day < ?').run(dayOf(now() - 95 * DAY)); q('DELETE FROM status_incidents WHERE resolved IS NOT NULL AND resolved < ?').run(now() - 30 * DAY); };
