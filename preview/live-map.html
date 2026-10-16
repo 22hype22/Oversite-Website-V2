@@ -444,6 +444,8 @@
   /* ───────── Status & Updates view ───────── */
   body[data-view="status"] .rail,body[data-view="status"] .stage,body[data-view="status"] .pins{display:none}
   body[data-view="status"] .view::after{opacity:.45}
+  /* parts a server switched off in Settings → Features */
+  body.off-panic #tPanic,body.off-gps [data-nav],body.off-housing #cvTabs [data-p="home2"],body.off-biz #cvTabs [data-p="shops"],body.off-biz #cvTabs [data-p="jobs"],body.off-biz #cvTabs [data-p="biz"]{display:none!important}
   .page{position:fixed;left:var(--gap);right:var(--gap);top:calc(var(--barh) + var(--gap));bottom:var(--gap);z-index:5;
     display:grid;grid-template-columns:minmax(360px,5fr) 7fr;gap:var(--gap)}
   .page[hidden]{display:none}
@@ -2337,6 +2339,10 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
 <script>
 /* ── tab views + Status & Updates data ── */
 (() => {
+  // Settings → Features: a section the server switched off has no tab; smaller parts are hidden by a class on the body
+  const OFF = Object.fromEntries(Object.entries(window.OVERSITE?.features || {}).filter(([, v]) => v === false).map(([k]) => [k, true]));
+  for (const k of ['civ', 'staff', 'status']) if (OFF[k]) document.querySelector(`.menu [data-view="${k}"]`)?.remove();
+  for (const k in OFF) document.body.classList.add('off-' + k);
   const tabs = [...document.querySelectorAll('.menu button')];
   // sliding pill behind the selected tab (left/right edges animate separately for a liquid stretch)
   const menuEl = document.querySelector('.menu'), menuPill = menuEl.querySelector('.menu-pill'); let pillX = null;
@@ -2373,7 +2379,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   updateLocks(); addEventListener('me', updateLocks);
   // tabs follow your team in game: on the civilian team you see only the Civilian tab; on a department team you see Dispatch and
   // every department (only yours opens) but not Civilian. Not in game: everything shows. Server staff (mod and up) always see it all.
-  const onCivTeam = () => !!(window.ME && window.ME.team && !window.ME.dept);
+  const onCivTeam = () => !OFF.civ && !!(window.ME && window.ME.team && !window.ME.dept);   // with the Civilian tab off, civilians see the CAD like anyone not in game
   const updateTabs = () => { if (!gated() || STAFF) return; const civ = onCivTeam(), dept = !!myDept(); window.__civOnly = civ; window.__deptOnly = dept;
     const cvx = document.getElementById('cvClose'); if (cvx) cvx.hidden = civ;
     tabs.forEach(t => { const v = t.dataset.view; t.hidden = civ ? (v === 'dispatch' || v === 'mdt') : dept ? v === 'civ' : false; });

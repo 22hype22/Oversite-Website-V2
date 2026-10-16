@@ -1,6 +1,7 @@
 // Server-rendered pages around the live map: landing, dashboard, community settings, invites. Same visual language as the map.
 import { DOCS, UPDATED } from './legal.mjs';
 import { isSiteAdmin, isSiteMod } from './admins.mjs';
+import { GROUPS as FEATURES } from './features.mjs';
 export const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CSS = `
 :root{color-scheme:dark;--ink:#F0F2F5;--dim:#9A9EA6;--faint:#62666D;--hair:rgba(240,242,245,.08);--hair2:rgba(240,242,245,.14);--panel:rgba(16,16,18,.78);--field:rgba(255,255,255,.04);--acc:#4C8DFF;--ok:#46D07C;--warn:#E9B04C;--bad:#E24B4B}
@@ -933,6 +934,17 @@ ${user && owned.length ? `<details class="mk" style="margin-top:14px"><summary>O
 {let plan='year';document.querySelectorAll('.pp-buy [data-plan]').forEach(b=>b.onclick=()=>{plan=b.dataset.plan;document.querySelectorAll('.pp-buy [data-plan]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 const buy=document.getElementById('ppBuy');if(buy)buy.onclick=async()=>{buy.disabled=true;try{const j=await api('/api/me/premium/checkout',{plan});location.href=j.url}catch(e){buy.disabled=false;say(document.getElementById('ppMsg'),e.message)}}}` });
 export const ST_CSS = `.stm{max-width:1060px}
+.ft-g{margin:20px 0 8px;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--dim)}
+.ft-list{border:1px solid var(--hair);border-radius:12px;overflow:hidden}
+.ft{position:relative;display:flex;align-items:center;gap:16px;padding:13px 14px;cursor:pointer;transition:opacity .2s ease}.ft+.ft{border-top:1px solid var(--hair)}
+.ft>span{flex:1;min-width:0}.ft b{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--ink)}.ft small{display:block;margin-top:3px;font-size:12px;line-height:1.45;color:var(--dim)}
+.ft input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.ft i{flex:none;position:relative;width:40px;height:24px;border-radius:999px;background:rgba(240,242,245,.14);transition:background-color .2s ease}
+.ft i::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .2s cubic-bezier(.23,1,.32,1)}
+.ft input:checked+i{background:#3FBF8A}.ft input:checked+i::after{transform:translateX(16px)}
+.ft input:focus-visible+i{outline:2px solid rgba(240,242,245,.6);outline-offset:2px}
+.ft input:disabled+i{opacity:.4}.ft:has(input:disabled){cursor:not-allowed}.ft.dim{opacity:.45}
+@media (prefers-reduced-motion:reduce){.ft i,.ft i::after{transition:none}}
 .st-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 22px}.st-top h1{margin:0}.st-top .lead{margin:6px 0 0}.st-top .btn{flex:none;margin-top:6px}
 .sx{display:grid;grid-template-columns:180px minmax(0,1fr);gap:28px;align-items:start}
 .st-nav{position:sticky;top:76px;display:flex;flex-direction:column;gap:2px}
@@ -966,11 +978,11 @@ export const ST_CSS = `.stm{max-width:1060px}
 .bd-log span{font-size:11.5px;color:var(--faint)}.bd-log time{flex:none;font-size:11.5px;color:var(--faint)}.bd-log .none{color:var(--faint)}.bd-log em.bad{font-style:normal;color:var(--bad)}
 @media (max-width:760px){.bd-pre{margin-left:0}.bd-l{width:auto}.bd-row{flex-direction:column;gap:6px}}.st-pane>.card+.card,.st-pane>section+section{margin-top:18px}
 @media (max-width:760px){.sx{grid-template-columns:1fr;gap:16px}.st-nav{position:sticky;top:0;z-index:5;flex-direction:row;overflow-x:auto;scrollbar-width:none;padding:6px 24px;margin:0 -24px;background:#0d1416;border-bottom:1px solid var(--hair)}.st-nav::-webkit-scrollbar{display:none}.st-nav a{flex:none;padding:7px 12px}.st-top{margin-bottom:12px}}`;
-export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false, bnd = { on: false, grace: 60, exemptStaff: true }, ranks = null, boost = null }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
+export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false, bnd = { on: false, grace: 60, exemptStaff: true }, ranks = null, boost = null, feats = {} }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main class="stm"><style>${ST_CSS}</style><div class="st-top"><div><h1><b>${esc(c.name)}</b> settings</h1>${isNew ? '<p class="lead">Your server is ready. Connect it to ER:LC, then give your members the invite code.</p>' : ''}</div><a class="btn sm pri" href="/${esc(c.slug)}">Open CAD</a></div>
 ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord server to finish</h2><p class="note">Every Oversite server is tied to its Discord. Members can't open the CAD until it's connected, and it's where you pick which Discord roles are Admin and Mod.</p></div><a class="btn discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord server</a></section>` : ''}
 <div class="sx">
-<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
+<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['features', 'Features', ''], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
 <div class="st-body">
 <div class="st-pane" id="tab-general" data-pane="general" role="tabpanel" aria-labelledby="t-general">
 <section class="card"><h2>ER:LC server</h2>
@@ -987,6 +999,10 @@ ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord s
 ${runs(role) ? `<section class="card" id="discord"><h2 class="hrow">Discord server<span class="tag" id="dgTag">…</span></h2><p class="note">Link your Discord server and choose which roles are <b>Admin</b> and which are <b>Mod</b>. Anyone with one of those roles who signs in with Discord gets that rank's staff tools, and loses them when the role is taken away. Everything else in the CAD follows the team they are on in game.</p><div id="dgBody"><p class="empty">Loading…</p></div><p class="msg" id="dgMsg"></p></section>` : ''}
 ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p class="note">Removes the server from Oversite with its settings, codes and member list. This cannot be undone.</p><button class="btn danger" id="del">Delete ${esc(c.name)}</button></section>` : ''}
 </div>
+<div class="st-pane" id="tab-features" data-pane="features" role="tabpanel" aria-labelledby="t-features">
+<section class="card" id="features"><h2>Features</h2><p class="note">Everything Oversite does on your server. Switch off what you don't use: it disappears from the CAD for everyone and stops working. Nothing is deleted, so switching it back on picks up where you left off.</p>
+${FEATURES.map(([g, items]) => `<h3 class="ft-g">${esc(g)}</h3><div class="ft-list">${items.map(([k, name, about, need]) => `<label class="ft"${g === 'Civilian' ? ' data-under="civ"' : ''}><span><b>${esc(name)}${need === 'premium' ? '<span class="tag">Premium</span>' : ''}</b><small>${esc(about)}</small></span><input type="checkbox" role="switch" data-ft="${k}"${feats[k] ? ' checked' : ''}${k === 'voice' && !prem.on && !feats[k] ? ' disabled' : ''}><i aria-hidden="true"></i></label>`).join('')}</div>`).join('')}
+<p class="msg" id="ftMsg"></p></section></div>
 <div class="st-pane wide" id="tab-bounds" data-pane="bounds" role="tabpanel" aria-labelledby="t-bounds">
 <section class="card" id="bounds" data-api="/c/${esc(c.slug)}/api"><h2 class="hrow">Boundaries<span class="tag" id="bdTag">${bnd.on ? 'On' : 'Off'}</span></h2>
 <p class="note">Draw where people are allowed to go: one area for the whole server, and one for each team if you want. Anyone who leaves theirs gets a message in game, and is loaded if they aren't back in time.</p>
@@ -1069,6 +1085,12 @@ ${(() => { const V = c.settings.voice || {}, r = V.range || 'normal'; return `<s
 </div></div>
 </main>`, script: `
 const A='/c/${esc(c.slug)}/api';
+/* features: each switch saves as soon as it's flipped; the civilian parts dim while the Civilian tab is off */
+{const fm=document.getElementById('ftMsg'),dim=()=>{const on=document.querySelector('[data-ft="civ"]')?.checked;document.querySelectorAll('.ft[data-under="civ"]').forEach(l=>l.classList.toggle('dim',!on))};dim();
+  const twin={bounds:'bdOn',voice:'vOn',explore:'spList'};   // the same switch elsewhere on this page
+  document.querySelectorAll('[data-ft]').forEach(x=>x.addEventListener('change',async()=>{const k=x.dataset.ft,v=x.checked;x.disabled=true;fm.className='msg';fm.textContent='Saving…';
+    try{await api(A+'/features',{key:k,on:v});const t=twin[k]&&document.getElementById(twin[k]);if(t)t.checked=v;fm.className='msg ok';fm.textContent=x.closest('.ft').querySelector('b').firstChild.textContent+(v?' is on.':' is off.')}
+    catch(e){x.checked=!v;fm.className='msg err';fm.textContent=e.message}x.disabled=false;dim()}))}
 /* tabs: one group of settings at a time; the address keeps the tab, and links to a card (#discord, #voice) open its tab */
 {const panes=[...document.querySelectorAll('.st-pane')],tabs=[...document.querySelectorAll('[data-tab]')];
   const show=(h,scroll)=>{const tp=h&&document.getElementById('tab-'+h),el=!tp&&h&&document.getElementById(h),p=tp||el&&el.closest('.st-pane')||panes[0];

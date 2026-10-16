@@ -10,6 +10,7 @@
 // applications (each one comes with an automatic background check, and a business can refuse anyone with a felony, a
 // recent arrest, an active warrant, no license or unpaid debts), pays wages weekly from its account, and bills customers.
 import { db, now, communities, licenses } from './db.mjs';
+import { on as feature } from './features.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS civ_accounts (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   balance INTEGER NOT NULL DEFAULT 0, autopay INTEGER NOT NULL DEFAULT 1, paid_at INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL, PRIMARY KEY (community_id, user_id));
@@ -119,21 +120,21 @@ export const cycle = c => { const cf = conf(c); if (!cf.on) return;
     for (const h of holders) if (cf.weekly && t - h.paid_at >= GWEEK) { q('UPDATE civ_accounts SET paid_at = ? WHERE community_id = ? AND user_id = ?').run(t, cid, h.user_id); move(cid, h.user_id, cf.weekly, 'deposit', 'Weekly payment'); }
     // a fine for every citation and arrest written since the economy began, billed to whoever it was written against
     for (const r of q("SELECT id, kind, subject_rid, data, at FROM pd_records WHERE community_id = ? AND kind IN ('citation', 'arrest') AND at >= ? AND subject_rid <> ''").all(cid, since)) {
-      const h = byRid.get(String(r.subject_rid)); if (h) billFine(cid, h.user_id, r, cf); }
+      if (!feature(c, 'fines')) break; const h = byRid.get(String(r.subject_rid)); if (h) billFine(cid, h.user_id, r, cf); }
     // each week, registration and insurance on every civilian car they drove in the last two weeks (never a department's)
     const wk = Math.floor((t - since) / GWEEK), wkStart = since + wk * GWEEK;
-    for (const v of q('SELECT plate, model, owner_rid FROM pd_vehicles WHERE community_id = ? AND owner_rid <> \'\' AND civ = 1 AND last_seen >= ?').all(cid, t - 2 * GWEEK)) {
+    if (feature(c, 'cars')) for (const v of q('SELECT plate, model, owner_rid FROM pd_vehicles WHERE community_id = ? AND owner_rid <> \'\' AND civ = 1 AND last_seen >= ?').all(cid, t - 2 * GWEEK)) {
       const h = byRid.get(String(v.owner_rid)); if (!h) continue; const car = `${v.model || 'Vehicle'} (${v.plate})`;
       if (cf.reg) bill(cid, h.user_id, 'reg', `reg:${v.plate}:${wk}`, `Registration, ${car}`, cf.reg, wkStart, wkStart + cf.grace * GDAY);
       if (cf.ins) bill(cid, h.user_id, 'ins', `ins:${v.plate}:${wk}`, `Insurance, ${car}`, cf.ins, wkStart, wkStart + cf.grace * GDAY); }
     // each week, rent, the mortgage payment and property tax on every home, except in the week it was moved into (paid up front)
-    for (const p of q('SELECT * FROM civ_props WHERE community_id = ? AND owner_id IS NOT NULL').all(cid)) { if (p.since >= wkStart) continue;
+    if (feature(c, 'housing')) for (const p of q('SELECT * FROM civ_props WHERE community_id = ? AND owner_id IS NOT NULL').all(cid)) { if (p.since >= wkStart) continue;
       const due = wkStart + cf.grace * GDAY, where = `${p.name}${p.address ? ', ' + p.address : ''}`;
       if (p.mode === 'rent' && p.rent) bill(cid, p.owner_id, 'rent', `rent:${p.id}:${wk}`, `Rent, ${where}`, p.rent, wkStart, due);
       if (p.mode === 'mortgage' && p.loan_left > 0) bill(cid, p.owner_id, 'mort', `mort:${p.id}:${wk}`, `Mortgage, ${where}`, Math.min(p.loan_weekly, p.loan_left), wkStart, due);
       const tax = p.mode === 'rent' ? 0 : Math.round(p.price * cf.tax / 100 / 52); if (tax) bill(cid, p.owner_id, 'tax', `tax:${p.id}:${wk}`, `Property tax, ${where}`, tax, wkStart, due); }
     // each week, every business's license, and its wages paid from the business account (staff hear about it when it cannot pay)
-    for (const z of q('SELECT * FROM civ_biz WHERE community_id = ?').all(cid)) {
+    if (feature(c, 'biz')) for (const z of q('SELECT * FROM civ_biz WHERE community_id = ?').all(cid)) {
       if (cf.bizlic && z.created < wkStart) bill(cid, z.owner_id, 'lic', `lic:${z.id}:${wk}`, `Business license, ${z.name}`, cf.bizlic, wkStart, wkStart + cf.grace * GDAY);
       if (z.paid_wk >= wk) continue; q('UPDATE civ_biz SET paid_wk = ? WHERE id = ?').run(wk, z.id);
       for (const w of q('SELECT * FROM civ_staff WHERE biz_id = ? AND wage > 0').all(z.id)) { const cur = biz(cid, z.id);
@@ -308,7 +309,7 @@ const fullName = (cid, uid) => { const ch = charOf(cid, uid); return ch && ch.fi
 export const state = (c, user, isAdmin, live = null) => { const cf = conf(c); if (!cf.on) return { off: true, conf: cf, admin: !!isAdmin, linked: !!user.roblox_id, character: charOf(c.id, user.id) };
   const a = ensure(c, user.id), rid = user.roblox_id ? String(user.roblox_id) : '-';
   // a ticket written a moment ago is on their bills straight away, not at the next cycle
-  if (cf.since && rid !== '-') for (const r of q(FINE_SQL).all(c.id, cf.since, rid)) billFine(c.id, user.id, r, cf);
+  if (cf.since && rid !== '-' && feature(c, 'fines')) for (const r of q(FINE_SQL).all(c.id, cf.since, rid)) billFine(c.id, user.id, r, cf);
   const bills = q("SELECT * FROM civ_bills WHERE community_id = ? AND user_id = ? AND (status IN ('Open', 'Overdue') OR paid_at >= ?) ORDER BY CASE status WHEN 'Overdue' THEN 0 WHEN 'Open' THEN 1 ELSE 2 END, due").all(c.id, user.id, now() - 30 * DAY).map(billRow);
   const onFile = plate => q('SELECT reg, ins, stolen FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(c.id, plate) || {};
   const vehicles = (live || []).slice(0, 10).map(s => { const plate = T(s.plate, 10).toUpperCase(), v = onFile(plate);
