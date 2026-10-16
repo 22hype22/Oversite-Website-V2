@@ -384,22 +384,22 @@ const ICON_DC = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 // page. One frosted panel on the muted map: sign in on the left, the Oversite mark drawn in dots on the right (drawn by the page, so it's
 // always sharp); on phones the dots sit on top like a cover, with the sign-in sheet below.
 const LN_CSS = `.ln{min-height:100dvh;display:grid;place-items:center;padding:32px 16px 72px}
-.ln-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:min(980px,100%);min-height:560px;border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.16);
-  background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,.045) 46%,rgba(8,9,10,.34) 62%,rgba(8,9,10,.48));backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 30px 90px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
+.ln-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:min(980px,100%);min-height:560px;border-radius:22px;overflow:hidden;border:1px solid var(--hair2);
+  background:radial-gradient(60% 75% at 82% 50%,rgba(76,141,255,.16),transparent 70%),var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 30px 90px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06)}
 .ln-form{display:flex;flex-direction:column;justify-content:center;padding:48px clamp(28px,4.5vw,56px);max-width:440px}
-.ln-form h1{margin:0;font-size:28px;font-weight:600;letter-spacing:-.02em;color:#F4F5F7}.ln-sub{margin:6px 0 28px;font-size:13.5px;color:#A3A8B0}
+.ln-form h1{margin:0;font-size:28px;font-weight:600;letter-spacing:-.02em;color:var(--ink)}.ln-sub{margin:6px 0 28px;font-size:13.5px;color:var(--dim)}
 .ln-btns{display:grid;gap:10px}.ln-btns .btn{width:100%;padding:12px 18px;font-weight:600;font-size:14px;border-radius:999px}.ln-btns .btn .ic{display:grid;place-items:center;flex:none}.ln-btns .btn svg{width:17px;height:17px;display:block}.ln-btns .btn .t{display:block}.ln-btns.going .btn{pointer-events:none}
-.ln-btns .rbx{background:#0A0A0B;color:#F4F5F7;border:1px solid rgba(255,255,255,.22)}.ln-btns .rbx:hover{background:#000}
-.ln-btns .dc{background:rgba(255,255,255,.06);color:#F4F5F7;border:1px solid rgba(255,255,255,.16)}.ln-btns .dc:hover{background:rgba(255,255,255,.11)}
-.ln-note{margin:22px 0 0;font-size:12.5px;line-height:1.55;color:#8E949C;text-align:center}.ln-note a{display:inline-block;margin-top:3px;color:#E8EAED;text-decoration:underline;text-underline-offset:3px}
+.ln-btns .rbx{background:#F0F2F5;color:#0B0B0C;border:1px solid #F0F2F5}.ln-btns .rbx:hover{background:#fff}
+.ln-btns .dc{background:#5865F2;color:#fff;border:1px solid #5865F2}.ln-btns .dc:hover{background:#6873f5}
+.ln-note{margin:22px 0 0;font-size:12.5px;line-height:1.55;color:var(--dim);text-align:center}.ln-note a{display:inline-block;margin-top:3px;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .ln-form .msg{margin:12px 0 0}.ln-owner{display:flex;gap:8px;margin-top:14px}.ln-owner input{flex:1;min-width:0}
 .ln-art{position:relative;overflow:hidden}.ln-art .fr{position:absolute;left:12%;top:50%;width:132%;overflow:visible;transform:translateY(-50%) rotate(-6deg)}
-.ln-art .fr>path,.ln-art .fr>rect{fill:url(#lnFill);stroke:rgba(255,255,255,.62);stroke-width:5;stroke-linejoin:round;filter:drop-shadow(0 0 22px rgba(255,255,255,.14))}
-.ln-art .fr .sc{fill:rgba(4,5,6,.55);stroke-width:3;stroke:rgba(255,255,255,.28);filter:none}.ln-art .fr .gp{stroke-width:3}
-.ln-art .fr .smk{fill:rgba(255,255,255,.06);stroke:#fff;stroke-width:14}.ln-art .fr .sk{fill:rgba(255,255,255,.07);stroke:none;filter:none}
-@media (max-width:760px){.ln{padding:12px 12px 72px;place-items:start center}.ln-card{grid-template-columns:minmax(0,1fr);min-height:0;background:rgba(14,15,17,.6)}
-  .ln-art{order:-1;height:230px;background:linear-gradient(180deg,rgba(8,9,10,.7),rgba(8,9,10,.35))}.ln-art .fr{left:12%;top:54%;width:118%}
-  .ln-form{max-width:none;padding:26px 22px 28px;border-top:1px solid rgba(255,255,255,.1);border-radius:22px 22px 0 0;margin-top:-18px;position:relative;background:rgba(18,19,21,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}}
+.ln-art .fr>path,.ln-art .fr>rect{fill:url(#lnFill);stroke:rgba(76,141,255,.7);stroke-width:5;stroke-linejoin:round;filter:drop-shadow(0 0 22px rgba(76,141,255,.3))}
+.ln-art .fr .sc{fill:rgba(6,10,18,.6);stroke-width:3;stroke:rgba(76,141,255,.35);filter:none}.ln-art .fr .gp{stroke-width:3}
+.ln-art .fr .smk{fill:rgba(76,141,255,.12);stroke:#F0F2F5;stroke-width:14}.ln-art .fr .sk{fill:rgba(76,141,255,.09);stroke:none;filter:none}.ln-art .fr .dot{stroke:none;filter:none}
+@media (max-width:760px){.ln{padding:12px 12px 72px;place-items:start center}.ln-card{grid-template-columns:minmax(0,1fr);min-height:0}
+  .ln-art{order:-1;height:230px;background:radial-gradient(70% 90% at 60% 55%,rgba(76,141,255,.16),transparent 70%)}.ln-art .fr{left:12%;top:54%;width:118%}
+  .ln-form{max-width:none;padding:26px 22px 28px;border-top:1px solid rgba(255,255,255,.1);border-radius:22px 22px 0 0;margin-top:-18px;position:relative;background:var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}}
 @media (prefers-reduced-motion:no-preference){.ln-card{animation:lnIn .5s cubic-bezier(.23,1,.32,1) both}}@keyframes lnIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}`;
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '', servers = 0 }) => layout({ title: 'Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers', logo, top: false, seo: { path: '/', ld: [...SITE_LD, FAQ_LD] }, body: `<style>${LN_CSS}</style>
 <section class="ln"><div class="ln-card">
@@ -411,10 +411,10 @@ ${error ? `<p class="msg err">${esc(error)}</p>` : ''}
 ${owner ? `<form method="post" action="/auth/owner" class="ln-owner" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" required><button class="btn sm">Sign in</button></form>` : ''}
 <p class="ln-note">New here? Sign in, then join your server with its invite code or set up your own.<br><a href="/explore">Explore${servers ? ` ${servers}` : ''} servers without signing in</a></p>
 </div>
-<div class="ln-art" aria-hidden="true"><svg width="0" height="0" style="position:absolute"><defs><linearGradient id="lnFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1E2023"/><stop offset="1" stop-color="#0B0C0D"/></linearGradient></defs></svg>
+<div class="ln-art" aria-hidden="true"><svg width="0" height="0" style="position:absolute"><defs><linearGradient id="lnFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#152238"/><stop offset="1" stop-color="#0A0F18"/></linearGradient></defs></svg>
 <svg class="fr" viewBox="0 0 1536 1024"><path d="${OV_FRAME}"/><rect class="gp" x="114" y="310" width="44" height="410" rx="20"/><rect class="gp" x="1378" y="310" width="44" height="410" rx="20"/><rect class="sc" x="222" y="150" width="1092" height="724" rx="10"/>
 <path class="smk" d="${OV_MARK}" transform="translate(262 198) scale(.25)"/>
-<rect class="sk" x="270" y="360" width="760" height="30" rx="15"/><rect class="sk" x="270" y="430" width="600" height="30" rx="15"/><rect class="sk" x="270" y="500" width="680" height="30" rx="15"/><rect class="sk" x="270" y="610" width="420" height="160" rx="22"/><rect class="sk" x="730" y="610" width="420" height="160" rx="22"/></svg></div>
+<rect class="sk" x="270" y="360" width="760" height="30" rx="15"/><rect class="sk" x="270" y="430" width="600" height="30" rx="15"/><rect class="sk" x="270" y="500" width="680" height="30" rx="15"/><rect class="sk" x="270" y="610" width="420" height="160" rx="22"/><rect class="sk" x="730" y="610" width="420" height="160" rx="22"/><circle class="dot" cx="1250" cy="236" r="14" fill="#46D07C"/><rect class="dot" x="300" y="640" width="96" height="40" rx="10" fill="rgba(226,75,75,.85)"/><rect class="dot" x="300" y="700" width="230" height="22" rx="11" fill="rgba(240,242,245,.18)"/><circle class="dot" cx="782" cy="660" r="20" fill="#4C8DFF"/><rect class="dot" x="820" y="646" width="200" height="26" rx="13" fill="rgba(240,242,245,.22)"/><rect class="dot" x="760" y="700" width="150" height="22" rx="11" fill="rgba(70,208,124,.5)"/></svg></div>
 </div></section>${LANDING_ABOUT}`, script: `
 const cf=document.getElementById('codeform');if(cf)cf.addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/auth/code',{code:document.getElementById('code').value});location.href=j.next}catch(x){say(document.getElementById('codemsg'),x.message)}});
 // signing in: the button's words fold into its Roblox or Discord logo, the logo slides to the middle and spins while that sign-in opens

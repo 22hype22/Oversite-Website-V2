@@ -23,8 +23,9 @@ export const discordFinish = async (req, params) => {
   if (!state || state !== params.get('state')) throw new Error('The sign-in link expired. Please try again.');
   if (params.get('error')) throw new Error('Discord sign-in was cancelled.');
   const tok = await fetch(DAPI + '/oauth2/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: DID, client_secret: DSECRET, grant_type: 'authorization_code', code: params.get('code') || '', redirect_uri: base(req) + '/auth/discord/callback' }) }).then(r => r.json());
-  if (!tok.access_token) throw new Error('Discord did not accept the sign-in. Please try again.');
+    body: new URLSearchParams({ client_id: DID, client_secret: DSECRET, grant_type: 'authorization_code', code: params.get('code') || '', redirect_uri: base(req) + '/auth/discord/callback' }) }).then(r => r.json()).catch(() => ({}));
+  if (!tok.access_token) { console.log(`discord sign-in: Discord refused the code: ${tok.error || 'no answer'}${tok.error_description ? ' (' + tok.error_description + ')' : ''}`);
+    throw new Error(tok.error === 'invalid_client' ? 'Oversite’s Discord sign-in keys are out of date. The site owner has been told.' : 'Discord did not accept the sign-in. Please try again.'); }
   const me = await fetch(DAPI + '/users/@me', { headers: { authorization: `Bearer ${tok.access_token}` } }).then(r => r.json());
   if (!me.id) throw new Error('Could not read your Discord account.');
   const name = me.global_name || me.username, avatar = me.avatar ? `https://cdn.discordapp.com/avatars/${me.id}/${me.avatar}.png?size=64` : null;
@@ -78,7 +79,8 @@ export const robloxOAuthFinish = async (req, params) => {
   if (params.get('error')) throw new Error('Linking with Roblox was cancelled.');
   const tok = await fetch(RAPI + '/v1/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: RID, client_secret: RSECRET, grant_type: 'authorization_code', code: params.get('code') || '', code_verifier: verifier || '', redirect_uri: rbxRedirect(req) }) }).then(r => r.json()).catch(() => ({}));
-  if (!tok.access_token) throw new Error('Roblox did not accept the link. Please try again.');
+  if (!tok.access_token) { console.log(`roblox sign-in: Roblox refused the code: ${tok.error || 'no answer'}${tok.error_description ? ' (' + tok.error_description + ')' : ''}`);
+    throw new Error(tok.error === 'invalid_client' ? 'Oversite’s Roblox sign-in keys are out of date. The site owner has been told.' : 'Roblox did not accept the sign-in. Please try again.'); }
   const me = await fetch(RAPI + '/v1/userinfo', { headers: { authorization: `Bearer ${tok.access_token}` } }).then(r => r.json()).catch(() => ({}));
   if (!me.sub) throw new Error('Could not read your Roblox account.');
   const rid = String(me.sub), rname = me.preferred_username || me.nickname || me.name || 'Roblox user', avatar = me.picture || null;
@@ -152,3 +154,11 @@ export const setCode = (cid, role, code) => { if (!newCodeOk(code)) return { err
   if (codes.taken(code, cid, role)) return { error: 'Another server already uses that code. Pick a different one.' };
   codes.set(cid, role, String(code).trim().toUpperCase()); return { code: codes.show(cid, role) }; };
 export const newMemberCode = cid => { let mc = newCode(); while (codes.find(mc)) mc = newCode(); codes.set(cid, 'member', mc); return { code: mc }; };
+
+// a check at startup: trade a made-up code with Discord and Roblox. A wrong client ID or secret is refused as invalid_client; right keys
+// get invalid_grant (the code is fake). Nothing is signed in and no secret is logged.
+export const checkSignIn = async site => { const out = {};
+  const ask = async (url, body) => { try { const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(8000) }); const j = await r.json().catch(() => ({})); return j.error || (r.ok ? 'ok' : 'http ' + r.status); } catch (e) { return 'unreachable'; } };
+  if (DID && DSECRET) out.discord = await ask(DAPI + '/oauth2/token', { client_id: DID, client_secret: DSECRET, grant_type: 'authorization_code', code: 'oversite-check', redirect_uri: site + '/auth/discord/callback' });
+  if (RID && RSECRET) out.roblox = await ask(RAPI + '/v1/token', { client_id: RID, client_secret: RSECRET, grant_type: 'authorization_code', code: 'oversite-check', code_verifier: 'x'.repeat(43), redirect_uri: process.env.ROBLOX_REDIRECT_URI || site + '/auth/roblox/callback' });
+  return out; };

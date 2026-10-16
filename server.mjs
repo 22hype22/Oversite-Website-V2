@@ -973,6 +973,8 @@ const recordEvent = (c, r) => { bots.emit(c, 'record.created', r); if (!features
 const alertsInfo = () => { const L = backup.list(), d = backup.disk(); let last = null; try { last = JSON.parse(siteSettings.get('backup_last') || 'null'); } catch (e) {}
   return { alerts: alerts.ready(), offsite: backup.offsite(), last, backups: L.slice(0, 6).map(b => ({ name: b.name, kind: b.kind, size: b.size, at: b.at })), count: L.length, disk: d && { used: d.used, free: d.free } }; };
 backup.start();
+setTimeout(async () => { const r = await auth.checkSignIn(PUBLIC()); for (const [k, v] of Object.entries(r)) { console.log(`sign-in check: ${k} ${v === 'invalid_grant' ? 'keys ok' : 'PROBLEM: ' + v}`);
+  if (v === 'invalid_client') alerts.send('signin-' + k, `${k === 'discord' ? 'Discord' : 'Roblox'} sign-in is broken`, `${k === 'discord' ? 'Discord' : 'Roblox'} refused Oversite's client ID or secret (invalid_client). Update the ${k === 'discord' ? 'DISCORD' : 'ROBLOX'}_CLIENT_SECRET variable in Railway.`, 'crit'); } }, 5000);
 // ER:LC failing for many servers at once is ER:LC's problem or Oversite's, not one owner's key: tell Oversite's owners
 setInterval(() => { const S = srvStatus.snapshot(), bad = S.filter(P => P.erlc && ['deg', 'down'].includes(P.erlc.s)), live = S.filter(P => P.erlc && ['ok', 'deg', 'down'].includes(P.erlc.s));
   if (bad.length >= 3 && bad.length >= live.length / 2) alerts.send('erlc-wide', 'ER:LC is failing for many servers', `${bad.length} of ${live.length} servers can’t read ER:LC right now. The most common answer: ${bad.map(P => P.erlc.why).filter(Boolean).sort((a, b) => bad.filter(P => P.erlc.why === b).length - bad.filter(P => P.erlc.why === a).length)[0] || 'none'}`, 'crit'); }, 5 * 60000);
