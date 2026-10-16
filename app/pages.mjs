@@ -388,7 +388,7 @@ const LN_CSS = `.ln{min-height:100dvh;display:grid;place-items:center;padding:32
   background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,.045) 46%,rgba(8,9,10,.34) 62%,rgba(8,9,10,.48));backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 30px 90px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
 .ln-form{display:flex;flex-direction:column;justify-content:center;padding:48px clamp(28px,4.5vw,56px);max-width:440px}
 .ln-form h1{margin:0;font-size:28px;font-weight:600;letter-spacing:-.02em;color:#F4F5F7}.ln-sub{margin:6px 0 28px;font-size:13.5px;color:#A3A8B0}
-.ln-btns{display:grid;gap:10px}.ln-btns .btn{width:100%;padding:12px 18px;font-weight:600;font-size:14px;border-radius:999px}.ln-btns .btn svg{width:17px;height:17px;flex:none}
+.ln-btns{display:grid;gap:10px}.ln-btns .btn{width:100%;padding:12px 18px;font-weight:600;font-size:14px;border-radius:999px}.ln-btns .btn .ic{display:grid;place-items:center;flex:none}.ln-btns .btn svg{width:17px;height:17px;display:block}.ln-btns .btn .t{display:block}.ln-btns.going .btn{pointer-events:none}
 .ln-btns .rbx{background:#0A0A0B;color:#F4F5F7;border:1px solid rgba(255,255,255,.22)}.ln-btns .rbx:hover{background:#000}
 .ln-btns .dc{background:rgba(255,255,255,.06);color:#F4F5F7;border:1px solid rgba(255,255,255,.16)}.ln-btns .dc:hover{background:rgba(255,255,255,.11)}
 .ln-note{margin:22px 0 0;font-size:12.5px;line-height:1.55;color:#8E949C;text-align:center}.ln-note a{display:inline-block;margin-top:3px;color:#E8EAED;text-decoration:underline;text-underline-offset:3px}
@@ -405,7 +405,7 @@ export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', err
 <section class="ln"><div class="ln-card">
 <div class="ln-form">
 <h1>Sign in</h1><p class="ln-sub">Continue to your server’s CAD.</p>
-${discord || roblox ? `<div class="ln-btns">${roblox ? `<a class="btn rbx" href="/auth/roblox?next=${encodeURIComponent(next)}">${ICON_RBX}Continue with Roblox</a>` : ''}${discord ? `<a class="btn dc" href="/auth/discord?next=${encodeURIComponent(next)}">${ICON_DC}Continue with Discord</a>` : ''}</div>`
+${discord || roblox ? `<div class="ln-btns">${roblox ? `<a class="btn rbx" href="/auth/roblox?next=${encodeURIComponent(next)}"><i class="ic">${ICON_RBX}</i><span class="t">Continue with Roblox</span></a>` : ''}${discord ? `<a class="btn dc" href="/auth/discord?next=${encodeURIComponent(next)}"><i class="ic">${ICON_DC}</i><span class="t">Continue with Discord</span></a>` : ''}</div>`
 : `<form class="ln-btns" id="codeform" autocomplete="off"><input id="code" placeholder="Your server's invite code" aria-label="Invite code" autocapitalize="characters" spellcheck="false" required><button class="btn rbx">Join your server</button><p class="msg" id="codemsg"></p></form>`}
 ${error ? `<p class="msg err">${esc(error)}</p>` : ''}
 ${owner ? `<form method="post" action="/auth/owner" class="ln-owner" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" required><button class="btn sm">Sign in</button></form>` : ''}
@@ -417,21 +417,17 @@ ${owner ? `<form method="post" action="/auth/owner" class="ln-owner" autocomplet
 <rect class="sk" x="270" y="360" width="760" height="30" rx="15"/><rect class="sk" x="270" y="430" width="600" height="30" rx="15"/><rect class="sk" x="270" y="500" width="680" height="30" rx="15"/><rect class="sk" x="270" y="610" width="420" height="160" rx="22"/><rect class="sk" x="730" y="610" width="420" height="160" rx="22"/></svg></div>
 </div></section>${LANDING_ABOUT}`, script: `
 const cf=document.getElementById('codeform');if(cf)cf.addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/auth/code',{code:document.getElementById('code').value});location.href=j.next}catch(x){say(document.getElementById('codemsg'),x.message)}});
-// signing in: the text slides away, the tablet straightens into the middle, spins once, then grows and fades as Roblox or Discord opens
-(()=>{const card=document.querySelector('.ln-card'),art=document.querySelector('.ln-art'),fr=art&&art.querySelector('.fr'),form=document.querySelector('.ln-form');if(!card||!fr||!fr.animate)return;
-  const still=matchMedia('(prefers-reduced-motion: reduce)'),run=[];let busy=false;
-  const T=(x,y,s,r,ry)=>'translate('+x+'px, calc(-50% + '+y+'px)) scale('+s+') perspective(1400px) rotate('+r+'deg) rotateY('+ry+'deg)';
-  const go=href=>{if(busy)return;busy=true;
-    const cs=getComputedStyle(fr),cw=card.clientWidth,ch=card.clientHeight,bw=parseFloat(cs.width),bh=parseFloat(cs.height)||bw*1024/1536;
-    const cx=art.offsetLeft+parseFloat(cs.left)+bw/2,cy=art.offsetTop+parseFloat(cs.top);   // where its middle is now: left edge + half, and top (it's lifted by half its height)
-    const dx=cw/2-cx,dy=ch/2-cy,sc=Math.min(cw*.62/bw,ch*.62/bh),out='cubic-bezier(.23,1,.32,1)',io='cubic-bezier(.77,0,.175,1)';
-    art.style.overflow='visible';art.style.zIndex='3';
-    run.push(form.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateX(-28px)'}],{duration:280,easing:out,fill:'forwards'}));
-    run.push(fr.animate([{transform:T(0,0,1,-6,0),opacity:1,easing:io},{transform:T(dx,dy,sc,0,0),opacity:1,offset:.36,easing:io},{transform:T(dx,dy,sc,0,360),opacity:1,offset:.76,easing:'cubic-bezier(.32,0,.67,0)'},{transform:T(dx,dy,sc*1.45,0,360),opacity:0}],{duration:1500,fill:'forwards'}));
-    run.push(card.animate([{opacity:1},{opacity:1,offset:.8},{opacity:0}],{duration:1500,easing:'linear',fill:'forwards'}));
-    setTimeout(()=>{location.href=href},1180)};
-  document.querySelectorAll('.ln-btns a.btn').forEach(a=>a.addEventListener('click',e=>{if(still.matches||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button)return;e.preventDefault();go(a.href)}));
-  addEventListener('pageshow',e=>{if(e.persisted){run.forEach(x=>x.cancel());run.length=0;art.style.overflow='';art.style.zIndex='';busy=false}})})();
+// signing in: the button's words fold into its Roblox or Discord logo, the logo slides to the middle and spins while that sign-in opens
+(()=>{const box=document.querySelector('.ln-btns');if(!box||!document.body.animate)return;const still=matchMedia('(prefers-reduced-motion: reduce)'),run=[];
+  const go=(a,href)=>{if(box.classList.contains('going'))return;box.classList.add('going');const ic=a.querySelector('.ic'),sv=ic&&ic.querySelector('svg'),t=a.querySelector('.t');if(!ic||!t)return void(location.href=href);
+    const b=a.getBoundingClientRect(),r=ic.getBoundingClientRect(),dx=b.left+b.width/2-(r.left+r.width/2),out='cubic-bezier(.23,1,.32,1)';
+    run.push(t.animate([{opacity:1,transform:'none',filter:'blur(0)'},{opacity:0,transform:'translateX(-26px) scale(.9)',filter:'blur(2px)'}],{duration:260,easing:out,fill:'forwards'}));
+    run.push(ic.animate([{transform:'none'},{transform:'translateX('+dx+'px) scale(1.25)'}],{duration:380,easing:'cubic-bezier(.77,0,.175,1)',fill:'forwards'}));
+    run.push(sv.animate([{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}],{duration:700,delay:300,iterations:Infinity,easing:'cubic-bezier(.45,.05,.55,.95)'}));
+    box.querySelectorAll('.btn').forEach(o=>{if(o!==a)run.push(o.animate([{opacity:1},{opacity:.35}],{duration:200,fill:'forwards'}))});
+    setTimeout(()=>{location.href=href},780)};
+  box.querySelectorAll('a.btn').forEach(a=>a.addEventListener('click',e=>{if(still.matches||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button)return;e.preventDefault();go(a,a.href)}));
+  addEventListener('pageshow',e=>{if(e.persisted){run.forEach(x=>x.cancel());run.length=0;box.classList.remove('going')}})})();
 ` });
 
 // Terms of Use and Privacy Policy (text in legal.mjs). Public, outside the preview lock, so Roblox and Discord can link to them.
