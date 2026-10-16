@@ -678,7 +678,7 @@ const route = async (req, res) => {
   const stranded = user => user && !user.discord_id && !user.roblox_id && !communities.forUser(user.id).length;
   if (path === '/' || path === '/dashboard') { const user = auth.currentUser(req); if (stranded(user)) return redirect(res, '/', { 'set-cookie': auth.signOut(req) }); }
   // signed in: straight to your account (or the Roblox link step first); signed out: the sign-in page
-  if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, user.roblox_name ? '/account' : '/dashboard'); return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
+  if (path === '/') { const user = auth.currentUser(req); if (user) return redirect(res, user.roblox_name ? '/account' : '/dashboard'); return page(res, pages.landing({ logo: LOGO, servers: communities.all().filter(c => !c.suspended).length, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(url.searchParams.get('next')) })); }
   // anyone can browse, signed in or not; voting, joining and reporting ask them to sign in
   if (path === '/explore') { const user = auth.currentUser(req);
     return page(res, pages.explore({ logo: LOGO, user, servers: profile.directory(user), owned: (user ? communities.forUser(user.id) : []).filter(m => m.role === 'owner' || m.role === 'co_owner').map(m => m.slug), prem: !!user && premium.userInfo(user).on })); }
@@ -759,10 +759,10 @@ const route = async (req, res) => {
   if (path === '/auth/discord') { if (!auth.discordReady()) return msg(res, auth.currentUser(req), 'Discord sign-in is not set up yet', 'The site owner needs to connect a Discord application first.', { href: '/', label: 'Back' });
     const { url: to, cookie } = auth.discordStart(req, url.searchParams.get('next')); return redirect(res, to, { 'set-cookie': cookie }); }
   if (path === '/auth/discord/callback') { try { const { user, next } = await auth.discordFinish(req, url.searchParams); await discordlink.autoJoin(user).catch(() => 0); supporter.retry(user.id); return redirect(res, next, { 'set-cookie': [auth.signIn(req, user.id), auth.setCookie(req, 'ov_oauth', '', 0)] }); }
-    catch (e) { return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), error: e.message }), 400); } }
+    catch (e) { return page(res, pages.landing({ logo: LOGO, servers: communities.all().filter(c => !c.suspended).length, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), error: e.message }), 400); } }
   if (path === '/auth/owner' && req.method === 'POST') { if (!sameOrigin(req)) return msg(res, null, 'Request blocked', 'Please sign in from the Oversite page.', { href: '/', label: 'Back' }, 400);
     const f = await formBody(req), r = auth.ownerLogin(req, String(f.get('code') || '').trim());
-    if (r.error) return page(res, pages.landing({ logo: LOGO, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(f.get('next')), error: r.error }), 401);
+    if (r.error) return page(res, pages.landing({ logo: LOGO, servers: communities.all().filter(c => !c.suspended).length, discord: auth.discordReady(), roblox: auth.robloxOAuthReady(), owner: auth.ownerLoginOn(), next: auth.safeNext(f.get('next')), error: r.error }), 401);
     return redirect(res, auth.safeNext(f.get('next')), { 'set-cookie': auth.signIn(req, r.user.id) }); }
   if ((path === '/auth/create' || path === '/auth/code') && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
     const user = auth.currentUser(req), j = await jsonBody(req);
@@ -889,7 +889,7 @@ const unlock = (req, res, code, next = '/') => { auth.prune(attempts); const ip 
   a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } attempts.set(ip, a); return html(res, lockPage('That code is not right.'), 401); };
 const gate = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = url.pathname;
-  if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js' || /^\/(apple-touch-icon(-precomposed)?\.png|icon-(192|512|maskable-512|tab|search-192|search-48)\.png|icon-tab\.svg|manifest\.webmanifest|favicon\.ico)$/.test(path) || path === '/privacy' || path === '/terms' || path === '/refunds' || path === '/developers') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
+  if (path === '/health' || path === '/liberty-county.jpg' || path === '/landing-cad.webp' || path === '/landing-cad-sm.webp' || path === '/intro-splash.js' || /^\/(apple-touch-icon(-precomposed)?\.png|icon-(192|512|maskable-512|tab|search-192|search-48)\.png|icon-tab\.svg|manifest\.webmanifest|favicon\.ico)$/.test(path) || path === '/privacy' || path === '/terms' || path === '/refunds' || path === '/developers') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
   if (!CODE && (path === '/lock' || path === '/unlock')) return redirect(res, '/');   // the site is open: no code screen to show
   if (path === '/unlock' && req.method === 'POST') { const f = await formBody(req); return unlock(req, res, String(f.get('code') || '').trim()); }
   if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });

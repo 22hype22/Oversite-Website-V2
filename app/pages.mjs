@@ -372,21 +372,48 @@ const LANDING_ABOUT = `<style>.lp{max-width:1080px;margin:0 auto;padding:40px 24
 <div><h3>Explore and grow</h3><p>List your server on Explore with live player counts, votes and reviews so new players find you.</p></div></div>
 <p style="margin-top:22px">Run an ERLC design server too? <a href="https://www.oversite.shop" style="color:var(--ink)">Oversite Customs</a> is our platform for design orders, portfolios, storefronts and payments.</p>
 <div class="lp-q">${FAQ.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}</div></section>`;
-export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '' }) => layout({ title: 'Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers', logo, top: false, seo: { path: '/', ld: [...SITE_LD, FAQ_LD] }, body: `
-<section class="hero wide notop"><div class="box">
-<div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div>
-<h1><span style="font-weight:400">Oversite</span> <b>CAD</b></h1>
-<p class="lead">A live dispatch system for ER:LC private servers. Every unit on a live map of Liberty County, straight from your server.</p>
-<p class="note" style="margin:-6px 0 18px"><a href="/explore">Explore servers</a> without signing in.</p>
-${discord || roblox ? `<div class="card signin"><h2>Sign in to get started</h2><p class="note">Then join your server with its invite code, or set up a CAD for your own server.</p>
-${roblox ? `<a class="btn roblox" href="/auth/roblox?next=${encodeURIComponent(next)}">Continue with Roblox</a>` : ''}${discord ? `<a class="btn discord" href="/auth/discord?next=${encodeURIComponent(next)}">Continue with Discord</a>` : ''}
-<p class="hint">Free, no password. Oversite only sees your username and avatar.</p></div>`
-: `<form class="card signin" id="codeform" autocomplete="off"><h2>Join your server</h2><p class="note">Enter your server's invite code.</p>
-<input id="code" placeholder="Invite code" aria-label="Invite code" autocapitalize="characters" spellcheck="false" required>
-<button class="btn pri">Sign in</button><p class="msg" id="codemsg"></p></form>`}
-${owner ? `<form method="post" action="/auth/owner" class="row" style="justify-content:center;margin-top:14px" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" style="max-width:200px" required><button class="btn sm">Sign in</button></form>` : ''}
+// the front page: sign in on the left, the real CAD on the right. Joining with an invite code and making a server come right after
+// signing in, on the account page, so the only thing asked here is who you are.
+const LN_CSS = `.ln{position:relative;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);min-height:100dvh;overflow:hidden;background:radial-gradient(1200px 700px at 78% 40%,rgba(57,135,229,.10),transparent 60%),radial-gradient(900px 600px at 0% 100%,rgba(88,101,242,.06),transparent 60%),#09090B}
+.ln-l{position:relative;z-index:2;display:flex;flex-direction:column;padding:28px clamp(20px,4.4vw,64px) 64px}
+.ln-brand{display:inline-flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-size:15px}.ln-brand img{height:26px;width:auto}.ln-brand span{font-weight:400}.ln-brand b{font-weight:600}
+.ln-main{margin:auto 0;padding:48px 0;max-width:540px}
+.ln-eye{margin:0 0 18px;font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#8DB6FF}
+.ln h1{margin:0;font-size:clamp(34px,3.7vw,52px);line-height:1.02;letter-spacing:-.035em;font-weight:600;color:#F4F5F7}
+.ln-lead{margin:18px 0 30px;font-size:16px;line-height:1.6;color:#A9AFB8;max-width:40ch}
+.ln-sign{display:grid;gap:10px;max-width:360px}.ln-sign .btn{width:100%;padding:13px 18px;font-weight:600;font-size:14.5px;display:flex;align-items:center;justify-content:center;gap:10px}
+.ln-sign .btn svg{width:18px;height:18px;flex:none}
+.ln-hint{margin:14px 0 0;font-size:12.5px;line-height:1.55;color:var(--faint);max-width:360px}
+.ln-foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;font-size:13px;color:var(--faint)}.ln-foot a{color:var(--ink);text-decoration:none;font-weight:500}.ln-foot a:hover{text-decoration:underline}
+.ln-foot .n{color:var(--dim)}.ln-foot .n b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.ln-r{position:relative;display:flex;align-items:center;padding:56px 0 64px 8px}
+.ln-shot{margin:0;width:calc(100% + 140px);aspect-ratio:16/10;border-radius:18px 0 0 18px;overflow:hidden;border:1px solid rgba(255,255,255,.10);border-right:0;background:#0D1416;box-shadow:0 40px 120px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.4)}
+.ln-shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:left top}
+.ln .msg{max-width:360px}
+.ln-owner{display:flex;gap:8px;margin-top:16px;max-width:360px}.ln-owner input{flex:1;min-width:0}
+@media (prefers-reduced-motion:no-preference){.ln-main>*,.ln-shot{animation:lnIn .5s cubic-bezier(.23,1,.32,1) both}.ln-main>*:nth-child(2){animation-delay:40ms}.ln-main>*:nth-child(3){animation-delay:80ms}.ln-main>*:nth-child(4){animation-delay:120ms}.ln-main>*:nth-child(n+5){animation-delay:160ms}.ln-shot{animation-duration:.7s;animation-delay:120ms}}
+@keyframes lnIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (max-width:900px){.ln-br{display:none}.ln h1{text-wrap:balance}.ln{grid-template-columns:minmax(0,1fr);min-height:0}.ln-main{padding:44px 0 28px;max-width:none}.ln-r{padding:0 0 36px 16px}.ln-shot{width:calc(100% + 16px);aspect-ratio:16/11}.ln-l{padding-bottom:8px}.ln-foot{order:3;padding:0 0 4px}}
+@media (max-width:520px){.ln h1{font-size:34px}.ln-lead{font-size:15px;margin:14px 0 24px}.ln-sign,.ln-hint,.ln .msg,.ln-owner{max-width:none}}`;
+const ICON_RBX = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5.92 1.47 22.53 5.92 18.08 22.53 1.47 18.08Z M10.37 9.18 14.82 10.37 13.63 14.82 9.18 13.63Z"/></svg>';
+const ICON_DC = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg>';
+export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '', servers = 0 }) => layout({ title: 'Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers', logo, top: false, bg: false, seo: { path: '/', ld: [...SITE_LD, FAQ_LD] }, body: `<style>${LN_CSS}</style>
+<section class="ln"><div class="ln-l">
+<a class="ln-brand" href="/" aria-label="Oversite CAD"><img src="data:image/png;base64,${logo}" alt=""><span>Oversite <b>CAD</b></span></a>
+<div class="ln-main">
+<p class="ln-eye">CAD, MDT and dispatch for ER:LC</p>
+<h1>Live dispatch<br class="ln-br"> for ER:LC servers.</h1>
+<p class="ln-lead">Every unit on a live map of Liberty County, 911 calls straight from the game, and an MDT for every department.</p>
+${discord || roblox ? `<div class="ln-sign">${roblox ? `<a class="btn roblox" href="/auth/roblox?next=${encodeURIComponent(next)}">${ICON_RBX}Continue with Roblox</a>` : ''}${discord ? `<a class="btn discord" href="/auth/discord?next=${encodeURIComponent(next)}">${ICON_DC}Continue with Discord</a>` : ''}</div>
+<p class="ln-hint">Free, no password. Next you join your server with its invite code, or set up a CAD for your own.</p>`
+: `<form class="ln-sign" id="codeform" autocomplete="off"><input id="code" placeholder="Your server's invite code" aria-label="Invite code" autocapitalize="characters" spellcheck="false" required><button class="btn pri">Join your server</button><p class="msg" id="codemsg"></p></form>`}
 ${error ? `<p class="msg err">${esc(error)}</p>` : ''}
-<div class="feats"><div><b>Live map</b>Units move on the map as they drive in game.</div><div><b>Real 911 calls</b>Calls from the game land on the dispatch board.</div><div><b>Department MDTs</b>Each team gets its own MDT, locked to its members.</div></div></div></section>${LANDING_ABOUT}`, script: `
+${owner ? `<form method="post" action="/auth/owner" class="ln-owner" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" required><button class="btn sm">Sign in</button></form>` : ''}
+</div>
+<div class="ln-foot"><a href="/explore">Explore servers without signing in →</a>${servers ? `<span class="n"><b>${servers}</b> servers run on Oversite</span>` : ''}</div>
+</div>
+<div class="ln-r"><figure class="ln-shot"><picture><source media="(max-width:900px)" srcset="/landing-cad-sm.webp"><img src="/landing-cad.webp" alt="The Oversite CAD: units on a live map of Liberty County, new 911 calls, and the on-duty list" width="1800" height="1125" fetchpriority="high"></picture></figure></div>
+</section>${LANDING_ABOUT}`, script: `
 const cf=document.getElementById('codeform');if(cf)cf.addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/auth/code',{code:document.getElementById('code').value});location.href=j.next}catch(x){say(document.getElementById('codemsg'),x.message)}});
 ` });
 
