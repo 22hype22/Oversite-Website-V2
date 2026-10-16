@@ -261,6 +261,11 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 @media (max-width:440px){.top form{display:none}}
 .site-foot{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;justify-content:center;gap:16px;padding:11px 16px calc(11px + env(safe-area-inset-bottom));font-size:12.5px;pointer-events:none;text-shadow:0 1px 8px rgba(0,0,0,.9)}.site-foot>*{pointer-events:auto}.site-foot svg{filter:drop-shadow(0 1px 6px rgba(0,0,0,.85))}
 .site-foot nav{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 18px}.site-foot a{color:var(--dim);text-decoration:none;transition:color .15s}.site-foot a:hover{color:var(--ink)}
+.site-foot .ft-legal{position:relative}.site-foot .ft-legal summary{list-style:none;cursor:pointer;color:var(--dim);transition:color .15s;display:inline-flex;align-items:center;gap:5px}.site-foot .ft-legal summary::-webkit-details-marker{display:none}
+.site-foot .ft-legal summary::after{content:"";width:6px;height:6px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:translateY(1px) rotate(-135deg);opacity:.7}.site-foot .ft-legal[open] summary::after{transform:translateY(-2px) rotate(45deg)}
+.site-foot .ft-legal summary:hover,.site-foot .ft-legal[open] summary{color:var(--ink)}
+.site-foot .ft-legal>div{position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);display:grid;min-width:170px;padding:6px;border-radius:12px;background:rgba(16,16,18,.94);border:1px solid var(--hair2);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 12px 40px rgba(0,0,0,.5);text-shadow:none}
+.site-foot .ft-legal>div a{padding:8px 12px;border-radius:8px;white-space:nowrap;text-align:left}.site-foot .ft-legal>div a:hover{background:rgba(255,255,255,.06)}
 .site-foot .sep{width:1px;height:16px;background:var(--hair2);flex:none}
 .site-foot .soc{display:grid;place-items:center;width:30px;height:30px;margin:-4px -8px;border-radius:8px;color:#fff;opacity:.8;transition:opacity .15s,background .15s}.site-foot .soc:hover{opacity:1;background:rgba(255,255,255,.07)}
 @media (max-width:480px){.site-foot{gap:10px;font-size:12px}.site-foot nav{gap:4px 12px}}
@@ -303,7 +308,8 @@ details.mk[open] summary{margin-bottom:8px;color:var(--ink)}
 .btn.dz{background:var(--bad);border-color:var(--bad);color:#fff}.btn.dz:hover{background:#ea5c5c}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 `;
-const JS = `
+const JS = `document.addEventListener('click',e=>{for(const d of document.querySelectorAll('details.ft-legal[open]'))if(!d.contains(e.target))d.open=false});document.addEventListener('keydown',e=>{if(e.key==='Escape')for(const d of document.querySelectorAll('details.ft-legal[open]'))d.open=false});
+
 const api=async(url,body,method='POST')=>{const r=await fetch(url,{method,headers:{'content-type':'application/json','x-oversite':'1'},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||('Something went wrong ('+r.status+')'));return j};
 const say=(el,t,ok)=>{el.textContent=t;el.className='msg '+(ok?'ok':'err')};
 /* ask({title,text,ok,danger,typed}) shows the site's own dialog and resolves true when confirmed; typed = word the user must type first */
@@ -328,7 +334,7 @@ export const pbadge = (size = 16) => `<svg class="vb pb" width="${size}" height=
 export const vbadge = (size = 16) => `<svg class="vb" width="${size}" height="${size}" viewBox="0 0 24 24" role="img" aria-label="Verified by Oversite"><title>Verified by Oversite</title>${SEAL}</svg>`;
 // pinned to the bottom of every page: the same legal links as oversite.shop, then our Roblox group and Discord
 const ROBLOX_GROUP = 'https://www.roblox.com/communities/691798472/Oversite-Customs', DISCORD_INVITE = 'https://discord.gg/ovs';
-const FOOT = `<div class="foot-sp" aria-hidden="true"></div><footer class="site-foot"><nav aria-label="Legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Use</a><a href="/refunds">Sales and Refunds</a><a href="/support">Support</a><a href="/developers">Developers</a><a href="https://www.oversite.shop" title="Oversite Customs: the ERLC design server platform">Oversite Customs</a></nav><span class="sep" aria-hidden="true"></span>
+const FOOT = `<div class="foot-sp" aria-hidden="true"></div><footer class="site-foot"><nav aria-label="Site"><details class="ft-legal"><summary>Legal</summary><div><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Use</a><a href="/refunds">Sales and Refunds</a></div></details><a href="/support">Support</a><a href="/developers">Developers</a><a href="https://www.oversite.shop" title="Oversite Customs: the ERLC design server platform">Oversite Customs</a></nav><span class="sep" aria-hidden="true"></span>
 <a class="soc" href="${ROBLOX_GROUP}" target="_blank" rel="noopener" aria-label="Oversite on Roblox" title="Oversite on Roblox"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5.92 1.47 22.53 5.92 18.08 22.53 1.47 18.08Z M10.37 9.18 14.82 10.37 13.63 14.82 9.18 13.63Z"/></svg></a>
 <a class="soc" href="${DISCORD_INVITE}" target="_blank" rel="noopener" aria-label="Oversite on Discord" title="Oversite on Discord"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg></a></footer>`;
 // search engines: a public page passes seo = { path, desc } and gets a description, a canonical link and share tags;
@@ -413,6 +419,21 @@ ${owner ? `<form method="post" action="/auth/owner" class="ln-owner" autocomplet
 <rect class="sk" x="270" y="360" width="760" height="30" rx="15"/><rect class="sk" x="270" y="430" width="600" height="30" rx="15"/><rect class="sk" x="270" y="500" width="680" height="30" rx="15"/><rect class="sk" x="270" y="610" width="420" height="160" rx="22"/><rect class="sk" x="730" y="610" width="420" height="160" rx="22"/></svg></div>
 </div></section>${LANDING_ABOUT}`, script: `
 const cf=document.getElementById('codeform');if(cf)cf.addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/auth/code',{code:document.getElementById('code').value});location.href=j.next}catch(x){say(document.getElementById('codemsg'),x.message)}});
+// signing in: the text slides away, the tablet straightens into the middle, spins once, then grows and fades as Roblox or Discord opens
+(()=>{const card=document.querySelector('.ln-card'),art=document.querySelector('.ln-art'),fr=art&&art.querySelector('.fr'),form=document.querySelector('.ln-form');if(!card||!fr||!fr.animate)return;
+  const still=matchMedia('(prefers-reduced-motion: reduce)'),run=[];let busy=false;
+  const T=(x,y,s,r,ry)=>'translate('+x+'px, calc(-50% + '+y+'px)) scale('+s+') perspective(1400px) rotate('+r+'deg) rotateY('+ry+'deg)';
+  const go=href=>{if(busy)return;busy=true;
+    const cs=getComputedStyle(fr),cw=card.clientWidth,ch=card.clientHeight,bw=parseFloat(cs.width),bh=parseFloat(cs.height)||bw*1024/1536;
+    const cx=art.offsetLeft+parseFloat(cs.left)+bw/2,cy=art.offsetTop+parseFloat(cs.top);   // where its middle is now: left edge + half, and top (it's lifted by half its height)
+    const dx=cw/2-cx,dy=ch/2-cy,sc=Math.min(cw*.62/bw,ch*.62/bh),out='cubic-bezier(.23,1,.32,1)',io='cubic-bezier(.77,0,.175,1)';
+    art.style.overflow='visible';art.style.zIndex='3';
+    run.push(form.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateX(-28px)'}],{duration:280,easing:out,fill:'forwards'}));
+    run.push(fr.animate([{transform:T(0,0,1,-6,0),opacity:1,easing:io},{transform:T(dx,dy,sc,0,0),opacity:1,offset:.36,easing:io},{transform:T(dx,dy,sc,0,360),opacity:1,offset:.76,easing:'cubic-bezier(.32,0,.67,0)'},{transform:T(dx,dy,sc*1.45,0,360),opacity:0}],{duration:1500,fill:'forwards'}));
+    run.push(card.animate([{opacity:1},{opacity:1,offset:.8},{opacity:0}],{duration:1500,easing:'linear',fill:'forwards'}));
+    setTimeout(()=>{location.href=href},1180)};
+  document.querySelectorAll('.ln-btns a.btn').forEach(a=>a.addEventListener('click',e=>{if(still.matches||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button)return;e.preventDefault();go(a.href)}));
+  addEventListener('pageshow',e=>{if(e.persisted){run.forEach(x=>x.cancel());run.length=0;art.style.overflow='';art.style.zIndex='';busy=false}})})();
 ` });
 
 // Terms of Use and Privacy Policy (text in legal.mjs). Public, outside the preview lock, so Roblox and Discord can link to them.
