@@ -391,7 +391,7 @@ const LN_CSS = `.ln{min-height:100dvh;display:grid;place-items:center;padding:32
 .ln-btns{display:grid;gap:10px}.ln-btns .btn{width:100%;padding:12px 18px;font-weight:600;font-size:14px;border-radius:999px}.ln-btns .btn .ic{display:grid;place-items:center;flex:none}.ln-btns .btn svg{width:17px;height:17px;display:block}.ln-btns .btn .t{display:block}.ln-btns.going .btn{pointer-events:none}
 .ln-btns .rbx{background:#F0F2F5;color:#0B0B0C;border:1px solid #F0F2F5}.ln-btns .rbx:hover{background:#fff}
 .ln-btns .dc{background:#5865F2;color:#fff;border:1px solid #5865F2}.ln-btns .dc:hover{background:#6873f5}
-.svc-note{margin:0 0 14px;padding:10px 12px;border:1px solid rgba(233,176,76,.35);border-left:3px solid var(--warn);border-radius:10px;background:rgba(233,176,76,.08);color:var(--ink);font-size:12.5px;line-height:1.5;text-align:left}.svc-note b{display:block;margin-bottom:2px;color:var(--warn);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.svc-note{margin:0 0 14px;padding:10px 12px;border:1px solid rgba(233,176,76,.35);border-radius:10px;background:rgba(233,176,76,.08);color:var(--ink);font-size:12.5px;line-height:1.5;text-align:left}.svc-note b{display:block;margin-bottom:2px;color:var(--warn);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 .ln-note{margin:22px 0 0;font-size:12.5px;line-height:1.55;color:var(--dim);text-align:center}.ln-note a{display:inline-block;margin-top:3px;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .ln-form .msg{margin:12px 0 0}.ln-owner{display:flex;gap:8px;margin-top:14px}.ln-owner input{flex:1;min-width:0}
 .ln-art{position:relative;overflow:hidden}.ln-art .fr{position:absolute;left:12%;top:50%;width:132%;overflow:visible;transform:translateY(-50%) rotate(-6deg)}
@@ -403,7 +403,7 @@ const LN_CSS = `.ln{min-height:100dvh;display:grid;place-items:center;padding:32
   .ln-form{max-width:none;padding:26px 22px 28px;border-top:1px solid rgba(255,255,255,.1);border-radius:22px 22px 0 0;margin-top:-18px;position:relative;background:var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}}
 @media (prefers-reduced-motion:no-preference){.ln-card{animation:lnIn .5s cubic-bezier(.23,1,.32,1) both}}@keyframes lnIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}`;
 // A service notice shown wherever Roblox sign-in is offered. Set to '' to take it down.
-export const ROBLOX_NOTICE = 'Roblox sign-in is temporarily unavailable. We are working to restore it as quickly as possible and apologize for the inconvenience. In the meantime, please continue with Discord.';
+export const ROBLOX_NOTICE = 'Roblox login is temporarily unavailable. We apologize for the inconvenience.';
 const rbxNotice = () => ROBLOX_NOTICE ? `<p class="svc-note" role="status"><b>Service notice</b>${esc(ROBLOX_NOTICE)}</p>` : '';
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '', servers = 0 }) => layout({ title: 'Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers', logo, top: false, seo: { path: '/', ld: [...SITE_LD, FAQ_LD] }, body: `<style>${LN_CSS}</style>
 <section class="ln"><div class="ln-card">
