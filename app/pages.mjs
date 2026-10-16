@@ -934,7 +934,13 @@ ${user && owned.length ? `<details class="mk" style="margin-top:14px"><summary>O
 {let plan='year';document.querySelectorAll('.pp-buy [data-plan]').forEach(b=>b.onclick=()=>{plan=b.dataset.plan;document.querySelectorAll('.pp-buy [data-plan]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 const buy=document.getElementById('ppBuy');if(buy)buy.onclick=async()=>{buy.disabled=true;try{const j=await api('/api/me/premium/checkout',{plan});location.href=j.url}catch(e){buy.disabled=false;say(document.getElementById('ppMsg'),e.message)}}}` });
 export const ST_CSS = `.stm{max-width:1060px}
-.ft-g{margin:20px 0 8px;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--dim)}
+.ft-find{margin:4px 0 4px}
+.ft-gh{display:flex;align-items:baseline;gap:10px;margin:22px 0 8px}.ft-g{margin:0;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--dim)}.ft-gn{font-size:11.5px;color:var(--faint)}
+.ft-all{margin-left:auto;font:inherit;font-size:12px;color:var(--dim);background:none;border:0;padding:2px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--hair2)}
+@media (hover:hover) and (pointer:fine){.ft-all:hover{color:var(--ink)}}
+.ft.sub{padding-left:34px}.ft.sub::before{content:"";position:absolute;left:16px;top:0;bottom:50%;width:10px;border-left:1px solid var(--hair2);border-bottom:1px solid var(--hair2);border-bottom-left-radius:6px}
+.ft-in{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--dim)}.ft-in input{width:64px;padding:5px 8px;font-size:13px;text-align:right}
+.ft[hidden],.ft-grp[hidden]{display:none}
 .ft-list{border:1px solid var(--hair);border-radius:12px;overflow:hidden}
 .ft{position:relative;display:flex;align-items:center;gap:16px;padding:13px 14px;cursor:pointer;transition:opacity .2s ease}.ft+.ft{border-top:1px solid var(--hair)}
 .ft>span{flex:1;min-width:0}.ft b{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--ink)}.ft small{display:block;margin-top:3px;font-size:12px;line-height:1.45;color:var(--dim)}
@@ -978,7 +984,7 @@ export const ST_CSS = `.stm{max-width:1060px}
 .bd-log span{font-size:11.5px;color:var(--faint)}.bd-log time{flex:none;font-size:11.5px;color:var(--faint)}.bd-log .none{color:var(--faint)}.bd-log em.bad{font-style:normal;color:var(--bad)}
 @media (max-width:760px){.bd-pre{margin-left:0}.bd-l{width:auto}.bd-row{flex-direction:column;gap:6px}}.st-pane>.card+.card,.st-pane>section+section{margin-top:18px}
 @media (max-width:760px){.sx{grid-template-columns:1fr;gap:16px}.st-nav{position:sticky;top:0;z-index:5;flex-direction:row;overflow-x:auto;scrollbar-width:none;padding:6px 24px;margin:0 -24px;background:#0d1416;border-bottom:1px solid var(--hair)}.st-nav::-webkit-scrollbar{display:none}.st-nav a{flex:none;padding:7px 12px}.st-top{margin-bottom:12px}}`;
-export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false, bnd = { on: false, grace: 60, exemptStaff: true }, ranks = null, boost = null, feats = {} }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
+export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false, bnd = { on: false, grace: 60, exemptStaff: true }, ranks = null, boost = null, feats = {}, featVals = {} }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main class="stm"><style>${ST_CSS}</style><div class="st-top"><div><h1><b>${esc(c.name)}</b> settings</h1>${isNew ? '<p class="lead">Your server is ready. Connect it to ER:LC, then give your members the invite code.</p>' : ''}</div><a class="btn sm pri" href="/${esc(c.slug)}">Open CAD</a></div>
 ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord server to finish</h2><p class="note">Every Oversite server is tied to its Discord. Members can't open the CAD until it's connected, and it's where you pick which Discord roles are Admin and Mod.</p></div><a class="btn discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord server</a></section>` : ''}
 <div class="sx">
@@ -1000,9 +1006,10 @@ ${runs(role) ? `<section class="card" id="discord"><h2 class="hrow">Discord serv
 ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p class="note">Removes the server from Oversite with its settings, codes and member list. This cannot be undone.</p><button class="btn danger" id="del">Delete ${esc(c.name)}</button></section>` : ''}
 </div>
 <div class="st-pane" id="tab-features" data-pane="features" role="tabpanel" aria-labelledby="t-features">
-<section class="card" id="features"><h2>Features</h2><p class="note">Everything Oversite does on your server. Switch off what you don't use: it disappears from the CAD for everyone and stops working. Nothing is deleted, so switching it back on picks up where you left off.</p>
-${FEATURES.map(([g, items]) => `<h3 class="ft-g">${esc(g)}</h3><div class="ft-list">${items.map(([k, name, about, need]) => `<label class="ft"${g === 'Civilian' ? ' data-under="civ"' : ''}><span><b>${esc(name)}${need === 'premium' ? '<span class="tag">Premium</span>' : ''}</b><small>${esc(about)}</small></span><input type="checkbox" role="switch" data-ft="${k}"${feats[k] ? ' checked' : ''}${k === 'voice' && !prem.on && !feats[k] ? ' disabled' : ''}><i aria-hidden="true"></i></label>`).join('')}</div>`).join('')}
-<p class="msg" id="ftMsg"></p></section></div>
+<section class="card" id="features"><h2 class="hrow">Features<span class="tag" id="ftCount"></span></h2><p class="note">Everything Oversite does on your server. Switch off what you don't use: it disappears from the CAD for everyone and stops working. Nothing is deleted, so switching it back on picks up where you left off.</p>
+<input type="search" class="ft-find" id="ftFind" placeholder="Find a feature" aria-label="Find a feature" autocomplete="off">
+${FEATURES.map(g => `<div class="ft-grp"><div class="ft-gh"><h3 class="ft-g">${esc(g.title)}</h3><span class="ft-gn"></span><button type="button" class="ft-all"></button></div><div class="ft-list">${g.items.map(it => `<label class="ft${it.parent ? ' sub' : ''}" data-parent="${esc(it.parent || '')}" data-find="${esc((it.name + ' ' + it.about + ' ' + g.title).toLowerCase())}"><span><b>${esc(it.name)}${it.tag ? `<span class="tag">${esc(it.tag)}</span>` : ''}</b><small>${esc(it.about)}</small>${it.input ? `<span class="ft-in">${esc(it.input.label)}<input type="number" data-ftv="${it.key}" min="${it.input.min}" max="${it.input.max}" value="${esc(String(featVals[it.key] ?? ''))}" aria-label="${esc(it.name)} ${esc(it.input.label.toLowerCase())}">${esc(it.input.unit)}</span>` : ''}</span><input type="checkbox" role="switch" data-ft="${it.key}"${feats[it.key] ? ' checked' : ''}${it.key === 'voice' && !prem.on && !feats[it.key] ? ' disabled' : ''}><i aria-hidden="true"></i></label>`).join('')}</div></div>`).join('')}
+<p class="note" id="ftNone" hidden>No feature matches that.</p><p class="msg" id="ftMsg"></p></section></div>
 <div class="st-pane wide" id="tab-bounds" data-pane="bounds" role="tabpanel" aria-labelledby="t-bounds">
 <section class="card" id="bounds" data-api="/c/${esc(c.slug)}/api"><h2 class="hrow">Boundaries<span class="tag" id="bdTag">${bnd.on ? 'On' : 'Off'}</span></h2>
 <p class="note">Draw where people are allowed to go: one area for the whole server, and one for each team if you want. Anyone who leaves theirs gets a message in game, and is loaded if they aren't back in time.</p>
@@ -1085,12 +1092,22 @@ ${(() => { const V = c.settings.voice || {}, r = V.range || 'normal'; return `<s
 </div></div>
 </main>`, script: `
 const A='/c/${esc(c.slug)}/api';
-/* features: each switch saves as soon as it's flipped; the civilian parts dim while the Civilian tab is off */
-{const fm=document.getElementById('ftMsg'),dim=()=>{const on=document.querySelector('[data-ft="civ"]')?.checked;document.querySelectorAll('.ft[data-under="civ"]').forEach(l=>l.classList.toggle('dim',!on))};dim();
+/* features: each switch saves as soon as it's flipped; a feature whose parent is off is dimmed; groups switch all at once */
+{const fm=document.getElementById('ftMsg'),sw=[...document.querySelectorAll('[data-ft]')],by=k=>sw.find(x=>x.dataset.ft===k),row=x=>x.closest('.ft');
   const twin={bounds:'bdOn',voice:'vOn',explore:'spList'};   // the same switch elsewhere on this page
-  document.querySelectorAll('[data-ft]').forEach(x=>x.addEventListener('change',async()=>{const k=x.dataset.ft,v=x.checked;x.disabled=true;fm.className='msg';fm.textContent='Saving…';
-    try{await api(A+'/features',{key:k,on:v});const t=twin[k]&&document.getElementById(twin[k]);if(t)t.checked=v;fm.className='msg ok';fm.textContent=x.closest('.ft').querySelector('b').firstChild.textContent+(v?' is on.':' is off.')}
-    catch(e){x.checked=!v;fm.className='msg err';fm.textContent=e.message}x.disabled=false;dim()}))}
+  const up=k=>{let p=row(by(k))?.dataset.parent;while(p){if(!by(p)?.checked)return false;p=row(by(p))?.dataset.parent}return true};
+  const paint=()=>{sw.forEach(x=>row(x).classList.toggle('dim',!up(x.dataset.ft)));const n=sw.filter(x=>x.checked).length;document.getElementById('ftCount').textContent=n+' of '+sw.length+' on';
+    document.querySelectorAll('.ft-grp').forEach(g=>{const xs=[...g.querySelectorAll('[data-ft]')],on=xs.filter(x=>x.checked).length;g.querySelector('.ft-gn').textContent=on+' of '+xs.length+' on';g.querySelector('.ft-all').textContent=on===xs.length?'Turn all off':'Turn all on'})};paint();
+  const say=(t,ok)=>{fm.className='msg '+(ok?'ok':'err');fm.textContent=t};
+  const save=async(xs,v)=>{if(!xs.length)return;xs.forEach(x=>{x.disabled=true});fm.className='msg';fm.textContent='Saving…';
+    try{const r=await api(A+'/features',{keys:xs.map(x=>x.dataset.ft),on:v});xs.forEach(x=>{x.checked=!!r.features[x.dataset.ft];const t=twin[x.dataset.ft]&&document.getElementById(twin[x.dataset.ft]);if(t)t.checked=x.checked});
+      say(xs.length>1?(v?'Turned on.':'Turned off.'):row(xs[0]).querySelector('b').firstChild.textContent+(xs[0].checked?' is on.':' is off.'),true)}
+    catch(e){xs.forEach(x=>{x.checked=!v});say(e.message)}xs.forEach(x=>{x.disabled=x.dataset.ft==='voice'&&x.dataset.lock==='1'&&!x.checked});paint()};
+  sw.forEach(x=>{if(x.disabled)x.dataset.lock='1';x.addEventListener('change',()=>save([x],x.checked))});
+  document.querySelectorAll('.ft-all').forEach(b=>b.addEventListener('click',()=>{const xs=[...b.closest('.ft-grp').querySelectorAll('[data-ft]')],v=xs.some(x=>!x.checked);save(xs.filter(x=>x.checked!==v&&!(v&&x.dataset.lock==='1')),v)}));
+  document.querySelectorAll('[data-ftv]').forEach(n=>n.addEventListener('change',async()=>{try{const r=await api(A+'/features',{key:n.dataset.ftv,value:+n.value});n.value=r.value;say('Business tax is '+r.value+'%.',true)}catch(e){say(e.message)}}));
+  const find=document.getElementById('ftFind');find.addEventListener('input',()=>{const q=find.value.trim().toLowerCase();let any=false;
+    document.querySelectorAll('.ft-grp').forEach(g=>{let n=0;g.querySelectorAll('.ft').forEach(l=>{const hit=!q||l.dataset.find.includes(q);l.hidden=!hit;if(hit)n++});g.hidden=!n;if(n)any=true});document.getElementById('ftNone').hidden=any})}
 /* tabs: one group of settings at a time; the address keeps the tab, and links to a card (#discord, #voice) open its tab */
 {const panes=[...document.querySelectorAll('.st-pane')],tabs=[...document.querySelectorAll('[data-tab]')];
   const show=(h,scroll)=>{const tp=h&&document.getElementById('tab-'+h),el=!tp&&h&&document.getElementById(h),p=tp||el&&el.closest('.st-pane')||panes[0];

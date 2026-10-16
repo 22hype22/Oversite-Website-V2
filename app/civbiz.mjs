@@ -7,7 +7,7 @@ import { db, now, users, communities } from './db.mjs';
 import * as premium from './premium.mjs';
 import { POSTALS } from './postals.mjs';
 import { TASKS, makeGame, fillText, pickTasks, houseName, NAMES, MIN_GAME_MS } from './tasks.mjs';
-import { T, money, DAY, GDAY, GWEEK, background, conf, ensure, move, bizMove, biz, note, who, hooks, staffSet } from './civ.mjs';
+import { T, money, DAY, GDAY, GWEEK, background, conf, ensure, move, bizMove, bizEarn, biz, note, who, hooks, staffSet } from './civ.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS civ_shifts (id INTEGER PRIMARY KEY, biz_id INTEGER NOT NULL REFERENCES civ_biz(id) ON DELETE CASCADE, user_id INTEGER NOT NULL,
   start INTEGER NOT NULL, end INTEGER, pay INTEGER NOT NULL DEFAULT 0);
@@ -138,7 +138,7 @@ export const buy = (c, user, j) => { const z = biz(c.id, j.id); if (!z) return {
   const qty = Math.max(1, Math.min(20, Math.round(+j.qty || 1))), total = it.price * qty;
   if (!openShifts(z.id).length && !(z.online && premOf(c, z))) return { error: `${z.name} is closed. Come back when someone is working.` };
   ensure(c, user.id); const label = `${it.name}${qty > 1 ? ' ×' + qty : ''}`, m = move(c.id, user.id, -total, 'business', `${label} at ${z.name}`); if (m.error) return m;
-  bizMove(z.id, total, `Sale: ${label}`); q('INSERT INTO civ_sales (biz_id, user_id, item, qty, amount, at) VALUES (?, ?, ?, ?, ?, ?)').run(z.id, user.id, it.name, qty, total, now());
+  bizEarn(c.id, z.id, total, `Sale: ${label}`); q('INSERT INTO civ_sales (biz_id, user_id, item, qty, amount, at) VALUES (?, ?, ?, ?, ?, ?)').run(z.id, user.id, it.name, qty, total, now());
   return { ok: true }; };
 
 // ── Premium: staff roles, commission and bonuses ──
@@ -275,7 +275,7 @@ const jobPay = (c, z, steps) => { const base = conf(c).showpay || 0; if (!gigOf(
 const finishJob = (c, jb) => { const z = biz(c.id, jb.biz_id), steps = JSON.parse(jb.steps), sc = JSON.parse(jb.scores || '[]'), quality = sc.length ? 0.75 + 0.5 * sc.reduce((a, b) => a + b, 0) / sc.length : 1;
   const pay = !z ? 0 : jb.kind === 'task' ? Math.round((conf(c).showpay || 0) * (jb.mult || 1) * quality * (jb.far ? farMult(steps) : 1)) : jobPay(c, z, steps);
   q("UPDATE civ_jobs SET status = 'Done', ended = ?, pay = ? WHERE id = ?").run(now(), pay, jb.id);
-  if (pay) { ensure(c, jb.user_id); move(c.id, jb.user_id, pay, 'wage', `${jb.label} for ${z.name}`); bizMove(z.id, Math.round(pay / 2), `${jb.label} by ${who(jb.user_id)}`); }
+  if (pay) { ensure(c, jb.user_id); move(c.id, jb.user_id, pay, 'wage', `${jb.label} for ${z.name}`); bizEarn(c.id, z.id, Math.round(pay / 2), `${jb.label} by ${who(jb.user_id)}`); }
   if (jb.req_id) { const r = q('SELECT * FROM civ_requests WHERE id = ?').get(jb.req_id); if (r) note(c.id, r.user_id, `${z?.name || 'The agency'} showed you ${r.item}.`); } };
 // every snapshot: move each active job along by where its player is standing
 export const observe = (c, body) => { const jobs = q("SELECT j.* FROM civ_jobs j JOIN civ_biz b ON b.id = j.biz_id WHERE b.community_id = ? AND j.status = 'Active'").all(c.id); if (!jobs.length) return;

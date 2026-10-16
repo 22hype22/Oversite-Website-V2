@@ -50,9 +50,9 @@ export const money = n => '$' + Math.round(n).toLocaleString('en-US');
 // ── the server's settings (Settings in the Civilian tab, owner and co-owners) ──
 // housing: tax is a yearly % of the price, billed by the week; a mortgage takes `down`% up front and the rest plus `rate`% over `weeks`;
 // `evict` is how many days a housing bill may sit overdue before the home is lost
-// businesses: `bizfee` to register, `bizlic` a week to keep the license
-const DEFAULTS = { on: true, start: 5000, weekly: 750, reg: 150, ins: 200, late: 10, grace: 3, tax: 2, down: 20, weeks: 26, rate: 10, evict: 7, bizfee: 2500, bizlic: 250, showpay: 200 };
-const LIMITS = { start: [0, 1e7], weekly: [0, 1e6], reg: [0, 1e5], ins: [0, 1e5], late: [0, 100], grace: [1, 14], tax: [0, 20], down: [0, 100], weeks: [1, 260], rate: [0, 100], evict: [1, 60], bizfee: [0, 1e7], bizlic: [0, 1e6], showpay: [0, 1e5] };
+// businesses: `bizfee` to register, `bizlic` a week to keep the license, `biztax` percent of what they earn (when Business tax is on)
+const DEFAULTS = { on: true, start: 5000, weekly: 750, reg: 150, ins: 200, late: 10, grace: 3, tax: 2, down: 20, weeks: 26, rate: 10, evict: 7, bizfee: 2500, bizlic: 250, biztax: 5, showpay: 200 };
+const LIMITS = { start: [0, 1e7], weekly: [0, 1e6], reg: [0, 1e5], ins: [0, 1e5], late: [0, 100], grace: [1, 14], tax: [0, 20], down: [0, 100], weeks: [1, 260], rate: [0, 100], evict: [1, 60], bizfee: [0, 1e7], bizlic: [0, 1e6], biztax: [0, 50], showpay: [0, 1e5] };
 export const conf = c => { const s = c.settings.civ || {}, out = { ...DEFAULTS };
   for (const k of Object.keys(LIMITS)) if (Number.isFinite(+s[k])) out[k] = Math.min(LIMITS[k][1], Math.max(LIMITS[k][0], Math.round(+s[k])));
   out.on = s.on !== false; out.since = +s.since || 0; return out; };
@@ -97,7 +97,7 @@ const settle = (cid, b) => { q("UPDATE civ_bills SET status = 'Paid', paid_at = 
   if (b.kind === 'fine') { const rid = +b.ref.split(':')[1], r = q('SELECT data FROM pd_records WHERE community_id = ? AND id = ?').get(cid, rid);
     if (r) { const d = JSON.parse(r.data || '{}'); d.paid_at = now(); q('UPDATE pd_records SET data = ? WHERE community_id = ? AND id = ?').run(JSON.stringify(d), cid, rid); } }
   if (b.kind === 'reg' || b.kind === 'ins') fixVehicle(cid, b.ref.split(':')[1]);
-  if (b.kind === 'inv') { const z = biz(cid, b.ref.split(':')[1]); if (z) { bizMove(z.id, b.amount, `Paid: ${b.label}`); hooks.commission(cid, z, +b.ref.split(':')[3] || 0, b.amount); } }
+  if (b.kind === 'inv') { const z = biz(cid, b.ref.split(':')[1]); if (z) { bizEarn(cid, z.id, b.amount, `Paid: ${b.label}`); hooks.commission(cid, z, +b.ref.split(':')[3] || 0, b.amount); } }
   if (b.kind === 'lic') { const z = biz(cid, b.ref.split(':')[1]); if (z && z.status === 'Suspended' && !q("SELECT 1 FROM civ_bills WHERE community_id = ? AND kind = 'lic' AND ref LIKE ? AND status = 'Overdue'").get(cid, `lic:${z.id}:%`))
     q("UPDATE civ_biz SET status = 'Active' WHERE id = ?").run(z.id); }
   if (b.kind === 'mort') { const p = prop(cid, b.ref.split(':')[1]); if (p && p.owner_id === b.user_id && p.mode === 'mortgage') { const left = Math.max(0, p.loan_left - p.loan_weekly);
@@ -231,6 +231,9 @@ const reqText = r => Object.keys(REQS).filter(k => r[k]).map(k => REQS[k].replac
 export const biz = (cid, id) => q('SELECT * FROM civ_biz WHERE community_id = ? AND id = ?').get(cid, +id || 0);
 export const bizMove = (id, amount, memo) => { const z = q('SELECT balance FROM civ_biz WHERE id = ?').get(id); if (!z) return; const bal = z.balance + Math.round(amount);
   q('UPDATE civ_biz SET balance = ? WHERE id = ?').run(bal, id); q('INSERT INTO civ_btx (biz_id, amount, balance, memo, at) VALUES (?, ?, ?, ?, ?)').run(id, Math.round(amount), bal, T(memo, 120), now()); };
+// money a business earns (a sale, a paid bill, a task): with Business tax on, the server's cut comes straight off as its own line
+export const bizEarn = (cid, id, amount, memo) => { bizMove(id, amount, memo); const c = communities.byId(cid); if (!c || !feature(c, 'biztax')) return;
+  const rate = conf(c).biztax, tax = Math.round(amount * rate / 100); if (tax > 0) bizMove(id, -tax, `Business tax, ${rate}%`); };
 // app/civbiz.mjs fills these in: Premium managers who can run a business, how many businesses someone may own, and commission on a paid bill
 export const hooks = { manager: () => false, managed: () => [], maxBiz: () => 2, commission: () => {} };
 const BIZ_KINDS = ['Store', 'Restaurant', 'Gas station', 'Tech store', 'Gun store', 'Outdoors store', 'Farm', 'Movie theater', 'Mechanic', 'Towing', 'Taxi', 'Security', 'Law firm', 'Medical', 'Real estate', 'Bank', 'News'];   // each has its own job and catalog (app/civbiz.mjs)
