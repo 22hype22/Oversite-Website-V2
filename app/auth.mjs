@@ -89,7 +89,7 @@ export const robloxOAuthFinish = async (req, params) => {
     users.merge(current.id, existing.id); if (discord) users.update(existing.id, { discord_id: discord }); u = users.byId(existing.id);
   } else if (current) u = current;
   else if (existing) u = existing;                                             // signing in with Roblox to an account that is already linked
-  else throw new Error('No Oversite account uses that Roblox account yet. Join your server with its code first, then link Roblox from your dashboard.');
+  else u = users.byId(users.create({ name: rname, avatar }));                  // someone new: Roblox confirmed who they are, so their account starts linked
   users.update(u.id, { roblox_id: rid, roblox_name: rname, roblox_via: 'oauth', ...(['Owner', 'Member'].includes(u.name) ? { name: rname } : {}), ...(!u.avatar && avatar ? { avatar } : {}) });
   roblox.clear(u.id);
   return { user: users.byId(u.id), next: safeNext(next) }; };
