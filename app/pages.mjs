@@ -266,6 +266,9 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .site-foot .ft-legal summary:hover,.site-foot .ft-legal[open] summary{color:var(--ink)}
 .site-foot .ft-legal>div{position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);display:grid;min-width:170px;padding:6px;border-radius:12px;background:rgba(16,16,18,.94);border:1px solid var(--hair2);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 12px 40px rgba(0,0,0,.5);text-shadow:none}
 .site-foot .ft-legal>div a{padding:8px 12px;border-radius:8px;white-space:nowrap;text-align:left}.site-foot .ft-legal>div a:hover{background:rgba(255,255,255,.06)}
+.site-foot .ft-legal>div::after{content:"";position:absolute;left:0;right:0;top:100%;height:14px}   /* a bridge over the gap, so moving up from Legal keeps it open */
+@media (prefers-reduced-motion:no-preference){.site-foot .ft-legal[open]>div{animation:lgUp .2s cubic-bezier(.23,1,.32,1) both}.site-foot .ft-legal.shut>div{animation:lgDown .14s ease-in both}}
+@keyframes lgUp{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}@keyframes lgDown{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,6px)}}
 .site-foot .sep{width:1px;height:16px;background:var(--hair2);flex:none}
 .site-foot .soc{display:grid;place-items:center;width:30px;height:30px;margin:-4px -8px;border-radius:8px;color:#fff;opacity:.8;transition:opacity .15s,background .15s}.site-foot .soc:hover{opacity:1;background:rgba(255,255,255,.07)}
 @media (max-width:480px){.site-foot{gap:10px;font-size:12px}.site-foot nav{gap:4px 12px}}
@@ -308,7 +311,8 @@ details.mk[open] summary{margin-bottom:8px;color:var(--ink)}
 .btn.dz{background:var(--bad);border-color:var(--bad);color:#fff}.btn.dz:hover{background:#ea5c5c}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 `;
-const JS = `document.addEventListener('click',e=>{for(const d of document.querySelectorAll('details.ft-legal[open]'))if(!d.contains(e.target))d.open=false});document.addEventListener('keydown',e=>{if(e.key==='Escape')for(const d of document.querySelectorAll('details.ft-legal[open]'))d.open=false});
+const JS = `if(matchMedia('(hover:hover)').matches)for(const d of document.querySelectorAll('details.ft-legal')){let t;const shut=()=>{if(!d.open)return;if(matchMedia('(prefers-reduced-motion:reduce)').matches){d.open=false;return}d.classList.add('shut');t=setTimeout(()=>{d.open=false;d.classList.remove('shut')},140)};d.addEventListener('pointerenter',()=>{clearTimeout(t);d.classList.remove('shut');d.open=true});d.addEventListener('pointerleave',()=>{clearTimeout(t);t=setTimeout(shut,120)});d.querySelector('summary').addEventListener('click',e=>{if(e.detail&&d.open)e.preventDefault()})}
+document.addEventListener('click',e=>{for(const d of document.querySelectorAll('details.ft-legal[open]'))if(!d.contains(e.target))d.open=false});document.addEventListener('keydown',e=>{if(e.key==='Escape')for(const d of document.querySelectorAll('details.ft-legal[open]'))d.open=false});
 
 const api=async(url,body,method='POST')=>{const r=await fetch(url,{method,headers:{'content-type':'application/json','x-oversite':'1'},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||('Something went wrong ('+r.status+')'));return j};
 const say=(el,t,ok)=>{el.textContent=t;el.className='msg '+(ok?'ok':'err')};
