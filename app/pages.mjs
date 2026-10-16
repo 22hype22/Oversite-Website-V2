@@ -383,11 +383,9 @@ const ICON_DC = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 // the front page: who you are is the only question. Joining with an invite code and making a server come right after, on the account
 // page. One frosted panel on the muted map: sign in on the left, the Oversite mark drawn in dots on the right (drawn by the page, so it's
 // always sharp); on phones the dots sit on top like a cover, with the sign-in sheet below.
-const LN_CSS = `.ln-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:#141618}.ln-bg::before{content:"";position:absolute;inset:-24px;background:url(/liberty-county.jpg) center/cover no-repeat;filter:grayscale(.9) brightness(.42) contrast(1.05) blur(3px)}
-.ln-bg::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 45%,transparent 40%,rgba(0,0,0,.55)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");opacity:.55;mix-blend-mode:overlay}
-.ln{min-height:100dvh;display:grid;place-items:center;padding:32px 16px 72px}
+const LN_CSS = `.ln{min-height:100dvh;display:grid;place-items:center;padding:32px 16px 72px}
 .ln-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:min(980px,100%);min-height:560px;border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.16);
-  background:linear-gradient(90deg,rgba(255,255,255,.085),rgba(255,255,255,.045) 46%,rgba(8,9,10,.55) 62%,rgba(8,9,10,.72));backdrop-filter:blur(22px) saturate(.9);-webkit-backdrop-filter:blur(22px) saturate(.9);box-shadow:0 30px 90px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
+  background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,.045) 46%,rgba(8,9,10,.34) 62%,rgba(8,9,10,.48));backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 30px 90px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
 .ln-form{display:flex;flex-direction:column;justify-content:center;padding:48px clamp(28px,4.5vw,56px);max-width:440px}
 .ln-form h1{margin:0;font-size:28px;font-weight:600;letter-spacing:-.02em;color:#F4F5F7}.ln-sub{margin:6px 0 28px;font-size:13.5px;color:#A3A8B0}
 .ln-btns{display:grid;gap:10px}.ln-btns .btn{width:100%;padding:12px 18px;font-weight:600;font-size:14px;border-radius:999px}.ln-btns .btn svg{width:17px;height:17px;flex:none}
@@ -403,7 +401,7 @@ const LN_CSS = `.ln-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;backgro
   .ln-art{order:-1;height:230px;background:linear-gradient(180deg,rgba(8,9,10,.7),rgba(8,9,10,.35))}.ln-art .fr{left:12%;top:54%;width:118%}
   .ln-form{max-width:none;padding:26px 22px 28px;border-top:1px solid rgba(255,255,255,.1);border-radius:22px 22px 0 0;margin-top:-18px;position:relative;background:rgba(18,19,21,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}}
 @media (prefers-reduced-motion:no-preference){.ln-card{animation:lnIn .5s cubic-bezier(.23,1,.32,1) both}}@keyframes lnIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}`;
-export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '', servers = 0 }) => layout({ title: 'Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers', logo, top: false, bg: false, seo: { path: '/', ld: [...SITE_LD, FAQ_LD] }, body: `<style>${LN_CSS}</style><div class="ln-bg" aria-hidden="true"></div>
+export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '', servers = 0 }) => layout({ title: 'Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers', logo, top: false, seo: { path: '/', ld: [...SITE_LD, FAQ_LD] }, body: `<style>${LN_CSS}</style>
 <section class="ln"><div class="ln-card">
 <div class="ln-form">
 <h1>Sign in</h1><p class="ln-sub">Continue to your server’s CAD.</p>
