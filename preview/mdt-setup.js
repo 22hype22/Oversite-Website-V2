@@ -35,9 +35,11 @@
     carbon: 'repeating-linear-gradient(45deg,rgba(255,255,255,.028) 0 2px,transparent 2px 6px),repeating-linear-gradient(-45deg,rgba(0,0,0,.28) 0 2px,transparent 2px 6px),#111215',
     glow: 'radial-gradient(90% 70% at 100% 0,color-mix(in srgb,var(--fd) 20%,transparent),transparent 62%),radial-gradient(70% 60% at 0 100%,color-mix(in srgb,var(--fd) 10%,transparent),transparent 60%),#0C0D0F' };
   const FRAME = { silver: ['linear-gradient(145deg,#DADDE2,#9EA3AB)', '#B4B8BF'], gold: ['linear-gradient(145deg,#EBD08C,#B08A3E)', '#9C7A34'], white: ['#ECEDEF', '#D3D5D9'] };
+  // dark text on a light accent (amber, gold), white on the rest
+  const light = h => { const n = parseInt(h.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) > 160; };
   // the CSS for one setup; scr and tab are the selectors of the MDT's screen and of the tablet around it
   const css = (M, scr, tab) => { let c = ''; const a = ACC[M.accent], f = FRAME[M.frame];
-    if (a) c += `${scr}{--fd:${a};--fd-soft:color-mix(in srgb,${a} 15%,transparent)}`;
+    if (a) c += `${scr}{--fd:${a};--fd-soft:color-mix(in srgb,${a} 15%,transparent);--fd-ink:${light(a) ? '#0B0B0C' : '#fff'}}`;
     if (WALL[M.wall]) c += `${scr}{background:${WALL[M.wall]}}`;
     if (f) c += `${tab}{background:${f[0]};box-shadow:0 30px 70px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.25) inset,0 0 0 3px ${f[1]} inset}`;
     return c; };

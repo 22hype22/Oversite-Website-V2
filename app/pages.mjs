@@ -772,7 +772,7 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 </fieldset><p class="hint wide" id="msNote"></p>
 <div class="row wide"><button class="btn pri" id="msSave">Save MDT</button><button type="button" class="btn" id="msReset">Defaults</button><span class="msg" id="msMsg"></span></div></form></div></section>
 <section class="card"><h2>Sign out</h2><p class="note">Signs you out on this device. You'll need your sign-in again to get back in.</p><form method="post" action="/auth/logout" style="margin:0"><button class="btn danger">Sign out</button></form></section>
-</div></div></main><script src="/mdt-setup.js?v=1"></script>
+</div></div></main><script src="/mdt-setup.js?v=2"></script>
 <style>.licw{position:relative;width:100%;max-width:400px;aspect-ratio:400/250;margin:6px 0 14px}.licw .lcard{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(var(--ls,1))}
 .licf{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.licf label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim);min-width:0}.licf .wide{grid-column:1/-1}
 .ap-pk{display:grid;gap:12px}.ap-pk b{font-size:13px;font-weight:600}.ap-pk .note{margin:2px 0 0}.ap-b{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--hair)}.ap-b:first-of-type{border-top:0}.ap-b b{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ap-b span{font-size:12px;color:var(--faint)}.licf input,.licf select{width:100%;min-width:0}.lprem{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin:4px 0 0;padding:12px 12px 4px;border:1px solid rgba(232,179,58,.25);border-radius:12px}.lprem legend{display:flex;align-items:center;gap:6px;padding:0 6px;font-size:12px;font-weight:600;color:#E8B33A}.lprem legend .vb{margin:0}.lprem .hint{margin:0 0 6px}.lprem.off{opacity:.55}.licf .lh{display:grid;grid-template-columns:1fr 1fr;gap:6px}.licf .row{align-items:center;gap:12px}
@@ -815,7 +815,7 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 (()=>{const box=document.getElementById('mdtset');if(!box||!window.MdtLook||!window.MdtSounds)return;const $=id=>document.getElementById(id),K=MdtLook.NAMES;let S={},D={},prem=false;
 const opts=(el,o)=>{el.innerHTML=Object.entries(o).map(([v,n])=>'<option value="'+v+'">'+n+'</option>').join('')};opts($('msCall'),MdtSounds.CALL);opts($('msPanic'),MdtSounds.PANIC);
 const sw=(el,key,bg)=>{el.innerHTML=Object.entries(K[key]).map(([v,n])=>'<button type="button" role="radio" data-k="'+key+'" data-v="'+v+'" style="--c:'+bg(v)+'"><i></i>'+n+'</button>').join('')};
-sw($('msAcc'),'accent',v=>MdtLook.ACC[v]||'conic-gradient(#4C8DFF 0 33%,#E0453B 0 66%,#E9C24C 0)');sw($('msWall'),'wall',v=>MdtLook.WALL[v]||'#0C0D0F');
+sw($('msAcc'),'accent',v=>MdtLook.ACC[v]||'conic-gradient(#F2F3F5 0 33%,#E0453B 0 66%,#E9C24C 0)');sw($('msWall'),'wall',v=>MdtLook.WALL[v]||'#0C0D0F');
 sw($('msFrame'),'frame',v=>({graphite:'#2A2B2F'})[v]||(MdtLook.FRAME[v]||[])[0]);
 let st=document.createElement('style');document.head.appendChild(st);
 const draw=()=>{st.textContent=MdtLook.css(S,'#msScr','#msTab');$('msWall').style.setProperty('--fd',MdtLook.ACC[S.accent]||'#E0453B');box.querySelectorAll('.ms-sw button').forEach(b=>{const on=S[b.dataset.k]===b.dataset.v;b.setAttribute('aria-checked',on);b.tabIndex=on?0:-1});$('msVolO').textContent=S.vol+'%'};
