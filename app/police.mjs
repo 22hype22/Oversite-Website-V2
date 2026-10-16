@@ -86,7 +86,10 @@ export const list = (cid, { kind, status, mine } = {}, uid) => { const w = ['com
   if (mine) { w.push('by_uid = ?'); a.push(uid); }
   return q(`SELECT * FROM pd_records WHERE ${w.join(' AND ')} ORDER BY at DESC LIMIT 200`).all(...a).map(row); };
 
-const charges = arr => (Array.isArray(arr) ? arr : []).slice(0, 20).map(c => { const p = PENAL_BY.get(String(c?.code || c)); return p && { code: p[0], title: p[1], fine: p[2], jail: p[3], cls: p[4], count: Math.min(9, Math.max(1, +c?.count || 1)) }; }).filter(Boolean);
+// a charge by its code (T-101), or for bots by its title when only one charge matches it ("Hit and run")
+export const chargeFor = x => { const k = String(x?.code || x?.title || x || '').trim(); if (!k) return null; const up = k.toUpperCase(); if (PENAL_BY.has(up)) return PENAL_BY.get(up);
+  const lo = k.toLowerCase(), same = PENAL.find(p => p[1].toLowerCase() === lo); if (same) return same; const some = PENAL.filter(p => p[1].toLowerCase().includes(lo)); return some.length === 1 ? some[0] : null; };
+const charges = arr => (Array.isArray(arr) ? arr : []).slice(0, 20).map(c => { const p = chargeFor(c); return p && { code: p[0], title: p[1], fine: p[2], jail: p[3], cls: p[4], count: Math.min(9, Math.max(1, +c?.count || 1)) }; }).filter(Boolean);
 const sum = (cs, k) => cs.reduce((a, c) => a + c[k] * c.count, 0);
 const KINDS = ['warrant', 'citation', 'warning', 'arrest', 'bolo', 'stop'];
 // what each kind keeps; the officer never types a fine or a total, they come from the penal code

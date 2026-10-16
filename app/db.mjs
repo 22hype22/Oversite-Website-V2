@@ -135,6 +135,7 @@ export const users = {
     const like = '%' + t.replace(/[%_\\]/g, c => '\\' + c) + '%';
     return q(`${sel} AND (u.roblox_name LIKE ? ESCAPE '\\' OR (u.discord_id IS NOT NULL AND u.name LIKE ? ESCAPE '\\') OR u.discord_id = ? OR u.roblox_id = ?) GROUP BY u.roblox_id ORDER BY verified DESC, roblox_name LIMIT ?`).all(like, like, t, t, limit); },
   byRoblox: rid => q('SELECT * FROM users WHERE roblox_id = ? ORDER BY id LIMIT 1').get(rid),
+  byRobloxName: n => q('SELECT * FROM users WHERE lower(roblox_name) = lower(?) ORDER BY id DESC LIMIT 1').get(String(n || '')),
   allByRoblox: rid => q('SELECT id FROM users WHERE roblox_id = ?').all(rid),
   // fold a duplicate account (same person signed in with a code on another device) into the one that already has their Roblox link
   merge: (from, into) => { for (const m of q('SELECT community_id, role FROM members WHERE user_id = ?').all(from)) { const cur = q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(m.community_id, into);

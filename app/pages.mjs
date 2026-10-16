@@ -3,6 +3,7 @@ import { DOCS, UPDATED } from './legal.mjs';
 import { isSiteAdmin, isSiteMod } from './admins.mjs';
 import { GROUPS as FEATURES } from './features.mjs';
 import { TRIGGERS as AUTO_WHEN, ACTIONS as AUTO_DO } from './automations.mjs';
+import { SCOPES as BOT_SCOPES, EVENTS as BOT_EVENTS, PRESETS as BOT_PRESETS } from './bots.mjs';
 // the settings search: every card on the settings page (found by its heading) with the words people use for it, and every feature
 const SETTING_CARDS = [
   ['ER:LC server', 'general', 'server key api connect erlc private server game key token code link game commands'],
@@ -11,6 +12,7 @@ const SETTING_CARDS = [
   ['Delete server', 'general', 'delete remove server shut down get rid'],
   ['Boundaries', 'bounds', 'boundaries areas zones map kick warn leave outside play area restricted limits draw'],
   ['Insights', 'insights', 'insights analytics stats statistics charts activity players online busiest times reports department hours economy moderation numbers graphs'],
+  ['Connected bots', 'bots', 'bots connect my bot link bot api key integration department bot roleplay bot economy bot moderation bot erm webhooks developer'],
   ['Automations', 'automations', 'automations rules triggers if this then that auto messages welcome new players discord posts alerts workflows bots when something happens'],
   ['Server profile', 'profile', 'profile picture logo icon banner cover photos description bio explore region language listing about'],
   ['Vote link', 'profile', 'vote votes explore ranking link top'],
@@ -325,7 +327,7 @@ export const pbadge = (size = 16) => `<svg class="vb pb" width="${size}" height=
 export const vbadge = (size = 16) => `<svg class="vb" width="${size}" height="${size}" viewBox="0 0 24 24" role="img" aria-label="Verified by Oversite"><title>Verified by Oversite</title>${SEAL}</svg>`;
 // pinned to the bottom of every page: the same legal links as oversite.shop, then our Roblox group and Discord
 const ROBLOX_GROUP = 'https://www.roblox.com/communities/691798472/Oversite-Customs', DISCORD_INVITE = 'https://discord.gg/ovs';
-const FOOT = `<div class="foot-sp" aria-hidden="true"></div><footer class="site-foot"><nav aria-label="Legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Use</a><a href="/refunds">Sales and Refunds</a><a href="/support">Support</a><a href="https://www.oversite.shop" title="Oversite Customs: the ERLC design server platform">Oversite Customs</a></nav><span class="sep" aria-hidden="true"></span>
+const FOOT = `<div class="foot-sp" aria-hidden="true"></div><footer class="site-foot"><nav aria-label="Legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Use</a><a href="/refunds">Sales and Refunds</a><a href="/support">Support</a><a href="/developers">Developers</a><a href="https://www.oversite.shop" title="Oversite Customs: the ERLC design server platform">Oversite Customs</a></nav><span class="sep" aria-hidden="true"></span>
 <a class="soc" href="${ROBLOX_GROUP}" target="_blank" rel="noopener" aria-label="Oversite on Roblox" title="Oversite on Roblox"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5.92 1.47 22.53 5.92 18.08 22.53 1.47 18.08Z M10.37 9.18 14.82 10.37 13.63 14.82 9.18 13.63Z"/></svg></a>
 <a class="soc" href="${DISCORD_INVITE}" target="_blank" rel="noopener" aria-label="Oversite on Discord" title="Oversite on Discord"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg></a></footer>`;
 // search engines: a public page passes seo = { path, desc } and gets a description, a canonical link and share tags;
@@ -993,6 +995,13 @@ export const ST_CSS = `.stm{max-width:1060px}
 .in-bars{display:grid;gap:6px}.in-bar{display:grid;grid-template-columns:110px 1fr 44px;gap:10px;align-items:center;font-size:12.5px;color:var(--dim)}.in-bar div{height:14px}.in-bar div i{display:block;height:100%;border-radius:0 4px 4px 0;background:#3987e5;min-width:2px}.in-bar span{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
 .in-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}@media (max-width:760px){.in-cols{grid-template-columns:1fr}.in-heat{font-size:9px}}
 .in-empty{font-size:12.5px;color:var(--faint);padding:10px 0}
+#btCount:empty{display:none}.bt{border:1px solid var(--hair);border-radius:14px;padding:14px 16px;margin-top:10px;background:rgba(255,255,255,.02)}.bt-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.bt-h b{font-size:14.5px}.bt-h small{color:var(--faint);font-size:12px}.bt-h .sp{flex:1}
+.bt-perms{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}.bt-perms span{font-size:11.5px;color:var(--dim);border:1px solid var(--hair2);border-radius:999px;padding:3px 9px}
+.bt-ev{font-size:12.5px;color:var(--dim);margin-top:10px;overflow-wrap:anywhere}.bt-ev .ok{color:#3FBF8A}.bt-ev .bad{color:#E26D6D}.bt-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.bt-f{border:1px solid var(--hair2);border-radius:14px;padding:16px;margin-top:12px;background:rgba(255,255,255,.03)}.bt-f h3{margin:0 0 4px;font-size:14px}.bt-f .bt-lbl{display:block;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin:16px 0 8px}
+.bt-kinds{display:flex;flex-wrap:wrap;gap:8px}.bt-kinds button{font:inherit;font-size:12.5px;color:var(--ink);background:rgba(240,242,245,.05);border:1px solid var(--hair2);border-radius:999px;padding:7px 13px;cursor:pointer}.bt-kinds button[aria-pressed="true"]{background:var(--ink);color:#0B0C0E;border-color:var(--ink)}
+.bt-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px 18px}.bt-checks label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:start;margin:0;padding:6px 0;cursor:pointer}.bt-checks input{width:auto;margin:3px 0 0;grid-row:span 2}.bt-checks b{font-size:13px;font-weight:500;color:var(--ink)}.bt-checks small{font-size:12px;color:var(--faint);line-height:1.4}.bt-checks label.dis{opacity:.45;cursor:default}
+.bt-key{border:1px solid rgba(63,191,138,.35);background:rgba(63,191,138,.06);border-radius:12px;padding:14px;margin-top:12px}.bt-key code{display:block;font-size:12.5px;padding:10px 12px;border-radius:8px;background:rgba(0,0,0,.35);margin:8px 0;overflow-wrap:anywhere;user-select:all}.bt-key p{margin:0;font-size:12.5px;color:var(--dim)}
 .au-tpls{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 16px}.au-tpls button{font:inherit;font-size:12.5px;color:var(--ink);background:rgba(240,242,245,.05);border:1px solid var(--hair2);border-radius:999px;padding:7px 13px;cursor:pointer}
 @media (hover:hover) and (pointer:fine){.au-tpls button:hover{background:rgba(240,242,245,.1)}}
 .au{border:1px solid var(--hair);border-radius:14px;padding:14px;margin-top:10px;background:rgba(255,255,255,.02)}.au.off{opacity:.6}
@@ -1073,7 +1082,7 @@ ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord s
 <div class="ss" id="ss"><input type="search" id="ssIn" placeholder="Search settings, like “emergency button” or “make businesses pay tax”" aria-label="Search settings" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ssList"><div class="ss-list" id="ssList" role="listbox" hidden></div></div>
 <script type="application/json" id="ssIdx">${JSON.stringify(settingsIndex()).replace(/</g, '\\u003c')}</script>
 <div class="sx">
-<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['features', 'Features', ''], ['automations', 'Automations', autos.length ? String(autos.length) : ''], ['insights', 'Insights', ''], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
+<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['features', 'Features', ''], ['automations', 'Automations', autos.length ? String(autos.length) : ''], ['bots', 'Bots', (c.settings.bots || []).length ? String(c.settings.bots.length) : ''], ['insights', 'Insights', ''], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
 <div class="st-body">
 <div class="st-pane" id="tab-general" data-pane="general" role="tabpanel" aria-labelledby="t-general">
 <section class="card"><h2>ER:LC server</h2>
@@ -1165,6 +1174,12 @@ ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><d
 <div class="row" style="margin-top:12px;gap:8px"><button type="button" class="btn sm" id="auAdd">New automation</button><span style="flex:1"></span><button type="button" class="btn pri" id="auSave" disabled>Save automations</button></div><p class="msg" id="auMsg"></p>
 <h3 class="au-rh">Recent runs</h3><div id="auRecent" class="au-recent"><p class="note">Nothing has run yet.</p></div>
 <script type="application/json" id="auData">${JSON.stringify({ rules: autos, when: AUTO_WHEN, act: AUTO_DO }).replace(/</g, '\\u003c')}</script></section></div>
+<div class="st-pane wide" id="tab-bots" data-pane="bots" role="tabpanel" aria-labelledby="t-bots">
+<section class="card" id="bots" data-api="/c/${esc(c.slug)}/api"><h2 class="hrow">Connected bots<span class="tag" id="btCount"></span></h2>
+<p class="note">Link the Discord bots your server uses, like a department, roleplay, economy or moderation bot, so they work with the CAD. Each bot gets its own key and can only do what you tick here. Give the key to whoever runs the bot: the <a href="/developers" target="_blank" rel="noopener">developer guide</a> shows them how to use it.</p>
+<div id="btBody"><p class="note">Loading…</p></div><p class="msg" id="btMsg"></p>
+<script type="application/json" id="btData">${JSON.stringify({ scopes: BOT_SCOPES, events: BOT_EVENTS, presets: BOT_PRESETS }).replace(/</g, '\\u003c')}</script>
+<script src="/bots-editor.js?v=1" defer></script></section></div>
 <div class="st-pane wide" id="tab-insights" data-pane="insights" role="tabpanel" aria-labelledby="t-insights">
 <section class="card" id="insights"><div class="in-top"><div><h2>Insights</h2><p class="note" style="margin:2px 0 0">What's been happening on your server, from what Oversite already sees.</p></div>
 <div class="in-seg" role="radiogroup" aria-label="Period"><button type="button" role="radio" data-days="7" aria-checked="true">7 days</button><button type="button" role="radio" data-days="30" aria-checked="false">30 days</button></div></div>
