@@ -2,6 +2,7 @@
 import { DOCS, UPDATED } from './legal.mjs';
 import { isSiteAdmin, isSiteMod } from './admins.mjs';
 import { GROUPS as FEATURES } from './features.mjs';
+import { TRIGGERS as AUTO_WHEN, ACTIONS as AUTO_DO } from './automations.mjs';
 // the settings search: every card on the settings page (found by its heading) with the words people use for it, and every feature
 const SETTING_CARDS = [
   ['ER:LC server', 'general', 'server key api connect erlc private server game key token code link game commands'],
@@ -9,6 +10,7 @@ const SETTING_CARDS = [
   ['Discord server', 'general', 'discord roles admin mod link guild bot connect'],
   ['Delete server', 'general', 'delete remove server shut down get rid'],
   ['Boundaries', 'bounds', 'boundaries areas zones map kick warn leave outside play area restricted limits draw'],
+  ['Automations', 'automations', 'automations rules triggers if this then that auto messages welcome new players discord posts alerts workflows bots when something happens'],
   ['Server profile', 'profile', 'profile picture logo icon banner cover photos description bio explore region language listing about'],
   ['Vote link', 'profile', 'vote votes explore ranking link top'],
   ['Invite code', 'members', 'invite code join link add players new members'],
@@ -18,7 +20,7 @@ const SETTING_CARDS = [
   ['MDT sign-in ranks', 'premium', 'ranks rank supervisor sign in mdt promotions'],
   ['Proximity voice', 'premium', 'voice proximity chat talk hear microphone range muffle vc']];
 const settingsIndex = () => [...FEATURES.flatMap(g => g.items.map(i => ({ k: i.key, t: i.name, g: g.title, a: i.about, w: i.words }))),
-  ...SETTING_CARDS.map(([t, p, w]) => ({ c: t, p, t, g: { general: 'General', bounds: 'Boundaries', profile: 'Profile', members: 'Members', premium: 'Premium' }[p], a: '', w }))];
+  ...SETTING_CARDS.map(([t, p, w]) => ({ c: t, p, t, g: { general: 'General', automations: 'Automations', bounds: 'Boundaries', profile: 'Profile', members: 'Members', premium: 'Premium' }[p], a: '', w }))];
 export const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CSS = `
 :root{color-scheme:dark;--ink:#F0F2F5;--dim:#9A9EA6;--faint:#62666D;--hair:rgba(240,242,245,.08);--hair2:rgba(240,242,245,.14);--panel:rgba(16,16,18,.78);--field:rgba(255,255,255,.04);--acc:#4C8DFF;--ok:#46D07C;--warn:#E9B04C;--bad:#E24B4B}
@@ -967,6 +969,18 @@ ${user && owned.length ? `<details class="mk" style="margin-top:14px"><summary>O
 {let plan='year';document.querySelectorAll('.pp-buy [data-plan]').forEach(b=>b.onclick=()=>{plan=b.dataset.plan;document.querySelectorAll('.pp-buy [data-plan]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 const buy=document.getElementById('ppBuy');if(buy)buy.onclick=async()=>{buy.disabled=true;try{const j=await api('/api/me/premium/checkout',{plan});location.href=j.url}catch(e){buy.disabled=false;say(document.getElementById('ppMsg'),e.message)}}}` });
 export const ST_CSS = `.stm{max-width:1060px}
+.au-tpls{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 16px}.au-tpls button{font:inherit;font-size:12.5px;color:var(--ink);background:rgba(240,242,245,.05);border:1px solid var(--hair2);border-radius:999px;padding:7px 13px;cursor:pointer}
+@media (hover:hover) and (pointer:fine){.au-tpls button:hover{background:rgba(240,242,245,.1)}}
+.au{border:1px solid var(--hair);border-radius:14px;padding:14px;margin-top:10px;background:rgba(255,255,255,.02)}.au.off{opacity:.6}
+.au-h{display:flex;align-items:center;gap:10px}.au-h input.au-name{flex:1;font-weight:600}.au-h .au-x{font:inherit;font-size:12px;color:var(--dim);background:none;border:0;cursor:pointer;text-decoration:underline}
+.au-row{display:grid;grid-template-columns:70px 1fr;gap:10px;align-items:center;margin-top:10px}.au-k{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.au-if{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim)}.au-if input{flex:1}
+.au-act{display:grid;gap:8px;padding:10px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--hair);margin-top:8px}.au-act .au-ah{display:flex;gap:8px;align-items:center}.au-act .au-ah select{flex:1}
+.au-depts{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--dim)}.au-depts label{display:flex;align-items:center;gap:6px;margin:0}.au-depts input{width:auto;margin:0}
+.au-vars{font-size:11.5px;color:var(--faint);margin-top:6px}.au-vars code{font-size:11px;color:var(--dim)}
+.au-foot{display:flex;gap:8px;align-items:center;margin-top:10px}.au-foot .msg{margin:0}
+.au-rh{margin:22px 0 8px;font-size:13px;color:var(--dim)}.au-recent div{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:7px 0;border-top:1px solid var(--hair);font-size:12.5px}.au-recent time{color:var(--faint)}.au-recent b{font-weight:500}.au-recent .bad{color:#F3A3A3}.au-recent .good{color:var(--ok)}
+.sw-mini{position:relative;flex:none;width:36px;height:22px}.sw-mini input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}.sw-mini i{position:absolute;inset:0;border-radius:999px;background:rgba(240,242,245,.14);transition:background-color .2s ease;pointer-events:none}.sw-mini i::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s cubic-bezier(.23,1,.32,1)}.sw-mini input:checked+i{background:#3FBF8A}.sw-mini input:checked+i::after{transform:translateX(14px)}
 .ss{position:relative;margin:0 0 22px}.ss input{width:100%;padding:13px 16px;font-size:14px;border-radius:12px}
 .ss-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;max-height:min(440px,60vh);overflow:auto;padding:6px;border-radius:14px;background:#141518;border:1px solid var(--hair2);box-shadow:0 24px 50px rgba(0,0,0,.55)}.ss-list[hidden]{display:none}
 .ss-r{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;border-radius:10px;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}.ss-r[aria-selected="true"]{background:rgba(240,242,245,.07)}
@@ -1029,13 +1043,13 @@ export const ST_CSS = `.stm{max-width:1060px}
 .bd-log span{font-size:11.5px;color:var(--faint)}.bd-log time{flex:none;font-size:11.5px;color:var(--faint)}.bd-log .none{color:var(--faint)}.bd-log em.bad{font-style:normal;color:var(--bad)}
 @media (max-width:760px){.bd-pre{margin-left:0}.bd-l{width:auto}.bd-row{flex-direction:column;gap:6px}}.st-pane>.card+.card,.st-pane>section+section{margin-top:18px}
 @media (max-width:760px){.sx{grid-template-columns:1fr;gap:16px}.st-nav{position:sticky;top:0;z-index:5;flex-direction:row;overflow-x:auto;scrollbar-width:none;padding:6px 24px;margin:0 -24px;background:#0d1416;border-bottom:1px solid var(--hair)}.st-nav::-webkit-scrollbar{display:none}.st-nav a{flex:none;padding:7px 12px}.st-top{margin-bottom:12px}}`;
-export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false, bnd = { on: false, grace: 60, exemptStaff: true }, ranks = null, boost = null, feats = {}, featVals = {} }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
+export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false, bnd = { on: false, grace: 60, exemptStaff: true }, ranks = null, boost = null, feats = {}, featVals = {}, autos = [] }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main class="stm"><style>${ST_CSS}</style><div class="st-top"><div><h1><b>${esc(c.name)}</b> settings</h1>${isNew ? '<p class="lead">Your server is ready. Connect it to ER:LC, then give your members the invite code.</p>' : ''}</div><a class="btn sm pri" href="/${esc(c.slug)}">Open CAD</a></div>
 ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord server to finish</h2><p class="note">Every Oversite server is tied to its Discord. Members can't open the CAD until it's connected, and it's where you pick which Discord roles are Admin and Mod.</p></div><a class="btn discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord server</a></section>` : ''}
 <div class="ss" id="ss"><input type="search" id="ssIn" placeholder="Search settings, like “emergency button” or “make businesses pay tax”" aria-label="Search settings" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ssList"><div class="ss-list" id="ssList" role="listbox" hidden></div></div>
 <script type="application/json" id="ssIdx">${JSON.stringify(settingsIndex()).replace(/</g, '\\u003c')}</script>
 <div class="sx">
-<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['features', 'Features', ''], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
+<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['features', 'Features', ''], ['automations', 'Automations', autos.length ? String(autos.length) : ''], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
 <div class="st-body">
 <div class="st-pane" id="tab-general" data-pane="general" role="tabpanel" aria-labelledby="t-general">
 <section class="card"><h2>ER:LC server</h2>
@@ -1121,6 +1135,12 @@ ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><d
 <td style="text-align:right">${m.id !== user.id && m.id !== c.owner_id && (user.id === c.owner_id || (m.role !== 'owner' && ({ owner: 5, co_owner: 4, admin: 3, mod: 2, member: 1, staff: 3 }[m.role] || 0) < ({ owner: 5, co_owner: 4 }[role] || 0))) ? `<button class="btn sm danger" data-remove="${m.id}">Remove</button>` : ''}</td></tr>`).join('')}</table><p class="msg" id="mmsg"></p>
 </section>
 </div>
+<div class="st-pane wide" id="tab-automations" data-pane="automations" role="tabpanel" aria-labelledby="t-automations">
+<section class="card" id="automations"><h2 class="hrow">Automations<span class="tag" id="auCount"></span></h2><p class="note">Have Oversite do things by itself when something happens on your server: alert a department, post to your Discord, message a player in game, or put a call on the board. Pick a starting point or make your own.</p>
+<div class="au-tpls" id="auTpls"></div><div id="auList"></div>
+<div class="row" style="margin-top:12px;gap:8px"><button type="button" class="btn sm" id="auAdd">New automation</button><span style="flex:1"></span><button type="button" class="btn pri" id="auSave" disabled>Save automations</button></div><p class="msg" id="auMsg"></p>
+<h3 class="au-rh">Recent runs</h3><div id="auRecent" class="au-recent"><p class="note">Nothing has run yet.</p></div>
+<script type="application/json" id="auData">${JSON.stringify({ rules: autos, when: AUTO_WHEN, act: AUTO_DO }).replace(/</g, '\\u003c')}</script></section></div>
 <div class="st-pane" id="tab-premium" data-pane="premium" role="tabpanel" aria-labelledby="t-premium">
 ${premiumCard(c, role, prem, payments, justBought, boost)}
 ${ranks ? `<section class="card" id="ranks" data-api="/c/${esc(c.slug)}/api" data-ranks="${esc(JSON.stringify(ranks))}" data-depts="${esc(JSON.stringify({ pd: c.settings.depts.pd?.name, fd: c.settings.depts.fd?.name, dot: c.settings.depts.dot?.name }))}"${prem.on ? '' : ' data-locked="1"'}><h2 class="hrow">MDT sign-in ranks<span class="tag">Premium</span></h2>
@@ -1139,6 +1159,46 @@ ${(() => { const V = c.settings.voice || {}, r = V.range || 'normal'; return `<s
 </div></div>
 </main>`, script: `
 const A='/c/${esc(c.slug)}/api';
+/* automations: edited here as a list, saved all at once; each can be tested with made-up details */
+{const box=document.getElementById('auData');if(box){const DATA=JSON.parse(box.textContent),W=DATA.when,ACT=DATA.act;let R=DATA.rules.map(r=>JSON.parse(JSON.stringify(r)));
+  const list=document.getElementById('auList'),save=document.getElementById('auSave'),msg=document.getElementById('auMsg'),dirty=()=>{save.disabled=false;msg.textContent=''};
+  const TPL=[['Welcome new players','join','',[{do:'pm',text:'Welcome, {player}! Read the rules in our Discord before you start.'}]],
+    ['Post warrants to Discord','record','warrant',[{do:'discord',url:'',text:'Warrant: {subject}, {charges}. Written by {by}.'}]],
+    ['Fire calls to the fire department','call','fire',[{do:'alert',depts:['fd'],text:'New call: {type}, {where}'}]],
+    ['Plate reader hits to Discord','alpr','',[{do:'discord',url:'',text:'Plate reader: {plate} ({vehicle}) {reasons}, {where}'}]],
+    ['Tell cited players how to pay','record','citation',[{do:'pm',text:'You were cited for {charges}. Pay it in the Civilian tab of the CAD.'}]],
+    ['Announce panic in game','panic','',[{do:'announce',text:'All units: {unit} needs help {where}.'}]]];
+  document.getElementById('auTpls').innerHTML=TPL.map((t,i)=>'<button type="button" data-tpl="'+i+'">'+t[0]+'</button>').join('');
+  const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const actHtml=(a,j)=>'<div class="au-act" data-j="'+j+'"><div class="au-ah"><select data-a="do">'+Object.entries(ACT).map(([k,l])=>'<option value="'+k+'"'+(a.do===k?' selected':'')+'>'+e(l)+'</option>').join('')+'</select><button type="button" class="au-x" data-a="rm">Remove</button></div>'
+    +(a.do==='alert'?'<div class="au-depts">'+[['all','Everyone'],['pd','Police'],['fd','Fire'],['dot','DOT']].map(([d,l])=>'<label><input type="checkbox" data-a="dept" value="'+d+'"'+((a.depts||[]).includes(d)?' checked':'')+'>'+l+'</label>').join('')+'</div>':'')
+    +(a.do==='discord'?'<input data-a="url" type="password" placeholder="Discord webhook link (channel settings, Integrations, Webhooks)" value="'+e(a.url)+'" spellcheck="false">':'')
+    +(a.do==='call'?'<select data-a="dept1">'+[['pd','Police'],['fd','Fire'],['dot','DOT']].map(([d,l])=>'<option value="'+d+'"'+(a.dept===d?' selected':'')+'>'+l+' call</option>').join('')+'</select>':'')
+    +'<input data-a="text" maxlength="400" value="'+e(a.text)+'" placeholder="'+({alert:'What the alert says',discord:'What to post',pm:'The message',announce:'The announcement',call:'What the call is about'}[a.do])+'"></div>';
+  const draw=()=>{document.getElementById('auCount').textContent=R.length?R.filter(r=>r.on!==false).length+' of '+R.length+' on':'';
+    list.innerHTML=R.map((r,i)=>{const w=W[r.when];return '<div class="au'+(r.on===false?' off':'')+'" data-i="'+i+'"><div class="au-h"><input class="au-name" data-f="name" maxlength="60" value="'+e(r.name)+'" aria-label="Name"><span class="sw-mini" title="On or off"><input type="checkbox" data-f="on"'+(r.on!==false?' checked':'')+' aria-label="On"><i></i></span><button type="button" class="au-x" data-f="del">Delete</button></div>'
+      +'<div class="au-row"><span class="au-k">When</span><select data-f="when">'+Object.entries(W).map(([k,x])=>'<option value="'+k+'"'+(r.when===k?' selected':'')+'>'+e(x.name)+'</option>').join('')+'</select></div>'
+      +(w.filter?'<div class="au-row"><span class="au-k">Only if</span><span class="au-if">'+e(w.filter[1])+' has<input data-f="match" maxlength="60" value="'+e(r.match)+'" placeholder="anything (leave empty for all)"></span></div>':'')
+      +'<div class="au-row" style="align-items:start"><span class="au-k" style="padding-top:12px">Then</span><div>'+(r.then||[]).map(actHtml).join('')+'<button type="button" class="btn sm" data-f="addact" style="margin-top:8px">Add an action</button>'
+      +'<p class="au-vars">Fill in: '+w.vars.map(v=>'<code>{'+v+'}</code>').join(' ')+'</p></div></div>'
+      +'<div class="au-foot"><button type="button" class="btn sm" data-f="test">Test it</button><span class="msg" data-f="tmsg"></span></div></div>'}).join('')||'<p class="note">No automations yet.</p>'};
+  const recent=L=>{document.getElementById('auRecent').innerHTML=L&&L.length?L.map(x=>'<div><time>'+new Date(x.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+'</time><span><b>'+e(x.rule)+'</b> · '+e(x.action)+(x.test?' (test)':'')+(x.detail?' · '+e(x.detail):'')+'</span><span class="'+(x.ok?'good':'bad')+'">'+(x.ok?'Done':'Failed')+'</span></div>').join(''):'<p class="note">Nothing has run yet.</p>'};
+  fetch(A+'/automations').then(r=>r.json()).then(j=>recent(j.recent)).catch(()=>{});
+  draw();
+  document.getElementById('auTpls').addEventListener('click',ev=>{const b=ev.target.closest('[data-tpl]');if(!b)return;const t=TPL[+b.dataset.tpl];R.push({name:t[0],when:t[1],match:t[2],on:true,then:JSON.parse(JSON.stringify(t[3]))});draw();dirty();list.lastElementChild.scrollIntoView({block:'center',behavior:'smooth'})});
+  document.getElementById('auAdd').addEventListener('click',()=>{R.push({name:'',when:'join',match:'',on:true,then:[{do:'alert',depts:['all'],text:''}]});draw();dirty()});
+  list.addEventListener('input',ev=>{const x=ev.target,box=x.closest('.au'),i=+box.dataset.i,r=R[i],f=x.dataset.f,a=x.dataset.a;
+    if(f==='name'||f==='match'){r[f]=x.value;dirty();return}
+    if(a==='text'||a==='url'){r.then[+x.closest('.au-act').dataset.j][a]=x.value;dirty()}});
+  list.addEventListener('change',ev=>{const x=ev.target,box=x.closest('.au'),i=+box.dataset.i,r=R[i],f=x.dataset.f,a=x.dataset.a;if(!r)return;
+    if(f==='on'){r.on=x.checked;draw();dirty();return}if(f==='when'){r.when=x.value;r.match='';draw();dirty();return}
+    if(a){const act=r.then[+x.closest('.au-act').dataset.j];if(a==='do'){act.do=x.value;act.depts=act.depts||['all'];draw()}else if(a==='dept'){act.depts=[...x.closest('.au-depts').querySelectorAll('input:checked')].map(y=>y.value)}else if(a==='dept1'){act.dept=x.value}dirty()}});
+  list.addEventListener('click',async ev=>{const x=ev.target.closest('button');if(!x)return;const box=x.closest('.au'),i=+box.dataset.i,r=R[i];
+    if(x.dataset.f==='del'){R.splice(i,1);draw();dirty();return}if(x.dataset.f==='addact'){if(r.then.length>=5)return;r.then.push({do:'alert',depts:['all'],text:''});draw();dirty();return}
+    if(x.dataset.a==='rm'){r.then.splice(+x.closest('.au-act').dataset.j,1);draw();dirty();return}
+    if(x.dataset.f==='test'){const tm=box.querySelector('[data-f="tmsg"]');if(!save.disabled){tm.className='msg err';tm.textContent='Save your changes first.';return}tm.className='msg';tm.textContent='Running…';
+      try{const j=await api(A+'/automations/test',{id:r.id});recent(j.recent);tm.className='msg ok';tm.textContent='Ran with made-up details. See Recent runs below.'}catch(err){tm.className='msg err';tm.textContent=err.message}}});
+  save.addEventListener('click',async()=>{save.disabled=true;msg.className='msg';msg.textContent='Saving…';try{const j=await api(A+'/automations',{rules:R});R=j.rules;draw();msg.className='msg ok';msg.textContent='Saved.'}catch(err){save.disabled=false;msg.className='msg err';msg.textContent=err.message}})}}
 /* settings search: matches what people mean, not just names: each word is matched against a feature's name, its keywords and its
    description, forgiving endings ("taxes" finds tax) and small typos; the best matches first. Picking one opens it and flashes it */
 const ssIdx=JSON.parse(document.getElementById('ssIdx').textContent);

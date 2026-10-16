@@ -167,6 +167,9 @@ export const call911 = (c, user, j) => { const k = `${c.id}:${user.id}`; if (now
   const ch = charOf(c.id, user.id), name = ch ? `${ch.first} ${ch.last}` : (user.roblox_name || user.name || 'Caller');
   q('INSERT INTO civ_calls (community_id, user_id, name, dept, location, details, at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(c.id, user.id, T(name, 60), dept, location, details, now());
   callGap.set(k, now()); return { ok: true }; };
+// a call an automation puts on the board, alongside 911 calls from the Civilian tab
+export const autoCall = (c, dept, location, details) => q('INSERT INTO civ_calls (community_id, user_id, name, dept, location, details, at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+  .run(c.id, 0, 'Oversite', DEPT_TEAM[dept] ? dept : 'pd', T(location, 80) || 'Unknown location', T(details, 300), now());
 // the calls still open (the last hour, not cleared on the board) added to the snapshot every CAD reads, as ER:LC lists its own
 export const withCalls = (cid, body, cleared) => { const open = q('SELECT * FROM civ_calls WHERE community_id = ? AND at >= ?').all(cid, now() - 3600000)
     .filter(r => !cleared[`CIV${r.id}@${Math.floor(r.at / 1000)}`]); if (!open.length) return body;

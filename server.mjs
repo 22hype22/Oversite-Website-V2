@@ -30,6 +30,7 @@ import * as deptReports from './app/reports.mjs';
 import * as srvStatus from './app/status.mjs';
 import * as alerts from './app/alerts.mjs';
 import * as backup from './app/backup.mjs';
+import * as automations from './app/automations.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -62,7 +63,10 @@ const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === '
 // who is on each open call and how far they've got (0 assigned, 1 en route, 2 on scene), shared by every dispatcher and MDT; kept 12 hours
 const callStates = (c, s = c.settings) => (s.callstate && typeof s.callstate === 'object' ? s.callstate : {});
 const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f);
-  f.onSnap = body => { police.observe(c.id, body, (communities.byId(c.id) || c).settings.teams); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
+  f.onSnap = body => { const cc = communities.byId(c.id) || c, hits = police.observe(c.id, body, cc.settings.teams) || [];
+    // the plate reader's hits go to every CAD and to automations; automations also watch for players joining and new calls
+    if (features.on(cc, 'alpr')) for (const h of hits) { f.bcast('alpr', JSON.stringify(h)); if (features.on(cc, 'automations')) automations.fire(cc, 'alpr', h); }
+    if (features.on(cc, 'automations')) automations.observe(cc, body); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => { res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); res.write(`event: callstates\ndata: ${JSON.stringify(callStates(communities.byId(c.id) || c))}\n\n`); }; } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
@@ -147,6 +151,13 @@ const communityApi = async (req, res, slug, rest) => {
     const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
     if (s.callstate) delete s.callstate[k];
     communities.saveSettings(c.id, s); c.settings.cleared = s.cleared; f.bcast('callclear', JSON.stringify({ key: k, by: user.roblox_name || user.name || '' })); return json(res, { ok: true }); }
+  // Settings → Automations: the rules, what can be used in them, what ran lately; a test run with made-up details
+  if (rest === 'automations' && M === 'GET') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can see automations.' }, 403); return json(res, { rules: automations.rules(c), recent: automations.recent(c.id) }); }
+  if (rest === 'automations' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change automations.' }, 403); const r = automations.save(c, (await jsonBody(req)).rules, () => communities.saveSettings(c.id, c.settings)); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'automations/test' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can test automations.' }, 403); const id = String((await jsonBody(req)).id || ''), r = automations.rules(c).find(x => x.id === id); if (!r) return json(res, { error: 'Save the automation first.' }, 400);
+    const me = user.roblox_name || 'Player', sample = { join: { player: me, team: 'Civilian' }, call: { type: 'Test call', where: 'Postal 214', team: 'Police' }, alpr: { plate: 'TEST 123', vehicle: 'Black Falcon', owner: me, reasons: 'reported stolen', where: 'near postal 214' },
+      panic: { unit: 'Patrol 1', player: me, dept: 'pd', where: 'near postal 214' }, record: { kind: 'citation', subject: me, plate: 'TEST 123', by: me, charges: 'Speeding', reason: '' } }[r.when];
+    automations.fire(c, r.when, { ...sample, [automations.TRIGGERS[r.when].filter?.[0]]: r.match || sample[automations.TRIGGERS[r.when].filter?.[0]] }, true); await new Promise(x => setTimeout(x, 1500)); return json(res, { ok: true, recent: automations.recent(c.id) }); }
   // Status & Updates: the server's health and updates; owners and co-owners post their own
   if (rest === 'srvstatus' && M === 'GET') return json(res, srvStatus.view(c, can(role, 'co_owner')));
   if (rest === 'srvstatus/post' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can post updates.' }, 403); const r = srvStatus.post(c, user, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
@@ -230,7 +241,7 @@ const communityApi = async (req, res, slug, rest) => {
     const mine = f.activePanics().find(p => p.uid === user.id); if (mine) return json(res, { ok: true, panic: mine });   // already pressed: one at a time per person
     const p = { id: token(8), uid: user.id, by: user.roblox_name || user.name, rid: user.roblox_id || '', dept: j.dept, unit: T(j.unit, 40), crew: (Array.isArray(j.crew) ? j.crew : []).map(x => T(x, 40)).filter(Boolean).slice(0, 6),
       x: num(j.x), y: num(j.y), where: T(j.where, 80), at: Date.now() };
-    f.panic(p); console.log(`panic: ${c.slug} ${p.unit || p.by} (${p.dept}) at ${p.where || 'unknown'}`); return json(res, { ok: true, panic: p }); }
+    f.panic(p); if (features.on(c, 'automations')) automations.fire(c, 'panic', { unit: p.unit, player: p.by, dept: p.dept, where: p.where }); console.log(`panic: ${c.slug} ${p.unit || p.by} (${p.dept}) at ${p.where || 'unknown'}`); return json(res, { ok: true, panic: p }); }
   if (rest === 'panic/clear' && M === 'POST') { const j = await jsonBody(req); const ok = f.panicClear(String(j.id || ''), user.roblox_name || user.name); return json(res, { ok }); }
   // unit status: the 10-code a unit picks shows on every MDT and on dispatch
   if (rest === 'status' && M === 'POST') { const j = await jsonBody(req), r = police.setStatus(c.id, j.unit, String(j.st || ''), user.roblox_name || user.name);
@@ -282,8 +293,8 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'records') { const k = M === 'GET' ? (features.RECORD[qs.get('kind')] || 'pd_records') : features.RECORD[String((req._body ||= await jsonBody(req)).kind)]; if (k && !features.on(c, k)) return off(k); }
     if (sub === 'records/act' && M === 'POST') { const j = req._body ||= await jsonBody(req), a = String(j.action || ''), k = ['backup', 'respond'].includes(a) ? 'pd_backup' : features.RECORD[police.record(c.id, j.id)?.kind]; if (k && !features.on(c, k)) return off(k); }
     if (sub === 'records' && M === 'GET') return json(res, { records: recent(police.list(c.id, { kind: qs.get('kind') || '', status: qs.get('status') || '', mine: qs.get('mine') === '1' }, user.id)) });
-    if (sub === 'records' && M === 'POST') { const r = police.create(c.id, by, req._body); if (r.ok) f.bcast('pdrec', JSON.stringify(r.record)); return json(res, r, r.error ? 400 : 200); }
-    if (sub === 'records/act' && M === 'POST') { const j = req._body, r = police.act(c.id, by, j); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: String(j.action || ''), _by: by.name })); return json(res, r, r.error ? 400 : 200); }
+    if (sub === 'records' && M === 'POST') { const r = police.create(c.id, by, req._body); if (r.ok) { f.bcast('pdrec', JSON.stringify(r.record)); if (!(r.record.kind === 'warrant' && r.record.status === 'Pending')) recordEvent(c, r.record); } return json(res, r, r.error ? 400 : 200); }
+    if (sub === 'records/act' && M === 'POST') { const j = req._body, r = police.act(c.id, by, j); if (r.ok && j.action === 'approve') recordEvent(c, r.record); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: String(j.action || ''), _by: by.name })); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only an admin can delete records.' }, 403); const id = +(await jsonBody(req)).id || 0; police.remove(c.id, id); f.bcast('pdrec', JSON.stringify({ id, _deleted: true })); return json(res, { ok: true }); }
     return json(res, { error: 'Not found.' }, 404); }
   // staff management (app/staffhub.mjs): shifts, the weekly board, staff records, leave, applications. Mod and up.
@@ -710,7 +721,7 @@ const route = async (req, res) => {
     if (sub === '/staff') return can(role, 'mod') ? page(res, staffHub({ logo: LOGO, user, c })) : msg(res, user, 'Staff only', 'The staff page is for Mods and up.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c), ranks: ranksFor(c, premium.isPremium(c)), boost: premium.boostInfo(c, user), feats: features.switches(c), featVals: { biztax: civ.conf(c).biztax }})); }
+      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c), ranks: ranksFor(c, premium.isPremium(c)), boost: premium.boostInfo(c, user), feats: features.switches(c), autos: automations.rules(c), featVals: { biztax: civ.conf(c).biztax }})); }
     return msg(res, user, 'Page not found', 'That page does not exist in this server.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path === '/premium/done') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account');
     let r; try { r = await premium.confirmUser(user, url.searchParams.get('session_id')); } catch (e) { r = { error: 'Payments could not be reached. If you were charged, Premium switches on within a few minutes.' }; }
@@ -820,6 +831,10 @@ const probeStatus = c => { const f = feeds.get(c.id), t = Date.now(), watching =
   try { communities.byId(c.id); P.db = { s: 'ok' }; } catch (e) { P.db = { s: 'down', why: 'Oversite couldn’t read this server’s saved data.' }; }
   return P; };
 srvStatus.start(probeStatus);
+// automations act through the CAD's live stream, the staff command queue and the dispatch board
+automations.wire({ alert: (c, depts, title, text) => feedFor(c).bcast('autoalert', JSON.stringify({ depts, title, text })), command: (c, cmd) => staff.commandAs(c, communities.key(c.id), cmd, 'Oversite Automations'),
+  call: (c, dept, where, text) => civ.autoCall(c, dept, where, text) });
+const recordEvent = (c, r) => { if (!features.on(c, 'automations')) return; automations.fire(c, 'record', { kind: r.kind, subject: r.subject || '', plate: r.plate || '', by: r.by || '', charges: (r.charges || []).map(x => x.title).join(', '), reason: r.reason || '' }); };
 // what /admin shows about alerts and backups
 const alertsInfo = () => { const L = backup.list(), d = backup.disk(); let last = null; try { last = JSON.parse(siteSettings.get('backup_last') || 'null'); } catch (e) {}
   return { alerts: alerts.ready(), offsite: backup.offsite(), last, backups: L.slice(0, 6).map(b => ({ name: b.name, kind: b.kind, size: b.size, at: b.at })), count: L.length, disk: d && { used: d.used, free: d.free } }; };

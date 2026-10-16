@@ -3,6 +3,7 @@
 // officer see the same thing. ER:LC's API gives plates, vehicle colors and owners, and players' wanted stars; it has no
 // characters, so a person is their Roblox account, and their license details are the ones they filled in on Oversite.
 import { db, now, users, licenses, mdtSignin } from './db.mjs';
+import { POSTALS } from './postals.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS pd_people (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, rid TEXT NOT NULL, name TEXT NOT NULL, team TEXT,
   first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL, PRIMARY KEY (community_id, rid));
@@ -58,7 +59,24 @@ export const observe = (cid, body, teams = {}) => { const t = now(); if (t - (se
     for (const p of j.Players || []) { const [name, id] = String(p.Player || '').split(':'); if (!name || !RID(id)) continue; byName.set(name.toLowerCase(), id); if (!(teams || {})[p.Team]) civName.add(name.toLowerCase()); up.run(cid, id, T(name, 40), T(p.Team, 30), t, t); }
     for (const v of j.Vehicles || []) { const plate = PLATE(v.Plate); if (!plate) continue; const owner = T(String(v.Owner || '').split(':')[0], 40);
       upV.run(cid, plate, T(v.Name, 60), T(v.ColorName, 30), /^#?[0-9a-f]{6}$/i.test(v.ColorHex || '') ? '#' + String(v.ColorHex).replace('#', '') : '', owner, byName.get(owner.toLowerCase()) || '', t, t, civName.has(owner.toLowerCase()) ? 1 : 0); }
-    db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); console.log('pd observe:', e.message); } };
+    db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); console.log('pd observe:', e.message); }
+  return alpr(cid, j); };
+
+// ── the plate reader: every car out in game checked against stolen reports, bad papers, BOLOs and its owner's warrants.
+// A hit is returned (for the CAD and automations) once per car every ten minutes while it stays flagged ──
+const alprAt = new Map(), G2M = 2000 / 5355;
+const postalNear = (x, z) => { let best = '', d = Infinity; for (const [k, [px, py]] of Object.entries(POSTALS)) { const e = (px - x * G2M) ** 2 + (py - z * G2M) ** 2; if (e < d) { d = e; best = k; } } return best ? 'near postal ' + best : ''; };
+const alpr = (cid, j) => { const hits = [], at = new Map((j.Players || []).map(p => [String(p.Player || '').split(':')[0].toLowerCase(), p.Location]));
+  for (const v of j.Vehicles || []) { const plate = PLATE(v.Plate); if (!plate) continue; const k = `${cid}:${plate}`; if (now() - (alprAt.get(k) || 0) < 600000) continue;
+    const car = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(cid, plate); if (!car) continue; const why = [];
+    if (car.stolen) why.push('reported stolen');
+    if (q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'bolo' AND status = 'Active' AND plate = ?").get(cid, plate)) why.push('matches a BOLO');
+    if (car.owner_rid && q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'warrant' AND status = 'Active' AND subject_rid = ?").get(cid, car.owner_rid)) why.push('owner has a warrant');
+    if (car.civ && (car.reg !== 'Valid' || car.ins !== 'Active')) why.push(car.reg !== 'Valid' ? `registration ${car.reg.toLowerCase()}` : `insurance ${car.ins.toLowerCase()}`);
+    if (!why.length) continue; alprAt.set(k, now()); const L = at.get(String(car.owner || '').toLowerCase());
+    hits.push({ plate, vehicle: [car.color, car.model].filter(Boolean).join(' '), owner: car.owner || '', owner_rid: car.owner_rid || '', reasons: why.join(', '),
+      where: L && Number.isFinite(+L.LocationX) ? postalNear(+L.LocationX, +L.LocationZ) : '', x: L ? +L.LocationX * G2M : null, y: L ? +L.LocationZ * G2M : null }); }
+  return hits; };
 
 // ── records ──
 const row = r => r && { id: r.id, kind: r.kind, status: r.status, subject: r.subject || '', subject_rid: r.subject_rid || '', plate: r.plate || '', by: r.by_name || '', at: r.at, updated: r.updated, ...JSON.parse(r.data || '{}') };
