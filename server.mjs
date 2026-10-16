@@ -889,7 +889,7 @@ const unlock = (req, res, code, next = '/') => { auth.prune(attempts); const ip 
   a.n++; if (a.n >= 5) { a.n = 0; a.until = Date.now() + 60000; } attempts.set(ip, a); return html(res, lockPage('That code is not right.'), 401); };
 const gate = async (req, res) => {
   const url = new URL(req.url, 'http://x'), path = url.pathname;
-  if (path === '/health' || path === '/liberty-county.jpg' || path === '/landing-cad.webp' || path === '/landing-cad-sm.webp' || path === '/intro-splash.js' || /^\/(apple-touch-icon(-precomposed)?\.png|icon-(192|512|maskable-512|tab|search-192|search-48)\.png|icon-tab\.svg|manifest\.webmanifest|favicon\.ico)$/.test(path) || path === '/privacy' || path === '/terms' || path === '/refunds' || path === '/developers') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
+  if (path === '/health' || path === '/liberty-county.jpg' || path === '/intro-splash.js' || /^\/(apple-touch-icon(-precomposed)?\.png|icon-(192|512|maskable-512|tab|search-192|search-48)\.png|icon-tab\.svg|manifest\.webmanifest|favicon\.ico)$/.test(path) || path === '/privacy' || path === '/terms' || path === '/refunds' || path === '/developers') return route(req, res);   // legal pages stay public so Roblox and Discord can link to them
   if (!CODE && (path === '/lock' || path === '/unlock')) return redirect(res, '/');   // the site is open: no code screen to show
   if (path === '/unlock' && req.method === 'POST') { const f = await formBody(req); return unlock(req, res, String(f.get('code') || '').trim()); }
   if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });
