@@ -173,7 +173,6 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .btn:hover{background:rgba(255,255,255,.1)}.btn:active{transform:scale(.98)}.btn[disabled]{opacity:.5;pointer-events:none}
 .btn.pri{background:#F0F2F5;color:#0B0B0C;border-color:#F0F2F5}.btn.pri:hover{background:#fff}
 .btn.discord{background:#5865F2;border-color:#5865F2;color:#fff}.btn.discord:hover{background:#6873f5}
-.sso{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.sso .btn.btn{width:auto;min-width:210px}
 .btn.roblox{width:100%;padding:12px 16px;font-weight:600;background:#F0F2F5;color:#0B0B0C;border-color:#F0F2F5}.btn.roblox:hover{background:#fff}
 .btn.danger{color:#F3A3A3;border-color:rgba(226,75,75,.4)}.btn.danger:hover{background:rgba(226,75,75,.12)}
 .btn.sm{padding:6px 12px;font-size:12.5px}
@@ -196,6 +195,7 @@ td select{padding:6px 28px 6px 10px;font-size:12.5px;width:auto}
 .hero .ename{margin:0 0 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .paths{display:grid;grid-template-columns:1fr 1fr;gap:16px;text-align:left;align-items:start}.paths .card+.card{margin-top:0}.path{display:grid;gap:10px;align-content:start}.path h2{margin:0}.path .note{margin:0 0 4px}.path .hint{margin:-4px 0 0}.path .hint.addr{margin-top:-4px}
 @media (max-width:720px){.paths{grid-template-columns:1fr}}
+.signin{max-width:400px;margin:4px auto 0;display:grid;gap:10px;text-align:left}.signin h2{margin:0}.signin .note{margin:0 0 6px}.signin .btn{width:100%;padding:12px 16px;font-weight:600}.signin .hint{margin:2px 0 0;text-align:center}
 .or{display:flex;align-items:center;gap:10px;color:var(--faint);font-size:12px;margin:8px 0}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--hair)}
 .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:30px;text-align:left}.feats div{font-size:12.5px;color:var(--dim)}.feats b{display:block;color:var(--ink);font-weight:500;margin-bottom:2px}
 @media (max-width:520px){.feats{grid-template-columns:1fr}}
@@ -378,27 +378,16 @@ export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', err
 <h1><span style="font-weight:400">Oversite</span> <b>CAD</b></h1>
 <p class="lead">A live dispatch system for ER:LC private servers. Every unit on a live map of Liberty County, straight from your server.</p>
 <p class="note" style="margin:-6px 0 18px"><a href="/explore">Explore servers</a> without signing in.</p>
-<div class="paths">
-<form class="card path" id="codeform" autocomplete="off"><h2>Join your server</h2><p class="note">Enter your server's invite code.</p>
+${discord || roblox ? `<div class="card signin"><h2>Sign in to get started</h2><p class="note">Then join your server with its invite code, or set up a CAD for your own server.</p>
+${roblox ? `<a class="btn roblox" href="/auth/roblox?next=${encodeURIComponent(next)}">Continue with Roblox</a>` : ''}${discord ? `<a class="btn discord" href="/auth/discord?next=${encodeURIComponent(next)}">Continue with Discord</a>` : ''}
+<p class="hint">Free, no password. Oversite only sees your username and avatar.</p></div>`
+: `<form class="card signin" id="codeform" autocomplete="off"><h2>Join your server</h2><p class="note">Enter your server's invite code.</p>
 <input id="code" placeholder="Invite code" aria-label="Invite code" autocapitalize="characters" spellcheck="false" required>
-<button class="btn pri">Sign in</button><p class="msg" id="codemsg"></p></form>
-<form class="card path" id="makeform" autocomplete="off"><h2>Create a server</h2><p class="note">Set up a CAD for your ER:LC server.</p>
-<input id="mname" maxlength="48" placeholder="Server name" aria-label="Server name" required>
-<input id="mslug" maxlength="32" placeholder="address" aria-label="Address" required><p class="hint addr">oversitescad.com/<span id="slugp">your-server</span></p>
-<input id="mcode" maxlength="24" placeholder="Invite code (optional)" aria-label="Invite code" autocapitalize="characters" spellcheck="false"><p class="hint">What members type to join. Leave it empty for a random one.</p>
-<p class="hint" style="margin:0 0 10px">Next you connect your server's <b>Discord</b>. Every Oversite server needs one: it's how staff ranks and roles work.</p><button class="btn pri">Create and connect Discord</button><p class="msg" id="makemsg"></p></form>
-</div>
-${discord || roblox ? `<div class="or">or</div><div class="sso">${roblox ? `<a class="btn roblox" href="/auth/roblox?next=${encodeURIComponent(next)}">Continue with Roblox</a>` : ''}${discord ? `<a class="btn discord" href="/auth/discord?next=${encodeURIComponent(next)}">Continue with Discord</a>` : ''}</div>` : ''}
+<button class="btn pri">Sign in</button><p class="msg" id="codemsg"></p></form>`}
 ${owner ? `<form method="post" action="/auth/owner" class="row" style="justify-content:center;margin-top:14px" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" style="max-width:200px" required><button class="btn sm">Sign in</button></form>` : ''}
 ${error ? `<p class="msg err">${esc(error)}</p>` : ''}
 <div class="feats"><div><b>Live map</b>Units move on the map as they drive in game.</div><div><b>Real 911 calls</b>Calls from the game land on the dispatch board.</div><div><b>Department MDTs</b>Each team gets its own MDT, locked to its members.</div></div></div></section>${LANDING_ABOUT}`, script: `
-const go=async(url,body,m)=>{try{const j=await api(url,body);location.href=j.next}catch(x){say(m,x.message)}};
-document.getElementById('codeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/code',{code:document.getElementById('code').value},document.getElementById('codemsg'))});
-const mn=document.getElementById('mname'),ms=document.getElementById('mslug'),sp=document.getElementById('slugp');let touched=false;
-const slugify=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
-mn.addEventListener('input',()=>{if(!touched){ms.value=slugify(mn.value);sp.textContent=ms.value||'your-server'}});
-ms.addEventListener('input',()=>{touched=true;ms.value=slugify(ms.value);sp.textContent=ms.value||'your-server'});
-document.getElementById('makeform').addEventListener('submit',e=>{e.preventDefault();go('/auth/create',{name:mn.value.trim(),slug:ms.value,inviteCode:document.getElementById('mcode').value},document.getElementById('makemsg'))});
+const cf=document.getElementById('codeform');if(cf)cf.addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/auth/code',{code:document.getElementById('code').value});location.href=j.next}catch(x){say(document.getElementById('codemsg'),x.message)}});
 ` });
 
 // Terms of Use and Privacy Policy (text in legal.mjs). Public, outside the preview lock, so Roblox and Discord can link to them.
