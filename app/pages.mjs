@@ -10,6 +10,7 @@ const SETTING_CARDS = [
   ['Discord server', 'general', 'discord roles admin mod link guild bot connect'],
   ['Delete server', 'general', 'delete remove server shut down get rid'],
   ['Boundaries', 'bounds', 'boundaries areas zones map kick warn leave outside play area restricted limits draw'],
+  ['Insights', 'insights', 'insights analytics stats statistics charts activity players online busiest times reports department hours economy moderation numbers graphs'],
   ['Automations', 'automations', 'automations rules triggers if this then that auto messages welcome new players discord posts alerts workflows bots when something happens'],
   ['Server profile', 'profile', 'profile picture logo icon banner cover photos description bio explore region language listing about'],
   ['Vote link', 'profile', 'vote votes explore ranking link top'],
@@ -20,7 +21,7 @@ const SETTING_CARDS = [
   ['MDT sign-in ranks', 'premium', 'ranks rank supervisor sign in mdt promotions'],
   ['Proximity voice', 'premium', 'voice proximity chat talk hear microphone range muffle vc']];
 const settingsIndex = () => [...FEATURES.flatMap(g => g.items.map(i => ({ k: i.key, t: i.name, g: g.title, a: i.about, w: i.words }))),
-  ...SETTING_CARDS.map(([t, p, w]) => ({ c: t, p, t, g: { general: 'General', automations: 'Automations', bounds: 'Boundaries', profile: 'Profile', members: 'Members', premium: 'Premium' }[p], a: '', w }))];
+  ...SETTING_CARDS.map(([t, p, w]) => ({ c: t, p, t, g: { general: 'General', automations: 'Automations', insights: 'Insights', bounds: 'Boundaries', profile: 'Profile', members: 'Members', premium: 'Premium' }[p], a: '', w }))];
 export const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CSS = `
 :root{color-scheme:dark;--ink:#F0F2F5;--dim:#9A9EA6;--faint:#62666D;--hair:rgba(240,242,245,.08);--hair2:rgba(240,242,245,.14);--panel:rgba(16,16,18,.78);--field:rgba(255,255,255,.04);--acc:#4C8DFF;--ok:#46D07C;--warn:#E9B04C;--bad:#E24B4B}
@@ -969,6 +970,19 @@ ${user && owned.length ? `<details class="mk" style="margin-top:14px"><summary>O
 {let plan='year';document.querySelectorAll('.pp-buy [data-plan]').forEach(b=>b.onclick=()=>{plan=b.dataset.plan;document.querySelectorAll('.pp-buy [data-plan]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 const buy=document.getElementById('ppBuy');if(buy)buy.onclick=async()=>{buy.disabled=true;try{const j=await api('/api/me/premium/checkout',{plan});location.href=j.url}catch(e){buy.disabled=false;say(document.getElementById('ppMsg'),e.message)}}}` });
 export const ST_CSS = `.stm{max-width:1060px}
+.in-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}.in-top h2{margin:0}
+.in-seg{display:flex;padding:3px;border-radius:10px;background:rgba(240,242,245,.05);border:1px solid var(--hair)}.in-seg button{font:inherit;font-size:12.5px;color:var(--dim);background:none;border:0;border-radius:7px;padding:6px 12px;cursor:pointer}.in-seg button[aria-checked="true"]{color:var(--ink);background:rgba(240,242,245,.1)}
+.in-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:18px 0}.in-tile{padding:12px 14px;border-radius:12px;border:1px solid var(--hair);background:rgba(255,255,255,.02)}.in-tile small{display:block;font-size:11.5px;color:var(--dim)}.in-tile b{display:block;margin-top:4px;font-size:22px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}.in-tile span{display:block;margin-top:2px;font-size:11.5px;color:var(--faint)}
+.in-h{margin:26px 0 10px;font-size:14px;font-weight:600;color:var(--ink)}.in-h small{font-weight:400;color:var(--faint);margin-left:6px}
+.in-chart{position:relative}.in-chart svg{display:block;width:100%;height:auto;overflow:visible}.in-ax{font-size:10.5px;fill:var(--faint)}.in-grid{stroke:rgba(240,242,245,.07)}
+.in-tip{position:absolute;pointer-events:none;padding:7px 10px;border-radius:8px;background:#0f1012;border:1px solid var(--hair2);font-size:12px;color:var(--ink);white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .12s ease}.in-tip.on{opacity:1}.in-tip small{display:block;color:var(--dim);font-size:11px}
+.in-heat{display:grid;grid-template-columns:34px repeat(24,1fr);gap:2px;font-size:10.5px;color:var(--faint)}.in-heat i{aspect-ratio:1;border-radius:3px;background:rgba(240,242,245,.04)}.in-heat i[data-v]{cursor:default}.in-heat em{font-style:normal;align-self:center}
+.in-leg{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--faint)}.in-leg i{width:14px;height:10px;border-radius:2px}
+.in-depts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.in-dept{padding:14px;border-radius:12px;border:1px solid var(--hair)}.in-dept b{font-size:13.5px}.in-dept .in-kv{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}.in-kv span{font-size:11px;color:var(--dim)}.in-kv strong{display:block;font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
+.in-list{margin:0;padding:0;list-style:none}.in-list li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--hair);font-size:12.5px;color:var(--dim)}.in-list li b{font-weight:500;color:var(--ink)}.in-list li span{font-variant-numeric:tabular-nums}
+.in-bars{display:grid;gap:6px}.in-bar{display:grid;grid-template-columns:110px 1fr 44px;gap:10px;align-items:center;font-size:12.5px;color:var(--dim)}.in-bar div{height:14px}.in-bar div i{display:block;height:100%;border-radius:0 4px 4px 0;background:#3987e5;min-width:2px}.in-bar span{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.in-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}@media (max-width:760px){.in-cols{grid-template-columns:1fr}.in-heat{font-size:9px}}
+.in-empty{font-size:12.5px;color:var(--faint);padding:10px 0}
 .au-tpls{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 16px}.au-tpls button{font:inherit;font-size:12.5px;color:var(--ink);background:rgba(240,242,245,.05);border:1px solid var(--hair2);border-radius:999px;padding:7px 13px;cursor:pointer}
 @media (hover:hover) and (pointer:fine){.au-tpls button:hover{background:rgba(240,242,245,.1)}}
 .au{border:1px solid var(--hair);border-radius:14px;padding:14px;margin-top:10px;background:rgba(255,255,255,.02)}.au.off{opacity:.6}
@@ -1049,7 +1063,7 @@ ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord s
 <div class="ss" id="ss"><input type="search" id="ssIn" placeholder="Search settings, like “emergency button” or “make businesses pay tax”" aria-label="Search settings" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ssList"><div class="ss-list" id="ssList" role="listbox" hidden></div></div>
 <script type="application/json" id="ssIdx">${JSON.stringify(settingsIndex()).replace(/</g, '\\u003c')}</script>
 <div class="sx">
-<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['features', 'Features', ''], ['automations', 'Automations', autos.length ? String(autos.length) : ''], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
+<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['features', 'Features', ''], ['automations', 'Automations', autos.length ? String(autos.length) : ''], ['insights', 'Insights', ''], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
 <div class="st-body">
 <div class="st-pane" id="tab-general" data-pane="general" role="tabpanel" aria-labelledby="t-general">
 <section class="card"><h2>ER:LC server</h2>
@@ -1141,6 +1155,10 @@ ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><d
 <div class="row" style="margin-top:12px;gap:8px"><button type="button" class="btn sm" id="auAdd">New automation</button><span style="flex:1"></span><button type="button" class="btn pri" id="auSave" disabled>Save automations</button></div><p class="msg" id="auMsg"></p>
 <h3 class="au-rh">Recent runs</h3><div id="auRecent" class="au-recent"><p class="note">Nothing has run yet.</p></div>
 <script type="application/json" id="auData">${JSON.stringify({ rules: autos, when: AUTO_WHEN, act: AUTO_DO }).replace(/</g, '\\u003c')}</script></section></div>
+<div class="st-pane wide" id="tab-insights" data-pane="insights" role="tabpanel" aria-labelledby="t-insights">
+<section class="card" id="insights"><div class="in-top"><div><h2>Insights</h2><p class="note" style="margin:2px 0 0">What's been happening on your server, from what Oversite already sees.</p></div>
+<div class="in-seg" role="radiogroup" aria-label="Period"><button type="button" role="radio" data-days="7" aria-checked="true">7 days</button><button type="button" role="radio" data-days="30" aria-checked="false">30 days</button></div></div>
+<div id="inBody"><p class="note">Loading…</p></div></section></div>
 <div class="st-pane" id="tab-premium" data-pane="premium" role="tabpanel" aria-labelledby="t-premium">
 ${premiumCard(c, role, prem, payments, justBought, boost)}
 ${ranks ? `<section class="card" id="ranks" data-api="/c/${esc(c.slug)}/api" data-ranks="${esc(JSON.stringify(ranks))}" data-depts="${esc(JSON.stringify({ pd: c.settings.depts.pd?.name, fd: c.settings.depts.fd?.name, dot: c.settings.depts.dot?.name }))}"${prem.on ? '' : ' data-locked="1"'}><h2 class="hrow">MDT sign-in ranks<span class="tag">Premium</span></h2>
@@ -1159,6 +1177,44 @@ ${(() => { const V = c.settings.voice || {}, r = V.range || 'normal'; return `<s
 </div></div>
 </main>`, script: `
 const A='/c/${esc(c.slug)}/api';
+/* insights: loaded when the tab opens; charts are plain SVG and HTML, one series in one blue, values in a tooltip on hover */
+{const body=document.getElementById('inBody');if(body){let days=7,loaded=0;const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const num=n=>Number(n||0).toLocaleString('en-US'),money=n=>'$'+num(Math.round(n||0)),when=t=>new Date(t).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'});
+  const tile=(l,v,sub)=>'<div class="in-tile"><small>'+e(l)+'</small><b>'+v+'</b>'+(sub?'<span>'+e(sub)+'</span>':'')+'</div>';
+  const line=pts=>{if(pts.length<2)return '<p class="in-empty">Not enough data yet. Player counts are read every couple of minutes while the server is listed on Explore or the CAD is open.</p>';
+    const W=720,H=180,P=[28,8,22,30],x0=pts[0][0],x1=pts[pts.length-1][0],ymax=Math.max(1,...pts.map(p=>p[1])),X=t=>P[3]+(t-x0)/(x1-x0||1)*(W-P[1]-P[3]),Y=v=>P[0]+(1-v/ymax)*(H-P[0]-P[2]);
+    const ticks=[0,Math.round(ymax/2),Math.round(ymax)].filter((v,i,a)=>a.indexOf(v)===i),d=pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' ');
+    const days=[];for(let t=new Date(x0).setHours(0,0,0,0)+864e5;t<x1;t+=864e5)days.push(t);const every=Math.ceil(days.length/7);
+    return '<div class="in-chart" data-line="'+e(JSON.stringify({pts,x0,x1,W,H,P,ymax}))+'"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Players online, hourly average">'+ticks.map(v=>'<line class="in-grid" x1="'+P[3]+'" x2="'+(W-P[1])+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text class="in-ax" x="'+(P[3]-6)+'" y="'+(Y(v)+3.5)+'" text-anchor="end">'+v+'</text>').join('')
+      +days.filter((t,i)=>i%every===0).map(t=>'<text class="in-ax" x="'+X(t)+'" y="'+(H-6)+'" text-anchor="middle">'+new Date(t).toLocaleDateString([],{weekday:'short',day:'numeric'})+'</text>').join('')
+      +'<path d="'+d+' L'+X(x1)+' '+Y(0)+' L'+X(x0)+' '+Y(0)+'Z" fill="rgba(57,135,229,.12)"/><path d="'+d+'" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+      +'<line class="in-cross" y1="'+P[0]+'" y2="'+(H-P[2])+'" stroke="rgba(240,242,245,.35)" stroke-width="1" visibility="hidden"/><circle class="in-dot" r="4" fill="#3987e5" stroke="#141518" stroke-width="2" visibility="hidden"/>'
+      +'<rect x="'+P[3]+'" y="0" width="'+(W-P[1]-P[3])+'" height="'+H+'" fill="transparent" data-hit/></svg><div class="in-tip"></div></div>'};
+  const heat=g=>{const max=Math.max(0,...g.flat().filter(v=>v!=null));if(!max)return '<p class="in-empty">No player counts in this period yet.</p>';const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return '<div class="in-chart" data-heat><div class="in-heat" role="img" aria-label="Average players online by day and hour">'+g.map((row,d)=>'<em>'+DN[d]+'</em>'+row.map((v,h)=>v==null?'<i></i>':'<i data-v="'+v+'" data-d="'+DN[d]+'" data-h="'+h+'" style="background:rgba(57,135,229,'+(.12+.88*v/max).toFixed(2)+')"></i>').join('')).join('')
+      +'<em></em>'+Array.from({length:24},(_,h)=>'<em style="text-align:center">'+(h%6===0?h:'')+'</em>').join('')+'</div><div class="in-leg">Fewer<i style="background:rgba(57,135,229,.15)"></i><i style="background:rgba(57,135,229,.5)"></i><i style="background:rgba(57,135,229,1)"></i>More players · hours in UTC</div><div class="in-tip"></div></div>'};
+  const bars=L=>{const max=Math.max(1,...L.map(x=>x.n));return '<div class="in-bars">'+L.map(x=>'<div class="in-bar"><b style="font-weight:400">'+e(x.label)+'</b><div><i style="width:'+(x.n/max*100)+'%"></i></div><span>'+num(x.n)+'</span></div>').join('')+'</div>'};
+  const list=(L,f)=>L.length?'<ul class="in-list">'+L.map(f).join('')+'</ul>':'<p class="in-empty">Nothing yet.</p>';
+  const draw=V=>{const E=V.econ,hrs=V.depts.reduce((n,d)=>n+d.hours,0);
+    body.innerHTML='<div class="in-tiles">'+tile('Players online, on average',V.avg==null?'–':V.avg)+tile('Busiest moment',V.peak?num(V.peak.players):'–',V.peak?when(V.peak.at):'')+tile('Members',num(V.members.total),V.members.joined+' joined')+tile('Time on duty',(Math.round(hrs*10)/10).toLocaleString('en-US')+' h','across departments')+'</div>'
+      +'<h3 class="in-h">Players online<small>hourly average</small></h3>'+line(V.online)
+      +'<h3 class="in-h">Busiest times<small>average players by day and hour</small></h3>'+heat(V.busiest)
+      +'<h3 class="in-h">Departments</h3><div class="in-depts">'+V.depts.map(d=>'<div class="in-dept"><b>'+e(d.name)+'</b><div class="in-kv"><span>On duty<strong>'+num(d.hours)+' h</strong></span><span>Calls answered<strong>'+num(d.calls)+'</strong></span><span>'+(d.key==='pd'?'People':'Reports')+'<strong>'+num(d.key==='pd'?d.people:d.reports)+'</strong></span></div>'+list(d.top,p=>'<li><b>'+e(p.name)+'</b><span>'+p.hours+' h</span></li>')+'</div>').join('')+'</div>'
+      +'<div class="in-cols"><div><h3 class="in-h">Police records</h3>'+(V.records.some(r=>r.n)?bars(V.records):'<p class="in-empty">No records written in this period.</p>')+'</div><div><h3 class="in-h">Most records written</h3>'+list(V.writers,w=>'<li><b>'+e(w.name)+'</b><span>'+num(w.n)+'</span></li>')+'</div></div>'
+      +(E?'<h3 class="in-h">Economy</h3><div class="in-tiles" style="margin-top:0">'+tile('Money held by players',money(E.money),num(E.accounts)+' accounts')+tile('Weekly pay handed out',money(E.paid))+tile('Earned at work',money(E.wages),num(E.jobs)+' tasks done')+tile('Bills paid',money(E.billsPaid),E.overdue+' overdue')+tile('Businesses',num(E.businesses))+'</div>'
+        +'<h3 class="in-h" style="margin-top:4px">Top businesses<small>by sales</small></h3>'+list(E.bizTop,b=>'<li><b>'+e(b.name)+'</b><span>'+money(b.a)+' · '+num(b.n)+' sales</span></li>'):'')
+      +'<h3 class="in-h">Moderation</h3>'+list(V.mods,m=>'<li><b>'+e(m.name)+'</b><span>'+Object.entries(m.kinds).map(([k,n])=>n+' '+k+(n>1?'s':'')).join(', ')+'</span></li>');
+    // hover: the line gets a crosshair and the nearest hour; the grid gets its cell's average
+    body.querySelectorAll('[data-line]').forEach(ch=>{const C=JSON.parse(ch.dataset.line),svg=ch.querySelector('svg'),tip=ch.querySelector('.in-tip'),cr=svg.querySelector('.in-cross'),dot=svg.querySelector('.in-dot');
+      const move=ev=>{const r=svg.getBoundingClientRect(),sx=(ev.clientX-r.left)/r.width*C.W,t=C.x0+(sx-C.P[3])/(C.W-C.P[1]-C.P[3])*(C.x1-C.x0);let best=C.pts[0];for(const p of C.pts)if(Math.abs(p[0]-t)<Math.abs(best[0]-t))best=p;
+        const x=C.P[3]+(best[0]-C.x0)/(C.x1-C.x0||1)*(C.W-C.P[1]-C.P[3]),y=C.P[0]+(1-best[1]/C.ymax)*(C.H-C.P[0]-C.P[2]);cr.setAttribute('x1',x);cr.setAttribute('x2',x);dot.setAttribute('cx',x);dot.setAttribute('cy',y);cr.setAttribute('visibility','visible');dot.setAttribute('visibility','visible');
+        tip.innerHTML='<b>'+best[1]+' players</b><small>'+when(best[0])+'</small>';tip.style.left=(x/C.W*r.width)+'px';tip.style.top=(y/C.H*r.height)+'px';tip.classList.add('on')};
+      svg.addEventListener('pointermove',move);svg.addEventListener('pointerleave',()=>{tip.classList.remove('on');cr.setAttribute('visibility','hidden');dot.setAttribute('visibility','hidden')})});
+    body.querySelectorAll('[data-heat]').forEach(ch=>{const tip=ch.querySelector('.in-tip');ch.addEventListener('pointerover',ev=>{const c=ev.target.closest('[data-v]');if(!c){tip.classList.remove('on');return}const r=ch.getBoundingClientRect(),cr=c.getBoundingClientRect();
+      tip.innerHTML='<b>'+c.dataset.v+' players</b><small>'+c.dataset.d+', '+c.dataset.h+':00 UTC</small>';tip.style.left=(cr.left-r.left+cr.width/2)+'px';tip.style.top=(cr.top-r.top)+'px';tip.classList.add('on')});ch.addEventListener('pointerleave',()=>tip.classList.remove('on'))})};
+  const load=async()=>{loaded=days;try{draw(await api(A+'/insights?days='+days,null,'GET'))}catch(x){body.innerHTML='<p class="note">'+e(x.message)+'</p>'}};
+  document.querySelectorAll('[data-days]').forEach(b=>b.addEventListener('click',()=>{days=+b.dataset.days;document.querySelectorAll('[data-days]').forEach(x=>x.setAttribute('aria-checked',x===b));load()}));
+  const tab=document.getElementById('tab-insights');new MutationObserver(()=>{if(tab.classList.contains('on')&&loaded!==days)load()}).observe(tab,{attributes:true,attributeFilter:['class']});if(tab.classList.contains('on'))load()}}
 /* automations: edited here as a list, saved all at once; each can be tested with made-up details */
 {const box=document.getElementById('auData');if(box){const DATA=JSON.parse(box.textContent),W=DATA.when,ACT=DATA.act;let R=DATA.rules.map(r=>JSON.parse(JSON.stringify(r)));
   const list=document.getElementById('auList'),save=document.getElementById('auSave'),msg=document.getElementById('auMsg'),dirty=()=>{save.disabled=false;msg.textContent=''};

@@ -32,6 +32,7 @@ import * as alerts from './app/alerts.mjs';
 import * as backup from './app/backup.mjs';
 import * as automations from './app/automations.mjs';
 import * as radio from './app/radio.mjs';
+import * as insights from './app/insights.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -161,6 +162,8 @@ const communityApi = async (req, res, slug, rest) => {
     if (rest === 'radio/signal' && M === 'POST') { const r = radio.signal(c, user, ch, j.to, j.data); return json(res, r, r.error ? 400 : 200); }
     if (rest === 'radio/talk' && M === 'POST') { const r = radio.talk(c, user, ch, !!j.on); return json(res, r, r.error ? 400 : 200); }
     return json(res, { error: 'Not found.' }, 404); }
+  // Settings → Insights: activity, departments, records, the economy and moderation over 7 or 30 days
+  if (rest === 'insights' && M === 'GET') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can see insights.' }, 403); return json(res, insights.view(c, +new URL(req.url, 'http://x').searchParams.get('days'))); }
   // Settings → Automations: the rules, what can be used in them, what ran lately; a test run with made-up details
   if (rest === 'automations' && M === 'GET') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can see automations.' }, 403); return json(res, { rules: automations.rules(c), recent: automations.recent(c.id) }); }
   if (rest === 'automations' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change automations.' }, 403); const r = automations.save(c, (await jsonBody(req)).rules, () => communities.saveSettings(c.id, c.settings)); return json(res, r, r.error ? 400 : 200); }
