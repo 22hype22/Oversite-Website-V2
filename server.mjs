@@ -60,6 +60,7 @@ const jsonBody = async req => { try { return JSON.parse(await body(req) || '{}')
 const formBody = async req => new URLSearchParams(await body(req));
 const sameOrigin = req => { const o = req.headers.origin || req.headers.referer; if (!o) return true; try { return new URL(o).host === req.headers.host; } catch (e) { return false; } };
 const page = (res, p, status) => html(res, p, status);
+const watched = (p, c, on) => on ? p.replace(/<\/body>/i, () => `${pages.oversightBar(c)}</body>`) : p;   // the moderation bar on a server's pages
 const msg = (res, user, title, text, action, status = 200) => page(res, pages.message({ logo: LOGO, user, title, text, action, code: status }), status);
 
 // ── live feeds, one per community ──
@@ -96,10 +97,11 @@ const spawnedBy = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Da
 // a Premium person's saved map style wins over whatever this browser last used, so every device opens on the same map
 const mapPref = p => { const m = /^(2d)-(light|dark)$/.exec(p?.map || ''); return m ? `try{localStorage.setItem('ov.mapstyle','{"dim":"${m[1]}","theme":"${m[2]}"}')}catch(e){}` : ''; };
 let mapHtml = null, mapMtime = 0;
-const mapPage = (c, user, role) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
+const mapPage = (c, user, role, oversight = false) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
   const prem = premium.isPremium(c), cfg = { premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? c.settings.licenseStyle || null : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};${mapPref(cfg.setup)}</script><style>${features.css(c)}</style>`;
-  return mapHtml.replace(/<head>/i, () => `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, () => `<title>${pages.esc(c.name)} · Oversite</title>`); };   // functions, so a $' in a name is never read as a replace pattern
+  const html = mapHtml.replace(/<head>/i, () => `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, () => `<title>${pages.esc(c.name)} · Oversite</title>`);
+  return oversight ? html.replace(/<\/body>/i, () => `${pages.oversightBar(c)}</body>`) : html; };   // functions, so a $' in a name is never read as a replace pattern
 
 // ── Roblox headshots ──
 const heads = new Map();
@@ -118,7 +120,10 @@ const staffRole = (c, user) => { if (!user) return null; let role = members.role
   const g = staffGrants.take(c.id, user.roblox_id); if (g) { if (!role) members.add(c.id, user.id, g.role); else if (role !== 'owner') members.setRole(c.id, user.id, g.role); role = members.role(c.id, user.id); }
   const G = c.settings.ingameStaff, rid = String(user.roblox_id), lvl = !G || role === 'owner' ? null : G.co?.includes(rid) ? 'co_owner' : G.admins?.includes(rid) ? 'admin' : G.mods?.includes(rid) ? 'mod' : null;
   if (lvl) { if (!role) members.add(c.id, user.id, 'member'); role = discordlink.higher(role || 'member', lvl); } return role; };
+// Oversite moderation checking on a server (Open CAD on /admin sets ov_watch for it): they see everything a co-owner sees, and can change nothing
+const watching = (req, user, c) => !!(user && c && isSiteMod(user) && auth.cookies(req).ov_watch === c.slug);
 const access = async (req, slug) => { const user = auth.currentUser(req), c = communities.bySlug(slug); if (!c) return { c: null, user };
+  if (watching(req, user, c)) return { c, user, role: 'co_owner', oversight: true };
   let role = staffRole(c, user);
   if (user && user.discord_id && role !== 'owner') { const lvl = await discordlink.levelFor(c, user.discord_id).catch(() => null); if (lvl) { if (!role) members.add(c.id, user.id, 'member'); role = discordlink.higher(role, lvl); } }
   return { c, user, role }; };
@@ -130,9 +135,10 @@ const nextAfterCreate = slug => discordlink.ready() ? `/c/${slug}/discord/connec
 const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
 
 const communityApi = async (req, res, slug, rest) => {
-  const { c, user, role } = await access(req, slug);
+  const { c, user, role, oversight } = await access(req, slug);
   if (!c) return json(res, { error: 'No such community.' }, 404);
-  if (c.suspended && !isSiteAdmin(user)) return json(res, { error: 'This server is suspended.' }, 403);
+  if (oversight && (req.method !== 'GET' || rest.startsWith('radio/'))) return json(res, { error: 'You’re viewing this server as Oversite moderation, so nothing can be changed.' }, 403);
+  if (c.suspended && !isSiteAdmin(user) && !oversight) return json(res, { error: 'This server is suspended.' }, 403);
   if (!user) return json(res, { error: 'Sign in first.' }, 401);
   // applications: anyone signed in can read an open form and apply, member or not
   { const ap = rest.match(/^apply\/(\d{1,9})$/);
@@ -141,7 +147,7 @@ const communityApi = async (req, res, slug, rest) => {
       if (auth.limited(req, 'apply', 6, 60000)) return json(res, { error: 'Too many tries. Wait a minute.' }, 429);
       const r = staffhub.apply(c, user, ap[1], (await jsonBody(req)).answers); return json(res, r, r.error ? 400 : 200); } }
   if (!role) return json(res, { error: 'You are not a member of this community.' }, 403);
-  if (!user.roblox_name) return json(res, { error: 'Link your Roblox account first. Open the dashboard to link it.' }, 403);
+  if (!user.roblox_name && !oversight) return json(res, { error: 'Link your Roblox account first. Open the dashboard to link it.' }, 403);
   if (req.method !== 'GET' && req.headers['x-oversite'] !== '1') return json(res, { error: 'Bad request.' }, 400);
   const f = feedFor(c), M = req.method;
   if (rest === 'stream' && M === 'GET') return f.stream(req, res, calOf(c), Object.keys(clearedCalls(c)), user.id);
@@ -659,7 +665,7 @@ const route = async (req, res) => {
   const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|prox|about|vote|staff|apply\/\d{1,9}))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
   if (sc) { const sub = short[2] || '', u = auth.currentUser(req); if (u) staffRole(sc, u);
     if (sub === '/vote') { path = `/s/${sc.slug}`; aboutPage = true; req.votePrompt = true; }
-    else if (sub === '/about' || (!sub && !(u && members.role(sc.id, u.id)) && visible(sc.slug))) { path = `/s/${sc.slug}`; aboutPage = true; }
+    else if (sub === '/about' || (!sub && !(u && (members.role(sc.id, u.id) || (isSiteMod(u) && (url.searchParams.has('watch') || auth.cookies(req).ov_watch === sc.slug)))) && visible(sc.slug))) { path = `/s/${sc.slug}`; aboutPage = true; }
     else if (sub === '/prox') { path = `/c/${sc.slug}/voice`; req.prox = true; }
     else path = `/c/${sc.slug}${sub}`; }
   const me0 = auth.currentUser(req);
@@ -789,23 +795,26 @@ const route = async (req, res) => {
     console.log(`premium: ${c.slug} bought by ${user.roblox_name || user.name}`); return redirect(res, `/${c.slug}/settings?premium=1#premium`); }
   if ((m = path.match(/^\/c\/([a-z0-9-]{3,32})(\/.*)?$/))) { const slug = m[1], sub = (m[2] || '/').replace(/\/+$/, '') || '/';
     if (sub.startsWith('/api/')) return communityApi(req, res, slug, sub.slice(5));
-    const { c, user, role } = await access(req, slug);
+    const w = url.searchParams.get('watch'), u0 = auth.currentUser(req);   // Open CAD from /admin: start (or end) looking at this server as Oversite moderation
+    if (w && u0 && isSiteMod(u0) && communities.bySlug(slug)) { console.log(`oversight: ${u0.roblox_name || u0.name} (${u0.discord_id || u0.id}) ${w === '1' ? 'opened' : 'left'} ${slug}`);
+      return redirect(res, w === '1' ? `/${slug}${sub === '/' ? '' : sub}` : '/admin', { 'set-cookie': auth.setCookie(req, 'ov_watch', w === '1' ? slug : '', w === '1' ? 2 * 3600 : 0) }); }
+    const { c, user, role, oversight } = await access(req, slug);
     if (!c) return msg(res, user, 'Community not found', 'Check the address, or ask your community for an invite link.', { href: user ? '/dashboard' : '/', label: user ? 'Go to dashboard' : 'Back' }, 404);
-    if (c.suspended && !isSiteAdmin(user)) return msg(res, user, `${c.name} is suspended`, 'Oversite has suspended this server for breaking the Terms of Use, so its CAD is closed. The owner can contact support about it.', { href: '/support?topic=server', label: 'Contact support' }, 403);
+    if (c.suspended && !isSiteAdmin(user) && !oversight) return msg(res, user, `${c.name} is suspended`, 'Oversite has suspended this server for breaking the Terms of Use, so its CAD is closed. The owner can contact support about it.', { href: '/support?topic=server', label: 'Contact support' }, 403);
     if (!user) return redirect(res, `/?next=${encodeURIComponent(url.pathname)}`);
     const apm = sub.match(/^\/apply\/(\d{1,9})$/);   // an application form: open to anyone signed in, member or not
     if (apm) return user.roblox_name ? page(res, applyPage({ logo: LOGO, user, c, id: apm[1] })) : redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname)}`);
-    if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', { href: '/dashboard', label: 'Go to dashboard' }, 403);
-    if (!user.roblox_name) return redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname + url.search)}`);   // no CAD without a linked Roblox account
-    if (needsDiscord(c) && sub === '/') return can(role, 'co_owner') ? redirect(res, `/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
-    if (sub === '/') return html(res, mapPage(c, user, role));
+    if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', isSiteMod(user) ? { href: `/${c.slug}?watch=1`, label: 'Open as Oversite moderation' } : { href: '/dashboard', label: 'Go to dashboard' }, 403);
+    if (!user.roblox_name && !oversight) return redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname + url.search)}`);   // no CAD without a linked Roblox account
+    if (needsDiscord(c) && sub === '/' && !oversight) return can(role, 'co_owner') ? redirect(res, `/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
+    if (sub === '/') return html(res, mapPage(c, user, role, oversight));
     if (sub === '/voice' && !req.prox) return redirect(res, `/${c.slug}/prox${url.search}`);   // the old address
     if (sub === '/voice' && !premium.isPremium(c)) return msg(res, user, 'Proximity chat is part of Premium', can(role, 'co_owner') ? 'Get Premium for this server to let players hear each other by distance in game.' : 'Ask your server owner to get Premium for proximity chat.', can(role, 'co_owner') ? { href: `/${c.slug}/settings#premium`, label: 'Get Premium' } : { href: `/${c.slug}`, label: 'Back to the CAD' });
     if (sub === '/voice') return page(res, voicePage({ logo: LOGO, user, c, settings: voice.voiceSettings(c), keyOk: !!communities.key(c.id), embed: url.searchParams.has('embed') }));
-    if (sub === '/staff') return can(role, 'mod') ? page(res, staffHub({ logo: LOGO, user, c })) : msg(res, user, 'Staff only', 'The staff page is for Mods and up.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
+    if (sub === '/staff') return can(role, 'mod') ? page(res, watched(staffHub({ logo: LOGO, user, c }), c, oversight)) : msg(res, user, 'Staff only', 'The staff page is for Mods and up.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c), ranks: ranksFor(c, premium.isPremium(c)), boost: premium.boostInfo(c, user), feats: features.switches(c), autos: automations.rules(c), featVals: { biztax: civ.conf(c).biztax }})); }
+      return page(res, watched(pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c), ranks: ranksFor(c, premium.isPremium(c)), boost: premium.boostInfo(c, user), feats: features.switches(c), autos: automations.rules(c), featVals: { biztax: civ.conf(c).biztax }}), c, oversight)); }
     return msg(res, user, 'Page not found', 'That page does not exist in this server.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path === '/premium/done') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account');
     let r; try { r = await premium.confirmUser(user, url.searchParams.get('session_id')); } catch (e) { r = { error: 'Payments could not be reached. If you were charged, Premium switches on within a few minutes.' }; }
