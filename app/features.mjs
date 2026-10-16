@@ -49,6 +49,7 @@ export const GROUPS = [
     F('mdtunits', 'Units', 'The units and apparatus list in the MDT.', { hide: [tab('units', '#mdt .tside')] }),
     F('mdtmap', 'MDT map', 'The map inside the MDT.', { hide: [tab('map', '#mdt .tside')] }),
     F('gps', 'Directions', 'Turn-by-turn directions to a call, with spoken turns.', { hide: ['[data-nav]', '#navView'] }),
+    F('radio', 'Dispatch radio', 'Push-to-talk radio channels for each department and all units, in the CAD.', { hide: ['#radio', '#radioBtn'] }),
     F('panic', 'Panic button', 'Units hold the panic button to alert dispatch with a siren and a priority call.', { hide: ['#tPanic', '.panicbar'] }),
     F('reports', 'Incident reports', 'Fire and DOT incident reports.', { hide: [tab('reports', '#mdt .tside'), '[data-act="report"]'] })] },
 
@@ -159,7 +160,7 @@ export const css = c => ALL.filter(i => i.hide && !on(c, i.key)).flatMap(i => i.
 
 // the plain routes (under /c/<slug>/api/) and the feature each belongs to; routes that depend on what is posted are checked where they're handled
 const ROUTES = [
-  [/^panic(\/clear)?$/, 'panic'], [/^calls\/state$/, 'assign'], [/^reports(\/delete)?$/, 'reports'], [/^srvstatus/, 'status'], [/^status$/, 'unitstatus'], [/^units\/me$/, 'unitpick'], [/^units\/ride$/, 'ridewith'], [/^calls\/clear$/, 'clearcall'],
+  [/^panic(\/clear)?$/, 'panic'], [/^calls\/state$/, 'assign'], [/^reports(\/delete)?$/, 'reports'], [/^srvstatus/, 'status'], [/^radio\//, 'radio'], [/^status$/, 'unitstatus'], [/^units\/me$/, 'unitpick'], [/^units\/ride$/, 'ridewith'], [/^calls\/clear$/, 'clearcall'],
   [/^mdt\/sign(in|out)$/, 'mdtsignin'], [/^roads$/, 'roads'],
   [/^pd\//, 'dept_pd'], [/^pd\/search$/, 'pd_lookup'], [/^pd\/records\/delete$/, 'pd_delete'],
   [/^staff\/records/, 'st_records'], [/^staff\/logs$/, 'st_logs'],
@@ -201,7 +202,7 @@ export const WORDS = {
   pd_lookup: 'lookup search people plates name check ncic database run plate', pd_vehedit: 'edit vehicle registration insurance stolen flag', pd_character: 'character name age civilian profile in lookup',
   pd_warrants: 'warrants arrest warrant judge approval supervisor', pd_bolos: 'bolo be on the lookout wanted alert apb', pd_records: 'records list history database', pd_citations: 'citations tickets fines speeding traffic ticket',
   pd_warnings: 'warnings verbal written warning', pd_arrests: 'arrests jail booking charges cuffs prison', pd_stops: 'traffic stops pull over pullover', pd_backup: 'backup code 2 code 3 assistance help request',
-  pd_autochecks: 'automatic checks alpr plate reader auto run', pd_alerts: 'police alerts popups bolo alerts warrant alerts', pd_delete: 'delete records remove erase', alpr: 'alpr plate reader license plate camera scanner auto flag stolen cars', automations: 'automations rules triggers if this then that auto messages welcome discord posts bots workflows',
+  pd_autochecks: 'automatic checks alpr plate reader auto run', pd_alerts: 'police alerts popups bolo alerts warrant alerts', pd_delete: 'delete records remove erase', radio: 'radio push to talk ptt walkie talkie comms channels voice dispatch radio', alpr: 'alpr plate reader license plate camera scanner auto flag stolen cars', automations: 'automations rules triggers if this then that auto messages welcome discord posts bots workflows',
   payday: 'weekly pay paycheck salary income stimulus allowance ubi', startcash: 'starting money opening balance new player cash', autopay: 'autopay automatic payments auto pay bills', latefees: 'late fees penalty overdue interest',
   vehicles: 'vehicles cars garage my car', cars: 'registration insurance car bills vehicle tax dmv', stolen: 'stolen car report theft', fines: 'fines tickets pay citations billed', civid: 'id card identity character drivers name',
   license: 'drivers license licence dl', record: 'criminal record rap sheet history', civ_grant: 'give money take money add cash admin money grant',

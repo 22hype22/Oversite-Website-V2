@@ -31,6 +31,7 @@ import * as srvStatus from './app/status.mjs';
 import * as alerts from './app/alerts.mjs';
 import * as backup from './app/backup.mjs';
 import * as automations from './app/automations.mjs';
+import * as radio from './app/radio.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -145,12 +146,21 @@ const communityApi = async (req, res, slug, rest) => {
   if (M === 'POST' && !can(role, 'mod') && ['calls/clear', 'calls/state', 'reports', 'reports/delete', 'units/me', 'status', 'panic', 'panic/clear', 'units/ride'].includes(rest) && liveSide(c, user) === 'civ')
     return json(res, { error: 'You’re on the civilian team in game. Dispatch is for players on a department team.' }, 403);
   // Settings → Features: what a switched-off feature does is refused (police records, staff actions and homes depend on what's posted: checked where they're handled)
-  const offKey = features.routeKeys(rest).find(k => (M !== 'GET' || ['dept_pd', 'pd_lookup', 'st_records', 'st_logs', 'reports', 'status'].includes(k)) && !features.on(c, k)), off = k => json(res, { error: `This server has switched this off: ${features.nameOf(k)}.` }, 403);
+  const offKey = features.routeKeys(rest).find(k => (M !== 'GET' || ['dept_pd', 'pd_lookup', 'st_records', 'st_logs', 'reports', 'status', 'radio'].includes(k)) && !features.on(c, k)), off = k => json(res, { error: `This server has switched this off: ${features.nameOf(k)}.` }, 403);
   if (offKey) return off(offKey);
   if (rest === 'calls/clear' && M === 'POST') { const k = String((await jsonBody(req)).key || ''); if (!/^[\w .:@#-]{1,120}$/.test(k)) return json(res, { error: 'Bad call.' }, 400);
     const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
     if (s.callstate) delete s.callstate[k];
     communities.saveSettings(c.id, s); c.settings.cleared = s.cleared; f.bcast('callclear', JSON.stringify({ key: k, by: user.roblox_name || user.name || '' })); return json(res, { ok: true }); }
+  // dispatch radio: a channel is for players on that department's team in game (server staff can use any), All units for any department
+  if (rest.startsWith('radio/')) { const qs = new URL(req.url, 'http://x').searchParams, j = M === 'POST' ? await jsonBody(req) : {}, ch = String(qs.get('ch') || j.ch || '');
+    if (!radio.CHANNELS[ch]) return json(res, { error: 'There is no such channel.' }, 400); if (ch !== 'all' && !features.on(c, 'dept_' + ch)) return off('dept_' + ch);
+    if (!can(role, 'mod')) { const side = liveSide(c, user); if (side === 'civ') return json(res, { error: 'Radio is for department players. You’re on the civilian team in game.' }, 403);
+      if (ch !== 'all' && side !== undefined && side !== ch) return json(res, { error: `The ${radio.CHANNELS[ch]} channel is for players on that team in game.` }, 403); }
+    if (rest === 'radio/join' && M === 'GET') return radio.join(req, res, c, user, ch, qs.get('unit'));
+    if (rest === 'radio/signal' && M === 'POST') { const r = radio.signal(c, user, ch, j.to, j.data); return json(res, r, r.error ? 400 : 200); }
+    if (rest === 'radio/talk' && M === 'POST') { const r = radio.talk(c, user, ch, !!j.on); return json(res, r, r.error ? 400 : 200); }
+    return json(res, { error: 'Not found.' }, 404); }
   // Settings → Automations: the rules, what can be used in them, what ran lately; a test run with made-up details
   if (rest === 'automations' && M === 'GET') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can see automations.' }, 403); return json(res, { rules: automations.rules(c), recent: automations.recent(c.id) }); }
   if (rest === 'automations' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change automations.' }, 403); const r = automations.save(c, (await jsonBody(req)).rules, () => communities.saveSettings(c.id, c.settings)); return json(res, r, r.error ? 400 : 200); }
