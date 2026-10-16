@@ -2,6 +2,23 @@
 import { DOCS, UPDATED } from './legal.mjs';
 import { isSiteAdmin, isSiteMod } from './admins.mjs';
 import { GROUPS as FEATURES } from './features.mjs';
+// the settings search: every card on the settings page (found by its heading) with the words people use for it, and every feature
+const SETTING_CARDS = [
+  ['ER:LC server', 'general', 'server key api connect erlc private server game key token code link game commands'],
+  ['Departments', 'general', 'department names police fire dot teams units rename sheriff ems short name callsigns'],
+  ['Discord server', 'general', 'discord roles admin mod link guild bot connect'],
+  ['Delete server', 'general', 'delete remove server shut down get rid'],
+  ['Boundaries', 'bounds', 'boundaries areas zones map kick warn leave outside play area restricted limits draw'],
+  ['Server profile', 'profile', 'profile picture logo icon banner cover photos description bio explore region language listing about'],
+  ['Vote link', 'profile', 'vote votes explore ranking link top'],
+  ['Invite code', 'members', 'invite code join link add players new members'],
+  ['One-off invite links', 'members', 'invite link single use one time'],
+  ['Members', 'members', 'members roles staff admin mod co owner promote demote remove people list'],
+  ['Premium', 'premium', 'premium subscription pay billing upgrade gold plan price cancel'],
+  ['MDT sign-in ranks', 'premium', 'ranks rank supervisor sign in mdt promotions'],
+  ['Proximity voice', 'premium', 'voice proximity chat talk hear microphone range muffle vc']];
+const settingsIndex = () => [...FEATURES.flatMap(g => g.items.map(i => ({ k: i.key, t: i.name, g: g.title, a: i.about, w: i.words }))),
+  ...SETTING_CARDS.map(([t, p, w]) => ({ c: t, p, t, g: { general: 'General', bounds: 'Boundaries', profile: 'Profile', members: 'Members', premium: 'Premium' }[p], a: '', w }))];
 export const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CSS = `
 :root{color-scheme:dark;--ink:#F0F2F5;--dim:#9A9EA6;--faint:#62666D;--hair:rgba(240,242,245,.08);--hair2:rgba(240,242,245,.14);--panel:rgba(16,16,18,.78);--field:rgba(255,255,255,.04);--acc:#4C8DFF;--ok:#46D07C;--warn:#E9B04C;--bad:#E24B4B}
@@ -934,9 +951,21 @@ ${user && owned.length ? `<details class="mk" style="margin-top:14px"><summary>O
 {let plan='year';document.querySelectorAll('.pp-buy [data-plan]').forEach(b=>b.onclick=()=>{plan=b.dataset.plan;document.querySelectorAll('.pp-buy [data-plan]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 const buy=document.getElementById('ppBuy');if(buy)buy.onclick=async()=>{buy.disabled=true;try{const j=await api('/api/me/premium/checkout',{plan});location.href=j.url}catch(e){buy.disabled=false;say(document.getElementById('ppMsg'),e.message)}}}` });
 export const ST_CSS = `.stm{max-width:1060px}
+.ss{position:relative;margin:0 0 22px}.ss input{width:100%;padding:13px 16px;font-size:14px;border-radius:12px}
+.ss-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;max-height:min(440px,60vh);overflow:auto;padding:6px;border-radius:14px;background:#141518;border:1px solid var(--hair2);box-shadow:0 24px 50px rgba(0,0,0,.55)}.ss-list[hidden]{display:none}
+.ss-r{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;border-radius:10px;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}.ss-r[aria-selected="true"]{background:rgba(240,242,245,.07)}
+.ss-r>span{flex:1;min-width:0}.ss-r b{display:block;font-size:13.5px;font-weight:600}.ss-r small{display:block;margin-top:2px;font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ss-r em{flex:none;font-style:normal;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--hair2);color:var(--dim)}.ss-r em.on{color:#3FBF8A;border-color:rgba(63,191,138,.4)}
+.ss-none{padding:12px;font-size:13px;color:var(--dim)}
+@media (hover:hover) and (pointer:fine){.ss-r:hover{background:rgba(240,242,245,.05)}}
+.ss-hit{animation:ssHit 2.4s ease-out}@keyframes ssHit{0%,40%{box-shadow:0 0 0 2px rgba(232,179,58,.75)}100%{box-shadow:0 0 0 2px rgba(232,179,58,0)}}
+@media (prefers-reduced-motion:reduce){.ss-hit{animation:none;box-shadow:0 0 0 2px rgba(232,179,58,.75)}}
 .ft-find{margin:4px 0 4px}
-.ft-gh{display:flex;align-items:baseline;gap:10px;margin:22px 0 8px}.ft-g{margin:0;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--dim)}.ft-gn{font-size:11.5px;color:var(--faint)}
-.ft-all{margin-left:auto;font:inherit;font-size:12px;color:var(--dim);background:none;border:0;padding:2px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--hair2)}
+.ft-grp{border-top:1px solid var(--hair)}.ft-grp:first-of-type{margin-top:12px}.ft-grp[open]{padding-bottom:14px}
+.ft-gh{display:flex;align-items:center;gap:10px;padding:14px 2px;cursor:pointer;list-style:none}.ft-gh::-webkit-details-marker{display:none}
+.ft-gh::before{content:"";flex:none;width:7px;height:7px;margin:0 4px 0 2px;border-right:1.5px solid var(--dim);border-bottom:1.5px solid var(--dim);transform:rotate(-45deg);transition:transform .2s cubic-bezier(.23,1,.32,1)}.ft-grp[open]>.ft-gh::before{transform:rotate(45deg)}
+.ft-g{margin:0;font-size:14px;font-weight:600;color:var(--ink)}.ft-gn{flex:none;font-size:12px;color:var(--faint)}
+.ft-all{margin-left:auto;flex:none;white-space:nowrap;font:inherit;font-size:12px;color:var(--dim);background:none;border:0;padding:2px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--hair2)}
 @media (hover:hover) and (pointer:fine){.ft-all:hover{color:var(--ink)}}
 .ft.sub{padding-left:34px}.ft.sub::before{content:"";position:absolute;left:16px;top:0;bottom:50%;width:10px;border-left:1px solid var(--hair2);border-bottom:1px solid var(--hair2);border-bottom-left-radius:6px}
 .ft-in{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--dim)}.ft-in input{width:64px;padding:5px 8px;font-size:13px;text-align:right}
@@ -950,7 +979,7 @@ export const ST_CSS = `.stm{max-width:1060px}
 .ft input:checked+i{background:#3FBF8A}.ft input:checked+i::after{transform:translateX(16px)}
 .ft input:focus-visible+i{outline:2px solid rgba(240,242,245,.6);outline-offset:2px}
 .ft input:disabled+i{opacity:.4}.ft:has(input:disabled){cursor:not-allowed}.ft.dim{opacity:.45}
-@media (prefers-reduced-motion:reduce){.ft i,.ft i::after{transition:none}}
+@media (prefers-reduced-motion:reduce){.ft i,.ft i::after,.ft-gh::before{transition:none}}
 .st-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 22px}.st-top h1{margin:0}.st-top .lead{margin:6px 0 0}.st-top .btn{flex:none;margin-top:6px}
 .sx{display:grid;grid-template-columns:180px minmax(0,1fr);gap:28px;align-items:start}
 .st-nav{position:sticky;top:76px;display:flex;flex-direction:column;gap:2px}
@@ -987,6 +1016,8 @@ export const ST_CSS = `.stm{max-width:1060px}
 export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false, bnd = { on: false, grace: 60, exemptStaff: true }, ranks = null, boost = null, feats = {}, featVals = {} }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
 <main class="stm"><style>${ST_CSS}</style><div class="st-top"><div><h1><b>${esc(c.name)}</b> settings</h1>${isNew ? '<p class="lead">Your server is ready. Connect it to ER:LC, then give your members the invite code.</p>' : ''}</div><a class="btn sm pri" href="/${esc(c.slug)}">Open CAD</a></div>
 ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord server to finish</h2><p class="note">Every Oversite server is tied to its Discord. Members can't open the CAD until it's connected, and it's where you pick which Discord roles are Admin and Mod.</p></div><a class="btn discord" href="/c/${esc(c.slug)}/discord/connect?new=1">Connect Discord server</a></section>` : ''}
+<div class="ss" id="ss"><input type="search" id="ssIn" placeholder="Search settings, like “emergency button” or “make businesses pay tax”" aria-label="Search settings" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ssList"><div class="ss-list" id="ssList" role="listbox" hidden></div></div>
+<script type="application/json" id="ssIdx">${JSON.stringify(settingsIndex()).replace(/</g, '\\u003c')}</script>
 <div class="sx">
 <nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['features', 'Features', ''], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
 <div class="st-body">
@@ -1008,7 +1039,7 @@ ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p
 <div class="st-pane" id="tab-features" data-pane="features" role="tabpanel" aria-labelledby="t-features">
 <section class="card" id="features"><h2 class="hrow">Features<span class="tag" id="ftCount"></span></h2><p class="note">Everything Oversite does on your server. Switch off what you don't use: it disappears from the CAD for everyone and stops working. Nothing is deleted, so switching it back on picks up where you left off.</p>
 <input type="search" class="ft-find" id="ftFind" placeholder="Find a feature" aria-label="Find a feature" autocomplete="off">
-${FEATURES.map(g => `<div class="ft-grp"><div class="ft-gh"><h3 class="ft-g">${esc(g.title)}</h3><span class="ft-gn"></span><button type="button" class="ft-all"></button></div><div class="ft-list">${g.items.map(it => `<label class="ft${it.parent ? ' sub' : ''}" data-parent="${esc(it.parent || '')}" data-find="${esc((it.name + ' ' + it.about + ' ' + g.title).toLowerCase())}"><span><b>${esc(it.name)}${it.tag ? `<span class="tag">${esc(it.tag)}</span>` : ''}</b><small>${esc(it.about)}</small>${it.input ? `<span class="ft-in">${esc(it.input.label)}<input type="number" data-ftv="${it.key}" min="${it.input.min}" max="${it.input.max}" value="${esc(String(featVals[it.key] ?? ''))}" aria-label="${esc(it.name)} ${esc(it.input.label.toLowerCase())}">${esc(it.input.unit)}</span>` : ''}</span><input type="checkbox" role="switch" data-ft="${it.key}"${feats[it.key] ? ' checked' : ''}${it.key === 'voice' && !prem.on && !feats[it.key] ? ' disabled' : ''}><i aria-hidden="true"></i></label>`).join('')}</div></div>`).join('')}
+${FEATURES.map(g => `<details class="ft-grp"><summary class="ft-gh"><h3 class="ft-g">${esc(g.title)}</h3><span class="ft-gn"></span><button type="button" class="ft-all"></button></summary><div class="ft-list">${g.items.map(it => `<label class="ft${g.items.some(x => x.key === it.parent) ? ' sub' : ''}" data-parent="${esc(it.parent || '')}" data-find="${esc((it.name + ' ' + it.about + ' ' + g.title).toLowerCase())}"><span><b>${esc(it.name)}${it.tag ? `<span class="tag">${esc(it.tag)}</span>` : ''}</b><small>${esc(it.about)}</small>${it.input ? `<span class="ft-in">${esc(it.input.label)}<input type="number" data-ftv="${it.key}" min="${it.input.min}" max="${it.input.max}" value="${esc(String(featVals[it.key] ?? ''))}" aria-label="${esc(it.name)} ${esc(it.input.label.toLowerCase())}">${esc(it.input.unit)}</span>` : ''}</span><input type="checkbox" role="switch" data-ft="${it.key}"${feats[it.key] ? ' checked' : ''}${it.key === 'voice' && !prem.on && !feats[it.key] ? ' disabled' : ''}><i aria-hidden="true"></i></label>`).join('')}</div></details>`).join('')}
 <p class="note" id="ftNone" hidden>No feature matches that.</p><p class="msg" id="ftMsg"></p></section></div>
 <div class="st-pane wide" id="tab-bounds" data-pane="bounds" role="tabpanel" aria-labelledby="t-bounds">
 <section class="card" id="bounds" data-api="/c/${esc(c.slug)}/api"><h2 class="hrow">Boundaries<span class="tag" id="bdTag">${bnd.on ? 'On' : 'Off'}</span></h2>
@@ -1092,6 +1123,34 @@ ${(() => { const V = c.settings.voice || {}, r = V.range || 'normal'; return `<s
 </div></div>
 </main>`, script: `
 const A='/c/${esc(c.slug)}/api';
+/* settings search: matches what people mean, not just names: each word is matched against a feature's name, its keywords and its
+   description, forgiving endings ("taxes" finds tax) and small typos; the best matches first. Picking one opens it and flashes it */
+const ssIdx=JSON.parse(document.getElementById('ssIdx').textContent);
+const SS_STOP=new Set('a an the to of for and or in on at by my me i we you it its is are be do does can how where what which who want wanna need make let lets get turn switch toggle set setting settings option options server players people player with that this from like thing things stuff some way able allow off enable disable have has should would could will just only also into about all any'.split(' '));
+const ssStem=w=>w.length>4?w.replace(/ies$/,'y').replace(/(sses)$/,'ss').replace(/([^s])s$/,'$1').replace(/(ing|ed)$/,''):w.replace(/([^s])s$/,'$1');
+const ssToks=t=>String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').split(' ').filter(w=>w&&!SS_STOP.has(w)).map(ssStem);
+const ssLev=(a,b)=>{let p=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const q=[i];for(let j=1;j<=b.length;j++)q[j]=Math.min(p[j]+1,q[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=q}return p[b.length]};
+const ssNear=(w,t)=>w===t||(w.length>=3&&t.startsWith(w))||(t.length>=4&&w.startsWith(t))||(w.length>=4&&Math.abs(w.length-t.length)<=2&&ssLev(w,t)<=(w.length>=7?2:1));
+ssIdx.forEach(e=>{e.n=ssToks(e.t);e.kw=ssToks(e.w+' '+e.g);e.ab=ssToks(e.a)});
+const ssRank=q=>{const qs=ssToks(q),raw=q.trim().toLowerCase();if(!qs.length)return[];
+  return ssIdx.map(e=>{let s=0,hit=0;for(const w of qs){const b=e.n.some(t=>ssNear(w,t))?3:e.kw.some(t=>ssNear(w,t))?2:e.ab.some(t=>ssNear(w,t))?1:0;if(b){s+=b;hit++}}
+    if(!hit)return null;if(e.t.toLowerCase().includes(raw))s+=6;return{e,s:s+hit*2+(hit===qs.length?4:0)}}).filter(Boolean).sort((a,b)=>b.s-a.s).map(x=>x.e)};
+{const inp=document.getElementById('ssIn'),list=document.getElementById('ssList');let res=[],sel=0;
+  const flash=el=>{if(!el)return;el.classList.remove('ss-hit');void el.offsetWidth;el.classList.add('ss-hit');el.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})};
+  const go=e=>{list.hidden=true;inp.setAttribute('aria-expanded','false');
+    if(e.k){document.querySelector('[data-tab="features"]')?.click();const f=document.getElementById('ftFind');if(f&&f.value){f.value='';f.dispatchEvent(new Event('input'))}
+      const x=document.querySelector('[data-ft="'+e.k+'"]'),row=x&&x.closest('.ft');if(row){row.closest('details').open=true;setTimeout(()=>flash(row),60)}}
+    else{document.querySelector('[data-tab="'+e.p+'"]')?.click();const card=[...document.querySelectorAll('.st-pane .card')].find(c=>(c.querySelector('h2')?.firstChild?.textContent||'').trim().startsWith(e.c));setTimeout(()=>flash(card),60)}};
+  const draw=()=>{const q=inp.value;res=ssRank(q).slice(0,8);sel=0;if(!q.trim()){list.hidden=true;inp.setAttribute('aria-expanded','false');return}
+    list.innerHTML=res.length?res.map((e,i)=>{const x=e.k&&document.querySelector('[data-ft="'+e.k+'"]');return '<button type="button" role="option" class="ss-r" data-i="'+i+'" aria-selected="'+(i===sel)+'"><span><b></b><small></small></span>'+(x?'<em class="'+(x.checked?'on':'')+'">'+(x.checked?'On':'Off')+'</em>':'')+'</button>'}).join(''):'<div class="ss-none">Nothing matches. Try other words, like what it does.</div>';
+    list.querySelectorAll('.ss-r').forEach((b,i)=>{b.querySelector('b').textContent=res[i].t;b.querySelector('small').textContent=(res[i].k?'Features › '+res[i].g:res[i].g)+(res[i].a?' · '+res[i].a:'')});
+    list.hidden=false;inp.setAttribute('aria-expanded','true')};
+  const mark=()=>list.querySelectorAll('.ss-r').forEach((b,i)=>b.setAttribute('aria-selected',i===sel));
+  inp.addEventListener('input',draw);inp.addEventListener('focus',()=>{if(inp.value.trim())draw()});
+  inp.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){if(!res.length)return;e.preventDefault();sel=(sel+(e.key==='ArrowDown'?1:res.length-1))%res.length;mark();list.querySelectorAll('.ss-r')[sel].scrollIntoView({block:'nearest'})}
+    else if(e.key==='Enter'){e.preventDefault();if(res[sel])go(res[sel])}else if(e.key==='Escape'){list.hidden=true;inp.setAttribute('aria-expanded','false')}});
+  list.addEventListener('mousedown',e=>e.preventDefault());list.addEventListener('click',e=>{const b=e.target.closest('.ss-r');if(b)go(res[+b.dataset.i])});
+  document.addEventListener('click',e=>{if(!e.target.closest('#ss')){list.hidden=true;inp.setAttribute('aria-expanded','false')}})}
 /* features: each switch saves as soon as it's flipped; a feature whose parent is off is dimmed; groups switch all at once */
 {const fm=document.getElementById('ftMsg'),sw=[...document.querySelectorAll('[data-ft]')],by=k=>sw.find(x=>x.dataset.ft===k),row=x=>x.closest('.ft');
   const twin={bounds:'bdOn',voice:'vOn',explore:'spList'};   // the same switch elsewhere on this page
@@ -1104,10 +1163,10 @@ const A='/c/${esc(c.slug)}/api';
       say(xs.length>1?(v?'Turned on.':'Turned off.'):row(xs[0]).querySelector('b').firstChild.textContent+(xs[0].checked?' is on.':' is off.'),true)}
     catch(e){xs.forEach(x=>{x.checked=!v});say(e.message)}xs.forEach(x=>{x.disabled=x.dataset.ft==='voice'&&x.dataset.lock==='1'&&!x.checked});paint()};
   sw.forEach(x=>{if(x.disabled)x.dataset.lock='1';x.addEventListener('change',()=>save([x],x.checked))});
-  document.querySelectorAll('.ft-all').forEach(b=>b.addEventListener('click',()=>{const xs=[...b.closest('.ft-grp').querySelectorAll('[data-ft]')],v=xs.some(x=>!x.checked);save(xs.filter(x=>x.checked!==v&&!(v&&x.dataset.lock==='1')),v)}));
+  document.querySelectorAll('.ft-all').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();const xs=[...b.closest('.ft-grp').querySelectorAll('[data-ft]')],v=xs.some(x=>!x.checked);save(xs.filter(x=>x.checked!==v&&!(v&&x.dataset.lock==='1')),v)}));
   document.querySelectorAll('[data-ftv]').forEach(n=>n.addEventListener('change',async()=>{try{const r=await api(A+'/features',{key:n.dataset.ftv,value:+n.value});n.value=r.value;say('Business tax is '+r.value+'%.',true)}catch(e){say(e.message)}}));
-  const find=document.getElementById('ftFind');find.addEventListener('input',()=>{const q=find.value.trim().toLowerCase();let any=false;
-    document.querySelectorAll('.ft-grp').forEach(g=>{let n=0;g.querySelectorAll('.ft').forEach(l=>{const hit=!q||l.dataset.find.includes(q);l.hidden=!hit;if(hit)n++});g.hidden=!n;if(n)any=true});document.getElementById('ftNone').hidden=any})}
+  const find=document.getElementById('ftFind');find.addEventListener('input',()=>{const q=find.value.trim().toLowerCase(),keys=new Set(ssRank(q).filter(e=>e.k).map(e=>e.k));let any=false;
+    document.querySelectorAll('.ft-grp').forEach(g=>{let n=0;g.querySelectorAll('.ft').forEach(l=>{const hit=!q||keys.has(l.querySelector('[data-ft]').dataset.ft);l.hidden=!hit;if(hit)n++});g.hidden=!n;g.open=!!(q&&n);if(n)any=true});document.getElementById('ftNone').hidden=any})}
 /* tabs: one group of settings at a time; the address keeps the tab, and links to a card (#discord, #voice) open its tab */
 {const panes=[...document.querySelectorAll('.st-pane')],tabs=[...document.querySelectorAll('[data-tab]')];
   const show=(h,scroll)=>{const tp=h&&document.getElementById('tab-'+h),el=!tp&&h&&document.getElementById(h),p=tp||el&&el.closest('.st-pane')||panes[0];

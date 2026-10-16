@@ -67,7 +67,7 @@ export const ensure = (c, uid) => { let a = acct(c.id, uid); if (a) return a; co
   // the economy starts with the first account: fines and car bills count from then, never backdated
   if (!cf.since) { const fresh = communities.byId(c.id); fresh.settings.civ = { ...(fresh.settings.civ || {}), since: t }; communities.saveSettings(c.id, fresh.settings); c.settings.civ = fresh.settings.civ; }
   q('INSERT OR IGNORE INTO civ_accounts (community_id, user_id, balance, autopay, paid_at, created) VALUES (?, ?, 0, 1, ?, ?)').run(c.id, uid, t, t);
-  if (cf.start) move(c.id, uid, cf.start, 'deposit', 'Opening balance'); return acct(c.id, uid); };
+  if (cf.start && feature(c, 'startcash')) move(c.id, uid, cf.start, 'deposit', 'Opening balance'); return acct(c.id, uid); };
 // money in (positive) or out (negative); never below zero unless forced (a fine paid by staff, say)
 export const move = (cid, uid, amount, kind, memo, force = false) => { const a = acct(cid, uid); if (!a) return { error: 'No account.' }; amount = Math.round(amount);
   if (!force && amount < 0 && a.balance + amount < 0) return { error: `Not enough money. You have ${money(a.balance)}.` };
@@ -117,7 +117,7 @@ export const cycle = c => { const cf = conf(c); if (!cf.on) return;
   const holders = q('SELECT a.*, u.roblox_id AS rid, u.roblox_name AS rname FROM civ_accounts a JOIN users u ON u.id = a.user_id WHERE a.community_id = ?').all(cid);
   const byRid = new Map(holders.filter(h => h.rid).map(h => [String(h.rid), h]));
   db.exec('BEGIN'); try {
-    for (const h of holders) if (cf.weekly && t - h.paid_at >= GWEEK) { q('UPDATE civ_accounts SET paid_at = ? WHERE community_id = ? AND user_id = ?').run(t, cid, h.user_id); move(cid, h.user_id, cf.weekly, 'deposit', 'Weekly payment'); }
+    if (feature(c, 'payday')) for (const h of holders) if (cf.weekly && t - h.paid_at >= GWEEK) { q('UPDATE civ_accounts SET paid_at = ? WHERE community_id = ? AND user_id = ?').run(t, cid, h.user_id); move(cid, h.user_id, cf.weekly, 'deposit', 'Weekly payment'); }
     // a fine for every citation and arrest written since the economy began, billed to whoever it was written against
     for (const r of q("SELECT id, kind, subject_rid, data, at FROM pd_records WHERE community_id = ? AND kind IN ('citation', 'arrest') AND at >= ? AND subject_rid <> ''").all(cid, since)) {
       if (!feature(c, 'fines')) break; const h = byRid.get(String(r.subject_rid)); if (h) billFine(cid, h.user_id, r, cf); }
@@ -132,28 +132,28 @@ export const cycle = c => { const cf = conf(c); if (!cf.on) return;
       const due = wkStart + cf.grace * GDAY, where = `${p.name}${p.address ? ', ' + p.address : ''}`;
       if (p.mode === 'rent' && p.rent) bill(cid, p.owner_id, 'rent', `rent:${p.id}:${wk}`, `Rent, ${where}`, p.rent, wkStart, due);
       if (p.mode === 'mortgage' && p.loan_left > 0) bill(cid, p.owner_id, 'mort', `mort:${p.id}:${wk}`, `Mortgage, ${where}`, Math.min(p.loan_weekly, p.loan_left), wkStart, due);
-      const tax = p.mode === 'rent' ? 0 : Math.round(p.price * cf.tax / 100 / 52); if (tax) bill(cid, p.owner_id, 'tax', `tax:${p.id}:${wk}`, `Property tax, ${where}`, tax, wkStart, due); }
+      const tax = p.mode === 'rent' || !feature(c, 'proptax') ? 0 : Math.round(p.price * cf.tax / 100 / 52); if (tax) bill(cid, p.owner_id, 'tax', `tax:${p.id}:${wk}`, `Property tax, ${where}`, tax, wkStart, due); }
     // each week, every business's license, and its wages paid from the business account (staff hear about it when it cannot pay)
     if (feature(c, 'biz')) for (const z of q('SELECT * FROM civ_biz WHERE community_id = ?').all(cid)) {
-      if (cf.bizlic && z.created < wkStart) bill(cid, z.owner_id, 'lic', `lic:${z.id}:${wk}`, `Business license, ${z.name}`, cf.bizlic, wkStart, wkStart + cf.grace * GDAY);
+      if (cf.bizlic && feature(c, 'bizlic') && z.created < wkStart) bill(cid, z.owner_id, 'lic', `lic:${z.id}:${wk}`, `Business license, ${z.name}`, cf.bizlic, wkStart, wkStart + cf.grace * GDAY);
       if (z.paid_wk >= wk) continue; q('UPDATE civ_biz SET paid_wk = ? WHERE id = ?').run(wk, z.id);
       for (const w of q('SELECT * FROM civ_staff WHERE biz_id = ? AND wage > 0').all(z.id)) { const cur = biz(cid, z.id);
         if (cur.balance < w.wage) { note(cid, w.user_id, `${z.name} could not pay your wage this week.`); note(cid, z.owner_id, `${z.name} could not pay a wage of ${money(w.wage)}: the business account is short.`); continue; }
         bizMove(z.id, -w.wage, 'Wages'); move(cid, w.user_id, w.wage, 'wage', `Wage from ${z.name}`); } }
     // autopay, oldest first, as far as the money goes
-    for (const h of holders) { if (!h.autopay) continue; let bal = acct(cid, h.user_id).balance;
+    if (feature(c, 'autopay')) for (const h of holders) { if (!h.autopay) continue; let bal = acct(cid, h.user_id).balance;
       for (const b of q("SELECT * FROM civ_bills WHERE community_id = ? AND user_id = ? AND status IN ('Open', 'Overdue') ORDER BY due").all(cid, h.user_id)) {
         if (b.amount > bal) break; move(cid, h.user_id, -b.amount, 'bill', b.label + ' (autopay)'); settle(cid, b); bal -= b.amount; } }
     // past due: a late fee once, and the car's papers go bad on the plate lookup
     for (const b of q("SELECT * FROM civ_bills WHERE community_id = ? AND status = 'Open' AND due < ?").all(cid, t)) {
-      q("UPDATE civ_bills SET status = 'Overdue', late = 1, amount = ? WHERE id = ?").run(b.amount + Math.round(b.amount * cf.late / 100), b.id);
+      q("UPDATE civ_bills SET status = 'Overdue', late = 1, amount = ? WHERE id = ?").run(b.amount + (feature(c, 'latefees') ? Math.round(b.amount * cf.late / 100) : 0), b.id);
       if (b.kind === 'reg' || b.kind === 'ins') fixVehicle(cid, b.ref.split(':')[1]); }
     // a housing bill overdue too long: the renter is evicted, the owner's home is repossessed; it goes back on the market and the debt stays
-    for (const b of q("SELECT * FROM civ_bills WHERE community_id = ? AND status = 'Overdue' AND kind IN ('rent', 'mort', 'tax') AND due < ?").all(cid, t - cf.evict * GDAY)) {
+    if (feature(c, 'evictions')) for (const b of q("SELECT * FROM civ_bills WHERE community_id = ? AND status = 'Overdue' AND kind IN ('rent', 'mort', 'tax') AND due < ?").all(cid, t - cf.evict * GDAY)) {
       const p = prop(cid, b.ref.split(':')[1]); if (!p || p.owner_id !== b.user_id) continue; release(p);
       note(cid, b.user_id, `${p.mode === 'rent' ? 'Evicted from' : 'Repossessed:'} ${p.name}. ${b.label} went unpaid.`); }
     // a license overdue too long suspends the business: no hiring and no bills to customers until it is paid
-    for (const b of q("SELECT * FROM civ_bills WHERE community_id = ? AND status = 'Overdue' AND kind = 'lic' AND due < ?").all(cid, t - cf.evict * GDAY)) {
+    if (feature(c, 'bizlic')) for (const b of q("SELECT * FROM civ_bills WHERE community_id = ? AND status = 'Overdue' AND kind = 'lic' AND due < ?").all(cid, t - cf.evict * GDAY)) {
       const z = biz(cid, b.ref.split(':')[1]); if (!z || z.status !== 'Active') continue; q("UPDATE civ_biz SET status = 'Suspended' WHERE id = ?").run(z.id);
       note(cid, z.owner_id, `${z.name} is suspended until its license is paid.`); }
     db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); console.log(`civ cycle ${c.slug}:`, e.message); } };
@@ -245,7 +245,7 @@ export const openBiz = (c, user, j) => { const cf = conf(c), name = T(j.name, 50
   if (q('SELECT 1 FROM civ_biz WHERE community_id = ? AND lower(name) = lower(?)').get(c.id, name)) return { error: 'A business with that name already exists.' };
   const max = hooks.maxBiz(c, user); if (q('SELECT count(*) AS n FROM civ_biz WHERE community_id = ? AND owner_id = ?').get(c.id, user.id).n >= max) return { error: `You already own ${max} businesses.${max < 5 ? ' Premium lets you own up to 5.' : ''}` };
   const g = background(c, user.id); if (g.warrants) return { error: 'You have an active warrant. Sort it out before you register a business.' };
-  if (cf.bizfee) { const m = move(c.id, user.id, -cf.bizfee, 'business', `Registered ${name}`); if (m.error) return { error: `Registering costs ${money(cf.bizfee)}. ${m.error}` }; }
+  if (cf.bizfee && feature(c, 'bizfee')) { const m = move(c.id, user.id, -cf.bizfee, 'business', `Registered ${name}`); if (m.error) return { error: `Registering costs ${money(cf.bizfee)}. ${m.error}` }; }
   q('INSERT INTO civ_biz (community_id, owner_id, name, kind, address, about, paid_wk, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(c.id, user.id, name, kind, T(j.address, 80), T(j.about, 300), weekNo(cf), now());
   return { ok: true }; };
 export const editBiz = (c, user, j) => { const z = mine(c, user, j.id); if (!z) return { error: 'That is not your business.' };

@@ -180,6 +180,6 @@ export const makeGame = (st, kind, ctx) => {
   if (st.game === 'sequence') return { game: 'sequence', what: fill(st.what), p: { items: SEQ[st.set] || SEQ.shelves } };
   return { game: st.game, what: fill(st.what), p: {} }; };
 export const fillText = (s, ctx) => String(s || '').replace(/\{client\}/g, ctx.client).replace(/\{house\}/g, ctx.house).replace(/\{n\}/g, ctx.n).replace(/\{place\}/g, ctx.place);
-export const pickTasks = (kind, n) => shuffle((TASKS[kind] || TASKS.Store).map((t, i) => i)).slice(0, n);
+export const pickTasks = (kind, n, pool) => shuffle(pool || (TASKS[kind] || TASKS.Store).map((t, i) => i)).slice(0, n);
 // how long a game must at least take, so a script can't rush them
 export const MIN_GAME_MS = { paperwork: 6000, pitch: 4000, negotiate: 3000, timing: 2500, sequence: 3500 };

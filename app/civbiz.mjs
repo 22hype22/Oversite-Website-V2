@@ -5,6 +5,7 @@
 // The money moves through app/civ.mjs.
 import { db, now, users, communities } from './db.mjs';
 import * as premium from './premium.mjs';
+import { on as feature } from './features.mjs';
 import { POSTALS } from './postals.mjs';
 import { TASKS, makeGame, fillText, pickTasks, houseName, NAMES, MIN_GAME_MS } from './tasks.mjs';
 import { T, money, DAY, GDAY, GWEEK, background, conf, ensure, move, bizMove, bizEarn, biz, note, who, hooks, staffSet } from './civ.mjs';
@@ -80,7 +81,7 @@ hooks.managed = (c, user) => q('SELECT s.biz_id FROM civ_staff s JOIN civ_biz b 
   .map(r => r.biz_id).filter(id => premOf(c, biz(c.id, id)));
 hooks.maxBiz = (c, user) => premium.isPremium(c) || personal(user.id) ? LIMITS.bizPrem : LIMITS.biz;
 // a staff member's cut of a bill they sent, paid from the business when the customer pays (Premium)
-hooks.commission = (cid, z, uid, amount) => { const w = uid && staffRow(z.id, uid), c = communities.byId(cid); if (!w || !w.commission || !premOf(c, z)) return;
+hooks.commission = (cid, z, uid, amount) => { const w = uid && staffRow(z.id, uid), c = communities.byId(cid); if (!w || !w.commission || !premOf(c, z) || !feature(c, 'commission')) return;
   const cut = Math.round(amount * w.commission / 100), bal = biz(cid, z.id).balance; if (cut <= 0 || bal < cut) return;
   bizMove(z.id, -cut, `Commission, ${who(uid)}`); ensure(c, uid); move(cid, uid, cut, 'wage', `Commission from ${z.name}`); };
 
@@ -134,7 +135,7 @@ export const buy = (c, user, j) => { const z = biz(c.id, j.id); if (!z) return {
   if (z.owner_id === user.id) return { error: 'You can’t buy from your own business.' };
   const it = q('SELECT * FROM civ_items WHERE id = ? AND biz_id = ? AND live = 1').get(+j.item || 0, z.id); if (!it) return { error: 'That isn’t on the menu any more.' };
   if (it.kind !== 'Product') return { error: 'Send a request for that one instead.' };
-  if (z.kind === 'Gun store') { const g = background(c, user.id); if (g.felonies || g.warrants) return { error: `${z.name} ran a background check: ${g.felonies ? 'a felony conviction' : 'an active warrant'} means no sale.` }; }
+  if (z.kind === 'Gun store' && feature(c, 'guncheck')) { const g = background(c, user.id); if (g.felonies || g.warrants) return { error: `${z.name} ran a background check: ${g.felonies ? 'a felony conviction' : 'an active warrant'} means no sale.` }; }
   const qty = Math.max(1, Math.min(20, Math.round(+j.qty || 1))), total = it.price * qty;
   if (!openShifts(z.id).length && !(z.online && premOf(c, z))) return { error: `${z.name} is closed. Come back when someone is working.` };
   ensure(c, user.id); const label = `${it.name}${qty > 1 ? ' ×' + qty : ''}`, m = move(c.id, user.id, -total, 'business', `${label} at ${z.name}`); if (m.error) return m;
@@ -297,9 +298,12 @@ const newEntry = (z, t) => { const listings = q("SELECT * FROM civ_items WHERE b
   const li = listings.length && Math.random() < 0.7 ? listings[Math.floor(Math.random() * listings.length)] : null;
   return { t, client: NAMES[Math.floor(Math.random() * NAMES.length)], house: li ? li.name : houseName(), houseItem: li ? li.id : null, n: 1 + Math.floor(Math.random() * 12), place: 'Postal ' + (100 + Math.floor(Math.random() * 900)) }; };
 const boardOf = (z, uid) => { const r = q('SELECT * FROM civ_board WHERE biz_id = ? AND user_id = ?').get(z.id, uid); let B = r && r.day === dayNo() ? JSON.parse(r.tasks) : null;
-  if (!B || B.length !== Math.min(4, (TASKS[z.kind] || TASKS.Store).length) || B.some(e => !(TASKS[z.kind] || TASKS.Store)[e.t])) { B = pickTasks(z.kind, 4).map(t => newEntry(z, t)); q('INSERT OR REPLACE INTO civ_board (biz_id, user_id, tasks, day) VALUES (?, ?, ?, ?)').run(z.id, uid, JSON.stringify(B), dayNo()); }
+  const P = pool(z); if (!B || B.length !== Math.min(4, P.length) || B.some(e => !P.includes(e.t))) { B = pickTasks(z.kind, 4, P).map(t => newEntry(z, t)); q('INSERT OR REPLACE INTO civ_board (biz_id, user_id, tasks, day) VALUES (?, ?, ?, ?)').run(z.id, uid, JSON.stringify(B), dayNo()); }
   return B; };
-const taskView = (z, e, base) => { const T0 = (TASKS[z.kind] || TASKS.Store)[e.t]; return { title: fillText(T0.title, e), pay: Math.round(base * T0.pay), steps: T0.steps.map(x => ({ do: x.do, what: fillText(x.what, e), game: x.game || null })), far: !!T0.far }; };
+// the tasks a business can hand out: with mini-games switched off, only those with some driving in them (and just the driving)
+const games = z => feature(communities.byId(z.community_id), 'minigames');
+const pool = z => { const L = TASKS[z.kind] || TASKS.Store, g = games(z); return L.map((t, i) => i).filter(i => g || L[i].steps.some(x => x.do === 'drive')); };
+const taskView = (z, e, base) => { const T0 = (TASKS[z.kind] || TASKS.Store)[e.t], g = games(z); return { title: fillText(T0.title, e), pay: Math.round(base * T0.pay), steps: T0.steps.filter(x => g || x.do !== 'game').map(x => ({ do: x.do, what: fillText(x.what, e), game: x.game || null })), far: !!T0.far }; };
 export const takeTask = (c, user, j, pos) => { const z = biz(c.id, j.id); if (!z || !worksAt(z, user.id)) return { error: 'You do not work there.' };
   const no = inactive(z); if (no) return no; if (myJob(c.id, user.id)) return { error: 'Finish the task you’re on first.' };
   const sh = myShift(c.id, user.id); if (!sh || sh.biz_id !== z.id) return { error: `Clock in at ${z.name} first.` };
@@ -308,11 +312,11 @@ export const takeTask = (c, user, j, pos) => { const z = biz(c.id, j.id); if (!z
   const base = spotOf(z.office) || (pos ? { x: Math.round(pos.x), z: Math.round(pos.z), label: pos.label || 'where you started' } : null);
   const li = e.houseItem ? q('SELECT * FROM civ_items WHERE id = ? AND biz_id = ?').get(e.houseItem, z.id) : null, housePos = li ? spotOf(metaOf(li).pos) : null;
   const used = new Set(); let from = pos || base || { x: 2600, z: 2600 }, house = null;
-  const steps = T0.steps.map(x => { if (x.do === 'game') return makeGame(x, z.kind, e);
+  const steps = T0.steps.filter(x => x.do !== 'game' || games(z)).map(x => { if (x.do === 'game') return makeGame(x, z.kind, e);
     let p; if (x.to === 'base') p = base; else if (x.to === 'house') p = house || (house = housePos ? { ...housePos, label: e.house } : { ...pickSpot(from, used), label: e.house }); else p = pickSpot(from, used);
     used.add(p.label); from = p; return { x: p.x, z: p.z, label: x.to === 'house' ? e.house : p.label, wait: (x.wait || 0) * 1000, what: fillText(x.what, e) }; });
   q('INSERT INTO civ_jobs (biz_id, user_id, kind, item_id, label, steps, started, step_at, mult, far) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(z.id, user.id, 'task', li ? li.id : null, T(fillText(T0.title, e), 80), JSON.stringify(steps), now(), now(), T0.pay, T0.far ? 1 : 0);
-  B[slot] = newEntry(z, pickTasks(z.kind, 4).find(t => !B.some((o, k) => k !== slot && o.t === t)) ?? e.t); q('UPDATE civ_board SET tasks = ? WHERE biz_id = ? AND user_id = ?').run(JSON.stringify(B), z.id, user.id);
+  B[slot] = newEntry(z, pickTasks(z.kind, 4, pool(z)).find(t => !B.some((o, k) => k !== slot && o.t === t)) ?? e.t); q('UPDATE civ_board SET tasks = ? WHERE biz_id = ? AND user_id = ?').run(JSON.stringify(B), z.id, user.id);
   return { ok: true }; };
 // play the mini-game on the current step: a score from 0 to 1 (half or better passes), or for negotiate, an offer the other side answers
 export const playGame = (c, user, j) => { const jb = myJob(c.id, user.id); if (!jb) return { error: 'You are not on a task.' };
