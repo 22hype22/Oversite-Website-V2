@@ -33,6 +33,7 @@ import * as backup from './app/backup.mjs';
 import * as automations from './app/automations.mjs';
 import * as radio from './app/radio.mjs';
 import * as insights from './app/insights.mjs';
+import * as discordbot from './app/discordbot.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -370,11 +371,13 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest.startsWith('discord')) {
     const d = c.settings.discord || null;
     if (rest === 'discord' && M === 'GET') { if (!d) return json(res, { ready: discordlink.ready(), linked: null });
-      const roles = await discordlink.roles(d.guild_id).catch(e => ({ error: e.message })); return json(res, { ready: discordlink.ready(), linked: d, roles: Array.isArray(roles) ? roles : null, missing: roles === null, error: roles && roles.error }); }
+      const roles = await discordlink.roles(d.guild_id).catch(e => ({ error: e.message })); return json(res, { ready: discordlink.ready(), linked: d, roles: Array.isArray(roles) ? roles : null, missing: roles === null, error: roles && roles.error, cmds: discordbot.connected() ? { feature: features.on(c, 'discordcmds'), list: discordbot.COMMANDS.map(x => '/' + x.name) } : null }); }
     if (rest === 'discord/save' && M === 'POST') { if (!d) return json(res, { error: 'Connect a Discord server first.' }, 400);
       const j = await jsonBody(req), known = new Set(((await discordlink.roles(d.guild_id).catch(() => [])) || []).map(r => r.id)), out = {};
       for (const lvl of discordlink.LEVELS) out[lvl] = [...new Set((Array.isArray(j.roles?.[lvl]) ? j.roles[lvl] : []).map(String).filter(id => known.has(id)))].slice(0, 25);
       c.settings.discord = { ...d, roles: out }; communities.saveSettings(c.id, c.settings); discordlink.forget(d.guild_id); return json(res, { ok: true, roles: out }); }
+    if (rest === 'discord/commands' && M === 'POST') { if (!d) return json(res, { error: 'Connect a Discord server first.' }, 400); if (!discordbot.connected()) return json(res, { error: 'Discord commands aren’t switched on for Oversite yet.' }, 400);
+      const r = await addCommands(c); return json(res, r, r.error ? 400 : 200); }
     if (rest === 'discord/unlink' && M === 'POST') { delete c.settings.discord; communities.saveSettings(c.id, c.settings); if (d) discordlink.forget(d.guild_id); return json(res, { ok: true }); }
     return json(res, { error: 'Not found.' }, 404); }
   if (rest === 'members/role' && M === 'POST') { const j = await jsonBody(req), target = members.role(c.id, +j.userId);
@@ -420,6 +423,10 @@ const globalApi = async (req, res, rest) => {
   // Stripe tells us about payments here; the signature is checked against the raw body
   if (rest === 'stripe/webhook' && req.method === 'POST') { const raw = await body(req, 5e5); let r; try { r = await premium.webhook(raw, req.headers['stripe-signature']); if (r?.error) alerts.send('stripe', 'A Stripe webhook was turned away', `${r.error} If payments are going through, check the webhook signing secret on /admin.`, 'warn'); } catch (e) { console.log('stripe webhook:', e.message); alerts.send('stripe', 'A Stripe webhook failed', e.message, 'crit'); return json(res, { error: 'Try again.' }, 500); }
     return json(res, r, r.status || 200); }
+  // the Oversite bot's slash commands: Discord signs each one, and anything unsigned is turned away
+  if (rest === 'discord/interactions' && req.method === 'POST') { const raw = await body(req, 1e5);
+    if (!await discordbot.signed(raw, String(req.headers['x-signature-ed25519'] || ''), String(req.headers['x-signature-timestamp'] || ''))) return json(res, { error: 'Bad signature.' }, 401);
+    let x; try { x = JSON.parse(raw); } catch (e) { return json(res, { error: 'Bad request.' }, 400); } return json(res, await discordbot.handle(x)); }
   // a Premium server's own Discord bot reads its CAD with the key from Settings: Authorization: Bot <key>
   if (rest.startsWith('bot/v1/')) return botApi(req, res, rest.slice(7));
   const user = auth.currentUser(req); if (rest === 'explore' && req.method === 'GET') return json(res, { servers: profile.directory(user) });   // Explore's live refresh: open to everyone
@@ -443,7 +450,7 @@ const globalApi = async (req, res, rest) => {
     return json(res, await saveLicense(user, await jsonBody(req), premium.userInfo(user).on)); }
   if (rest.startsWith('admin/') && !isSiteMod(user)) return json(res, { error: 'Not found.' }, 404);
   // payments, the ER:LC application, Premium grants and moderator access: site admins only
-  if (/^admin\/(erlc-app|premium|stripe|mod|supporter|beta-note|alerts|backup)$/.test(rest) && !isSiteAdmin(user)) return json(res, { error: 'Only Oversite\'s owners can do that.' }, 403);
+  if (/^admin\/(erlc-app|premium|stripe|mod|supporter|beta-note|alerts|backup|discordcmds)$/.test(rest) && !isSiteAdmin(user)) return json(res, { error: 'Only Oversite\'s owners can do that.' }, 403);
   if (rest === 'admin/mod' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), u = users.byId(Number(j.id)); if (!u) return json(res, { error: 'No such person.' }, 404);
     if (isSiteAdmin(u)) return json(res, { error: 'That person is a site admin already.' }, 400); users.setSiteMod(u.id, !!j.on);
     console.log(`moderation: ${user.roblox_name || user.name} ${j.on ? 'made' : 'removed'} ${u.roblox_name || u.id} ${j.on ? 'a moderator' : 'as moderator'}`); return json(res, { ok: true, on: !!j.on }); }
@@ -485,6 +492,12 @@ const globalApi = async (req, res, rest) => {
     if (u) alerts.setHook(u); if (j.clear) alerts.setHook(''); if (j.offsite != null) backup.setOffsite(!!j.offsite);
     if (u || j.test) { const r = await alerts.send('test', 'Oversite alerts are on', `Set up by ${user.roblox_name || user.name}. Problems that need a person will show up here.`, 'info', true); if (r.error) return json(res, { ...alertsInfo(), error: r.error }, 400); }
     console.log(`alerts: ${j.clear ? 'webhook cleared' : u ? 'webhook set' : 'settings changed'} by ${user.roblox_name || user.name}`); return json(res, alertsInfo()); }
+  // the Oversite bot's slash commands: where the Discord application sends them, and pointing it at Oversite (or back)
+  if (rest === 'admin/discordcmds' && req.method === 'GET') return json(res, await discordCmdsInfo());
+  if (rest === 'admin/discordcmds' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req);
+    const r = j.off ? await discordbot.disconnect(interactionsUrl()) : await discordbot.connect(interactionsUrl());
+    console.log(`discord commands: ${j.off ? 'disconnected' : 'connected'} by ${user.roblox_name || user.name}${r.error ? ' (failed: ' + r.error + ')' : ''}`);
+    if (!r.error && !j.off) addCommandsEverywhere(); return json(res, { ...(await discordCmdsInfo()), error: r.error, note: r.note || undefined }, r.error ? 400 : 200); }
   if (rest === 'admin/backup' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const r = await backup.run('by hand'); return json(res, { ...alertsInfo(), ...r }, r.error ? 500 : 200); }
   if (rest === 'admin/support' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); support.close(Number((await jsonBody(req)).id)); return json(res, { tickets: support.open() }); }
   if (rest === 'admin/verify' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), id = Number(j.id);
@@ -671,6 +684,7 @@ const route = async (req, res) => {
       const { c, user, role } = await access(req, slug); if (!c || !user || !can(role, 'co_owner')) throw new Error('Only the owner or a co-owner can connect a Discord server.');
       const g = await discordlink.finishInstall(req, url.searchParams.get('code'));
       c.settings.discord = { ...g, roles: c.settings.discord?.guild_id === g.guild_id ? c.settings.discord.roles || {} : {} }; communities.saveSettings(c.id, c.settings); discordlink.forget(g.guild_id);
+      if (discordbot.connected()) await addCommands(c).catch(() => null);
       return redirect(res, back + (fresh ? '?new=1&discord=1#discord' : '?discord=1#discord'), { 'set-cookie': auth.setCookie(req, 'ov_dg', '', 0) }); }
     catch (e) { return msg(res, u0, 'Could not connect Discord', e.message, { href: back, label: 'Back' }, 400); } }
   if (path === '/auth/roblox') { if (!auth.robloxOAuthReady()) return msg(res, auth.currentUser(req), 'Roblox linking is not set up yet', 'The site owner needs to add the Roblox app keys first.', { href: '/dashboard', label: 'Back' });
@@ -815,7 +829,7 @@ const gate = async (req, res) => {
   if (path === '/lock') return html(res, lockPage(), 200, { 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0` });
   if (path === '/robots.txt' || path === '/sitemap.xml') return route(req, res);   // search engines read these even while the site is locked
   const q = url.searchParams.get('code'); if (q && CODE && !hasAccess(req)) { url.searchParams.delete('code'); return unlock(req, res, q.trim(), url.pathname + (url.search || '')); }
-  if (hasAccess(req) || path === '/api/stripe/webhook' || path.startsWith('/api/bot/')) return route(req, res);
+  if (hasAccess(req) || path === '/api/stripe/webhook' || path === '/api/discord/interactions' || path.startsWith('/api/bot/')) return route(req, res);
   if (path.includes('/api/')) return json(res, { error: 'locked' }, 401);
   return html(res, lockPage(), path === '/' ? 200 : 401); };   // the front door answers 200, so search engines can list Oversite while it's in preview
 
@@ -847,6 +861,37 @@ srvStatus.start(probeStatus);
 // automations act through the CAD's live stream, the staff command queue and the dispatch board
 automations.wire({ alert: (c, depts, title, text) => feedFor(c).bcast('autoalert', JSON.stringify({ depts, title, text })), command: (c, cmd) => staff.commandAs(c, communities.key(c.id), cmd, 'Oversite Automations'),
   call: (c, dept, where, text) => civ.autoCall(c, dept, where, text) });
+// the Oversite bot's slash commands read the same live data as the CAD
+const PUBLIC = () => (process.env.PUBLIC_URL || `https://${CANON}`).replace(/\/$/, '');
+const interactionsUrl = () => `${PUBLIC()}/api/discord/interactions`;
+const DEPT_NAME = { pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Transportation' };
+const callKey = k => String(`${k.CallNumber ?? k.Description ?? ''}@${k.StartedAt ?? ''}`).replace(/[^\w .:@#-]/g, '').slice(0, 120);
+discordbot.wire({ community: gid => communities.withDiscord().find(c => String(c.settings.discord?.guild_id) === gid) || null, on: c => features.on(c, 'discordcmds'), link: c => `${PUBLIC()}/${c.slug}`,
+  snapshot: async c => { const f = feedFor(c), s = await f.snapshot(), E = c.settings.profile?.erlc, cl = clearedCalls(c), st = callStates(c); let j = {};
+    if (s.status === 200) try { j = JSON.parse(f.withExtra ? f.withExtra(s.body) : s.body); } catch (e) {}
+    const calls = (Array.isArray(j.EmergencyCalls) ? j.EmergencyCalls : []).filter(k => !cl[callKey(k)]).map(k => { const x = st[callKey(k)];
+      return { team: k.Team || '', description: k.Description || '', where: k.PositionDescriptor || '', started: k.StartedAt ? k.StartedAt * 1000 : null, units: x ? [x.unit, ...(x.more || []).map(m => m.name)].filter(Boolean) : [] }; });
+    return { live: s.status === 200, players: Array.isArray(j.Players) ? j.Players : [], max: j.MaxPlayers ?? E?.max ?? null, join: j.JoinKey || E?.join_key || '', calls, last: E?.at && E.players != null ? { players: E.players, at: E.at } : null }; },
+  units: (c, s) => { const teams = c.settings.teams || {}, D = c.settings.depts || {}, st = police.statuses(c.id);
+    return ['pd', 'fd', 'dot'].filter(d => features.on(c, 'dept_' + d)).map(d => ({ key: d, name: D[d]?.name || DEPT_NAME[d],
+      units: s.players.filter(p => teams[p.Team] === d).map(p => { const name = String(p.Player || '').split(':')[0], cs = p.Callsign || ''; return { name, callsign: cs, status: st[cs] || st[name] || '' }; }) })); },
+  lookup: (c, plate) => police.vehicle(c.id, plate),
+  canLookup: async (c, did) => { const u = did && users.byDiscord(did); if (!u) return `Sign in to Oversite with this Discord account first, then try again: ${PUBLIC()}/auth/discord`;
+    if (!features.on(c, 'pd_lookup')) return 'This server has switched off plate lookups.';
+    let role = staffRole(c, u); const lvl = await discordlink.levelFor(c, did).catch(() => null); if (lvl) role = discordlink.higher(role || 'member', lvl);
+    if ((ROLE_RANK[role] || 0) >= ROLE_RANK.mod) return true;
+    const f = feedFor(c), me = String(u.roblox_name || '').toLowerCase(); let j = {}; try { j = f.snap ? JSON.parse(f.snap.body) : {}; } catch (e) {}
+    if (me && (j.Players || []).some(p => String(p.Player || '').split(':')[0].toLowerCase() === me && (c.settings.teams || {})[p.Team] === 'pd')) return true;
+    return 'Only staff, and players on a police team in game right now, can look up plates.'; } });
+// putting the commands in a linked Discord, remembered on the server so it's done once
+const addCommands = async c => { const r = await discordbot.register(c.settings.discord.guild_id), cc = communities.byId(c.id); if (!cc?.settings.discord) return r;
+  cc.settings.discord = { ...cc.settings.discord, cmds: r.ok ? r.version : 0, cmdsErr: r.error || '' }; communities.saveSettings(c.id, cc.settings); c.settings.discord = cc.settings.discord; return r; };
+const addCommandsEverywhere = async () => { if (!discordbot.connected() || !discordlink.ready()) return;
+  for (const c of communities.withDiscord()) { if (discordbot.current(c.settings.discord) || c.settings.discord.cmdsErr) continue; await addCommands(c).catch(() => null); await new Promise(r => setTimeout(r, 1500)); } };
+setTimeout(addCommandsEverywhere, 30000);
+const discordCmdsInfo = async () => { let a = null, err = ''; try { a = await discordbot.app(true); } catch (e) { err = e.message; }
+  const L = communities.withDiscord(); return { ready: discordlink.ready() && !!a, error: err || undefined, name: a?.name || '', endpoint: a?.endpoint || '', ours: interactionsUrl(), connected: discordbot.connected(),
+    linked: L.length, added: L.filter(c => discordbot.current(c.settings.discord)).length, failed: L.filter(c => c.settings.discord.cmdsErr).length }; };
 const recordEvent = (c, r) => { if (!features.on(c, 'automations')) return; automations.fire(c, 'record', { kind: r.kind, subject: r.subject || '', plate: r.plate || '', by: r.by || '', charges: (r.charges || []).map(x => x.title).join(', '), reason: r.reason || '' }); };
 // what /admin shows about alerts and backups
 const alertsInfo = () => { const L = backup.list(), d = backup.disk(); let last = null; try { last = JSON.parse(siteSettings.get('backup_last') || 'null'); } catch (e) {}

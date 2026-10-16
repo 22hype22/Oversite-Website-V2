@@ -24,7 +24,7 @@ export const setRole = async (gid, uid, rid, on) => { const r = await fetch(`${D
 
 // adding the bot: Discord's own consent screen picks the server; the code exchange tells us which one, so it cannot be faked
 const base = req => (process.env.PUBLIC_URL || `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers.host}`).replace(/\/$/, '');
-export const installUrl = (req, state) => `${DWEB}/oauth2/authorize?${new URLSearchParams({ client_id: DID, scope: 'bot', permissions: '0', response_type: 'code', redirect_uri: base(req) + '/auth/discord/guild', state })}`;
+export const installUrl = (req, state) => `${DWEB}/oauth2/authorize?${new URLSearchParams({ client_id: DID, scope: 'bot applications.commands', permissions: '0', response_type: 'code', redirect_uri: base(req) + '/auth/discord/guild', state })}`;
 export const finishInstall = async (req, code) => {
   const tok = await fetch(DAPI + '/oauth2/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: DID, client_secret: DSECRET, grant_type: 'authorization_code', code: code || '', redirect_uri: base(req) + '/auth/discord/guild' }) }).then(r => r.json()).catch(() => ({}));
