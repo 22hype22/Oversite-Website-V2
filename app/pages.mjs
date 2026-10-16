@@ -374,22 +374,53 @@ const LANDING_ABOUT = `<style>.lp{max-width:1080px;margin:0 auto;padding:40px 24
 <div class="lp-q">${FAQ.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}</div></section>`;
 const ICON_RBX = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5.92 1.47 22.53 5.92 18.08 22.53 1.47 18.08Z M10.37 9.18 14.82 10.37 13.63 14.82 9.18 13.63Z"/></svg>';
 const ICON_DC = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0L8.6 4a17 17 0 0 0-4.2 1.4C1.8 9.4 1 13.3 1.4 17.1A17 17 0 0 0 6.6 20l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3a12.2 12.2 0 0 0 11.2 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 0 0 5.2-2.9c.5-4.4-.8-8.3-2.9-11.7zM8.7 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg>';
-// the front page: who you are is the only question. Joining with an invite code and making a server come right after, on the account page.
-export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '', servers = 0 }) => layout({ title: 'Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers', logo, top: false, seo: { path: '/', ld: [...SITE_LD, FAQ_LD] }, body: `
-<section class="hero notop"><div class="box">
-<div class="mark"><img src="data:image/png;base64,${logo}" alt=""></div>
-<h1><span style="font-weight:400">Oversite</span> <b>CAD</b></h1>
-<p class="lead">A live dispatch system for ER:LC private servers. Every unit on a live map of Liberty County, straight from your server.</p>
-${discord || roblox ? `<div class="card signin"><h2>Sign in</h2><p class="note">With your Roblox or Discord account. Then join your server with its invite code, or set up your own.</p>
-${roblox ? `<a class="btn roblox" href="/auth/roblox?next=${encodeURIComponent(next)}">${ICON_RBX}Continue with Roblox</a>` : ''}${discord ? `<a class="btn discord" href="/auth/discord?next=${encodeURIComponent(next)}">${ICON_DC}Continue with Discord</a>` : ''}</div>`
-: `<form class="card signin" id="codeform" autocomplete="off"><h2>Join your server</h2><p class="note">Enter your server's invite code.</p>
-<input id="code" placeholder="Invite code" aria-label="Invite code" autocapitalize="characters" spellcheck="false" required>
-<button class="btn pri">Sign in</button><p class="msg" id="codemsg"></p></form>`}
+// the front page: who you are is the only question. Joining with an invite code and making a server come right after, on the account
+// page. One frosted panel on the muted map: sign in on the left, the Oversite mark drawn in dots on the right (drawn by the page, so it's
+// always sharp); on phones the dots sit on top like a cover, with the sign-in sheet below.
+const LN_CSS = `.ln-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:#141618}.ln-bg::before{content:"";position:absolute;inset:-24px;background:url(/liberty-county.jpg) center/cover no-repeat;filter:grayscale(.9) brightness(.42) contrast(1.05) blur(3px)}
+.ln-bg::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 45%,transparent 40%,rgba(0,0,0,.55)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");opacity:.55;mix-blend-mode:overlay}
+.ln{min-height:100dvh;display:grid;place-items:center;padding:32px 16px 72px}
+.ln-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:min(980px,100%);min-height:560px;border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.16);
+  background:linear-gradient(90deg,rgba(255,255,255,.085),rgba(255,255,255,.045) 46%,rgba(8,9,10,.55) 62%,rgba(8,9,10,.72));backdrop-filter:blur(22px) saturate(.9);-webkit-backdrop-filter:blur(22px) saturate(.9);box-shadow:0 30px 90px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
+.ln-form{display:flex;flex-direction:column;justify-content:center;padding:48px clamp(28px,4.5vw,56px);max-width:440px}
+.ln-mark{display:flex;align-items:center;gap:9px;margin:0 0 34px;color:var(--ink);text-decoration:none;font-size:14px}.ln-mark img{height:22px;width:auto}.ln-mark span{font-weight:400}.ln-mark b{font-weight:600}
+.ln-form h1{margin:0;font-size:28px;font-weight:600;letter-spacing:-.02em;color:#F4F5F7}.ln-sub{margin:6px 0 28px;font-size:13.5px;color:#A3A8B0}
+.ln-btns{display:grid;gap:10px}.ln-btns .btn{width:100%;padding:12px 18px;font-weight:600;font-size:14px;border-radius:999px}.ln-btns .btn svg{width:17px;height:17px;flex:none}
+.ln-btns .rbx{background:#0A0A0B;color:#F4F5F7;border:1px solid rgba(255,255,255,.22)}.ln-btns .rbx:hover{background:#000}
+.ln-btns .dc{background:rgba(255,255,255,.06);color:#F4F5F7;border:1px solid rgba(255,255,255,.16)}.ln-btns .dc:hover{background:rgba(255,255,255,.11)}
+.ln-note{margin:22px 0 0;font-size:12.5px;line-height:1.55;color:#8E949C;text-align:center}.ln-note a{display:inline-block;margin-top:3px;color:#E8EAED;text-decoration:underline;text-underline-offset:3px}
+.ln-form .msg{margin:12px 0 0}.ln-owner{display:flex;gap:8px;margin-top:14px}.ln-owner input{flex:1;min-width:0}
+.ln-art{position:relative}.ln-art canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ln-art h2{display:none}
+@media (max-width:760px){.ln{padding:12px 12px 72px;place-items:start center}.ln-card{grid-template-columns:minmax(0,1fr);min-height:0;background:rgba(14,15,17,.6)}
+  .ln-art{order:-1;height:250px;background:linear-gradient(180deg,rgba(8,9,10,.7),rgba(8,9,10,.35))}.ln-art h2{display:block;position:absolute;left:0;right:0;bottom:30px;margin:0;text-align:center;font-size:22px;font-weight:600;color:#F4F5F7;letter-spacing:-.01em}
+  .ln-form{max-width:none;padding:26px 22px 28px;border-top:1px solid rgba(255,255,255,.1);border-radius:22px 22px 0 0;margin-top:-18px;position:relative;background:rgba(18,19,21,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+  .ln-mark{display:none}}
+@media (prefers-reduced-motion:no-preference){.ln-card{animation:lnIn .5s cubic-bezier(.23,1,.32,1) both}}@keyframes lnIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}`;
+export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '', servers = 0 }) => layout({ title: 'Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers', logo, top: false, bg: false, seo: { path: '/', ld: [...SITE_LD, FAQ_LD] }, body: `<style>${LN_CSS}</style><div class="ln-bg" aria-hidden="true"></div>
+<section class="ln"><div class="ln-card">
+<div class="ln-form">
+<a class="ln-mark" href="/" aria-label="Oversite CAD"><img id="lnLogo" src="data:image/png;base64,${logo}" alt=""><span>Oversite <b>CAD</b></span></a>
+<h1>Sign in</h1><p class="ln-sub">Continue to your server’s CAD.</p>
+${discord || roblox ? `<div class="ln-btns">${roblox ? `<a class="btn rbx" href="/auth/roblox?next=${encodeURIComponent(next)}">${ICON_RBX}Continue with Roblox</a>` : ''}${discord ? `<a class="btn dc" href="/auth/discord?next=${encodeURIComponent(next)}">${ICON_DC}Continue with Discord</a>` : ''}</div>`
+: `<form class="ln-btns" id="codeform" autocomplete="off"><input id="code" placeholder="Your server's invite code" aria-label="Invite code" autocapitalize="characters" spellcheck="false" required><button class="btn rbx">Join your server</button><p class="msg" id="codemsg"></p></form>`}
 ${error ? `<p class="msg err">${esc(error)}</p>` : ''}
-${owner ? `<form method="post" action="/auth/owner" class="row" style="justify-content:center;margin-top:14px" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" style="max-width:200px" required><button class="btn sm">Sign in</button></form>` : ''}
-<p class="note signin-x"><a href="/explore">Explore servers</a> without signing in${servers ? ` · ${servers} servers on Oversite` : ''}</p>
+${owner ? `<form method="post" action="/auth/owner" class="ln-owner" autocomplete="off"><input type="hidden" name="next" value="${esc(next)}"><input name="code" inputmode="numeric" placeholder="Site owner code" aria-label="Site owner code" required><button class="btn sm">Sign in</button></form>` : ''}
+<p class="ln-note">New here? Sign in, then join your server with its invite code or set up your own.<br><a href="/explore">Explore${servers ? ` ${servers}` : ''} servers without signing in</a></p>
+</div>
+<div class="ln-art" aria-hidden="true"><canvas id="lnDots"></canvas><h2>Oversite CAD</h2></div>
 </div></section>${LANDING_ABOUT}`, script: `
 const cf=document.getElementById('codeform');if(cf)cf.addEventListener('submit',async e=>{e.preventDefault();try{const j=await api('/auth/code',{code:document.getElementById('code').value});location.href=j.next}catch(x){say(document.getElementById('codemsg'),x.message)}});
+(()=>{const cv=document.getElementById('lnDots'),src=document.getElementById('lnLogo');if(!cv||!src)return;const img=new Image();
+  const draw=()=>{const r=cv.getBoundingClientRect();if(!r.width||!r.height)return;const dpr=Math.min(2,window.devicePixelRatio||1),phone=innerWidth<=760;
+    cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,r.width,r.height);
+    const step=phone?7:9,cols=Math.ceil(r.width/step),rows=Math.ceil(r.height/step),o=document.createElement('canvas');o.width=cols;o.height=rows;const ox=o.getContext('2d');
+    const w=Math.min(cols*(phone?.56:.72),rows*(phone?.5:.44)*img.width/img.height),h=w*img.height/img.width;ox.drawImage(img,(cols-w)/2+(phone?0:cols*.03),(rows-h)/2-(phone?rows*.1:0),w,h);
+    const d=ox.getImageData(0,0,cols,rows).data;
+    for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const k=(j*cols+i)*4,lit=d[k+3]/255*d[k]/255,u=i/cols,fade=phone?1:Math.min(1,Math.max(0,(u-.02)/.38)),
+      grain=.07+.05*Math.sin(i*1.7+j*.9)*Math.cos(j*1.3-i*.4),v=Math.max(grain,lit)*fade;if(v<.035)continue;
+      x.fillStyle='rgba(236,238,241,'+(.12+.78*Math.min(1,v)).toFixed(3)+')';x.beginPath();x.arc(i*step+step/2,j*step+step/2,Math.max(.55,Math.min(1,v)*step*.47),0,6.2832);x.fill()}};
+  img.onload=()=>{draw();let t;addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(draw,120)})};img.src=src.src})();
 ` });
 
 // Terms of Use and Privacy Policy (text in legal.mjs). Public, outside the preview lock, so Roblox and Discord can link to them.
