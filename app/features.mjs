@@ -157,7 +157,7 @@ export const css = c => ALL.filter(i => i.hide && !on(c, i.key)).flatMap(i => i.
 
 // the plain routes (under /c/<slug>/api/) and the feature each belongs to; routes that depend on what is posted are checked where they're handled
 const ROUTES = [
-  [/^panic(\/clear)?$/, 'panic'], [/^status$/, 'unitstatus'], [/^units\/me$/, 'unitpick'], [/^units\/ride$/, 'ridewith'], [/^calls\/clear$/, 'clearcall'],
+  [/^panic(\/clear)?$/, 'panic'], [/^calls\/state$/, 'assign'], [/^reports(\/delete)?$/, 'reports'], [/^srvstatus/, 'status'], [/^status$/, 'unitstatus'], [/^units\/me$/, 'unitpick'], [/^units\/ride$/, 'ridewith'], [/^calls\/clear$/, 'clearcall'],
   [/^mdt\/sign(in|out)$/, 'mdtsignin'], [/^roads$/, 'roads'],
   [/^pd\//, 'dept_pd'], [/^pd\/search$/, 'pd_lookup'], [/^pd\/records\/delete$/, 'pd_delete'],
   [/^staff\/records/, 'st_records'], [/^staff\/logs$/, 'st_logs'],

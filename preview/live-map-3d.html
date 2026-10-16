@@ -490,6 +490,9 @@
   .page .empty{font-size:11px;color:var(--faint);padding:6px 0}
   .upd{display:grid;grid-template-columns:96px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--hair)}
   .upd:last-child{border-bottom:0}
+  .upd-new{display:grid;gap:8px;padding:4px 0 16px;border-bottom:1px solid var(--hair)}.upd-new input,.upd-new textarea,.upd-new select{font:inherit;font-size:12.5px;color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:9px;padding:8px 10px;resize:vertical}
+  .upd-row{display:flex;align-items:center;gap:10px}.upd-msg{flex:1;font-size:11.5px;color:var(--dim)}
+  .upd-del{margin-left:auto;font:inherit;font-size:11px;color:var(--faint);background:none;border:0;cursor:pointer;text-decoration:underline}
   .upd .when{font-size:10.5px;color:var(--faint);line-height:1.5;padding-top:3px}
   .upd .when b{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);font-weight:500;font-size:11px}
   .upd h3{margin:0 0 6px;font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -2457,60 +2460,46 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   document.body.dataset.view = 'dispatch';
 
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const now = Date.now();
-  // component health (replace with the monitor feed)
-  const COMPONENTS = [
-    { name: 'Dispatch Live Map', note: 'this site', status: 'ok', uptime: 99.98, ms: 42, hist: 'ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo' },
-    { name: 'ERLC Server Link', note: 'game API', status: 'deg', uptime: 99.41, ms: 880, hist: 'oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooddd' },
-    { name: 'Unit Position Feed', note: 'GPS', status: 'ok', uptime: 99.93, ms: 120, hist: 'oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo' },
-    { name: 'Call Intake', note: '911 / radio', status: 'ok', uptime: 99.90, ms: 65, hist: 'ooooooooooooooooooooooooooooooooooooooooooxoooooooooooooooooooooooooooooooooooooooooooooooo' },
-    { name: 'Discord Bot', note: 'rank sync', status: 'ok', uptime: 99.72, ms: 210, hist: 'oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooddoooooooo' },
-    { name: 'Roster & Ranks', note: 'database', status: 'ok', uptime: 100, ms: 18, hist: 'oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo' },
-    { name: 'Radio Comms', note: 'voice', status: 'maint', uptime: 99.55, ms: null, hist: 'oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooommm' },
-  ];
-  const PROBLEMS = [
-    { sev: 2, title: 'ERLC Server Link latency elevated', affects: 'Unit positions may lag by up to 10 seconds', stage: 1, since: 14 * 60,
-      log: [['14m', 'Investigating: response times from the game API rose above 800 ms.'], ['9m', 'Identified: Roblox-side rate limiting on our poller. Backing off to a 4 s interval.']] },
-  ];
-  const UPDATES = [
-    { v: 'v1.5', date: 'Sep 15, 2026', tag: 'new', title: 'Dispatch live map', by: '22hype22',
-      body: 'The dispatch board is live: real-time unit positions, incoming call feed with one-click dispatch, and the live map with light and dark styles.',
-      items: ['Unit cards show crew, vehicle, status, speed and an overhead live feed', 'Warning panel lists new calls with nearest units and a recommendation', 'Map styles: 2D and 2D Dark'] },
-    { v: 'v1.4', date: 'Sep 11, 2026', tag: 'fix', title: 'Rank sync fixes', by: 'sppoklex',
-      body: 'Discord rank changes now reach the roster within a minute instead of waiting for the hourly sync.', items: ['Fixed Battalion Chief showing as Firefighter after promotion', 'Removed duplicate roster entries for renamed accounts'] },
-    { v: 'v1.3', date: 'Sep 6, 2026', tag: 'change', title: 'Callsign format', by: '22hype22',
-      body: 'Callsigns are now department plus unit number, for example PD 6023, FD 4120, DOT 2209. Old callsigns are mapped automatically.', items: [] },
-    { v: 'v1.2', date: 'Aug 30, 2026', tag: 'notice', title: 'Scheduled maintenance: radio comms', by: 'relukt',
-      body: 'Radio comms will be offline Saturday 02:00 to 04:00 while we move to the new voice server. Dispatch and the live map are not affected.', items: [] },
-    { v: 'v1.1', date: 'Aug 24, 2026', tag: 'new', title: 'Active calls board', by: '22hype22',
-      body: 'Every open call in one list with priority, assigned unit and stage. Calls older than 10 minutes drop off the warning panel but stay on the board.', items: ['Priorities P1 to P3 with colour coding', 'Call stages: Dispatched, En route, On scene'] },
-  ];
+  // ── Status & Updates: this server's real health (checked every minute on the server), its problems, Oversite's updates and the owner's own ──
+  const SAPI = window.OVERSITE && window.HOSTED !== false ? window.OVERSITE.api : null;
+  const pill = { ok: ['ok', 'Operational'], deg: ['deg', 'Degraded'], down: ['down', 'Down'], idle: ['maint', 'Idle'], off: ['maint', 'Not set up'] };
+  const ago = t => { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? 'just now' : m < 60 ? `${m}m ago` : m < 1440 ? `${Math.floor(m / 60)}h ${m % 60}m ago` : `${Math.floor(m / 1440)}d ago`; };
+  const day = t => new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  const TAGC = { new: 'new', fix: 'fix', change: 'change', notice: 'notice', news: 'new', event: 'new' };
+  let checkedAt = 0, canPost = false, sLoading = false;
+  const render = S => { checkedAt = S.checked; canPost = S.canPost;
+    document.getElementById('comps').innerHTML = S.parts.map(c => `<div class="comp"><div class="n">${esc(c.name)}<small>${esc(c.why || c.note)}</small></div><span class="pill ${pill[c.status][0]}">${pill[c.status][1]}</span>
+      <div class="up" title="Last 90 days">${[...c.hist].map(h => `<i class="${h === 'd' ? 'd' : h === 'x' ? 'x' : h === 'n' ? 'm' : ''}"></i>`).join('')}</div>
+      <div class="meta"><span>90 days ago</span><span>${c.uptime == null ? (c.status === 'off' ? 'Not set up' : 'No data yet') : c.uptime.toFixed(2) + '% uptime'}</span><span>Today</span></div></div>`).join('');
+    const live = S.parts.filter(c => ['ok', 'deg', 'down'].includes(c.status));
+    document.getElementById('compCount').textContent = `${live.filter(c => c.status === 'ok').length}/${live.length} operational`;
+    const worst = live.some(c => c.status === 'down') ? 'down' : live.some(c => c.status === 'deg') ? 'deg' : '';
+    const ov = document.getElementById('overall'); ov.className = 'overall ' + worst;
+    ov.querySelector('b').textContent = worst === 'down' ? 'Service disruption' : worst === 'deg' ? 'Degraded performance' : 'All systems operational';
+    const STAGES = ['Investigating', 'Identified', 'Monitoring', 'Resolved'];
+    document.getElementById('probs').innerHTML = S.problems.length ? S.problems.map(p => { const st = p.resolved ? 3 : p.log.length > 1 ? 1 : 0;
+      return `<div class="prob sev${p.resolved ? 2 : p.sev}"><div class="t"><span class="ic">!</span><div><b>${esc(p.title)}</b><small>${esc(p.part)} · started ${ago(p.started)}${p.resolved ? ' · resolved ' + ago(p.resolved) : ''}</small></div></div>
+      <div class="steps">${STAGES.map((_, i) => `<i class="${i <= st ? 'on' : ''}"></i>`).join('')}</div><div class="stage">${STAGES[st].toUpperCase()}</div>
+      <div class="log">${p.log.slice().reverse().map(([t, m]) => `<div><time>${ago(t)}</time>${esc(m)}</div>`).join('')}</div></div>`; }).join('') : '<div class="empty">No problems right now.</div>';
+    document.getElementById('probCount').textContent = S.problems.filter(p => !p.resolved).length;
+    document.getElementById('feed').innerHTML = (canPost ? `<form class="upd-new" id="updNew"><input name="title" maxlength="90" placeholder="Post an update for your members" aria-label="Title" required>
+        <textarea name="body" maxlength="2000" rows="3" placeholder="What's new on the server: an event, a rule change, a new department…" aria-label="Update"></textarea>
+        <div class="upd-row"><select name="tag" aria-label="Kind"><option value="news">News</option><option value="event">Event</option><option value="change">Change</option><option value="notice">Notice</option></select><span class="upd-msg" id="updMsg"></span><button class="st-btn" type="submit">Post</button></div></form>` : '')
+      + S.updates.map(u => `<article class="upd"><div class="when"><b>${u.server ? 'Server' : 'v' + esc(u.v)}</b>${esc(day(u.at))}</div><div>
+        <h3>${esc(u.title)}<span class="tag ${TAGC[u.tag] || 'notice'}">${esc(u.tag)}</span>${u.server && canPost ? `<button type="button" class="upd-del" data-del="${u.id}">Remove</button>` : ''}</h3><p>${esc(u.body)}</p>${u.items.length ? '<ul>' + u.items.map(i => `<li>${esc(i)}</li>`).join('') + '</ul>' : ''}
+        <div class="by"><i></i>${esc(u.by)}</div></div></article>`).join('');
+    document.getElementById('updCount').textContent = `${S.updates.length} updates`; };
+  const sCall = (path, body) => fetch(SAPI + path, body ? { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(body) } : {}).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong.'); return j; });
+  const loadStatus = async () => { if (!SAPI || sLoading) return; sLoading = true; try { render(await sCall('/srvstatus')); } catch (e) {} sLoading = false; };
+  if (!SAPI) document.getElementById('comps').innerHTML = '<div class="empty">Open your server’s CAD to see its status.</div>';
+  addEventListener('viewchange', e => { if (e.detail === 'status') loadStatus(); });
+  setInterval(() => { if (document.body.dataset.view === 'status' && !document.hidden) loadStatus(); }, 60000);
+  document.getElementById('feed').addEventListener('submit', async e => { if (e.target.id !== 'updNew') return; e.preventDefault(); const f = e.target, m = document.getElementById('updMsg');
+    m.textContent = 'Posting…'; try { await sCall('/srvstatus/post', { title: f.title.value, body: f.body.value, tag: f.tag.value }); await loadStatus(); } catch (x) { m.textContent = x.message; } });
+  document.getElementById('feed').addEventListener('click', async e => { const b = e.target.closest('[data-del]'); if (!b) return; b.disabled = true; try { await sCall('/srvstatus/delete', { id: +b.dataset.del }); await loadStatus(); } catch (x) { b.disabled = false; } });
 
-  const comps = document.getElementById('comps');
-  const pill = { ok: ['ok', 'Operational'], deg: ['deg', 'Degraded'], down: ['down', 'Down'], maint: ['maint', 'Maintenance'] };
-  comps.innerHTML = COMPONENTS.map(c => `<div class="comp"><div class="n">${esc(c.name)}<small>${esc(c.note)}</small></div><span class="pill ${pill[c.status][0]}">${pill[c.status][1]}</span>
-    <div class="up" title="Last 90 days">${[...c.hist].map(h => `<i class="${h === 'd' ? 'd' : h === 'x' ? 'x' : h === 'm' ? 'm' : ''}"></i>`).join('')}</div>
-    <div class="meta"><span>90 days ago</span><span>${c.uptime.toFixed(2)}% uptime${c.ms != null ? ' · ' + c.ms + ' ms' : ''}</span><span>Today</span></div></div>`).join('');
-  document.getElementById('compCount').textContent = `${COMPONENTS.filter(c => c.status === 'ok').length}/${COMPONENTS.length} operational`;
-  const worst = COMPONENTS.some(c => c.status === 'down') ? 'down' : COMPONENTS.some(c => c.status === 'deg') ? 'deg' : '';
-  const ov = document.getElementById('overall'); ov.className = 'overall ' + worst;
-  ov.querySelector('b').textContent = worst === 'down' ? 'Service disruption' : worst === 'deg' ? 'Degraded performance' : 'All systems operational';
-
-  const STAGES = ['Investigating', 'Identified', 'Monitoring', 'Resolved'];
-  const probs = document.getElementById('probs');
-  probs.innerHTML = PROBLEMS.length ? PROBLEMS.map(p => `<div class="prob sev${p.sev}"><div class="t"><span class="ic">!</span><div><b>${esc(p.title)}</b><small>${esc(p.affects)} · started ${Math.round(p.since / 60)}m ago</small></div></div>
-    <div class="steps">${STAGES.map((_, i) => `<i class="${i <= p.stage ? 'on' : ''}"></i>`).join('')}</div><div class="stage">${STAGES[p.stage].toUpperCase()}</div>
-    <div class="log">${p.log.map(([t, m]) => `<div><time>${t} ago</time>${esc(m)}</div>`).join('')}</div></div>`).join('') : '<div class="empty">No active problems.</div>';
-  document.getElementById('probCount').textContent = PROBLEMS.length;
-
-  const feed = document.getElementById('feed');
-  feed.innerHTML = UPDATES.map(u => `<article class="upd"><div class="when"><b>${esc(u.v)}</b>${esc(u.date)}</div><div>
-    <h3>${esc(u.title)}<span class="tag ${u.tag}">${u.tag}</span></h3><p>${esc(u.body)}</p>${u.items.length ? '<ul>' + u.items.map(i => `<li>${esc(i)}</li>`).join('') + '</ul>' : ''}
-    <div class="by"><i></i>${esc(u.by)}</div></div></article>`).join('');
-  document.getElementById('updCount').textContent = `${UPDATES.length} releases`;
-
-  const checked = document.getElementById('checked'); let t0 = Date.now();
-  setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); checked.textContent = s < 5 ? 'Checked just now' : `Checked ${s}s ago`; if (s >= 30) t0 = Date.now(); }, 1000);
+  const checked = document.getElementById('checked');
+  setInterval(() => { if (!checkedAt) { checked.textContent = SAPI ? 'Checking…' : ''; return; } const s = Math.round((Date.now() - checkedAt) / 1000); checked.textContent = s < 5 ? 'Checked just now' : s < 90 ? `Checked ${s}s ago` : `Checked ${Math.round(s / 60)}m ago`; }, 1000);
 })();
 </script>
 <script>
@@ -2648,13 +2637,18 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     if (act === 'report') { newReportFrom(c); window.mdtShow && window.mdtShow('report'); }
     unitStatus[u.name] = myStatus; if (act !== 'report') logIt(act === 'clear' ? `Cleared ${c.code}, now ${myStatus}` : `Status ${myStatus}, ${c.code}`); dispatchEvent(new CustomEvent('calls')); renderUnit(); renderApp(); renderCalls(); });
 
-  // ── reports ──
-  const KEY = 'oversite.fd.reports';
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } };
-  const store = r => { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch {} };
-  let reports = load(), editing = null;
+  // ── reports: kept on the server and shared by the department (fire or DOT); the demo page keeps them in this browser ──
+  const KEY = 'oversite.fd.reports', RAPI = window.OVERSITE && window.HOSTED !== false ? window.OVERSITE.api : null;
+  const local = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } };
+  const store = r => { if (RAPI) return; try { localStorage.setItem(KEY, JSON.stringify(r)); } catch {} };
+  const rdept = () => window.mdtDept === 'dot' ? 'dot' : 'fd';
+  const rcall = (path, body) => fetch(RAPI + path, body ? { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(body) } : {}).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Could not save the report.'); return j; });
+  let reports = RAPI ? [] : local(), editing = null, rLoaded = '';
+  // reports written before they were shared: moved up to the server once, keeping their numbers where they're free
+  const moveLocal = async () => { const old = local(); if (!old.length) return; for (const r of old) await rcall('/reports', { dept: /^DOT-/.test(r.num) ? 'dot' : 'fd', report: r, import: true }).catch(() => {}); try { localStorage.removeItem(KEY); } catch {} };
+  const refresh = async () => { if (!RAPI) return; if (!rLoaded) await moveLocal(); const d = rdept(); try { const j = await rcall('/reports?dept=' + d); reports = (j.reports || []).slice().reverse(); rLoaded = d; renderReports(); editMode(); } catch (e) {} };
   const form = $('rptForm');
-  const nextNum = () => { const d = new Date(), pre = `FD-${d.getFullYear()}-`; const n = Math.max(0, ...reports.filter(r => r.num.startsWith(pre)).map(r => parseInt(r.num.slice(pre.length), 10) || 0)) + 1; /* one past the highest, so a deleted report's number is never reused */ return `FD-${d.getFullYear()}-${String(n).padStart(4, '0')}`; };
+  const nextNum = () => { const d = new Date(), pre = `${rdept() === 'dot' ? 'DOT' : 'FD'}-${d.getFullYear()}-`; const n = Math.max(0, ...reports.filter(r => r.num.startsWith(pre)).map(r => parseInt(r.num.slice(pre.length), 10) || 0)) + 1; /* one past the highest, so a deleted report's number is never reused */ return `${pre}${String(n).padStart(4, '0')}`; };   // shown while writing; the server confirms it on the first save
   const fill = r => { for (const el of form.elements) if (el.name && r[el.name] != null) el.value = r[el.name]; };
   const read = () => { const r = {}; for (const el of form.elements) if (el.name) r[el.name] = el.value; return r; };
   const OIC = { fd: 'Incident commander', pd: 'Officer in charge', dot: 'Crew lead' };
@@ -2674,20 +2668,24 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       if (miss.length) { toast('Add ' + miss.join(', ').replace(/, ([^,]*)$/, ' and $1') + ' before submitting'); return; } }
     else if (!r.narr.trim() && !r.addr.trim()) { toast('Add an address or narrative first'); return; }
     const was = reports.find(x => x.num === (editing || r.num)); r.saved = new Date().toLocaleString(); if (status === 'Submitted') r.submitted = was?.submitted || r.saved;
+    const fresh = !reports.some(x => x.num === (editing || r.num));
+    if (RAPI) { rcall('/reports', { dept: rdept(), report: r, isNew: fresh }).then(j => { if (j.num !== r.num) { r.num = j.num; form.num.value = j.num; } editing = j.num; refresh(); }).catch(e => toast(e.message)); }
     form.status.value = status; const i = reports.findIndex(x => x.num === (editing || r.num)); if (i >= 0) reports[i] = r; else reports.push(r); editing = r.num; store(reports); renderReports(); editMode();
     if (status === 'Submitted') { toast(`${r.num} ${was && was.status === 'Submitted' ? 'updated' : 'submitted'}`); window.mdtShow && window.mdtShow('reports'); } else toast(`${r.num} saved as a draft`); };
   $('rptSave').addEventListener('click', () => saveReport('Draft'));
   $('rptSubmit').addEventListener('click', () => saveReport('Submitted'));
   delBtn.addEventListener('click', () => { if (!editing) return;
     if (!delBtn.classList.contains('sure')) { delBtn.classList.add('sure'); delBtn.textContent = 'Tap again to delete'; clearTimeout(delArm); delArm = setTimeout(() => { delBtn.classList.remove('sure'); delBtn.textContent = 'Delete'; }, 3000); return; }
-    const num = editing; reports = reports.filter(x => x.num !== num); store(reports); editing = null; renderReports(); editMode(); window.mdtShow && window.mdtShow('reports'); toast(`${num} deleted`); });
+    const num = editing; if (RAPI) rcall('/reports/delete', { num, dept: rdept() }).then(refresh).catch(e => toast(e.message));
+    reports = reports.filter(x => x.num !== num); store(reports); editing = null; renderReports(); editMode(); window.mdtShow && window.mdtShow('reports'); toast(`${num} deleted`); });
   $('rptNew').addEventListener('click', () => { newReport(); window.mdtShow && window.mdtShow('report'); toast('New report'); });
 
   // ── live ──
   addEventListener('calls', () => { renderCalls(); renderUnit(); renderApp(); });
   // tablet navigation
   const panes = [...document.querySelectorAll('.tscreen')], navs = [...document.querySelectorAll('.tside [data-pane]')];
-  const showPane = name => { panes.forEach(p => p.classList.toggle('on', p.dataset.pane === name)); const navName = name === 'report' ? 'reports' : (window.mdtSubNav && window.mdtSubNav[name]) || name; navs.forEach(n => n.setAttribute('aria-selected', n.dataset.pane === navName)); };
+  addEventListener('ov:deptreports', e => { if (e.detail?.dept === rdept()) refresh(); });   // someone saved or deleted one
+  const showPane = name => { if (name === 'reports' && RAPI) refresh(); panes.forEach(p => p.classList.toggle('on', p.dataset.pane === name)); const navName = name === 'report' ? 'reports' : (window.mdtSubNav && window.mdtSubNav[name]) || name; navs.forEach(n => n.setAttribute('aria-selected', n.dataset.pane === navName)); };
   $('rptBack').addEventListener('click', () => showPane('reports'));
   navs.forEach(n => n.addEventListener('click', () => showPane(n.dataset.pane)));
   window.mdtShow = showPane;
@@ -3973,6 +3971,16 @@ body.voice-snap .stage{transition:none!important}
   // cleared in the CAD (dispatch, or a unit's MDT): tell the server, which clears it on everyone's board
   addEventListener('calls', () => { const on = window.CALLS || []; for (const [k, g] of gameCalls) { if (on.includes(g.call)) continue; gameCalls.delete(k); if (HOSTED) post('/calls/clear', { key: k }).catch(() => {}); } });
   const clearedElsewhere = k => { seenCalls.add(k); const g = gameCalls.get(k); if (!g) return; gameCalls.delete(k); window.removeCall?.(g.call); };
+  // who is on each call and how far they've got, the same on every dispatcher and MDT: a change made here goes to the server,
+  // which sends it to everyone; one that arrives before its call is on the board waits for it
+  const stateOf = c => ({ unit: c.unit || '', dept: c.dept || '', stage: c.stage || 0, more: (c.more || []).map(m => ({ name: m.name, dept: m.dept })) });
+  const callSig = new Map(), heldState = new Map(), sigOf = c => JSON.stringify(stateOf(c)); let applyingState = false;
+  const applyState = (k, s) => { const g = gameCalls.get(k); if (!g) { heldState.set(k, s); return; } const c = g.call; applyingState = true;
+    Object.assign(c, { unit: s.unit || '', dept: s.dept || '', stage: +s.stage || 0, more: Array.isArray(s.more) ? s.more : [] }); callSig.set(k, sigOf(c)); window.callsChanged?.(); applyingState = false; };
+  addEventListener('calls', () => { if (applyingState || !HOSTED) return;
+    for (const [k, g] of gameCalls) { const sg = sigOf(g.call);
+      if (!callSig.has(k)) { callSig.set(k, sg); if (heldState.has(k)) { const s = heldState.get(k); heldState.delete(k); applyState(k, s); } continue; }
+      if (callSig.get(k) !== sg) { callSig.set(k, sg); post('/calls/state', { key: k, ...stateOf(g.call) }).catch(() => {}); } } });
 
   // ── live updates: a server-sent stream when the page is served by server.mjs (or a relay), paced polling otherwise ──
   let lastUpdate = 0, updates = 0, source = '', fixAt = 0; const eventTimes = [];                 // fixAt = last time any unit's reported position changed
@@ -4012,13 +4020,15 @@ body.voice-snap .stage{transition:none!important}
     es.addEventListener('cal', e => { try { takeCal(JSON.parse(e.data)); } catch (x) {} });
     es.addEventListener('unitsof', e => { try { const j = JSON.parse(e.data); window.UNIT_OF = j.of || {}; window.RIDE_WITH = j.ride || {}; dispatchEvent(new CustomEvent('unitassign')); } catch (x) {} });   // someone picked a unit or a ride-along
     es.addEventListener('callclears', e => { try { for (const k of JSON.parse(e.data) || []) clearedElsewhere(String(k)); } catch (x) {} });   // already cleared by someone: never shown again
+    es.addEventListener('callstates', e => { try { for (const [k, v] of Object.entries(JSON.parse(e.data) || {})) applyState(k, v); } catch (x) {} });   // everyone's assignments on connect
+    es.addEventListener('callstate', e => { try { const j = JSON.parse(e.data); applyState(String(j.key), j); } catch (x) {} });             // someone sent, moved or took a unit off a call
     es.addEventListener('callclear', e => { try { clearedElsewhere(String(JSON.parse(e.data).key)); } catch (x) {} });                 // someone just cleared one
     es.addEventListener('reload', () => location.reload());
     es.addEventListener('panic', e => { try { dispatchEvent(new CustomEvent('panic', { detail: JSON.parse(e.data) })); } catch (x) {} });            // someone pressed their panic button
     es.addEventListener('panics', e => { try { for (const p of JSON.parse(e.data) || []) dispatchEvent(new CustomEvent('panic', { detail: p })); } catch (x) {} });
     es.addEventListener('panicclear', e => { try { dispatchEvent(new CustomEvent('panicclear', { detail: JSON.parse(e.data) })); } catch (x) {} });   // suspended (you or this server): reload straight into the notice
     // the law enforcement MDT: 10-codes, and records (warrants, BOLOs, stops and backup calls) as officers write them
-    for (const ev of ['unitstatus', 'unitstatuses', 'pdrec']) es.addEventListener(ev, e => { try { dispatchEvent(new CustomEvent('ov:' + ev, { detail: JSON.parse(e.data) })); } catch (x) {} });
+    for (const ev of ['unitstatus', 'unitstatuses', 'pdrec', 'deptreports']) es.addEventListener(ev, e => { try { dispatchEvent(new CustomEvent('ov:' + ev, { detail: JSON.parse(e.data) })); } catch (x) {} });
     es.addEventListener('roads', e => { try { window.ROADNET?.setOv(JSON.parse(e.data).ov); } catch (x) {} });   // an owner fixed a road: re-route now
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }

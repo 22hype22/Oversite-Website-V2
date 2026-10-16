@@ -26,6 +26,8 @@ import * as staffhub from './app/staffhub.mjs';
 import * as civ from './app/civ.mjs';
 import * as civbiz from './app/civbiz.mjs';
 import * as features from './app/features.mjs';
+import * as deptReports from './app/reports.mjs';
+import * as srvStatus from './app/status.mjs';
 import * as profile from './app/profile.mjs';
 import * as pages from './app/pages.mjs';
 import { isSiteAdmin, isSiteMod } from './app/admins.mjs';
@@ -55,10 +57,12 @@ const msg = (res, user, title, text, action, status = 200) => page(res, pages.me
 // ── live feeds, one per community ──
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
+// who is on each open call and how far they've got (0 assigned, 1 en route, 2 on scene), shared by every dispatcher and MDT; kept 12 hours
+const callStates = (c, s = c.settings) => (s.callstate && typeof s.callstate === 'object' ? s.callstate : {});
 const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f);
   f.onSnap = body => { police.observe(c.id, body, (communities.byId(c.id) || c).settings.teams); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
-  f.onStream = res => res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); } return f; };   // everyone's 10-code on connect
+  f.onStream = res => { res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); res.write(`event: callstates\ndata: ${JSON.stringify(callStates(communities.byId(c.id) || c))}\n\n`); }; } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // which side someone is playing right now, from the server's latest ER:LC snapshot: 'pd' | 'fd' | 'dot' | 'civ', null when they
 // aren't in the server, undefined when there's no fresh data (then nothing is blocked, so an ER:LC outage never locks anyone out)
@@ -132,14 +136,28 @@ const communityApi = async (req, res, slug, rest) => {
   // a game 911 call cleared by anyone in the CAD clears for everyone (and stays cleared after a reload, for as long as ER:LC still lists it)
   // dispatch and the MDTs are for the departments: on the civilian team in game you can't clear calls, set a unit or status, or press panic
   // (server staff, mod and up, see and use everything whatever their team)
-  if (M === 'POST' && !can(role, 'mod') && ['calls/clear', 'units/me', 'status', 'panic', 'panic/clear', 'units/ride'].includes(rest) && liveSide(c, user) === 'civ')
+  if (M === 'POST' && !can(role, 'mod') && ['calls/clear', 'calls/state', 'reports', 'reports/delete', 'units/me', 'status', 'panic', 'panic/clear', 'units/ride'].includes(rest) && liveSide(c, user) === 'civ')
     return json(res, { error: 'You’re on the civilian team in game. Dispatch is for players on a department team.' }, 403);
   // Settings → Features: what a switched-off feature does is refused (police records, staff actions and homes depend on what's posted: checked where they're handled)
-  const offKey = features.routeKeys(rest).find(k => (M !== 'GET' || ['dept_pd', 'pd_lookup', 'st_records', 'st_logs'].includes(k)) && !features.on(c, k)), off = k => json(res, { error: `This server has switched this off: ${features.nameOf(k)}.` }, 403);
+  const offKey = features.routeKeys(rest).find(k => (M !== 'GET' || ['dept_pd', 'pd_lookup', 'st_records', 'st_logs', 'reports', 'status'].includes(k)) && !features.on(c, k)), off = k => json(res, { error: `This server has switched this off: ${features.nameOf(k)}.` }, 403);
   if (offKey) return off(offKey);
   if (rest === 'calls/clear' && M === 'POST') { const k = String((await jsonBody(req)).key || ''); if (!/^[\w .:@#-]{1,120}$/.test(k)) return json(res, { error: 'Bad call.' }, 400);
     const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
+    if (s.callstate) delete s.callstate[k];
     communities.saveSettings(c.id, s); c.settings.cleared = s.cleared; f.bcast('callclear', JSON.stringify({ key: k, by: user.roblox_name || user.name || '' })); return json(res, { ok: true }); }
+  // Status & Updates: the server's health and updates; owners and co-owners post their own
+  if (rest === 'srvstatus' && M === 'GET') return json(res, srvStatus.view(c, can(role, 'co_owner')));
+  if (rest === 'srvstatus/post' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can post updates.' }, 403); const r = srvStatus.post(c, user, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'srvstatus/delete' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can remove updates.' }, 403); return json(res, srvStatus.unpost(c, (await jsonBody(req)).id)); }
+  // Fire and DOT incident reports, shared by the department; everyone with the CAD open is told when one changes
+  if (rest === 'reports' && M === 'GET') return json(res, { reports: deptReports.list(c.id, new URL(req.url, 'http://x').searchParams.get('dept'), user.id) });
+  if (rest === 'reports' && M === 'POST') { const j = await jsonBody(req), r = deptReports.save(c.id, String(j.dept || ''), user, j); if (r.ok) f.bcast('deptreports', JSON.stringify({ dept: j.dept })); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'reports/delete' && M === 'POST') { const j = await jsonBody(req), r = deptReports.remove(c.id, user, j.num, can(role, 'admin')); if (r.ok) f.bcast('deptreports', JSON.stringify({ dept: j.dept })); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'calls/state' && M === 'POST') { const j = await jsonBody(req), k = String(j.key || ''); if (!/^[\w .:@#-]{1,120}$/.test(k)) return json(res, { error: 'Bad call.' }, 400);
+    const T = v => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 40), D = v => ['pd', 'fd', 'dot'].includes(v) ? v : '';
+    const st = { unit: T(j.unit), dept: D(j.dept), stage: Math.max(0, Math.min(2, Math.round(+j.stage || 0))), more: (Array.isArray(j.more) ? j.more : []).slice(0, 8).map(m => ({ name: T(m?.name), dept: D(m?.dept) })).filter(m => m.name), at: Date.now() };
+    const s = communities.byId(c.id).settings, now = Date.now(); s.callstate = Object.fromEntries(Object.entries(callStates(c, s)).filter(([, v]) => now - (v.at || 0) < 12 * 3600000).slice(-300)); s.callstate[k] = st;
+    communities.saveSettings(c.id, s); c.settings.callstate = s.callstate; f.bcast('callstate', JSON.stringify({ key: k, ...st })); return json(res, { ok: true }); }
   if (rest.startsWith('v2/server') && M === 'GET') { const s = await f.snapshot(); res.writeHead(s.status || 502, { 'content-type': 'application/json', 'cache-control': 'no-store', ...s.headers }); return res.end(s.body); }
   if (rest === 'cal') { if (M === 'GET') return json(res, calOf(c)); if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner can move the map calibration.' }, 403);
     const j = await jsonBody(req), num = v => typeof v === 'number' && Number.isFinite(v);
@@ -776,6 +794,19 @@ http.createServer((req, res) => {
     let u = null; try { u = auth.currentUser(req); } catch {}   // the database may be what broke
     msg(res, u, 'Something went wrong', 'Oversite hit an error loading this page. Try again in a moment. If it keeps happening, let us know.', { href: '/', label: 'Home' }, 500); }); })
   .listen(PORT, () => console.log(`Oversite on http://localhost:${PORT} (${communities.all().length} communities; ${CODE ? 'preview lock on' : 'site open'}; Discord sign-in ${auth.discordReady() ? 'on' : 'off'})`));
+// Status & Updates: what each part of a server looks like right now (see app/status.mjs for what the states mean)
+const probeStatus = c => { const f = feeds.get(c.id), t = Date.now(), watching = !!f && f.clients.size > 0, E = c.settings.profile?.erlc, P = { cad: { s: 'ok' } };
+  if (!communities.key(c.id)) P.erlc = { s: 'down', why: 'No ER:LC server key is connected. The owner adds it in Settings → General.' };
+  else if (watching && f.lastErr && t - f.lastErr.at < 120000) P.erlc = { s: [401, 403].includes(f.lastErr.status) ? 'down' : 'deg', why: `ER:LC answered ${f.lastErr.status}${f.lastErr.message ? ': ' + f.lastErr.message : ''}` };
+  else if ((watching && f.snap && t - f.snap.t < 60000) || (E?.at && t - E.at < 6 * 60000)) P.erlc = { s: 'ok' };
+  else P.erlc = watching ? { s: 'deg', why: 'No answer from ER:LC in the last minute.' } : { s: 'idle' };
+  P.live = !watching ? { s: 'idle' } : !f.snap ? { s: 'deg', why: 'Waiting for the first update from ER:LC.' } : t - f.snap.t < 20000 ? { s: 'ok' }
+    : t - f.snap.t < 90000 ? { s: 'deg', why: `The last update came ${Math.round((t - f.snap.t) / 1000)} seconds ago.` } : { s: 'down', why: 'No position updates for over a minute and a half.' };
+  P.discord = !c.settings.discord?.guild_id ? { s: 'off' } : discordlink.ready() ? { s: 'ok' } : { s: 'down', why: 'Oversite’s Discord connection isn’t set up.' };
+  P.voice = voice.voiceSettings(c).on && premium.isPremium(c) ? { s: 'ok' } : { s: 'off' };
+  try { communities.byId(c.id); P.db = { s: 'ok' }; } catch (e) { P.db = { s: 'down', why: 'Oversite couldn’t read this server’s saved data.' }; }
+  return P; };
+srvStatus.start(probeStatus);
 staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), staffhub.observe);
 supporter.start(); civ.start();
 // business shifts end when the worker leaves the server or the civilian team; loans take their weekly payment

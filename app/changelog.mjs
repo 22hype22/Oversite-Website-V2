@@ -1,0 +1,28 @@
+// What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
+// tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
+export const CHANGELOG = [
+  { v: '2.6', date: '2026-10-16', tag: 'new', title: 'Shared calls and reports, real status',
+    body: 'Dispatch, the MDTs and the Status tab now work from the same live data for everyone on your server.',
+    items: ['Units sent to a call, and whether they are en route or on scene, show the same on every dispatcher and MDT', 'Fire and DOT incident reports are saved on your server and shared by the department', 'Status & Updates shows your server’s real connection health, problems and these updates'] },
+  { v: '2.5', date: '2026-10-16', tag: 'new', title: 'Switch any feature on or off',
+    body: 'Settings → Features lists every part of the CAD, over a hundred of them, each with its own switch. What you switch off disappears for everyone.',
+    items: ['Business tax: a cut of what businesses earn goes to the server', 'Search settings by describing what you want, like “emergency button”'] },
+  { v: '2.4', date: '2026-10-15', tag: 'new', title: 'Task boards and mini-games',
+    body: 'Every business type has its own task board: showings, deliveries, repairs and more, with a GPS to get there and mini-games along the way.',
+    items: ['Real estate: open houses, staging, appraisals, renting out and sales with price negotiation', 'Paperwork, talking to clients, negotiating, timing and memory mini-games', 'A GPS with turn-by-turn directions while you drive to a task'] },
+  { v: '2.3', date: '2026-10-15', tag: 'new', title: 'Businesses',
+    body: 'Civilians can start and run businesses: hire staff, take shifts, sell from a menu in Shops and bill customers. Premium adds loans, ads, reviews and more.',
+    items: ['Seventeen business types, from restaurants to gun stores', 'Business registration fee and weekly license'] },
+  { v: '2.2', date: '2026-10-15', tag: 'change', title: 'Tabs follow your team',
+    body: 'In game on the civilian team you see the Civilian tab; on a department team you see Dispatch and the departments.', items: [] },
+  { v: '2.1', date: '2026-10-15', tag: 'new', title: 'The Civilian tab',
+    body: 'A bank account, bills, vehicles, housing, an ID card and a criminal record for every player, on an in-game week where one day is 24 minutes.',
+    items: ['Citations and arrests from the MDT are billed as fines', 'Rent, mortgages and property tax'] },
+  { v: '2.0', date: '2026-10-15', tag: 'new', title: 'Staff management',
+    body: 'Shifts, a weekly target, staff records, leave requests and staff applications for your mods and admins.', items: [] },
+  { v: '1.9', date: '2026-10-15', tag: 'new', title: 'Premium for players',
+    body: 'Personal Premium: a gold check in the CAD, your own MDT look, a career page and a premium license card.', items: [] },
+  { v: '1.8', date: '2026-10-14', tag: 'new', title: 'Boundaries',
+    body: 'Draw the areas each team may play in. Players who leave them are warned, then kicked.', items: [] },
+  { v: '1.7', date: '2026-10-14', tag: 'new', title: 'Custom MDT ranks',
+    body: 'Rename, add and reorder the ranks people sign in to the MDT with, and choose which ranks approve warrants.', items: [] }];
