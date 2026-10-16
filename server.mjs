@@ -714,7 +714,7 @@ const route = async (req, res) => {
     const back = url.searchParams.get('link'), dest = back && (/^\/(c\/)?[a-z0-9-]{3,32}(\/[a-z]*)?(\?[a-z0-9=&]*)?$/.test(back) || back === '/explore') ? back : wc && members.role(wc.id, user.id) ? `/${wc.slug}` : null;
     if (user.roblox_name && dest) return redirect(res, dest);
     if (user.roblox_name) return redirect(res, '/account');                     // the dashboard is only the Roblox link step now; the account page is home
-    return page(res, pages.dashboard({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()) })); }
+    return page(res, pages.dashboard({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady(), next: dest || '/dashboard' })); }
   // a player's Roblox headshot, by Roblox user id: looked up once, then cached; the page shows initials if it fails
   // a server's icon, for server cards now and the server browser later
   if ((m0r = path.match(/^\/c\/([a-z0-9-]{3,32})\/icon$/))) { const c = communities.bySlug(m0r[1]), src = c && profile.iconSource(c);
