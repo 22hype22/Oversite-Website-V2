@@ -714,7 +714,7 @@ const route = async (req, res) => {
     const back = url.searchParams.get('link'), dest = back && (/^\/(c\/)?[a-z0-9-]{3,32}(\/[a-z]*)?(\?[a-z0-9=&]*)?$/.test(back) || back === '/explore') ? back : wc && members.role(wc.id, user.id) ? `/${wc.slug}` : null;
     if (user.roblox_name && dest) return redirect(res, dest);
     if (user.roblox_name) return redirect(res, '/account');                     // the dashboard is only the Roblox link step now; the account page is home
-    return page(res, pages.dashboard({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady(), next: dest || '/dashboard' })); }
+    return page(res, pages.dashboard({ logo: LOGO, user, comms: withSetup(communities.forUser(user.id)), discordLinkable: auth.discordReady() && !user.discord_id, pending: p && p.expires > Date.now() ? p : null, welcome: wc && members.role(wc.id, user.id) ? wc : null, discord: auth.discordReady(), robloxOAuth: auth.robloxOAuthReady() && !(p && p.expires > Date.now()), next: dest || '/dashboard' })); }   // someone part way through the profile check sees its words
   // a player's Roblox headshot, by Roblox user id: looked up once, then cached; the page shows initials if it fails
   // a server's icon, for server cards now and the server browser later
   if ((m0r = path.match(/^\/c\/([a-z0-9-]{3,32})\/icon$/))) { const c = communities.bySlug(m0r[1]), src = c && profile.iconSource(c);
@@ -804,8 +804,10 @@ const route = async (req, res) => {
     if (!user) return redirect(res, `/?next=${encodeURIComponent(url.pathname)}`);
     const apm = sub.match(/^\/apply\/(\d{1,9})$/);   // an application form: open to anyone signed in, member or not
     if (apm) return user.roblox_name ? page(res, applyPage({ logo: LOGO, user, c, id: apm[1] })) : redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname)}`);
-    if (!role) return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', isSiteMod(user) ? { href: `/${c.slug}?watch=1`, label: 'Open as Oversite moderation' } : { href: '/dashboard', label: 'Go to dashboard' }, 403);
-    if (!user.roblox_name && !oversight) return redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname + url.search)}`);   // no CAD without a linked Roblox account
+    const turned = why => console.log(`cad: ${user.roblox_name || user.name || 'someone'} (${user.id}) turned away from ${c.slug}${sub === '/' ? '' : sub}: ${why}`);
+    if (!role) { turned('not a member'); return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', isSiteMod(user) ? { href: `/${c.slug}?watch=1`, label: 'Open as Oversite moderation' } : { href: '/dashboard', label: 'Go to dashboard' }, 403); }
+    if (!user.roblox_name && !oversight) { turned('no Roblox linked'); return redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname + url.search)}`); }   // no CAD without a linked Roblox account
+    if (needsDiscord(c) && sub === '/' && !oversight && !can(role, 'co_owner')) turned('server not set up (no Discord linked)');
     if (needsDiscord(c) && sub === '/' && !oversight) return can(role, 'co_owner') ? redirect(res, `/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
     if (sub === '/') return html(res, mapPage(c, user, role, oversight));
     if (sub === '/voice' && !req.prox) return redirect(res, `/${c.slug}/prox${url.search}`);   // the old address
