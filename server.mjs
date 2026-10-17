@@ -998,6 +998,10 @@ setInterval(() => { for (const c of communities.all()) { try { civbiz.sweep(c, u
 if (!siteSettings.get('premium_founding_1')) { let a = 0, f = 0;
   for (const c of communities.all()) { if (premium.isPremium(c)) continue; if (isSiteAdmin(users.byId(c.owner_id))) { premium.grant(c.id, 0, 'launch'); a++; } else { premium.grant(c.id, 30, 'founding'); f++; } }
   siteSettings.set('premium_founding_1', String(Date.now())); console.log(`premium: launch grants, ${a} forever (Oversite's own), ${f} founding servers for 30 days`); }
+// a gift from Oversite: everyone's own Premium for a month (October 2026), once. Nobody's later end date is shortened.
+if (!siteSettings.get('premium_gift_2026_10')) { const until = Date.now() + 30 * 864e5; let n = 0, kept = 0;
+  for (const id of users.allIds()) { if (users.premiumUntil(id) >= until) { kept++; continue; } premium.setUserUntil(id, until); n++; }
+  siteSettings.set('premium_gift_2026_10', String(Date.now())); console.log(`premium: gift month, ${n} accounts get Premium until ${new Date(until).toISOString().slice(0, 10)}, ${kept} already had longer`); }
 if (!siteSettings.get('fix_extra_owners_1')) { let n = 0;
   for (const c of communities.all()) { if (!isSiteAdmin(users.byId(c.owner_id))) continue; for (const m of members.list(c.id)) { if (m.role !== 'owner' || m.id === c.owner_id || isSiteAdmin(m)) continue;
       const u = users.byId(m.id), to = u?.roblox_id && c.settings.ingameStaff?.co?.includes(String(u.roblox_id)) ? 'co_owner' : 'member';   // a co-owner in game stays co-owner
