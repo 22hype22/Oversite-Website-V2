@@ -212,7 +212,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (M === 'DELETE') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner can disconnect the server.' }, 403); communities.setKey(c.id, null); f.setKey(''); return json(res, { ok: true }); }
     if (auth.limited(req, 'keytest', 6, 60000)) return json(res, { error: 'Too many tries. Wait a minute and try again.' }, 429);   // each try asks ER:LC
     const k = String((await jsonBody(req)).key || '').trim(); if (!/^[A-Za-z0-9_\-]{8,200}$/.test(k)) return json(res, { error: 'That does not look like an ER:LC server key.' }, 400);
-    const t = await testKey(k); if (!t.ok && !t.appSide && !t.keep) return json(res, { error: t.message }, 400);
+    const t = await testKey(k); if (!t.ok && !t.appSide && !t.keep) { console.log(`key: ${c.slug} refused by ER:LC (code ${t.code ?? '?'}; ${k.length} chars, ${k.includes('-') ? 'has' : 'no'} dash)`); return json(res, { error: t.message }, 400); }   // the shape only, never the key
     communities.setKey(c.id, k); f.setKey(k); console.log(`key: ${c.slug} saved${t.ok ? '' : ' (ER:LC did not confirm: ' + String(t.message).slice(0, 120) + ')'}`);
     return json(res, { ok: true, persistent: true, name: t.name, players: t.players, pending: t.ok ? undefined : t.message }); }   // pending: saved, but ER:LC hasn't confirmed it yet
   if (rest === 'track' && M === 'GET') { if (!can(role, 'co_owner')) return json(res, { error: 'Owner only.' }, 403); return json(res, { stats: f.stats(), players: Object.fromEntries([...f.track].map(([k, v]) => [k.split(':')[0], v])) }); }

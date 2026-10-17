@@ -135,6 +135,6 @@ export const testKey = async key => { if (soloBusy(key)) return { ok: false, kee
     2003: "ER:LC turned down Oversite's application key. This is on our side: we've been told and the connection will work again shortly.",
     2005: "ER:LC needs Oversite's application key before it will connect more servers. This is on our side, not yours: try again in a little while.", 2002: 'That key is invalid or has expired. Copy a fresh one from your ER:LC private server settings.', 2004: 'That key is banned from the API.' }[j.code] || j.message || `ER:LC answered ${r.status}.`;
   // only a key ER:LC says is wrong is turned away; anything else (rate limit, ER:LC down, server offline) is ER:LC's moment, not the key's, so it's kept
-  if ([2001, 2002, 2004].includes(j.code)) return { ok: false, message: msg };
+  if ([2001, 2002, 2004].includes(j.code)) return { ok: false, code: j.code, message: msg };
   return { ok: false, keep: true, message: `Your server key is saved. ER:LC didn't confirm it just now (${String(msg).replace(/\.$/, '')}), so the CAD will connect as soon as it answers.` }; }
   catch (e) { return { ok: false, keep: true, message: "Your server key is saved. Oversite couldn't reach ER:LC to check it just now, so the CAD will connect as soon as it can." }; } };
