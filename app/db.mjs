@@ -123,6 +123,9 @@ export const users = {
     return u.roblox_id ? q('UPDATE users SET premium_until = ? WHERE roblox_id = ?').run(until, u.roblox_id).changes : q('UPDATE users SET premium_until = ? WHERE id = ?').run(until, id).changes; },
   premiumUntil: id => q('SELECT premium_until AS t FROM users WHERE id = ?').get(id)?.t || 0,
   allIds: () => q('SELECT id FROM users WHERE NOT suspended').all().map(r => r.id),
+  // accounts made since a time, and whether the same Roblox player has an older account (they share Premium)
+  madeSince: t => q('SELECT id, roblox_id, premium_until FROM users WHERE created >= ?').all(t),
+  olderSameRoblox: (rid, t) => !!(rid && q('SELECT 1 FROM users WHERE roblox_id = ? AND created < ?').get(rid, t)),
   premiumRoblox: () => q('SELECT DISTINCT roblox_id AS r FROM users WHERE premium_until > ? AND roblox_id IS NOT NULL').all(now()).map(x => String(x.r)),   // the gold check in the CAD
   billing: id => { try { return JSON.parse(q('SELECT premium_bill AS b FROM users WHERE id = ?').get(id)?.b || '{}'); } catch (e) { return {}; } },
   setBilling: (id, b) => q('UPDATE users SET premium_bill = ? WHERE id = ?').run(JSON.stringify(b || {}), id),

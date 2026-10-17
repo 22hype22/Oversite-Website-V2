@@ -1002,6 +1002,11 @@ if (!siteSettings.get('premium_founding_1')) { let a = 0, f = 0;
 if (!siteSettings.get('premium_gift_2026_10')) { const until = Date.now() + 30 * 864e5; let n = 0, kept = 0;
   for (const id of users.allIds()) { if (users.premiumUntil(id) >= until) { kept++; continue; } premium.setUserUntil(id, until); n++; }
   siteSettings.set('premium_gift_2026_10', String(Date.now())); console.log(`premium: gift month, ${n} accounts get Premium until ${new Date(until).toISOString().slice(0, 10)}, ${kept} already had longer`); }
+// ...but only for accounts made before the last two days: the gift comes off newer ones (paying and older same-Roblox accounts keep theirs)
+if (siteSettings.get('premium_gift_2026_10') && !siteSettings.get('premium_gift_2026_10_trim')) { const g = +siteSettings.get('premium_gift_2026_10'), giftEnd = g + 30 * 864e5, since = Date.now() - 2 * 864e5; let off = 0, kept = 0;
+  for (const u of users.madeSince(since)) { const gifted = Math.abs(u.premium_until - giftEnd) < 10 * 60000;   // still the gift's end date, give or take the few seconds the grant took
+    if (!gifted) continue; if (users.billing(u.id).sub || users.olderSameRoblox(u.roblox_id, since)) { kept++; continue; } premium.setUserUntil(u.id, 0); off++; }
+  siteSettings.set('premium_gift_2026_10_trim', String(Date.now())); console.log(`premium: gift month taken back from ${off} accounts made in the last two days (${kept} kept: paying, or an older account of the same player)`); }
 if (!siteSettings.get('fix_extra_owners_1')) { let n = 0;
   for (const c of communities.all()) { if (!isSiteAdmin(users.byId(c.owner_id))) continue; for (const m of members.list(c.id)) { if (m.role !== 'owner' || m.id === c.owner_id || isSiteAdmin(m)) continue;
       const u = users.byId(m.id), to = u?.roblox_id && c.settings.ingameStaff?.co?.includes(String(u.roblox_id)) ? 'co_owner' : 'member';   // a co-owner in game stays co-owner
