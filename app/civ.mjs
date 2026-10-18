@@ -220,7 +220,7 @@ export const background = (c, uid) => { const u = q('SELECT roblox_id FROM users
   const recs = q("SELECT kind, status, data, at FROM pd_records WHERE community_id = ? AND subject_rid = ? AND kind IN ('arrest', 'citation', 'warrant')").all(c.id, rid);
   const arrests = recs.filter(r => r.kind === 'arrest'), cls = r => { try { return (JSON.parse(r.data || '{}').charges || []).map(x => x.cls); } catch (e) { return []; } };
   const last = arrests.reduce((m, r) => Math.max(m, r.at), 0);
-  return { linked: !!u?.roblox_id, felonies: arrests.filter(r => cls(r).includes('Felony')).length, arrests: arrests.length, citations: recs.filter(r => r.kind === 'citation').length,
+  return { linked: !!u?.roblox_id, felonies: arrests.filter(r => /Felony|Indictable/.test(cls(r))).length, arrests: arrests.length, citations: recs.filter(r => r.kind === 'citation').length,
     lastArrest: last || null, warrants: recs.filter(r => r.kind === 'warrant' && r.status === 'Active').length, license: !!Object.keys(licenses.get(uid) || {}).length,
     debt: q("SELECT count(*) AS n FROM civ_bills WHERE community_id = ? AND user_id = ? AND status = 'Overdue'").get(c.id, uid).n, at: t }; };
 // what a business may require; each failed one is a reason the application is turned down

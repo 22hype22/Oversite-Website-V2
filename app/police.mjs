@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS pd_records_p ON pd_records (community_id, plate);`);
 try { db.exec('ALTER TABLE pd_vehicles ADD COLUMN civ INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
 const q = sql => db.prepare(sql);
 
-// Liberty County's penal code: [code, title, fine in $, jail in minutes, class]. Infractions are tickets; misdemeanors and felonies can be jailed.
+// Liberty County's default penal code: [code, title, fine, jail in minutes, class]. A server can replace it with its own (penalOf). Infractions are tickets; misdemeanors and felonies can be jailed.
 export const PENAL = [
   ['T-101', 'Speeding, 1 to 15 over', 150, 0, 'Infraction'], ['T-102', 'Speeding, 16 to 30 over', 300, 0, 'Infraction'], ['T-103', 'Speeding, 31 or more over', 600, 0, 'Infraction'],
   ['T-104', 'Running a red light', 200, 0, 'Infraction'], ['T-105', 'Failure to stop at a stop sign', 150, 0, 'Infraction'], ['T-106', 'Failure to yield', 150, 0, 'Infraction'],
@@ -36,7 +36,39 @@ export const PENAL = [
   ['F-307', 'Assault on a public servant', 4500, 25, 'Felony'], ['F-308', 'Attempted murder', 8000, 45, 'Felony'], ['F-309', 'Murder', 15000, 60, 'Felony'],
   ['F-310', 'Kidnapping', 7000, 40, 'Felony'], ['F-311', 'Possession of an illegal weapon', 2500, 15, 'Felony'], ['F-312', 'Drug trafficking', 6000, 35, 'Felony'],
   ['F-313', 'Escape from custody', 3000, 20, 'Felony'], ['F-314', 'Bank robbery', 10000, 50, 'Felony'], ['F-315', 'Terroristic threats', 5000, 30, 'Felony']];
-const PENAL_BY = new Map(PENAL.map(p => [p[0], p]));
+// a UK starting point owners can load and change: fixed penalties and offences in £, jail in in-game minutes, classes as UK courts use them
+export const PENAL_UK = [
+  ['RT-01', 'Speeding', 100, 0, 'Summary'], ['RT-02', 'Speeding, excessive', 300, 0, 'Summary'], ['RT-03', 'Running a red light', 100, 0, 'Summary'],
+  ['RT-04', 'Using a mobile phone while driving', 200, 0, 'Summary'], ['RT-05', 'Careless driving', 100, 0, 'Summary'], ['RT-06', 'Dangerous driving', 2500, 15, 'Either-way'],
+  ['RT-07', 'Driving without insurance', 300, 0, 'Summary'], ['RT-08', 'Driving without a licence', 100, 0, 'Summary'], ['RT-09', 'No MOT', 100, 0, 'Summary'],
+  ['RT-10', 'Vehicle not taxed', 80, 0, 'Summary'], ['RT-11', 'Drink or drug driving', 2500, 10, 'Summary'], ['RT-12', 'Driving while disqualified', 2500, 10, 'Summary'],
+  ['RT-13', 'Failing to stop for police', 1000, 5, 'Summary'], ['RT-14', 'Failing to stop after a collision', 1000, 5, 'Summary'], ['RT-15', 'Failing to provide a specimen', 1000, 5, 'Summary'],
+  ['RT-16', 'Taking a vehicle without consent', 1500, 10, 'Summary'], ['RT-17', 'Aggravated vehicle taking', 3000, 20, 'Either-way'], ['RT-18', 'Illegal parking', 70, 0, 'Summary'],
+  ['PO-01', 'Causing harassment, alarm or distress (s.5)', 90, 0, 'Summary'], ['PO-02', 'Threatening behaviour (s.4)', 500, 5, 'Summary'], ['PO-03', 'Drunk and disorderly', 90, 2, 'Summary'],
+  ['PO-04', 'Affray', 2000, 15, 'Either-way'], ['PO-05', 'Violent disorder', 4000, 25, 'Either-way'], ['PO-06', 'Breach of the peace', 200, 2, 'Summary'],
+  ['OP-01', 'Common assault', 1000, 8, 'Summary'], ['OP-02', 'Assault occasioning actual bodily harm', 3000, 20, 'Either-way'], ['OP-03', 'Grievous bodily harm', 6000, 35, 'Indictable'],
+  ['OP-04', 'Assault on an emergency worker', 2500, 15, 'Either-way'], ['OP-05', 'Kidnapping', 7000, 40, 'Indictable'], ['OP-06', 'Attempted murder', 8000, 45, 'Indictable'],
+  ['OP-07', 'Manslaughter', 10000, 50, 'Indictable'], ['OP-08', 'Murder', 15000, 60, 'Indictable'],
+  ['PR-01', 'Theft', 500, 5, 'Either-way'], ['PR-02', 'Shoplifting', 200, 2, 'Either-way'], ['PR-03', 'Burglary', 2500, 15, 'Either-way'],
+  ['PR-04', 'Robbery', 4000, 25, 'Indictable'], ['PR-05', 'Criminal damage', 500, 5, 'Either-way'], ['PR-06', 'Handling stolen goods', 1000, 8, 'Either-way'],
+  ['PR-07', 'Making off without payment', 300, 2, 'Either-way'], ['PR-08', 'Fraud', 2500, 15, 'Either-way'],
+  ['WD-01', 'Possession of an offensive weapon', 1500, 10, 'Either-way'], ['WD-02', 'Possession of a bladed article', 1500, 10, 'Either-way'], ['WD-03', 'Possession of a firearm', 5000, 30, 'Indictable'],
+  ['WD-04', 'Possession of a controlled drug', 500, 5, 'Either-way'], ['WD-05', 'Possession with intent to supply', 5000, 30, 'Either-way'],
+  ['JU-01', 'Obstructing a police officer', 500, 3, 'Summary'], ['JU-02', 'Resisting arrest', 800, 5, 'Summary'], ['JU-03', 'Wasting police time', 600, 3, 'Summary'],
+  ['JU-04', 'Escape from lawful custody', 3000, 20, 'Indictable'], ['JU-05', 'Impersonating a police officer', 1200, 8, 'Summary']];
+export const PENAL_SETS = { us: { name: 'United States (default)', list: PENAL }, uk: { name: 'United Kingdom', list: PENAL_UK } };
+// a server's own laws (Settings → Laws), or the default; each entry is [code, title, fine, jail minutes, class]
+export const penalOf = c => (Array.isArray(c?.settings?.penal) && c.settings.penal.length ? c.settings.penal : PENAL);
+export const CLASSES = ['Infraction', 'Misdemeanor', 'Felony', 'Summary', 'Either-way', 'Indictable'];
+export const cleanPenal = list => { if (!Array.isArray(list) || !list.length) return { error: 'Add at least one law.' }; if (list.length > 400) return { error: 'A server can have up to 400 laws.' };
+  const out = [], seen = new Set();
+  for (const [i, x] of list.entries()) { const r = Array.isArray(x) ? x : [x?.code, x?.title, x?.fine, x?.jail, x?.cls];
+    const code = T(r[0], 14).toUpperCase(), title = T(r[1], 80), fine = Math.round(+r[2] || 0), jail = Math.round(+r[3] || 0), cls = CLASSES.includes(r[4]) ? r[4] : '';
+    if (!code || !title) return { error: `Law ${i + 1} needs a code and a name.` }; if (!/^[A-Z0-9][A-Z0-9 .\-()\/§]*$/.test(code)) return { error: `Law ${i + 1}: use letters, numbers and dashes in the code, like RT-01.` };
+    if (seen.has(code)) return { error: `Two laws use the code ${code}. Each needs its own.` }; seen.add(code);
+    if (fine < 0 || fine > 1e7 || jail < 0 || jail > 10000) return { error: `Law ${i + 1}: the fine or jail time is out of range.` }; if (!cls) return { error: `Law ${i + 1} needs a class.` };
+    out.push([code, title, fine, jail, cls]); }
+  return { list: out }; };
 
 // who may approve a warrant: a server admin, or someone signed in to the police MDT with a supervisor rank (Sergeant and up,
 // unless a Premium server set its own ranks); pdRanks is the server's police list from ranksFor
@@ -87,13 +119,13 @@ export const list = (cid, { kind, status, mine } = {}, uid) => { const w = ['com
   return q(`SELECT * FROM pd_records WHERE ${w.join(' AND ')} ORDER BY at DESC LIMIT 200`).all(...a).map(row); };
 
 // a charge by its code (T-101), or for bots by its title when only one charge matches it ("Hit and run")
-export const chargeFor = x => { const k = String(x?.code || x?.title || x || '').trim(); if (!k) return null; const up = k.toUpperCase(); if (PENAL_BY.has(up)) return PENAL_BY.get(up);
-  const lo = k.toLowerCase(), same = PENAL.find(p => p[1].toLowerCase() === lo); if (same) return same; const some = PENAL.filter(p => p[1].toLowerCase().includes(lo)); return some.length === 1 ? some[0] : null; };
-const charges = arr => (Array.isArray(arr) ? arr : []).slice(0, 20).map(c => { const p = chargeFor(c); return p && { code: p[0], title: p[1], fine: p[2], jail: p[3], cls: p[4], count: Math.min(9, Math.max(1, +c?.count || 1)) }; }).filter(Boolean);
+export const chargeFor = (x, list = PENAL) => { const k = String(x?.code || x?.title || x || '').trim(); if (!k) return null; const up = k.toUpperCase(), byCode = list.find(p => p[0] === up); if (byCode) return byCode;
+  const lo = k.toLowerCase(), same = list.find(p => p[1].toLowerCase() === lo); if (same) return same; const some = list.filter(p => p[1].toLowerCase().includes(lo)); return some.length === 1 ? some[0] : null; };
+const charges = (arr, list) => (Array.isArray(arr) ? arr : []).slice(0, 20).map(c => { const p = chargeFor(c, list); return p && { code: p[0], title: p[1], fine: p[2], jail: p[3], cls: p[4], count: Math.min(9, Math.max(1, +c?.count || 1)) }; }).filter(Boolean);
 const sum = (cs, k) => cs.reduce((a, c) => a + c[k] * c.count, 0);
 const KINDS = ['warrant', 'citation', 'warning', 'arrest', 'bolo', 'stop'];
 // what each kind keeps; the officer never types a fine or a total, they come from the penal code
-const shape = (kind, b) => { const cs = charges(b.charges), base = { location: T(b.location, 80), notes: T(b.notes, 1500), unit: T(b.unit, 40) };
+const shape = (kind, b, list) => { const cs = charges(b.charges, list), base = { location: T(b.location, 80), notes: T(b.notes, 1500), unit: T(b.unit, 40) };
   if (kind === 'citation') return { ...base, charges: cs, fine: sum(cs, 'fine'), vehicle: T(b.vehicle, 60) };
   if (kind === 'warning') return { ...base, reason: T(b.reason, 200) };
   if (kind === 'arrest') return { ...base, charges: cs, fine: sum(cs, 'fine'), jail: sum(cs, 'jail'), officers: (Array.isArray(b.officers) ? b.officers : String(b.officers || '').split(',')).map(o => T(o, 40)).filter(Boolean).slice(0, 8),
@@ -103,8 +135,8 @@ const shape = (kind, b) => { const cs = charges(b.charges), base = { location: T
   if (kind === 'stop') return { ...base, vehicle: T(b.vehicle, 60), color: T(b.color, 30), x: Number.isFinite(+b.x) ? +(+b.x).toFixed(1) : null, y: Number.isFinite(+b.y) ? +(+b.y).toFixed(1) : null, backup: [], outcome: '' };
   return base; };
 
-export const create = (cid, by, b) => { const kind = String(b.kind || ''); if (!KINDS.includes(kind)) return { error: 'Unknown record.' };
-  const d = shape(kind, b), subject = T(b.subject, 40), rid = RID(b.subject_rid), plate = PLATE(b.plate);
+export const create = (cid, by, b, list = PENAL) => { const kind = String(b.kind || ''); if (!KINDS.includes(kind)) return { error: 'Unknown record.' };
+  const d = shape(kind, b, list), subject = T(b.subject, 40), rid = RID(b.subject_rid), plate = PLATE(b.plate);
   if (['citation', 'arrest', 'warrant'].includes(kind) && !d.charges.length) return { error: 'Add at least one charge.' };
   if (['citation', 'warning', 'arrest', 'warrant'].includes(kind) && !subject) return { error: 'Who is this for? Look the person up first, or type their username.' };
   if (kind === 'warning' && !d.reason) return { error: 'Say what the warning is for.' };
