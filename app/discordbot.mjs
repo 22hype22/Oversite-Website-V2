@@ -5,8 +5,10 @@
 // pointing a Discord application's interactions at a URL takes them away from anything else that answered for it.
 import { createPublicKey, verify } from 'node:crypto';
 import { siteSettings } from './db.mjs';
+import * as courses from './courses.mjs';
+import { randomBytes } from 'node:crypto';
 
-const DAPI = process.env.DISCORD_API || 'https://discord.com/api', BOT = process.env.DISCORD_BOT_TOKEN || '', VERSION = 1;
+const DAPI = process.env.DISCORD_API || 'https://discord.com/api', BOT = process.env.DISCORD_BOT_TOKEN || '', VERSION = 2;
 const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n);
 const COLOR = 0x3987E5, EPHEMERAL = 64;
 export const COMMANDS = [
@@ -14,7 +16,9 @@ export const COMMANDS = [
   { name: 'calls', description: 'The open 911 calls and who is on them' },
   { name: 'units', description: 'Units on duty in each department, with their status' },
   { name: 'lookup', description: 'Look up a plate in the police records (staff and police only)', options: [{ type: 3, name: 'plate', description: 'The license plate', required: true, max_length: 12 }] },
-  { name: 'cad', description: 'A link to this server’s CAD' }];
+  { name: 'cad', description: 'A link to this server’s CAD' },
+  { name: 'course', description: 'Take one of your server’s courses', options: [{ type: 3, name: 'name', description: 'The course', required: true, autocomplete: true },
+    { type: 5, name: 'public', description: 'Post it in this channel so anyone can take it (public courses only)', required: false }] }];
 
 const api = async (path, opt = {}) => { const r = await fetch(DAPI + path, { ...opt, headers: { authorization: 'Bot ' + BOT, 'content-type': 'application/json', ...(opt.headers || {}) } });
   const j = r.status === 204 ? {} : await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(j.message ? `Discord answered ${r.status}: ${j.message}` : `Discord answered ${r.status}`); e.status = r.status; e.code = j.code; throw e; } return j; };
@@ -88,8 +92,57 @@ const answer = async (x, c) => { const name = x.data?.name, opt = Object.fromEnt
   return say('That command isn’t Oversite’s.'); };
 
 // Discord gives three seconds to answer: anything slower (ER:LC can be) is answered "thinking…" and filled in after
+// ── /course: a course in Discord. Everything happens in messages only the person taking it can see, so nobody else is pinged
+// or can answer for them; a public course can be posted in the channel with a Start button anyone can press for their own run.
+const runs = new Map();   // token -> { cid, course, did, answers, at }
+const BTN = (id, label, style = 2, disabled = false) => ({ type: 2, custom_id: id, label: T(label, 80) || '…', style, disabled });
+const rows = list => { const out = []; for (let i = 0; i < list.length && out.length < 5; i += 5) out.push({ type: 1, components: list.slice(i, i + 5) }); return out; };
+const priv = d => ({ ...d, flags: EPHEMERAL, allowed_mentions: { parse: [] } });
+const intro = (k, start) => ({ embeds: [{ color: COLOR, title: T(k.title, 250), description: T([k.about, `${k.questions.length} question${k.questions.length === 1 ? '' : 's'} · pass mark ${k.pass}%`].filter(Boolean).join('\n\n'), 4000),
+    fields: k.sections.slice(0, 10).map(x => ({ name: T(x.title || 'Reading', 250), value: T(x.body || '…', 1020) })) }], components: rows([BTN(start, 'Start', 1)]) });
+const question = r => { const x = r.course.questions[r.i], n = r.course.questions.length, tok = r.tok;
+  const opts = x.type === 'choice' ? x.options.map((o, k) => BTN(`crs:a:${tok}:${r.i}:${k}`, o)) : x.type === 'yesno' ? ['Yes', 'No'].map(o => BTN(`crs:a:${tok}:${r.i}:${o}`, o)) : [BTN(`crs:w:${tok}:${r.i}`, 'Write your answer', 1)];
+  return { embeds: [{ color: COLOR, title: T(`${r.course.title} · ${r.i + 1} of ${n}`, 250), description: T(x.q, 4000) + `\n\n*${x.points} point${x.points === 1 ? '' : 's'}*` }],
+    components: [...rows(opts), { type: 1, components: [BTN(`crs:x:${tok}`, 'Stop', 4)] }] }; };
+const finish = async (r, x) => { runs.delete(r.tok); const who = await H.courseUser(r.c, r.did); if (typeof who === 'string') return { embeds: [], content: who, components: [] };
+  const res = courses.submit(r.c, who.user, who.role, r.course.id, r.answers, 'discord'); if (res.error) return { embeds: [], content: res.error, components: [] };
+  const head = { passed: 'Passed', failed: 'Not passed', marking: 'Handed in' }[res.status];
+  return { content: '', components: [], embeds: [{ color: res.status === 'passed' ? 0x46D07C : res.status === 'failed' ? 0xE24B4B : 0xE9B04C, title: T(`${r.course.title}: ${head}`, 250),
+    description: T(res.message.replace(/<@\d+>/g, who.user.roblox_name || 'You'), 4000), fields: res.status === 'marking' ? [] : [{ name: 'Score', value: `${res.score}/${res.max}`, inline: true }, { name: 'Pass mark', value: `${res.pass}%`, inline: true }] }] }; };
+const courseInteraction = async (x, c) => { const did = String(x.member?.user?.id || x.user?.id || ''), id = x.data?.custom_id || '';
+  if (x.type === 4) { const who = await H.courseUser(c, did); const typed = String((x.data?.options || []).find(o => o.focused)?.value || '').toLowerCase();
+    const list = typeof who === 'string' ? [] : courses.list(c, who.user, who.role).filter(k => k.open && (!typed || k.title.toLowerCase().includes(typed)));
+    return { type: 8, data: { choices: list.slice(0, 25).map(k => ({ name: T(k.title + (k.public ? ' (public)' : ''), 100), value: String(k.id) })) } }; }
+  if (x.type === 2) { const opt = Object.fromEntries((x.data.options || []).map(o => [o.name, o.value])), who = await H.courseUser(c, did); if (typeof who === 'string') return { type: 4, data: priv({ content: who }) };
+    const k = courses.get(c.id, String(opt.name || '').replace(/\D/g, '') || 0); if (!courses.canTake(k, who.role)) return { type: 4, data: priv({ content: 'That course isn’t open to you. Pick one from the list as you type.' }) };
+    if (opt.public) { if (!k.public) return { type: 4, data: priv({ content: 'Only a public course can be posted for everyone. An admin can make it public on the Staff page.' }) };
+      return { type: 4, data: { ...intro(k, `crs:s:${k.id}`), allowed_mentions: { parse: [] } } }; }   // in the channel, pinging nobody; each Start opens a private run
+    return { type: 4, data: priv(intro(k, `crs:s:${k.id}`)) }; }
+  const [, act, a, b, v] = id.split(':');
+  if (act === 's') { const who = await H.courseUser(c, did); if (typeof who === 'string') return { type: 4, data: priv({ content: who }) };
+    const k = courses.get(c.id, a, true); if (!courses.canTake(k, who.role)) return { type: 4, data: priv({ content: 'That course isn’t open to you.' }) };
+    for (const [t, r] of runs) if (Date.now() - r.at > 3600e3) runs.delete(t);
+    const r = { tok: randomBytes(6).toString('hex'), c, course: k, did, answers: [], i: 0, at: Date.now() }; runs.set(r.tok, r);
+    const ephemeralStart = (x.message?.flags || 0) & EPHEMERAL;
+    return ephemeralStart ? { type: 7, data: question(r) } : { type: 4, data: priv(question(r)) }; }
+  const r = runs.get(a); if (!r || r.c.id !== c.id) return { type: 4, data: priv({ content: 'That course run has ended. Start it again with /course.' }) };
+  if (r.did !== did) return { type: 4, data: priv({ content: 'This isn’t your course. Start your own with /course.' }) };   // only the person who started it is listened to
+  r.at = Date.now();
+  if (act === 'x') { runs.delete(r.tok); return { type: 7, data: { content: 'Stopped. Nothing was handed in.', embeds: [], components: [] } }; }
+  if (+b !== r.i) return { type: 7, data: question(r) };
+  if (act === 'w') return { type: 9, data: { custom_id: `crs:m:${r.tok}:${r.i}`, title: T(`Question ${r.i + 1}`, 45), components: [{ type: 1, components: [{ type: 4, custom_id: 'a', label: T(r.course.questions[r.i].q, 45), style: 2, max_length: 1500, required: true }] }] } };
+  if (act === 'a') r.answers[r.i] = r.course.questions[r.i].type === 'choice' ? +v : v;
+  else if (act === 'm') r.answers[r.i] = String(x.data?.components?.[0]?.components?.[0]?.value || '');
+  else return { type: 7, data: question(r) };
+  r.i++; return { type: 7, data: r.i < r.course.questions.length ? question(r) : await finish(r, x) }; };
+
 export const handle = async x => { if (x.type === 1) return { type: 1 };
-  if (x.type !== 2) return { type: 4, data: say('Oversite doesn’t do that yet.') };
+  if (![2, 3, 4, 5].includes(x.type)) return { type: 4, data: say('Oversite doesn’t do that yet.') };
+  if (x.type !== 2 || x.data?.name === 'course') { const c = x.guild_id ? H.community(String(x.guild_id)) : null;
+    if (!c) return x.type === 4 ? { type: 8, data: { choices: [] } } : { type: 4, data: say('This Discord isn’t linked to an Oversite server. Its owner links it in the server’s Settings, under Discord.') };
+    if (c.suspended || !H.on(c) || !H.coursesOn(c)) return x.type === 4 ? { type: 8, data: { choices: [] } } : { type: 4, data: say('Courses are switched off on this server.') };
+    if (x.type === 2 || x.type === 4 || String(x.data?.custom_id || '').startsWith('crs:')) return courseInteraction(x, c);
+    return { type: 4, data: say('Oversite doesn’t do that yet.') }; }
   const c = x.guild_id ? H.community(String(x.guild_id)) : null;
   if (!c) return { type: 4, data: say('This Discord isn’t linked to an Oversite server. Its owner links it in the server’s Settings, under Discord.') };
   if (c.suspended) return { type: 4, data: say('This Oversite server is suspended.') };

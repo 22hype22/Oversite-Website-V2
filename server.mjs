@@ -11,7 +11,8 @@ import { RANKS, validRank, ranksFor, saveRanks, licenseOf, saveLicense } from '.
 import { serverPage } from './app/serverpage.mjs';
 import * as voice from './app/voice.mjs';
 import { voicePage } from './app/voicepage.mjs';
-import { staffHub, applyPage } from './app/staffpage.mjs';
+import { staffHub, applyPage, coursePage } from './app/staffpage.mjs';
+import * as courses from './app/courses.mjs';
 import { Feed, testKey, appSide, NOKEY, appKey, appId, appKeyChanged, authLink, erlcHeaders } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
@@ -336,11 +337,21 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'records/act' && M === 'POST') { const j = req._body, r = police.act(c.id, by, j); if (r.ok && j.action === 'approve') recordEvent(c, r.record); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: String(j.action || ''), _by: by.name })); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only an admin can delete records.' }, 403); const id = +(await jsonBody(req)).id || 0; police.remove(c.id, id); f.bcast('pdrec', JSON.stringify({ id, _deleted: true })); return json(res, { ok: true }); }
     return json(res, { error: 'Not found.' }, 404); }
+  // staff courses (app/courses.mjs): staff take every open course, any member takes public ones; admins write them and mark written answers
+  if (rest === 'courses' || rest.startsWith('courses/') || rest.startsWith('course/')) { if (!features.on(c, 'courses')) return json(res, { error: 'This server has switched off courses.' }, 403);
+    const qs = new URL(req.url, 'http://x').searchParams, cm = rest.match(/^course\/(\d{1,9})$/);
+    if (rest === 'courses' && M === 'GET') return json(res, { courses: courses.list(c, user, role), admin: can(role, 'admin'), types: courses.QTYPES, gradDefault: courses.GRAD_DEFAULT });
+    if (cm && M === 'GET') { const k = courses.get(c.id, cm[1], qs.get('edit') === '1' && can(role, 'admin')); if (!k || (!can(role, 'admin') && !courses.canTake(k, role))) return json(res, { error: 'This course is closed, or not open to you.' }, 404); return json(res, { course: k, admin: can(role, 'admin') }); }
+    if (cm && M === 'POST') { const r = courses.submit(c, user, role, cm[1], (await jsonBody(req)).answers, 'web'); return json(res, r, r.error ? 400 : 200); }
+    if (rest === 'courses/runs' && M === 'GET') { const r = courses.runs(c, role, qs.get('id')); return json(res, r, r.error ? 403 : 200); }
+    if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req);
+    const r = rest === 'courses/save' ? courses.save(c, role, j) : rest === 'courses/delete' ? courses.remove(c, role, j.id) : rest === 'courses/mark' ? courses.mark(c, user, role, j.run, j.marks) : { error: 'Not found.' };
+    return json(res, r, r.error ? 400 : 200); }
   // staff management (app/staffhub.mjs): shifts, the weekly board, staff records, leave, applications. Mod and up.
   if (rest.startsWith('sm/')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403);
     const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, ok = r => json(res, r.error ? r : { ...r, state: staffhub.state(c, user, role) }, r.error ? 400 : 200);
     if (sub === 'state' && M === 'GET') return json(res, staffhub.state(c, user, role));
-    if (sub === 'person' && M === 'GET') { const id = +qs.get('id') || user.id; if (id !== user.id && !can(role, 'admin')) return json(res, { error: 'Only admins and up can see other staff records.' }, 403); const r = staffhub.person(c, id); return json(res, r, r.error ? 404 : 200); }
+    if (sub === 'person' && M === 'GET') { const id = +qs.get('id') || user.id; if (id !== user.id && !can(role, 'admin')) return json(res, { error: 'Only admins and up can see other staff records.' }, 403); const r = staffhub.person(c, id); if (!r.error) r.courses = courses.record(c.id, id); return json(res, r, r.error ? 404 : 200); }
     if (sub === 'apps' && M === 'GET') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can read applications.' }, 403); return json(res, { form: staffhub.form(c, qs.get('form')), apps: staffhub.apps(c, qs.get('form'), qs.get('status')) }); }
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404);
     const j = await jsonBody(req);
@@ -672,7 +683,7 @@ const route = async (req, res) => {
   if (vl && (vs !== vl[1] || !communities.bySlug(vs) || RESERVED.has(vs))) { const bySlug = !RESERVED.has(vs) && communities.bySlug(vs), hit = bySlug ? { c: bySlug } : auth.inviteByCode(req, vl[1]);
     if (hit?.c) return redirect(res, `/${hit.c.slug}/vote`, { 'cache-control': 'no-store' });
     return msg(res, auth.currentUser(req), hit?.error ? 'Too many tries' : 'Server not found', hit?.error || 'Check the vote link, or find the server on Explore.', { href: '/explore', label: 'Explore servers' }, hit?.error ? 429 : 404); }
-  const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|prox|about|vote|staff|apply\/\d{1,9}))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
+  const short = path.match(/^\/([a-z0-9-]{3,32})(\/(?:settings|prox|about|vote|staff|apply\/\d{1,9}|course\/\d{1,9}))?\/?$/), sc = short && !RESERVED.has(short[1]) && communities.bySlug(short[1]);
   if (sc) { const sub = short[2] || '', u = auth.currentUser(req); if (u) staffRole(sc, u);
     if (sub === '/vote') { path = `/s/${sc.slug}`; aboutPage = true; req.votePrompt = true; }
     else if (sub === '/about' || (!sub && !(u && (members.role(sc.id, u.id) || (isSiteMod(u) && (url.searchParams.has('watch') || auth.cookies(req).ov_watch === sc.slug)))) && visible(sc.slug))) { path = `/s/${sc.slug}`; aboutPage = true; }
@@ -814,6 +825,8 @@ const route = async (req, res) => {
     if (!user) return redirect(res, `/?next=${encodeURIComponent(url.pathname)}`);
     const apm = sub.match(/^\/apply\/(\d{1,9})$/);   // an application form: open to anyone signed in, member or not
     if (apm) return user.roblox_name ? page(res, applyPage({ logo: LOGO, user, c, id: apm[1] })) : redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname)}`);
+    const crm = sub.match(/^\/course\/(\d{1,9})$/);   // taking a course: the page checks who may (staff, or any member for a public one)
+    if (crm && role) return user.roblox_name || oversight ? page(res, watched(coursePage({ logo: LOGO, user, c, id: crm[1] }), c, oversight)) : redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname)}`);
     const turned = why => console.log(`cad: ${user.roblox_name || user.name || 'someone'} (${user.id}) turned away from ${c.slug}${sub === '/' ? '' : sub}: ${why}`);
     if (!role) { turned('not a member'); return msg(res, user, `You are not in ${c.name}`, 'Ask the community for an invite link to join.', isSiteMod(user) ? { href: `/${c.slug}?watch=1`, label: 'Open as Oversite moderation' } : { href: '/dashboard', label: 'Go to dashboard' }, 403); }
     if (!user.roblox_name && !oversight) { turned('no Roblox linked'); return redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname + url.search)}`); }   // no CAD without a linked Roblox account
@@ -962,6 +975,11 @@ const setUnitStatus = (c, unit, st, by) => { const r = police.setStatus(c.id, un
 bots.gate(c => features.on(c, 'bots')); bots.limit((c, i) => i < bots.max(premium.isPremium(c)));
 career.hooks.shift = (cid, kind, d) => { const c = communities.byId(cid); if (c) bots.emit(c, kind, d); };
 discordbot.wire({ community: gid => communities.withDiscord().find(c => String(c.settings.discord?.guild_id) === gid) || null, on: c => features.on(c, 'discordcmds'), link: c => `${PUBLIC()}/${c.slug}`,
+  coursesOn: c => features.on(c, 'courses'),
+  // who a Discord user is on this server, for /course: their Oversite account and rank (Discord staff roles count), or why not
+  courseUser: async (c, did) => { const u = did && users.byDiscord(did); if (!u) return `Sign in to Oversite with this Discord account first, then try again: ${PUBLIC()}/auth/discord`;
+    let role = staffRole(c, u); const lvl = await discordlink.levelFor(c, did).catch(() => null); if (lvl) role = discordlink.higher(role || 'member', lvl);
+    return role ? { user: u, role } : `You aren’t a member of ${c.name} on Oversite yet. Join it with its invite code, then try again.`; },
   snapshot: liveView, units: unitsView,
   lookup: (c, plate) => police.vehicle(c.id, plate),
   canLookup: async (c, did) => { const u = did && users.byDiscord(did); if (!u) return `Sign in to Oversite with this Discord account first, then try again: ${PUBLIC()}/auth/discord`;

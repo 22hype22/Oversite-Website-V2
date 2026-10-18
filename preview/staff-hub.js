@@ -15,7 +15,7 @@
   let S = null, tab = 'overview', view = {};   // view: per-tab sub state (which person, which form)
 
   const TABS = () => [['overview', 'Overview', S.board.filter(b => b.shift).length ? S.board.filter(b => b.shift).length + ' on' : ''], ['staff', 'Staff', String(S.board.length)],
-    ['leave', 'Leave', S.can.manage ? (S.leave.filter(l => l.status === 'pending').length || '') + '' : ''], ...(S.can.manage ? [['apps', 'Applications', (S.forms.reduce((a, f) => a + f.pending, 0) || '') + '']] : []), ...(S.can.settings ? [['settings', 'Settings', '']] : [])];
+    ['leave', 'Leave', S.can.manage ? (S.leave.filter(l => l.status === 'pending').length || '') + '' : ''], ...(window.OvCourses && S.courses !== false ? [['courses', 'Courses', '']] : []), ...(S.can.manage ? [['apps', 'Applications', (S.forms.reduce((a, f) => a + f.pending, 0) || '') + '']] : []), ...(S.can.settings ? [['settings', 'Settings', '']] : [])];
   const drawNav = () => { nav.innerHTML = TABS().map(([k, t, n]) => '<a href="#' + k + '" role="tab" data-tab="' + k + '" aria-selected="' + (k === tab) + '">' + t + (n && n !== '0' ? '<small>' + esc(n) + '</small>' : '') + '</a>').join(''); };
   nav.addEventListener('click', e => { const a = e.target.closest('[data-tab]'); if (!a) return; e.preventDefault(); go(a.dataset.tab); });
   const go = (t, sub) => { tab = t; view = sub || {}; history.replaceState(null, '', '#' + t); drawNav(); draw(); };
@@ -52,6 +52,7 @@
     return '<div class="sh-back"><button class="btn sm ghost" data-tab-go="staff">← Staff team</button></div>'
       + '<section class="card sh-card"><div class="sh-row"><div class="nm" style="display:flex;align-items:center;gap:12px">' + av(p.rid, p.name) + '<div><h2 style="margin:0">' + esc(p.name) + '</h2><small style="color:var(--faint)">' + esc(RANKS[p.role] || p.role) + ' · ' + hm(p.total) + ' on shift in total</small></div></div></div></section>'
       + '<section class="card sh-card"><h2>Infractions and promotions</h2>' + rec + '</section>' + add
+      + (p.courses && p.courses.length ? '<section class="card sh-card"><h2>Courses</h2><ul class="sh-list">' + p.courses.map(k => '<li><div class="nm"><div><b>' + esc(k.title) + '</b><br><small>' + when(k.at) + '</small></div></div><span class="tag ' + (k.status === 'passed' ? 'ok' : k.status === 'failed' ? 'bad' : 'warn') + '">' + (k.status === 'passed' ? 'Passed' : k.status === 'failed' ? 'Not passed' : 'Waiting for marking') + (k.status !== 'marking' ? ' · ' + k.score + '/' + k.max : '') + '</span></li>').join('') + '</ul></section>' : '')
       + '<section class="card sh-card"><h2>Recent shifts</h2>' + (p.shifts.length ? '<ul class="sh-list">' + p.shifts.map(s => '<li><div class="nm"><div><b>' + esc(s.type) + '</b><br><small>' + when(s.started) + (s.auto ? ' · in game' : '') + '</small></div></div><span class="num">' + (s.ended ? hm(s.minutes) : 'running') + '</span></li>').join('') + '</ul>' : '<p class="sh-empty">No shifts yet.</p>') + '</section>'
       + '<section class="card sh-card"><h2>Leave</h2>' + (p.leave.length ? '<ul class="sh-list">' + p.leave.map(l => '<li><div class="nm"><div><b>' + day(l.starts) + ' – ' + day(l.ends) + '</b><br><small>' + esc(l.reason) + '</small></div></div><span class="tag' + (l.status === 'approved' ? ' ok' : l.status === 'denied' ? ' bad' : '') + '">' + esc(l.status) + '</span></li>').join('') + '</ul>' : '<p class="sh-empty">No leave taken.</p>') + '</section>'; };
 
@@ -100,6 +101,7 @@
     if (tab === 'staff' && view.person) { body.innerHTML = '<p class="sh-empty">Loading…</p>'; try { body.innerHTML = person(await get('/sm/person?id=' + view.person)); } catch (e) { body.innerHTML = '<p class="sh-empty">' + esc(e.message) + '</p>'; } bindPerson(); return; }
     if (tab === 'apps' && view.answers) { if (!view.data) { body.innerHTML = '<p class="sh-empty">Loading…</p>'; try { view.data = await get('/sm/apps?form=' + view.answers); } catch (e) { body.innerHTML = '<p class="sh-empty">' + esc(e.message) + '</p>'; return; } } body.innerHTML = answers(); return; }
     if (tab === 'apps' && view.form) { body.innerHTML = editor(); return; }
+    if (tab === 'courses') { body.innerHTML = '<div id="shCourses"></div>'; window.OvCourses.draw(document.getElementById('shCourses'), { API, SLUG, me: S.me }); return; }   // drawn by staff-courses.js
     body.innerHTML = tab === 'overview' ? overview() : tab === 'staff' ? staffList() : tab === 'leave' ? leave() : tab === 'apps' ? appsHome() : tab === 'settings' ? settings() : '';
     tick(); };
   const bindPerson = () => { const f = document.getElementById('shAct'); if (!f) return; const E = f.elements; const sync = () => { const k = E.kind.value; f.querySelectorAll('[data-k]').forEach(l => l.hidden = l.dataset.k !== k); }; E.kind.addEventListener('change', sync); sync();

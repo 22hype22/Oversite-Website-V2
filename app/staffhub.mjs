@@ -5,6 +5,7 @@
 import { db, communities, members, users } from './db.mjs';
 import { isPremium } from './premium.mjs';
 import { emit } from './events.mjs';
+import { on as featureOn } from './features.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS staff_shifts (id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, type TEXT NOT NULL DEFAULT 'General', started INTEGER NOT NULL, ended INTEGER,
@@ -197,4 +198,4 @@ export const myApps = (c, user) => q('SELECT a.id, a.form_id, a.status, a.note, 
 export const state = (c, user, role) => { const r = RANK[role] || 0, C = conf(c), b = board(c);
   return { me: { id: user.id, role, shift: shiftView(openShift(c.id, user.id)) }, conf: C, premium: isPremium(c), board: b, weekStart: weekStart(), infractions: INFRACTIONS,
     leave: leaveList(c).filter(l => r >= RANK.admin || l.user === user.id || l.status === 'approved'),
-    forms: r >= RANK.admin ? forms(c) : [], can: { manage: r >= RANK.admin, settings: r >= RANK.co_owner, owner: role === 'owner' } }; };
+    forms: r >= RANK.admin ? forms(c) : [], courses: featureOn(c, 'courses'), can: { manage: r >= RANK.admin, settings: r >= RANK.co_owner, owner: role === 'owner' } }; };
