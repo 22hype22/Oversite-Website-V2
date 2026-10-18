@@ -14,6 +14,7 @@ const ROUTES = [
   ['GET', 'shifts?days=7&roblox_id=', 'read', 'Time on duty, counted from the in-game team (1 to 30 days; one person with <code>roblox_id</code>).'],
   ['GET', 'people?discord_id=', 'people', 'A member’s Roblox account from their Discord ID. Also takes <code>roblox_id</code> or <code>roblox_name</code>.'],
   ['GET', 'lookup?q=', 'lookup', 'Search people and plates, with their warrant and BOLO flags.'],
+  ['GET', 'person?roblox_name=', 'lookup', 'One person’s criminal record, for a <code>/search</code> command: <code>wanted</code>, open warrants, BOLOs, arrests, citations and warnings with counts, their vehicles and license. Also takes <code>discord_id</code> or <code>roblox_id</code>.'],
   ['GET', 'plates/{plate}', 'lookup', 'A plate: model, color, owner, registration, insurance, stolen, flags and its records.'],
   ['GET', 'penal', 'lookup', 'The server’s charges: code, title, fine, jail time and class, for writing records.'],
   ['GET', 'records?kind=&status=open', 'lookup', 'Police records, newest first (citation, warning, arrest, warrant, bolo, stop).'],
@@ -21,6 +22,7 @@ const ROUTES = [
   ['POST', 'calls/clear', 'calls', 'Clear a call for everyone: <code>{ "key": "…" }</code> from <code>GET calls</code>.'],
   ['POST', 'units/status', 'units', 'Set a unit’s status: <code>{ "unit": "1A-12", "status": "10-8" }</code>.'],
   ['POST', 'records', 'records', 'Write a record as the bot, like the MDT does. Warrants wait for a supervisor. See below.'],
+  ['POST', 'records/{id}/act', 'records', 'Serve or recall a warrant, or clear a BOLO: <code>{ "action": "serve" }</code>. Sends <code>record.updated</code>.'],
   ['POST', 'plates/{plate}', 'vehicles', 'Change papers on a plate Oversite has seen: <code>{ "reg": "Expired", "ins": "Lapsed", "stolen": true }</code>. <code>reg</code> is Valid, Expired or Suspended; <code>ins</code> is Active, Lapsed or None.'],
   ['GET', 'bank?discord_id=', 'bank', 'A member’s balance in the Civilian economy.'],
   ['POST', 'bank', 'bank', 'Pay (positive) or charge (negative): <code>{ "discord_id": "…", "amount": 500, "memo": "Paycheck" }</code>. Charges never go below zero unless <code>"force": true</code>.'],
@@ -90,6 +92,19 @@ def oversite():
     event = request.get_json()
     return "", 200`)}
 <p>The owner can press <b>Send a test event</b> in their settings; it arrives as <code>test</code> with <code>"test": true</code>.</p>`],
+  ['doj', 'A Justice (DOJ) bot', `<p class="lg-short"><b>In short</b><span>Pick <b>Justice (DOJ) bot</b> when connecting it. Every department writes in the same CAD, so one bot hears every arrest, citation and warrant and can post it to each department’s Discord.</span></p>
+<p>Subscribe to <code>record.created</code> and <code>record.updated</code>. <code>record.created</code> comes when an officer of any department files an arrest, citation, warning or BOLO, and when a supervisor approves a warrant (so a warrant only goes out once it’s real). <code>record.updated</code> comes when a warrant is served, recalled or denied, a BOLO is cleared or a stop ends, with <code>action</code> and <code>action_by</code>.</p>
+${code(`// post every new record to each department's log channel
+if (event.event === 'record.created') {
+  const r = event.data;   // r.kind, r.status, r.subject, r.charges, r.fine, r.jail, r.by, r.unit
+  for (const id of [LAPD_LOG, SHERIFF_LOG, HIGHWAY_LOG]) client.channels.cache.get(id)?.send(
+    \`**\${r.kind}** · \${r.subject} · \${(r.charges || []).map(c => c.title).join(', ')} · by \${r.by}\`);
+}
+
+// /search player:<roblox name>
+const s = await oversite('/person?roblox_name=' + encodeURIComponent(name));
+// s.wanted, s.warrants, s.counts.arrests, s.counts.citations, s.records`)}
+<p>Your bot can also file records itself with <code>POST records</code>, and serve warrants with <code>POST records/{id}/act</code>. Warrants it writes wait for a supervisor in the MDT.</p>`],
   ['example', 'A slash command, start to finish', `<p>A discord.js command that shows who is on duty, using the <code>read</code> permission:</p>
 ${code(`const API = 'https://www.oversitescad.com/api/bot/v1';
 const oversite = path => fetch(API + path, { headers: { Authorization: 'Bot ' + process.env.OVERSITE_KEY } }).then(r => r.json());

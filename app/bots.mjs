@@ -22,10 +22,12 @@ export const EVENTS = {
   'call.created': ['A 911 call comes in', 'read'], 'call.updated': ['Units are assigned to a call or move on it', 'read'], 'call.cleared': ['A call is cleared', 'read'],
   'unit.status': ['A unit changes status', 'read'], 'panic': ['A unit presses panic', 'read'], 'shift.started': ['Someone goes on duty', 'read'], 'shift.ended': ['Someone goes off duty', 'read'],
   'player.joined': ['A player joins the server', 'read'], 'player.left': ['A player leaves the server', 'read'],
-  'alpr': ['The plate reader flags a car', 'lookup'], 'record.created': ['Police write a record', 'lookup'] };
+  'alpr': ['The plate reader flags a car', 'lookup'], 'record.created': ['Police write a record (a warrant once it’s approved)', 'lookup'],
+  'record.updated': ['A warrant is served, recalled or denied, a BOLO is cleared, or a stop ends', 'lookup'] };
 // what the "Connect a bot" form ticks for each kind of bot
 export const PRESETS = {
-  department: { name: 'Department bot', scopes: ['read', 'people', 'units', 'calls'], events: ['shift.started', 'shift.ended', 'call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic'] },
+  department: { name: 'Department bot', scopes: ['read', 'people', 'units', 'calls', 'lookup', 'records'], events: ['shift.started', 'shift.ended', 'call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic', 'record.created', 'record.updated'] },
+  justice: { name: 'Justice (DOJ) bot', scopes: ['read', 'people', 'lookup', 'records'], events: ['record.created', 'record.updated'] },
   roleplay: { name: 'Roleplay bot', scopes: ['read', 'people', 'lookup', 'vehicles', 'bank', 'records'], events: ['record.created', 'call.created'] },
   moderation: { name: 'Moderation bot', scopes: ['read', 'people', 'game'], events: ['player.joined', 'player.left'] },
   readonly: { name: 'Read only', scopes: ['read'], events: [] } };

@@ -334,7 +334,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'records/act' && M === 'POST') { const j = req._body ||= await jsonBody(req), a = String(j.action || ''), k = ['backup', 'respond'].includes(a) ? 'pd_backup' : features.RECORD[police.record(c.id, j.id)?.kind]; if (k && !features.on(c, k)) return off(k); }
     if (sub === 'records' && M === 'GET') return json(res, { records: recent(police.list(c.id, { kind: qs.get('kind') || '', status: qs.get('status') || '', mine: qs.get('mine') === '1' }, user.id)) });
     if (sub === 'records' && M === 'POST') { const r = police.create(c.id, by, req._body, police.penalOf(c)); if (r.ok) { f.bcast('pdrec', JSON.stringify(r.record)); if (!(r.record.kind === 'warrant' && r.record.status === 'Pending')) recordEvent(c, r.record); } return json(res, r, r.error ? 400 : 200); }
-    if (sub === 'records/act' && M === 'POST') { const j = req._body, r = police.act(c.id, by, j); if (r.ok && j.action === 'approve') recordEvent(c, r.record); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: String(j.action || ''), _by: by.name })); return json(res, r, r.error ? 400 : 200); }
+    if (sub === 'records/act' && M === 'POST') { const j = req._body, r = police.act(c.id, by, j); if (r.ok && j.action === 'approve') recordEvent(c, r.record); if (r.ok) recordChanged(c, r.record, String(j.action || ''), by.name); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: String(j.action || ''), _by: by.name })); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only an admin can delete records.' }, 403); const id = +(await jsonBody(req)).id || 0; police.remove(c.id, id); f.bcast('pdrec', JSON.stringify({ id, _deleted: true })); return json(res, { ok: true }); }
     return json(res, { error: 'Not found.' }, 404); }
   // staff courses (app/courses.mjs): staff take every open course, any member takes public ones; admins write them and mark written answers
@@ -472,6 +472,17 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
   if (rest === 'records' && M === 'GET') { if (need('lookup') || off('pd_records')) return; return ok({ records: police.list(c.id, { kind: ['warrant', 'citation', 'warning', 'arrest', 'bolo', 'stop'].includes(qs.get('kind')) ? qs.get('kind') : '', status: qs.get('status') === 'open' ? 'open' : '' }).slice(0, 100) }); }
   if (rest === 'penal' && M === 'GET') { if (need('lookup')) return; return ok({ currency: c.settings.currency || '$', charges: police.penalOf(c).map(([code, title, fine, jail, cls]) => ({ code, title, fine, jail, class: cls })) }); }
   if (rest === 'lookup' && M === 'GET') { if (need('lookup') || off('pd_lookup')) return; return ok(police.search(c.id, qs.get('q'))); }
+  // one person's record, for a /search command: warrants first, then arrests, citations and warnings (free servers: the last 30 days, plus anything still open)
+  if (rest === 'person' && M === 'GET') { if (need('lookup') || off('pd_lookup')) return; const o = Object.fromEntries(qs), u = o.discord_id ? person(o) : null;
+    if (o.discord_id && !u?.roblox_id) return bad('Nobody with that Discord ID has a Roblox account linked on Oversite.', 404);
+    const key = String(u?.roblox_id || o.roblox_id || o.roblox_name || o.name || '').trim(); if (!key) return bad('Send discord_id, roblox_id or roblox_name.');
+    const r = await police.person(c.id, key, licenseOf); if (r.error) return bad(r.error, 404);
+    const cut = premium.isPremium(c) ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5, open = x => x.status === 'Active' || x.status === 'Pending';
+    const H = r.history.filter(x => x.kind !== 'stop' && (!cut || x.at >= cut || open(x))), warrants = H.filter(x => x.kind === 'warrant' && open(x)), n = k => H.filter(x => x.kind === k).length;
+    const acct = r.person.rid ? users.byRoblox(r.person.rid) : null;
+    return ok({ person: { roblox_name: r.person.name || null, roblox_id: r.person.rid || null, ...(bots.can(bot, 'people') ? { discord_id: acct?.discord_id || null } : {}), last_seen: r.person.last_seen || null },
+      known: !!(r.person.last_seen || H.length), wanted: warrants.some(w => w.status === 'Active'), warrants, bolos: r.flags.filter(x => x.kind === 'bolo'),
+      counts: { arrests: n('arrest'), citations: n('citation'), warnings: n('warning'), warrants: n('warrant') }, records: H.slice(0, 50), vehicles: r.vehicles, license: r.license }); }
   if (at[0] === 'plates' && at[1] && M === 'GET') { if (need('lookup') || off('pd_lookup')) return; const r = police.vehicle(c.id, decodeURIComponent(at[1])); return r.error ? bad(r.error, 404) : ok({ ...r, history: r.history.slice(0, 25) }); }
   if (at[0] === 'plates' && at[1] && M === 'POST') { if (need('vehicles')) return;
     if (J.reg != null && !['Valid', 'Expired', 'Suspended'].includes(J.reg)) return bad('reg is Valid, Expired or Suspended.'); if (J.ins != null && !['Active', 'Lapsed', 'None'].includes(J.ins)) return bad('ins is Active, Lapsed or None.'); const r = police.setVehicle(c.id, decodeURIComponent(at[1]), J); return r.error ? bad(r.error) : ok(r); }
@@ -486,6 +497,10 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
     if (J.discord_id && !J.subject) { const u = person(J); if (u?.roblox_name) { J.subject = u.roblox_name; J.subject_rid = u.roblox_id; } }
     const r = police.create(c.id, { uid: 0, name: by, supervisor: false }, J, police.penalOf(c)); if (r.error) return bad(r.error);
     f.bcast('pdrec', JSON.stringify(r.record)); if (!(r.record.kind === 'warrant' && r.record.status === 'Pending')) recordEvent(c, r.record); return ok(r); }
+  if (at[0] === 'records' && /^\d{1,9}$/.test(at[1] || '') && at[2] === 'act' && !at[3] && M === 'POST') { if (need('records') || off('dept_pd')) return; const a = String(J.action || '');
+    if (!['serve', 'recall', 'clear'].includes(a)) return bad('action is "serve" or "recall" for a warrant, or "clear" for a BOLO. Warrants are approved by a supervisor in the MDT.');
+    const r = police.act(c.id, { uid: 0, name: by, supervisor: false }, { id: +at[1], action: a }); if (r.error) return bad(r.error);
+    f.bcast('pdrec', JSON.stringify({ ...r.record, _act: a, _by: by })); recordChanged(c, r.record, a, by); return ok(r); }
   if (rest === 'bank' && (M === 'GET' || M === 'POST')) { if (need('bank') || off('civ')) return; if (!civ.conf(c).on) return bad('This server\'s economy is off.', 403);
     const u = person(M === 'GET' ? Object.fromEntries(qs) : J); if (!u) return bad('Nobody with that ID or name has an Oversite account.', 404);
     if (M === 'GET') { const a = civ.ensure(c, u.id); return ok({ person: who(u), balance: a.balance }); }
@@ -998,6 +1013,8 @@ setTimeout(addCommandsEverywhere, 30000);
 const discordCmdsInfo = async () => { let a = null, err = ''; try { a = await discordbot.app(true); } catch (e) { err = e.message; }
   const L = communities.withDiscord(); return { ready: discordlink.ready() && !!a, error: err || undefined, name: a?.name || '', endpoint: a?.endpoint || '', ours: interactionsUrl(), connected: discordbot.connected(),
     linked: L.length, added: L.filter(c => discordbot.current(c.settings.discord)).length, failed: L.filter(c => c.settings.discord.cmdsErr).length }; };
+// a record changing on file (served, recalled, denied, cleared, a stop ending); an approval goes out as record.created instead
+const recordChanged = (c, r, action, who) => { if (!['approve', 'backup', 'respond'].includes(action)) bots.emit(c, 'record.updated', { ...r, action, action_by: who }); };
 const recordEvent = (c, r) => { bots.emit(c, 'record.created', r); if (!features.on(c, 'automations')) return; automations.fire(c, 'record', { kind: r.kind, subject: r.subject || '', plate: r.plate || '', by: r.by || '', charges: (r.charges || []).map(x => x.title).join(', '), reason: r.reason || '' }); };
 // what /admin shows about alerts and backups
 const alertsInfo = () => { const L = backup.list(), d = backup.disk(); let last = null; try { last = JSON.parse(siteSettings.get('backup_last') || 'null'); } catch (e) {}
