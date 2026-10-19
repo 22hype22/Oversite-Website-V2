@@ -10,7 +10,6 @@ const SETTING_CARDS = [
   ['Departments', 'general', 'department names police fire dot teams units rename sheriff ems short name callsigns'],
   ['Discord server', 'general', 'discord roles admin mod link guild bot connect'],
   ['Delete server', 'general', 'delete remove server shut down get rid'],
-  ['Boundaries', 'bounds', 'boundaries areas zones map kick warn leave outside play area restricted limits draw'],
   ['Insights', 'insights', 'insights analytics stats statistics charts activity players online busiest times reports department hours economy moderation numbers graphs'],
   ['Laws', 'laws', 'laws penal code charges offences offenses fines jail citations arrests uk british england police law list add law edit laws currency pounds euros dollars'],
   ['Connected bots', 'bots', 'bots connect my bot link bot api key integration department bot roleplay bot economy bot moderation bot erm webhooks developer'],
@@ -1097,27 +1096,13 @@ export const ST_CSS = `.stm{max-width:1060px}
 .rk-n{width:20px;flex:none;text-align:right;font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}.rk-list input:not([type]){flex:1;min-width:0;padding:7px 11px}
 .rk-sup{display:flex;align-items:center;gap:6px;margin:0;flex:none;font-size:12.5px;color:var(--dim);white-space:nowrap;cursor:pointer}
 .rk-b{display:flex;gap:2px;flex:none}.rk-b button{width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--dim);font:500 14px/1 inherit;cursor:pointer}.rk-b button:hover:not(:disabled){color:var(--ink);background:rgba(255,255,255,.06)}.rk-b button:disabled{opacity:.3;cursor:default}
-@media (max-width:560px){.rk-list li{flex-wrap:wrap}.rk-list input:not([type]){flex:1 1 calc(100% - 30px)}.rk-sup{margin-left:30px}.rk-b{margin-left:auto}}#bounds [hidden]{display:none!important}
+@media (max-width:560px){.rk-list li{flex-wrap:wrap}.rk-list input:not([type]){flex:1 1 calc(100% - 30px)}.rk-sup{margin-left:30px}.rk-b{margin-left:auto}}
 .bd-row{display:flex;align-items:flex-start;gap:12px;margin:12px 0 0}.bd-l{flex:none;width:68px;padding-top:7px;font-size:12.5px;color:var(--faint)}
 .bd-chips{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
 .bd-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;border:1px solid var(--hair2);background:transparent;color:var(--dim);font:500 13px/1.2 inherit;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
 .bd-chip:hover{color:var(--ink);border-color:rgba(240,242,245,.24)}.bd-chip.on{color:#0d1416;background:var(--ink);border-color:var(--ink)}
 .bd-chip b{width:8px;height:8px;border-radius:50%;flex:none}.bd-chip small{font-size:11px;opacity:.7}.bd-chip i{font-style:normal;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ok)}.bd-chip.on i{color:#1d7a46}
 .bd-chip.add{border-style:dashed}
-.bd-pre{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0 80px}.bd-pre input{flex:1 1 160px;min-width:0;max-width:240px;padding:7px 11px}
-.bd-map{position:relative;margin:14px 0 0;aspect-ratio:1/1;max-height:72vh;border-radius:12px;overflow:hidden;border:1px solid var(--hair2);background:#0b1113}
-.bd-map svg{display:block;width:100%;height:100%;touch-action:none;cursor:grab;user-select:none}.bd-map svg:active{cursor:grabbing}.bd-map svg.drawing{cursor:crosshair}.bd-map:has(svg.drawing){outline:2px solid rgba(240,242,245,.35);outline-offset:-2px}
-.bd-map .bd-poly{cursor:pointer}.bd-map .bd-pt{cursor:move}.bd-map .bd-mid{cursor:copy}
-.bd-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1px solid var(--hair2);background:rgba(13,20,22,.86)}
-.bd-zoom button{width:34px;height:34px;border:0;background:transparent;color:var(--ink);font:500 17px/1 inherit;cursor:pointer}.bd-zoom button+button{border-top:1px solid var(--hair)}.bd-zoom button:hover{background:rgba(255,255,255,.06)}
-.bd-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}
-.bd-area{padding:0;gap:0;overflow:hidden}.bd-area button{display:inline-flex;align-items:center;gap:7px;border:0;background:none;color:inherit;font:inherit;padding:6px 6px 6px 11px;cursor:pointer}.bd-area .x{padding:6px 10px 6px 6px;font-size:15px;line-height:1;opacity:.7}.bd-area .x:hover{opacity:1;color:#F3A3A3}
-.bd-other{cursor:pointer}.bd-bar .hint{flex:1 1 220px;margin:0}
-.bd-opts{margin:16px 0 0;padding:14px 0 0;border-top:1px solid var(--hair)}.bd-opts .hint{margin:6px 0 0}
-.bd-grace{display:flex;align-items:center;gap:12px;margin:10px 0}.bd-grace label{margin:0}
-.bd-h{font-size:13px;font-weight:600;margin:20px 0 6px}.bd-log{list-style:none;margin:0;padding:0;font-size:13px}
-.bd-log li{display:flex;align-items:baseline;gap:12px;padding:8px 0;border-top:1px solid var(--hair);color:var(--dim)}.bd-log p{flex:1;min-width:0;margin:0}.bd-log li:first-child{border-top:0}.bd-log b{color:var(--ink);font-weight:600}
-.bd-log span{font-size:11.5px;color:var(--faint)}.bd-log time{flex:none;font-size:11.5px;color:var(--faint)}.bd-log .none{color:var(--faint)}.bd-log em.bad{font-style:normal;color:var(--bad)}
 @media (max-width:760px){.bd-pre{margin-left:0}.bd-l{width:auto}.bd-row{flex-direction:column;gap:6px}}.st-pane>.card+.card,.st-pane>section+section{margin-top:18px}
 @media (max-width:760px){.sx{grid-template-columns:minmax(0,1fr);gap:16px}.st-nav{position:sticky;top:0;z-index:5;flex-direction:row;overflow-x:auto;scrollbar-width:none;padding:6px 24px;margin:0 -24px;background:#0d1416;border-bottom:1px solid var(--hair)}.st-nav::-webkit-scrollbar{display:none}.st-nav a{flex:none;padding:7px 12px}.st-top{margin-bottom:12px}}`;
 export const settings = ({ logo, user, c, role, photos = [], keyStatus, invites, members, origin, isNew, codes, iconKind, needsDiscord, discordReady, regions = {}, langs = {}, prem = { on: false }, payments = false, justBought = false, bnd = { on: false, grace: 60, exemptStaff: true }, ranks = null, boost = null, feats = {}, featVals = {}, autos = [] }) => layout({ title: `${c.name} settings · Oversite`, logo, user, body: `
@@ -1126,7 +1111,7 @@ ${needsDiscord ? `<section class="card setup-dg"><div><h2>Connect your Discord s
 <div class="ss" id="ss"><input type="search" id="ssIn" placeholder="Search settings, like “emergency button” or “make businesses pay tax”" aria-label="Search settings" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ssList"><div class="ss-list" id="ssList" role="listbox" hidden></div></div>
 <script type="application/json" id="ssIdx">${JSON.stringify(settingsIndex()).replace(/</g, '\\u003c')}</script>
 <div class="sx">
-<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['features', 'Features', ''], ['automations', 'Automations', autos.length ? String(autos.length) : ''], ['laws', 'Laws', ''], ['bots', 'Bots', (c.settings.bots || []).length ? String(c.settings.bots.length) : ''], ['insights', 'Insights', ''], ['bounds', 'Boundaries', bnd.on ? 'On' : ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
+<nav class="st-nav" role="tablist" aria-label="Settings">${[['general', 'General', keyStatus.connected ? '' : 'Set up'], ['features', 'Features', ''], ['automations', 'Automations', autos.length ? String(autos.length) : ''], ['laws', 'Laws', ''], ['bots', 'Bots', (c.settings.bots || []).length ? String(c.settings.bots.length) : ''], ['insights', 'Insights', ''], ['profile', 'Profile', ''], ['members', 'Members', String(members.length)], ['premium', 'Premium', prem.on ? 'On' : '']].map(([k, t, n]) => `<a href="#${k}" id="t-${k}" role="tab" data-tab="${k}">${t}${n ? `<small${k === 'general' ? ' class="warn"' : ''}>${n}</small>` : ''}</a>`).join('')}</nav>
 <div class="st-body">
 <div class="st-pane" id="tab-general" data-pane="general" role="tabpanel" aria-labelledby="t-general">
 <section class="card"><h2>ER:LC server</h2>
@@ -1148,24 +1133,6 @@ ${role === 'owner' ? `<section class="card danger-zone"><h2>Delete server</h2><p
 <input type="search" class="ft-find" id="ftFind" placeholder="Find a feature" aria-label="Find a feature" autocomplete="off">
 ${FEATURES.map(g => `<details class="ft-grp"><summary class="ft-gh"><h3 class="ft-g">${esc(g.title)}</h3><span class="ft-gn"></span><button type="button" class="ft-all"></button></summary><div class="ft-list">${g.items.map(it => `<label class="ft${g.items.some(x => x.key === it.parent) ? ' sub' : ''}" data-parent="${esc(it.parent || '')}" data-find="${esc((it.name + ' ' + it.about + ' ' + g.title).toLowerCase())}"><span><b>${esc(it.name)}${it.tag ? `<span class="tag">${esc(it.tag)}</span>` : ''}</b><small>${esc(it.about)}</small>${it.input ? `<span class="ft-in">${esc(it.input.label)}<input type="number" data-ftv="${it.key}" min="${it.input.min}" max="${it.input.max}" value="${esc(String(featVals[it.key] ?? ''))}" aria-label="${esc(it.name)} ${esc(it.input.label.toLowerCase())}">${esc(it.input.unit)}</span>` : ''}</span><input type="checkbox" role="switch" data-ft="${it.key}"${feats[it.key] ? ' checked' : ''}${it.key === 'voice' && !prem.on && !feats[it.key] ? ' disabled' : ''}><i aria-hidden="true"></i></label>`).join('')}</div></details>`).join('')}
 <p class="note" id="ftNone" hidden>No feature matches that.</p><p class="msg" id="ftMsg"></p></section></div>
-<div class="st-pane wide" id="tab-bounds" data-pane="bounds" role="tabpanel" aria-labelledby="t-bounds">
-<section class="card" id="bounds" data-api="/c/${esc(c.slug)}/api"><h2 class="hrow">Boundaries<span class="tag" id="bdTag">${bnd.on ? 'On' : 'Off'}</span></h2>
-<p class="note">Draw where people are allowed to go: one area for the whole server, and one for each team if you want. Anyone who leaves theirs gets a message in game, and is loaded if they aren't back in time.</p>
-<div class="bd-row"><span class="bd-l">Presets</span><div class="bd-chips" id="bdSlots"></div></div>
-<div class="bd-pre"><input id="bdName" maxlength="32" aria-label="Preset name" placeholder="Preset name"><button type="button" class="btn sm" id="bdLive">Make this preset live</button><button type="button" class="btn sm" id="bdCopy">Duplicate</button><button type="button" class="btn sm danger" id="bdRm">Delete</button></div>
-<div class="bd-row"><span class="bd-l">Area for</span><div class="bd-chips" id="bdScope"></div></div>
-<div class="bd-map"><svg id="bdSvg" preserveAspectRatio="xMidYMid slice" aria-label="Map. Click to add corners, drag to move around, scroll to zoom."></svg>
-<div class="bd-zoom"><button type="button" id="bdIn" aria-label="Zoom in">+</button><button type="button" id="bdOut" aria-label="Zoom out">&minus;</button><button type="button" id="bdFit" aria-label="Show the whole map">&#9634;</button></div></div>
-<div class="bd-bar"><button type="button" class="btn sm pri" id="bdDraw">Draw area</button><button type="button" class="btn sm" id="bdUndo" hidden>Undo corner</button><button type="button" class="btn sm danger" id="bdDel" disabled>Delete area</button><p class="hint" id="bdHint"></p></div>
-<div class="bd-row"><span class="bd-l">Areas</span><div class="bd-chips" id="bdAreas"></div></div>
-<div class="bd-opts"><label class="chk"><input type="checkbox" id="bdOn"${bnd.on ? ' checked' : ''}> Enforce the live preset in game</label>
-<div class="bd-grace"><label for="bdGrace">Time to get back</label><select id="bdGrace">${[15, 30, 45, 60, 90, 120, 180, 300].map(t => `<option value="${t}"${+bnd.grace === t ? ' selected' : ''}>${t < 60 ? t + ' seconds' : t / 60 + (t === 60 ? ' minute' : ' minutes')}</option>`).join('')}</select></div>
-<label class="chk"><input type="checkbox" id="bdStaff"${bnd.exemptStaff ? ' checked' : ''}> Leave server staff alone (in-game admins and mods)</label>
-<p class="hint" id="bdHint2" hidden style="color:var(--warn)">Connect your ER:LC server in General first. Boundaries need in-game positions and staff commands.</p>
-<p class="hint">Oversite sends <code>:pm</code> when someone leaves and <code>:load</code> when their time is up, so the owner has to have allowed Oversite to run commands (General, ER:LC server).</p></div>
-<div class="row" style="margin-top:14px"><button class="btn pri" id="bdSave" disabled>Save</button><span class="hint" id="bdDirty" hidden>Unsaved changes</span></div><p class="msg" id="bdMsg"></p>
-<h3 class="bd-h">Recent</h3><ul class="bd-log" id="bdLog"></ul></section>
-<script src="/bounds-editor.js?v=9" defer></script></div>
 <div class="st-pane" id="tab-profile" data-pane="profile" role="tabpanel" aria-labelledby="t-profile">
 ${(() => { const P = c.settings.profile || {}, E = P.erlc || {}, letter = esc(c.name.slice(0, 1).toUpperCase());
   const fact = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
@@ -1365,7 +1332,7 @@ const ssRank=q=>{const qs=ssToks(q),raw=q.trim().toLowerCase();if(!qs.length)ret
   document.addEventListener('click',e=>{if(!e.target.closest('#ss')){list.hidden=true;inp.setAttribute('aria-expanded','false')}})}
 /* features: each switch saves as soon as it's flipped; a feature whose parent is off is dimmed; groups switch all at once */
 {const fm=document.getElementById('ftMsg'),sw=[...document.querySelectorAll('[data-ft]')],by=k=>sw.find(x=>x.dataset.ft===k),row=x=>x.closest('.ft');
-  const twin={bounds:'bdOn',voice:'vOn',explore:'spList'};   // the same switch elsewhere on this page
+  const twin={voice:'vOn',explore:'spList'};   // the same switch elsewhere on this page
   const up=k=>{let p=row(by(k))?.dataset.parent;while(p){if(!by(p)?.checked)return false;p=row(by(p))?.dataset.parent}return true};
   const paint=()=>{sw.forEach(x=>row(x).classList.toggle('dim',!up(x.dataset.ft)));const n=sw.filter(x=>x.checked).length;document.getElementById('ftCount').textContent=n+' of '+sw.length+' on';
     document.querySelectorAll('.ft-grp').forEach(g=>{const xs=[...g.querySelectorAll('[data-ft]')],on=xs.filter(x=>x.checked).length;g.querySelector('.ft-gn').textContent=on+' of '+xs.length+' on';g.querySelector('.ft-all').textContent=on===xs.length?'Turn all off':'Turn all on'})};paint();

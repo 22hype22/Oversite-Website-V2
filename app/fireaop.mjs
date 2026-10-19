@@ -12,7 +12,7 @@ export const of = c => { const f = (communities.byId(c.id) || c).settings.fireao
   return { on: !!f.on, hide: f.hide !== false, stop: f.stop !== false, scope: f.scope === 'all' ? 'all' : 'fires', areas: Array.isArray(f.areas) ? f.areas : [] }; };
 
 export const save = (c, j) => {
-  const areas = (Array.isArray(j.areas) ? j.areas : []).slice(0, MAX_AREAS).map((a, i) => ({ id: /^[a-z0-9]{3,12}$/.test(a?.id) ? a.id : id(),
+  const areas = (Array.isArray(j.areas) ? j.areas : []).slice(0, MAX_AREAS).map((a, i) => ({ id: typeof a?.id === 'string' && /^[a-z0-9]{3,12}$/.test(a.id) ? a.id : id(),
     name: String(a?.name || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 32) || `Area ${i + 1}`, on: !!a?.on,
     pts: (Array.isArray(a?.pts) ? a.pts : []).slice(0, MAX_POINTS).filter(q => Array.isArray(q) && q.length >= 2).map(q => [num(q[0]), num(q[1])]) })).filter(a => a.pts.length >= 3);
   const f = { on: !!j.on, hide: j.hide !== false, stop: j.stop !== false, scope: j.scope === 'all' ? 'all' : 'fires', areas };

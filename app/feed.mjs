@@ -57,7 +57,8 @@ export class Feed {
     this.inflight++; this.nextAt = now + this.pace(); this.timer = setTimeout(() => this.tick(), this.nextAt - now);
     this.sent.push(now); while (this.sent.length && now - this.sent[0] > 60000) this.sent.shift();
     try {
-      const up = await fetch(UPSTREAM + (full ? QUERY : QUERY_FAST), { headers: erlcHeaders(key) }); const body = await up.text(), headers = pickRL(up.headers);
+      const kl = this.wantKills?.(), up = await fetch(UPSTREAM + (full ? QUERY : QUERY_FAST) + (kl ? '&KillLogs=true' : ''), { headers: erlcHeaders(key) }); let body = await up.text(); const headers = pickRL(up.headers);
+      if (kl && up.ok) body = this.takeKills(body);
       if (key !== this.key) return;                                       // the key changed while this was in flight
       const taken = Math.round((now + Date.now()) / 2); this.takeRL(headers, seq); const ema = (a, v) => a ? a * 0.9 + v * 0.1 : v; this.rtt = ema(this.rtt, Date.now() - now);   // timing, for /health
       if (up.ok) this.lastErr = null;
@@ -115,13 +116,16 @@ export class Feed {
   activePanics() { const P = this.panics || (this.panics = new Map()); for (const [k, p] of P) if (Date.now() - p.at > 3600000) P.delete(k); return [...P.values()]; }
   panic(p) { this.activePanics(); this.panics.set(p.id, p); this.bcast('panic', JSON.stringify(p)); }
   panicClear(id, by) { this.activePanics(); const p = this.panics.get(id); if (!p) return false; this.panics.delete(id); this.bcast('panicclear', JSON.stringify({ id, by })); return true; }
+  // the kill log, asked for only while the server has safe zones on (wantKills, set by server.mjs): kept here for them and taken
+  // out of the answer, so it never reaches anyone's CAD (kill logs are for staff)
+  takeKills(body) { try { const j = JSON.parse(body); this.kills = Array.isArray(j.KillLogs) ? j.KillLogs : this.kills; delete j.KillLogs; return JSON.stringify(j); } catch (e) { return body; } }
   kick(uid = null) { for (const r of this.clients) if (uid == null || r.uid === uid) r.write('event: reload\ndata: {}\n\n'); }
   // one request at a time per server, and a failed answer is reused for a few seconds, so many callers can't multiply requests to ER:LC
   snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return Promise.resolve(this.snap); if (this.failSnap && Date.now() - this.failSnap.t < 4000) return Promise.resolve(this.failSnap);
     return this.snapP || (this.snapP = this.snapshotNow().then(s => { if (s.status !== 200) this.failSnap = { ...s, t: Date.now() }; return s; }).finally(() => { this.snapP = null; })); }   // snapP, not inflight: that one counts the live feed's own requests
   async snapshotNow() { if (!this.key) return { status: 401, body: NOKEY, headers: {} };
     if (!appKey() && !this.soloOk()) return { status: 403, body: SOLO_WAIT, headers: {} };
-    try { const up = await fetch(UPSTREAM + QUERY, { headers: erlcHeaders(this.key) }); const body = await up.text(), headers = pickRL(up.headers); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) { this.snap = out; try { this.onSnap?.(body); } catch (e) {} } return out; }
+    try { const kl = this.wantKills?.(), up = await fetch(UPSTREAM + QUERY + (kl ? '&KillLogs=true' : ''), { headers: erlcHeaders(this.key) }); let body = await up.text(); const headers = pickRL(up.headers); if (kl && up.ok) body = this.takeKills(body); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) { this.snap = out; try { this.onSnap?.(body); } catch (e) {} } return out; }
     catch (e) { return { status: 502, body: JSON.stringify({ message: 'could not reach api.erlc.gg: ' + e.message }), headers: {} }; } }
   stats() { return { watching: this.clients.size, perMin: this.sent.length, left: this.rl?.left ?? null, limited: this.n429, stale: this.reverts, rtt: Math.round(this.rtt), every: Math.round(this.gapEv), moves: Math.round(this.moveEv), err: this.lastErr && Date.now() - this.lastErr.at < 120000 ? this.lastErr.code ?? this.lastErr.status : null }; }
 }

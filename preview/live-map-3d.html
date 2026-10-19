@@ -1310,6 +1310,7 @@
   /* civ:end */
   .bar .mark img.own{height:30px;width:30px;border-radius:8px;object-fit:cover;filter:none;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
   #mdt .crest .crest-ic{width:20px;height:20px;border-radius:6px;object-fit:cover}
+  .prem-lock[hidden]{display:none}
   .prem-lock{position:absolute;inset:0;z-index:30;display:grid;place-items:center;padding:24px;text-align:center;background:rgba(12,13,15,.94);border-radius:inherit}
   .prem-lock>div{max-width:380px}.prem-lock b{display:block;font-size:17px;font-weight:600;color:#E9EAEC}.prem-lock p{margin:8px 0 0;color:#8F939B;font-size:13.5px;line-height:1.5}
   .prem-lock .pl-go{display:inline-block;margin-top:16px;padding:9px 16px;border-radius:999px;background:#F0F2F5;color:#0B0C0E;font-weight:500;font-size:13.5px;text-decoration:none}.prem-lock .pl-go:hover{background:#fff}
@@ -1355,7 +1356,7 @@
 </style>
 <script src="/dropdown.js?v=1" defer></script>
 <script src="/license-card.js?v=4" defer></script>
-<script src="/mdt-setup.js?v=2" defer></script><script src="/fire-aop.js?v=2" defer></script>
+<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=1" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
   .mtabs{display:none}
@@ -1599,7 +1600,7 @@
           <div class="crest" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Staff MDT</div>
           <button role="tab" data-p="player" aria-selected="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>Players<i class="badge" id="stCount">0</i></button>
           <button role="tab" data-p="map" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Map</button>
-          <button role="tab" data-p="fires" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c.5 3.5 5 5.5 5 10.5a5 5 0 0 1-10 0c0-2.5 1.5-3.8 2.5-5 .3 1.6 1 2.6 2 3 0-3 .3-5.5.5-8.5z"/></svg>Fires</button>
+          <button role="tab" data-p="mapping" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Mapping</button>
           <button role="tab" data-p="calls" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/><path d="M12 8v3M12 13.5h.01"/></svg>Calls<i class="badge" id="stCallsN" hidden>0</i></button>
           <button role="tab" data-p="records" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg>Records</button>
           <button role="tab" data-p="bans" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></svg>Bans<i class="badge" id="stBansN" hidden>0</i></button>
@@ -1619,7 +1620,7 @@
             <div class="st-mapwrap" id="stMapWrap"><div class="st-mapin" id="stMapIn"><img src="liberty-county.jpg" alt="" draggable="false" id="stMapImg"><div id="stDots"></div></div>
               <div class="st-mapctl"><button id="stZin" aria-label="Zoom in">+</button><button id="stZout" aria-label="Zoom out">−</button><button id="stZfit" aria-label="Fit map">⤢</button></div>
               <div class="st-legend" id="stLegend"></div></div></section>
-          <section class="tscreen st-pane" data-p="fires"><div id="stFires" style="height:100%"></div></section>
+          <section class="tscreen st-pane" data-p="mapping"><div id="stMapping" style="height:100%"></div></section>
           <section class="tscreen st-pane" data-p="calls"><div class="thead"><div><h2>Mod calls</h2><small>Players calling for staff in game</small></div></div><div id="stCalls"></div></section>
           <section class="tscreen st-pane" data-p="records"><div class="thead"><div><h2>Records</h2><small>Every warning, kick, ban and note</small></div></div><label class="st-search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stRecFind" placeholder="Search records by player" autocomplete="off" spellcheck="false"></label><div id="stRecords"></div></section>
           <section class="tscreen st-pane" data-p="bans"><div class="thead"><div><h2>Bans</h2><small>Banned from the server</small></div></div><div id="stBans"></div></section>
@@ -2926,8 +2927,9 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
 (() => { const O = window.OVERSITE || {}; if (!O.slug) return;
   if (O.logo) { const m = document.querySelector('.bar .mark img'); if (m) { const orig = m.src; m.onerror = () => { m.onerror = null; m.src = orig; m.classList.remove('own'); }; m.src = O.logo; m.alt = ''; m.classList.add('own'); }   // no icon after all: keep the Oversite mark
     document.querySelectorAll('#mdt .crest svg').forEach(c => { const im = document.createElement('img'); im.src = O.logo; im.alt = ''; im.className = 'crest-ic'; im.onerror = () => im.replaceWith(c); c.replaceWith(im); }); }
-  if (!O.premium) { const sc = document.querySelector('#staffMdt .screen'); if (!sc) return; const runs = O.role === 'owner' || O.role === 'co_owner', d = document.createElement('div'); d.className = 'prem-lock';
-    d.innerHTML = `<div><b>Server Staff needs Premium</b><p>Mod calls, records, bans, logs, the Team tab and in-game commands. ${runs ? 'Premium is $5 a month for the whole server.' : 'Ask the server owner to turn it on.'}</p>${runs ? `<a class="pl-go" href="/${O.slug}/settings#premium">Open Premium settings</a>` : ''}</div>`; sc.appendChild(d); } })();
+  if (!O.premium) { const sc = document.querySelector('#staffMdt .tscreens'); if (!sc) return; const runs = O.role === 'owner' || O.role === 'co_owner', d = document.createElement('div'); d.className = 'prem-lock';
+    d.innerHTML = `<div><b>Server Staff needs Premium</b><p>Mod calls, records, bans, logs, the Team tab and in-game commands. ${runs ? 'Premium is $5 a month for the whole server.' : 'Ask the server owner to turn it on.'}</p>${runs ? `<a class="pl-go" href="/${O.slug}/settings#premium">Open Premium settings</a>` : ''}<p>Mapping (boundaries and safe zones) is free.</p></div>`; sc.appendChild(d);
+    document.getElementById('stTabs')?.addEventListener('click', e => { const t = e.target.closest('[data-p]'); if (t) d.hidden = t.dataset.p === 'mapping'; }); } })();
 /* ── panic buttons: a red bar on top of the CAD, a siren, and a priority 1 10-99 call at the unit; clearing it anywhere clears it everywhere ── */
 (() => { const O = window.OVERSITE || {}, P = new Map(), muted = new Set();
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

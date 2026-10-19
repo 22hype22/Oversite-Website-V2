@@ -21,6 +21,7 @@ import * as staff from './app/staff.mjs';
 import * as police from './app/police.mjs';
 import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
+import * as safezones from './app/safezones.mjs';
 import * as career from './app/career.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
@@ -81,6 +82,7 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
     try { bots.observe(cc, f.withExtra(body), callKey); } catch (e) {}
     if (premium.isPremium(cc) && features.on(cc, 'staff')) try { fireaop.observe(cc, body, fireHands); } catch (e) {}
     if (features.on(cc, 'automations')) automations.observe(cc, body); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
+  f.wantKills = () => safezones.wantsKills(communities.byId(c.id) || c);   // safe zones need the kill log
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => { res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); res.write(`event: callstates\ndata: ${JSON.stringify(callStates(communities.byId(c.id) || c))}\n\n`); }; } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
@@ -391,12 +393,16 @@ const communityApi = async (req, res, slug, rest) => {
     const w = String((await jsonBody(req)).with || '').trim(); if (w && (!/^\d{1,20}$/.test(w) || w === String(user.roblox_id))) return json(res, { error: 'Pick a teammate to ride with.' }, 400);
     const R = rideWith.all(c.id); if (w && R[w] === String(user.roblox_id)) rideWith.set(c.id, w, '');   // they were riding with you: now you ride with them instead
     rideWith.set(c.id, String(user.roblox_id), w); const out = { of: unitMembers.all(c.id), ride: rideWith.all(c.id) }; f.bcast('unitsof', JSON.stringify(out)); return json(res, { ok: true, ...out }); }
-  if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can do that.' }, 403);
-  // jurisdiction boundaries: presets of areas per team, the live one enforced in game (app/bounds.mjs)
-  if (rest === 'bounds' && M === 'GET') { const off = mapOff(c);
+  // Mapping, in the CAD's Server Staff panel: boundaries (presets of areas per team, the live one enforced in game, app/bounds.mjs)
+  // and safe zones (app/safezones.mjs). Staff can look; admins and up change them. Not Premium: Boundaries has always been free.
+  if ((rest === 'bounds' || rest === 'safezones') && (M === 'GET' || M === 'POST')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403);
+    if (M === 'POST' && !can(role, 'admin')) return json(res, { error: 'Only admins and up can change these.' }, 403);
+    if (M === 'POST') { const r = rest === 'bounds' ? bounds.save(c, await jsonBody(req)) : safezones.save(c, await jsonBody(req)); if (r.error) return json(res, r, 400);
+      console.log(`mapping: ${c.slug} ${rest} saved by ${user.roblox_name || user.name}`); if (rest === 'bounds') return json(res, r); }
+    if (rest === 'safezones') return json(res, { ...safezones.of(c), log: safezones.log(c), off: mapOff(c) });
     let players = []; try { if (f.snap && Date.now() - f.snap.t < 15000) players = (JSON.parse(f.snap.body).Players || []).filter(p => p.Location).map(p => ({ name: String(p.Player).split(':')[0], team: p.Team || '', x: p.Location.LocationX, z: p.Location.LocationZ })); } catch (e) {}
-    return json(res, { bounds: bounds.of(c), log: bounds.log(c), teams: Object.keys(c.settings.teams || {}), depts: c.settings.teams, off, players, connected: !!communities.key(c.id) }); }
-  if (rest === 'bounds' && M === 'POST') { const r = bounds.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
+    return json(res, { bounds: bounds.of(c), log: bounds.log(c), teams: Object.keys(c.settings.teams || {}), depts: c.settings.teams, off: mapOff(c), players, connected: !!communities.key(c.id) }); }
+  if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can do that.' }, 403);
   if (rest === 'profile/refresh' && M === 'POST') { if (auth.limited(req, 'profref', 6, 60000)) return json(res, { error: 'Too many refreshes. Wait a minute.' }, 429); const r = await profile.refresh(c); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/save' && M === 'POST') { const r = profile.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'profile/icon' && M === 'POST') { let j = {}; try { j = JSON.parse(await body(req, 5e5) || '{}'); } catch (e) {} const r = profile.setIcon(c, j.data); return json(res, r, r.error ? 400 : 200); }
@@ -1048,7 +1054,7 @@ setInterval(() => { const d = new Date(), day = d.toISOString().slice(0, 10); if
 // a crash: say so before Railway restarts the process; a promise nobody caught: say so and keep going
 process.on('uncaughtException', e => { console.error('uncaught:', e); alerts.send('crash', 'Oversite crashed and is restarting', String(e?.stack || e).slice(0, 1800), 'crit').finally(() => setTimeout(() => process.exit(1), 500)); setTimeout(() => process.exit(1), 4000); });
 process.on('unhandledRejection', e => { console.error('unhandled rejection:', e); alerts.send('rejection', 'Oversite hit an error it didn’t handle', String(e?.stack || e).slice(0, 1800), 'warn'); });
-staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), staffhub.observe);
+staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); safezones.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), staffhub.observe);
 supporter.start(); civ.start();
 // business shifts end when the worker leaves the server or the civilian team; loans take their weekly payment
 setInterval(() => { for (const c of communities.all()) { try { civbiz.sweep(c, uid => { const u = users.byId(uid); return u ? liveSide(c, u) : undefined; }); } catch (e) { console.log('civbiz:', e.message); } } }, 120000); premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);

@@ -130,7 +130,8 @@ export const GROUPS = [
 
   { title: 'Server', items: [
     F('voice', 'Proximity voice', 'Players hear each other by distance in game. Range and muffling are under Premium.', { tag: 'Premium', hide: ['#voiceBtn'] }),
-    F('bounds', 'Boundaries', 'Warn and kick players who leave the areas you draw under Boundaries.'),
+    F('bounds', 'Boundaries', 'Warn, then respawn, players who leave the areas you draw in the CAD, under Server Staff, Mapping.'),
+    F('safezones', 'Safe zones', 'Areas with no crime, drawn in the CAD under Server Staff, Mapping: players are told when they walk in, and killers in one are warned.'),
     F('bots', 'Connected bots', 'Your own Discord bots (department, roleplay, economy, moderation) reading and changing the CAD with the keys you make under Bots.'),
     F('courses', 'Staff courses', 'Courses your staff take on the Staff page or with /course in Discord, with a pass mark. Public courses are open to every member.'),
     F('discordcmds', 'Discord commands', 'Slash commands in your Discord: /status, /calls, /units, /lookup and /cad, answered by the Oversite bot.'),
@@ -150,6 +151,7 @@ const raw = (c, k) => {
   if (k === 'civ') return (c.settings.civ || {}).on !== false;
   if (k === 'voice') return !!(c.settings.voice || {}).on;
   if (k === 'bounds') return !!(c.settings.bounds || {}).on;
+  if (k === 'safezones') return !!(c.settings.safezones || {}).on;
   if (k === 'explore') return !(c.settings.profile || {}).unlisted;
   const v = (c.settings.features || {})[k]; return v == null ? !DEFAULT_OFF.has(k) : v !== false; };
 // is it working: its switch and every parent's are on
@@ -187,6 +189,7 @@ export const setMany = (c, keys, v, prem) => { keys = [...new Set(keys)]; if (!k
     if (k === 'civ') s.civ = { ...(s.civ || {}), on: v };
     else if (k === 'voice') s.voice = { ...(s.voice || {}), on: v };
     else if (k === 'bounds') s.bounds = { ...(s.bounds || {}), on: v };
+    else if (k === 'safezones') s.safezones = { ...(s.safezones || {}), on: v };
     else if (k === 'explore') s.profile = { ...(s.profile || {}), unlisted: !v };
     else s.features = { ...(s.features || {}), [k]: v }; }
   communities.saveSettings(c.id, s); c.settings = s; return { ok: true, features: switches(c) }; };
@@ -217,6 +220,6 @@ export const WORDS = {
   guncheck: 'gun store background check firearm felony', shops: 'shops buy purchase store market', work: 'work jobs clock in shifts employment', tasks: 'tasks jobs missions quests deliveries showings',
   minigames: 'mini games minigames puzzles games in jobs tasks fun challenges', st_map: 'staff map players map', st_modcalls: 'mod calls call a mod help requests', st_records: 'staff records history punishments', st_logs: 'logs command logs kill logs audit',
   st_warn: 'warn warning', st_pm: 'message pm dm private message', st_kick: 'kick remove player', st_ban: 'ban unban bans', st_note: 'notes staff notes', st_announce: 'announce announcement broadcast message everyone',
-  voice: 'voice chat proximity talk hear microphone vc', bounds: 'boundaries areas zones kick outside play area map limits restricted', roads: 'roads fix gps roads road editor', serverlogo: 'logo icon branding image',
+  voice: 'voice chat proximity talk hear microphone vc', bounds: 'boundaries areas zones kick outside play area map limits restricted mapping', safezones: 'safe zones safezone no crime spawn hospital rdm kill protected area mapping', roads: 'roads fix gps roads road editor', serverlogo: 'logo icon branding image',
   goldchecks: 'gold check verified badge supporters', explore: 'explore listing public discover find server directory' };
 for (const i of ALL) i.words = WORDS[i.key] || '';
