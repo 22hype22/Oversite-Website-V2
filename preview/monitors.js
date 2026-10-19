@@ -146,7 +146,7 @@
 
   // ── where to open it: Dispatch's map controls, and the police MDT's BOLOs ──
   const ctl = document.querySelector('.mapctl'); if (ctl) { const b = document.createElement('button'); b.type = 'button'; b.className = 'mon-open';
-    b.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M5 9a7 7 0 0 0 0 6M19 9a7 7 0 0 1 0 6"/></svg>';
+    b.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1 10.1C1 8.4 5.9 7 12 7s11 1.4 11 3.1v3.75c0 1.05-2.3 1.85-5.44 2.1v-3.71c2.84-.29 5.04-1.04 5.04-1.91 0-1.23-4.8-2.15-10.6-2.15S1.4 9.1 1.4 10.33c0 .87 2.2 1.62 5.04 1.91v3.71C3.3 15.7 1 14.9 1 13.85z"/><rect x="6.8" y="11.77" width="1.1" height="4.67" rx=".5"/><rect x="16.1" y="11.77" width="1.1" height="4.67" rx=".5"/><rect x="8.13" y="11" width="7.74" height="6.02" rx="1"/></svg>';
     b.setAttribute('aria-label', 'Ankle monitors'); b.title = 'Ankle monitors'; b.addEventListener('click', () => window.ovMonitors()); ctl.appendChild(b); }
   const nb = document.querySelector('[data-pane="bolos"] .thead [data-new="bolo"]'); if (nb) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn mon-open'; b.textContent = 'Ankle monitors';
     b.style.marginRight = '8px'; b.addEventListener('click', () => window.ovMonitors()); nb.before(b); }
