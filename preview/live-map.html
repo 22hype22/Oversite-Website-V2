@@ -52,7 +52,7 @@
   .world{position:absolute;left:0;top:0;width:2000px;height:2000px;transform-origin:0 0}
   .world img{position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-drag:none;
     filter:saturate(1.08) brightness(1.18)}
-  body.theme-light .world img{filter:saturate(1.02) brightness(.92)}
+  body.theme-light .world img,body.theme-labels .world img{filter:saturate(1.02) brightness(.92)}
   body.theme-dark .world img{filter:none}
   .world svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .route{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
@@ -1396,7 +1396,7 @@
 <!-- ─────────── map ─────────── -->
 <div class="view" id="view" aria-label="Live map">
   <div class="world" id="world">
-    <img src="liberty-county-dark.jpg" data-light="liberty-county.jpg" data-hd="liberty-county-hd.jpg" data-dark="liberty-county-darkmode.jpg" alt="">
+    <img src="liberty-county-dark.jpg" data-light="liberty-county.jpg" data-hd="liberty-county-hd.jpg" data-dark="liberty-county-darkmode.jpg" data-labels="liberty-county-labels.jpg" data-hd-labels="liberty-county-labels-hd.jpg" alt="">
     <svg viewBox="0 0 2000 2000" aria-hidden="true">
     </svg>
   </div>
@@ -2830,7 +2830,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     apply();
   };
   const zoomAt = (f, cx, cy) => {
-    const ns = Math.min(6, Math.max(.45, s * f));
+    const ns = Math.min(3.5, Math.max(.45, s * f));   // 3.5: the full-resolution map (5355 px over 2000) still looks sharp; closer only showed its pixels
     tx = cx - (cx - tx) * (ns / s);
     ty = cy - (cy - ty) * (ns / s);
     s = ns; apply(); if (window.map2d && window.map2d.pickSrc) window.map2d.pickSrc();
@@ -2864,7 +2864,9 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   let hdImg = null; if (img.dataset.hd && /^https?:$/.test(location.protocol)) { hdImg = new Image(); hdImg.className = 'hd'; hdImg.alt = ''; hdImg.decoding = 'async'; hdImg.onload = () => { hdImg.decode?.().catch(() => {}).finally(() => { world.insertBefore(hdImg, img.nextSibling); pickSrc(); }); }; hdImg.src = img.dataset.hd; }
   const pickSrc = () => { const dark = img.getAttribute('src') === img.dataset.dark; world.classList.toggle('zoomed', !dark && !!hdImg && hdImg.parentNode && s >= 1.25); };
   window.map2d = { zoomIn: () => zoomAt(1.25, ...center()), zoomOut: () => zoomAt(.8, ...center()), fit, flyTo, pickSrc, screenToWorld: (cx, cy) => [(cx - tx) / s, (cy - ty) / s],
-    setTheme: t => { const want = img.dataset[t === 'dark' ? 'dark' : 'light']; if (want && img.getAttribute('src') !== want) img.setAttribute('src', want); pickSrc(); } };
+    setTheme: t => { const want = img.dataset[t === 'dark' ? 'dark' : t === 'labels' && img.dataset.labels ? 'labels' : 'light']; if (want && img.getAttribute('src') !== want) img.setAttribute('src', want);
+      const hd = t === 'labels' && img.dataset.hdLabels ? img.dataset.hdLabels : img.dataset.hd; if (hdImg && hd && !hdImg.src.endsWith(hd)) { hdImg.remove(); hdImg.src = hd; }   // the street-name map has its own full-resolution picture
+      pickSrc(); } };
   document.getElementById('zin').onclick  = window.map2d.zoomIn;
   document.getElementById('zout').onclick = window.map2d.zoomOut;
   const zfitBtn = document.getElementById('zfit'); if (zfitBtn) zfitBtn.onclick = fit;
@@ -3450,7 +3452,7 @@ body.voice-snap .stage{transition:none!important}
     const u = myUnit(), c = (window.CALLS || []).find(k => k.startedAt === callT);
     if (!c) { Q('.nav-ic').innerHTML = svg('arrive'); Q('.nav-top b').textContent = 'Call closed'; Q('.nav-top span').textContent = 'This call was cleared.'; return; }
     if (!u) { Q('.nav-top b').textContent = 'Not on duty'; Q('.nav-top span').textContent = 'Join your team in ER:LC to get directions.'; return; }
-    let src = document.querySelector('#world img')?.currentSrc || document.querySelector('#world img')?.src || 'liberty-county.jpg'; if (/^https?:$/.test(location.protocol) && !/dark/.test(src)) src = 'liberty-county-hd.jpg'; if (src !== imgSrc) { imgSrc = src; img.src = src; }
+    let src = document.querySelector('#world img')?.currentSrc || document.querySelector('#world img')?.src || 'liberty-county.jpg'; if (/^https?:$/.test(location.protocol) && !/dark/.test(src)) src = /labels/.test(src) ? 'liberty-county-labels-hd.jpg' : 'liberty-county-hd.jpg'; if (src !== imgSrc) { imgSrc = src; img.src = src; }
     if (!R) route(u, c);
     let pos = along(u.x, u.y);
     if (pos.off > 16 && performance.now() - rAt > 700) { route(u, c); pos = along(u.x, u.y); say('Rerouting'); }   // left the route: find a new one from here
@@ -4420,7 +4422,7 @@ body.voice-snap .stage{transition:none!important}
   const gpsKick = () => { if (!gRaf && D?.job && page.querySelector('.trip')) gRaf = requestAnimationFrame(gpsFrame); };
   const gpsFrame = () => { gRaf = 0; const K = window.NAVKIT, J = D?.job, boxes = [...page.querySelectorAll('.trip')].filter(b => b.offsetParent); if (!J || !boxes.length || !K) return; gRaf = requestAnimationFrame(gpsFrame);
     const st = J.steps[J.step] || {}, me = myPos(), key = J.id + ':' + J.step; if (key !== gKey) { gKey = key; gR = null; gRot = null; }
-    let src = document.querySelector('#world img')?.currentSrc || document.querySelector('#world img')?.src || 'liberty-county.jpg'; if (/^https?:$/.test(location.protocol) && !/dark/.test(src)) src = 'liberty-county-hd.jpg'; if (src !== gSrc) { gSrc = src; gImg.src = src; }
+    let src = document.querySelector('#world img')?.currentSrc || document.querySelector('#world img')?.src || 'liberty-county.jpg'; if (/^https?:$/.test(location.protocol) && !/dark/.test(src)) src = /labels/.test(src) ? 'liberty-county-labels-hd.jpg' : 'liberty-county-hd.jpg'; if (src !== gSrc) { gSrc = src; gImg.src = src; }
     const u = me && [me[0] * G2M, me[1] * G2M], last = J.steps.slice(0, J.step + 1).reverse().find(x => x.x != null), t = st.x != null ? [st.x * G2M, st.z * G2M] : null;
     let ic = 'arrive', big = st.what || '', sub = '', chip = '', eta = '–', mi = '–', pos = null, want = -Math.PI / 2;
     if (t && u) { if (!gR) gRoute(u[0], u[1], t[0], t[1]); pos = gAlong(u[0], u[1]); if (pos.off > 16 && performance.now() - gAt > 700) { gRoute(u[0], u[1], t[0], t[1]); pos = gAlong(u[0], u[1]); }
