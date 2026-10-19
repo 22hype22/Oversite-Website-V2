@@ -76,6 +76,8 @@ export const rotate = (c, id, what) => { const L = list0(c), b = L.find(x => x.i
   if (what === 'secret') { if (!b.hook) return { error: 'This bot has no events link.' }; const secret = 'whsec_' + randomBytes(24).toString('base64url'); b.hook.secret = seal(secret); store(c, L); return { ok: true, bot: view(b), secret }; }
   if (b.oversite) return { error: 'Oversite keeps this bot’s key. To link it again, use a new code from the bot’s page on oversite.shop.' };
   const key = `ovb_${b.id}_${randomBytes(30).toString('base64url')}`; b.key = sha(key); b.hint = key.slice(-4); store(c, L); return { ok: true, bot: view(b), key }; };
+// is one of Oversite's own bots of this kind ('dispatch', 'department', …) linked to the server; some CAD features come with one
+export const hasOversite = (c, kind) => list0(c).some(b => b.oversite && b.base === kind);
 // Linking one of the server's Oversite bots (bought on oversite.shop): its owner reads a code off the bot's page there (it
 // changes every minute) and types it here. Oversite checks the code and keeps the bot's key itself, so nobody copies a key.
 const LINK_URL = process.env.OVERSITE_LINK_URL || 'https://kqhyjxtylvigrezlxzpl.supabase.co/functions/v1/cad-link';
@@ -94,7 +96,7 @@ export const link = async (c, code, prem, by) => { const secret = process.env.CA
   const old = L.findIndex(b => b.oversite === r.bot_id || (r.previous_cad_bot_id && b.id === r.previous_cad_bot_id));
   if (old < 0 && L.length >= max(prem)) return { error: `This server is at its limit of ${max(prem)} connected bots. Disconnect one, then use a new code.` };
   const p = PRESETS[LINK_KIND[String(r.base || '').split(/[^a-z]/)[0]]] || PRESETS.readonly;
-  const b = { id, name: T(r.bot_name, 40) || 'Oversite bot', scopes: [...p.scopes], hook: null, key: sha(key), hint: key.slice(-4), created: Date.now(), by: T(by, 40), oversite: String(r.bot_id) };
+  const b = { id, name: T(r.bot_name, 40) || 'Oversite bot', scopes: [...p.scopes], hook: null, key: sha(key), hint: key.slice(-4), created: Date.now(), by: T(by, 40), oversite: String(r.bot_id), base: T(String(r.base || '').split(/[^a-z]/)[0], 20) };
   store(c, old >= 0 ? L.map((x, i) => (i === old ? b : x)) : [...L, b]);
   return { ok: true, bot: view(b), linked: true }; };
 export const remove = (c, id) => { store(c, list0(c).filter(b => b.id !== id)); used.delete(id); stat.delete(id); return { ok: true }; };

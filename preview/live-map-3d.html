@@ -4900,6 +4900,8 @@ body.voice-snap .stage{transition:none!important}
   @keyframes rdPulse{50%{opacity:.35}}
   .rd-ptt{display:grid;place-items:center;gap:2px;width:100%;padding:16px 0;border-radius:14px;border:1px solid #2a2c31;background:#1d1e22;color:#ECEDEF;font:inherit;font-weight:600;font-size:14px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;transition:background-color .15s ease,transform .1s ease}
   .rd-ptt small{font-weight:400;font-size:11px;color:var(--dim)}.rd-ptt:disabled{opacity:.45;cursor:default}.rd-ptt.on{background:#B3362C;border-color:#B3362C;transform:scale(.98)}.rd-ptt.on small{color:#fff}
+  .rd-lock{margin-top:10px}.rd-lock p{margin:0;line-height:1.5;color:#C9CDD3}.rd-lock b{color:#ECEDEF}.rd-lock .rd-sub{margin-top:8px;color:var(--dim);font-size:11.5px}
+  .rd-link{display:block;margin-top:12px;padding:10px 0;border-radius:10px;background:#ECEDEF;color:#0d0e10;font-weight:600;text-align:center;text-decoration:none}.rd-link:hover{background:#fff}
   .rd-foot{display:flex;align-items:center;gap:8px;margin-top:10px;min-height:16px}.rd-msg{flex:1;color:var(--dim);font-size:11.5px}.rd-msg.bad{color:#F0A0A0}
   #radioBtn.on{color:#3FBF8A}
   @media (prefers-reduced-motion:reduce){.rd-air.talk i{animation:none}.rd-ptt{transition:none}}
@@ -4914,6 +4916,12 @@ body.voice-snap .stage{transition:none!important}
   const post = (p, b) => fetch(API + p, { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(b) }).then(async r => { const j = await r.json().catch(() => ({})); return { status: r.status, ...j }; });
   let ch = '', es = null, me = '', ice = [], ac = null, silent = null, mic = null, talking = false, floor = null, people = new Map(); const peers = new Map();
   btn.hidden = false;
+  // the radio comes with the Oversite Dispatch bot: without one linked, the panel says so (and where the owner links it)
+  if (!OV.radioBot) { const own = OV.role === 'owner' || OV.role === 'co_owner';
+    box.querySelectorAll('.rd-ch,.rd-air,.rd-ptt,.rd-foot').forEach(x => x.remove());
+    box.insertAdjacentHTML('beforeend', `<div class="rd-lock"><p>The radio comes with the <b>Oversite Dispatch</b> bot. Once it's linked to this server, every department gets push-to-talk channels here.</p>${own ? `<a class="rd-link" href="/${encodeURIComponent(OV.slug)}/settings#bots">Link it in Settings</a>` : '<p class="rd-sub">Ask the server owner to link it in Settings, under Bots.</p>'}</div>`);
+    $('rdHide').addEventListener('click', () => { box.hidden = true; btn.setAttribute('aria-expanded', 'false'); });
+    btn.addEventListener('click', () => { box.hidden = !box.hidden; btn.setAttribute('aria-expanded', String(!box.hidden)); }); return; }
   const say = (t, bad) => { const m = $('rdMsg'); m.textContent = t || ''; m.className = 'rd-msg' + (bad ? ' bad' : ''); };
   const offDept = d => document.body.classList.contains('off-dept_' + d);
   const drawCh = () => { $('rdCh').innerHTML = Object.entries(CH).map(([k, l]) => `<button type="button" role="radio" data-ch="${k}" aria-checked="${k === ch}"${k !== 'all' && offDept(k) ? ' disabled' : ''}>${l.replace(/[&<>"]/g, '')}</button>`).join(''); };
