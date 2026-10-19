@@ -23,10 +23,11 @@ export const EVENTS = {
   'unit.status': ['A unit changes status', 'read'], 'panic': ['A unit presses panic', 'read'], 'shift.started': ['Someone goes on duty', 'read'], 'shift.ended': ['Someone goes off duty', 'read'],
   'player.joined': ['A player joins the server', 'read'], 'player.left': ['A player leaves the server', 'read'],
   'alpr': ['The plate reader flags a car', 'lookup'], 'record.created': ['Police write a record (a warrant once it’s approved)', 'lookup'],
-  'record.updated': ['A warrant is served, recalled or denied, a BOLO is cleared, or a stop ends', 'lookup'] };
+  'record.updated': ['A warrant is served, recalled or denied, a BOLO is cleared, or a stop ends', 'lookup'],
+  'loa.requested': ['Someone asks for leave (LOA) from a department or the staff team', 'read'], 'loa.decided': ['A leave request is approved or denied', 'read'] };
 // what the "Connect a bot" form ticks for each kind of bot
 export const PRESETS = {
-  department: { name: 'Department bot', scopes: ['read', 'people', 'units', 'calls', 'lookup', 'records'], events: ['shift.started', 'shift.ended', 'call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic', 'record.created', 'record.updated'] },
+  department: { name: 'Department bot', scopes: ['read', 'people', 'units', 'calls', 'lookup', 'records'], events: ['shift.started', 'shift.ended', 'call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic', 'record.created', 'record.updated', 'loa.requested', 'loa.decided'] },
   justice: { name: 'Justice (DOJ) bot', scopes: ['read', 'people', 'lookup', 'records'], events: ['record.created', 'record.updated'] },
   roleplay: { name: 'Roleplay bot', scopes: ['read', 'people', 'lookup', 'vehicles', 'bank', 'records'], events: ['record.created', 'call.created'] },
   moderation: { name: 'Moderation bot', scopes: ['read', 'people', 'game'], events: ['player.joined', 'player.left'] },
@@ -76,6 +77,8 @@ export const rotate = (c, id, what) => { const L = list0(c), b = L.find(x => x.i
   if (what === 'secret') { if (!b.hook) return { error: 'This bot has no events link.' }; const secret = 'whsec_' + randomBytes(24).toString('base64url'); b.hook.secret = seal(secret); store(c, L); return { ok: true, bot: view(b), secret }; }
   if (b.oversite) return { error: 'Oversite keeps this bot’s key. To link it again, use a new code from the bot’s page on oversite.shop.' };
   const key = `ovb_${b.id}_${randomBytes(30).toString('base64url')}`; b.key = sha(key); b.hint = key.slice(-4); store(c, L); return { ok: true, bot: view(b), key }; };
+// does any connected bot get this event (so the MDT can say the request will be posted)
+export const listens = (c, event) => list0(c).some(b => b.hook?.events.includes(event) && can(b, EVENTS[event]?.[1] || 'read'));
 // is one of Oversite's own bots of this kind ('dispatch', 'department', …) linked to the server; some CAD features come with one
 export const hasOversite = (c, kind) => list0(c).some(b => b.oversite && b.base === kind);
 // Linking one of the server's Oversite bots (bought on oversite.shop): its owner reads a code off the bot's page there (it
@@ -85,9 +88,9 @@ const LINK_KIND = { department: 'department', dispatch: 'department', roleplay: 
 export const link = async (c, code, prem, by) => { const secret = process.env.CAD_LINK_SECRET || ''; if (!secret) return { error: 'Linking Oversite bots isn’t set up on this site yet.' };
   const clean = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (clean.length !== 8) return { error: 'The code is 8 letters and numbers. Copy it from the bot’s page on oversite.shop.' };
   const L = list0(c); if (L.length >= max(prem) && !L.some(b => b.oversite)) return { error: prem ? `A server can connect up to ${PREMIUM_BOTS} bots. Disconnect one first.` : `Free servers can connect ${FREE_BOTS} bot. Disconnect it first, or get Premium for up to ${PREMIUM_BOTS}.` };
-  const id = randomBytes(5).toString('hex'), key = `ovb_${id}_${randomBytes(30).toString('base64url')}`; let r;
+  const id = randomBytes(5).toString('hex'), key = `ovb_${id}_${randomBytes(30).toString('base64url')}`, evSecret = 'whsec_' + randomBytes(24).toString('base64url'); let r;
   try { const x = await fetch(LINK_URL, { method: 'POST', signal: AbortSignal.timeout(10000), headers: { 'content-type': 'application/json', 'x-cad-link-secret': secret },
-      body: JSON.stringify({ code: clean, key, server: { name: c.name, slug: c.slug }, cad_bot_id: id }) });
+      body: JSON.stringify({ code: clean, key, events_secret: evSecret, server: { name: c.name, slug: c.slug }, cad_bot_id: id }) });
     r = await x.json().catch(() => ({})); if (!x.ok && !r.error) r.error = `Oversite answered ${x.status}. Try again in a minute.`; }
   catch (e) { return { error: 'Oversite couldn’t be reached. Try again in a minute.' }; }
   if (!r.ok) return { error: r.error || 'That code didn’t work.' };
@@ -96,7 +99,9 @@ export const link = async (c, code, prem, by) => { const secret = process.env.CA
   const old = L.findIndex(b => b.oversite === r.bot_id || (r.previous_cad_bot_id && b.id === r.previous_cad_bot_id));
   if (old < 0 && L.length >= max(prem)) return { error: `This server is at its limit of ${max(prem)} connected bots. Disconnect one, then use a new code.` };
   const p = PRESETS[LINK_KIND[String(r.base || '').split(/[^a-z]/)[0]]] || PRESETS.readonly;
-  const b = { id, name: T(r.bot_name, 40) || 'Oversite bot', scopes: [...p.scopes], hook: null, key: sha(key), hint: key.slice(-4), created: Date.now(), by: T(by, 40), oversite: String(r.bot_id), base: T(String(r.base || '').split(/[^a-z]/)[0], 20) };
+  // the bot can take events (LOA requests, calls…) if it says where: signed with the secret sent above, the events its kind of bot gets
+  const ev = r.events_url ? await checkUrl(r.events_url) : null, hook = ev?.url ? { url: ev.url, events: [...(p.events || [])], secret: seal(evSecret) } : null;
+  const b = { id, name: T(r.bot_name, 40) || 'Oversite bot', scopes: [...p.scopes], hook, key: sha(key), hint: key.slice(-4), created: Date.now(), by: T(by, 40), oversite: String(r.bot_id), base: T(String(r.base || '').split(/[^a-z]/)[0], 20) };
   store(c, old >= 0 ? L.map((x, i) => (i === old ? b : x)) : [...L, b]);
   return { ok: true, bot: view(b), linked: true }; };
 export const remove = (c, id) => { store(c, list0(c).filter(b => b.id !== id)); used.delete(id); stat.delete(id); return { ok: true }; };

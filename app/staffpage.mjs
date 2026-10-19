@@ -33,7 +33,7 @@ export const staffHub = ({ logo, user, c }) => layout({ title: `${c.name} staff 
 <div class="sx" id="sh" data-api="/c/${esc(c.slug)}/api" data-slug="${esc(c.slug)}" data-origin="">
 <nav class="st-nav" role="tablist" aria-label="Staff" id="shNav"></nav>
 <div class="st-body" id="shBody"><p class="sh-empty">Loading…</p></div>
-</div></main><script src="/staff-courses.js?v=1" defer></script><script src="/staff-hub.js?v=2" defer></script>` });
+</div></main><script src="/staff-courses.js?v=1" defer></script><script src="/staff-hub.js?v=3" defer></script>` });
 
 export const applyPage = ({ logo, user, c, id }) => layout({ title: `Apply · ${c.name} · Oversite`, logo, user, body: `
 <main class="acct" style="max-width:680px"><style>${SH_CSS}</style>

@@ -22,6 +22,7 @@ import * as police from './app/police.mjs';
 import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
 import * as safezones from './app/safezones.mjs';
+import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
@@ -68,6 +69,11 @@ const msg = (res, user, title, text, action, status = 200) => page(res, pages.me
 
 // how far the map picture sits from ER:LC's positions, from the server's map calibration (map units); editors that draw on it shift it by this
 const mapOff = c => { const A = 2000 / 5355, cal = c.settings.cal || []; return cal.length ? [0, 1].map(i => cal.reduce((t, p) => t + (i ? p.wy - A * p.sz : p.wx - A * p.sx), 0) / cal.length / A) : [0, 0]; };
+// leave requests and answers go to the server's connected bots, so a bot can post them like its own LOA command would
+const isoDay = t => new Date(t).toISOString().slice(0, 10);
+onEvent((cid, e) => { if (e.type !== 'leave.request' && e.type !== 'leave.decided') return; const c = communities.byId(cid); if (!c) return;
+  bots.emit(c, e.type === 'leave.request' ? 'loa.requested' : 'loa.decided', { id: e.id, name: e.name, discord_id: e.discord_id, roblox_id: e.roblox_id, department: e.dept, department_name: e.dept_name,
+    starts: isoDay(e.starts), ends: isoDay(e.ends), ...(e.reason ? { reason: e.reason } : {}), ...(e.status ? { status: e.status, by: e.by } : {}) }); });
 // Fire AOP's hands: the CAD's call key, taking a call off the board, and running a command credited to it in the command log
 const fireHands = { key: k => callKey(k), clear: (c, k) => clearCall(c, k, 'Fire AOP'), command: (c, cmd) => communities.key(c.id) ? staff.commandAs(c, communities.key(c.id), cmd, 'Oversite Fire AOP') : Promise.resolve({ ok: false, message: 'No ER:LC key connected.' }) };
 // ── live feeds, one per community ──
@@ -389,6 +395,11 @@ const communityApi = async (req, res, slug, rest) => {
     mdtSignin.set(c.id, user.id, j.dept, j.rank); return json(res, { ok: true, mdt: mdtSignin.mine(c.id, user.id) }); }
   if (rest === 'mdt/signout' && M === 'POST') { const j = await jsonBody(req); if (!RANKS[j.dept]) return json(res, { error: 'Bad request.' }, 400); mdtSignin.out(c.id, user.id, j.dept); return json(res, { ok: true, mdt: mdtSignin.mine(c.id, user.id) }); }
   // ride with a teammate: you join their unit on the map and in dispatch (empty to ride alone again)
+  // leave (LOA) from the MDT: from a department, or from server staff; admins approve it on the staff page
+  if (rest === 'loa' && M === 'GET') { const D = staffhub.LEAVE_DEPTS.filter(d => features.on(c, 'dept_' + d)).map(d => ({ key: d, name: c.settings.depts?.[d]?.name || { pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' }[d] }));
+    return json(res, { mine: staffhub.myLeave(c, user), depts: can(role, 'mod') ? [...D, { key: '', name: 'Server staff' }] : D, bot: bots.listens(c, 'loa.requested') }); }
+  if (rest === 'loa' && M === 'POST') { const r = staffhub.requestLeave(c, user, await jsonBody(req)); return json(res, r.error ? r : { ...r, mine: staffhub.myLeave(c, user) }, r.error ? 400 : 200); }
+  if (rest === 'loa/cancel' && M === 'POST') { const r = staffhub.cancelLeave(c, user, (await jsonBody(req)).id); return json(res, r.error ? r : { ...r, mine: staffhub.myLeave(c, user) }, r.error ? 400 : 200); }
   if (rest === 'units/ride' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     const w = String((await jsonBody(req)).with || '').trim(); if (w && (!/^\d{1,20}$/.test(w) || w === String(user.roblox_id))) return json(res, { error: 'Pick a teammate to ride with.' }, 400);
     const R = rideWith.all(c.id); if (w && R[w] === String(user.roblox_id)) rideWith.set(c.id, w, '');   // they were riding with you: now you ride with them instead
@@ -488,6 +499,7 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
     const P = v.players.map(p => { const [name, id] = String(p.Player || '').split(':'), u = bots.can(bot, 'people') && id ? users.byRoblox(id) : null;
       return { name, roblox_id: id || null, team: p.Team || '', department: (c.settings.teams || {})[p.Team] || null, callsign: p.Callsign || null, postal: p.Location?.PostalCode || null, street: p.Location?.StreetName || null, ...(bots.can(bot, 'people') ? { discord_id: u?.discord_id || null } : {}) }; });
     return ok({ live: v.live, players: P }); }
+  if (rest === 'loa' && M === 'GET') { if (need('read')) return; return ok({ requests: staffhub.leaveForBots(c, qs.get('status')).map(({ dept, dept_name, ...l }) => ({ ...l, department: dept, department_name: dept_name, starts: isoDay(l.starts), ends: isoDay(l.ends) })) }); }
   if (rest === 'people' && M === 'GET') { if (need('people')) return; const u = person(Object.fromEntries(qs)); if (!u) return bad('Nobody with that ID or name has an Oversite account.', 404); return ok({ person: who(u) }); }
   // police lookups
   if (rest === 'records' && M === 'GET') { if (need('lookup') || off('pd_records')) return; return ok({ records: police.list(c.id, { kind: ['warrant', 'citation', 'warning', 'arrest', 'bolo', 'stop'].includes(qs.get('kind')) ? qs.get('kind') : '', status: qs.get('status') === 'open' ? 'open' : '' }).slice(0, 100) }); }

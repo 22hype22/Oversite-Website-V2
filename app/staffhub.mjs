@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS staff_apps (id INTEGER PRIMARY KEY, form_id INTEGER N
   answers TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', by_name TEXT, note TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL, decided INTEGER);
 CREATE INDEX IF NOT EXISTS staff_apps_f ON staff_apps (form_id, status);`);
 const q = sql => db.prepare(sql);
+// leave can be from server staff (dept '') or from a department (LOA from Police, Fire or DOT, asked for in the MDT)
+try { db.exec("ALTER TABLE staff_leave ADD COLUMN dept TEXT NOT NULL DEFAULT ''"); } catch (e) {}
+export const LEAVE_DEPTS = ['pd', 'fd', 'dot'];
+const deptName = (c, d) => d ? (c.settings.depts?.[d]?.name || { pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' }[d]) : 'Server staff';
 
 export const RANK = { member: 1, mod: 2, admin: 3, co_owner: 4, owner: 5 };
 export const INFRACTIONS = ['Warning', 'Strike', 'Demotion', 'Suspension', 'Termination'];
@@ -92,7 +96,7 @@ export const observe = (cid, body) => { const now = Date.now(); if (now - (LAST.
       if (now - seen.get(s.id) > GAP) { close(cid, o, seen.get(s.id), 'auto'); seen.delete(s.id); } } } };
 
 // ── the board: who is on shift, hours this week against the target, who is on leave ──
-const onLeave = (cid, from, to) => { const m = new Map(); for (const l of q("SELECT user_id, starts, ends FROM staff_leave WHERE community_id = ? AND status = 'approved' AND starts < ? AND ends >= ?").all(cid, to, from)) m.set(l.user_id, l); return m; };
+const onLeave = (cid, from, to) => { const m = new Map(); for (const l of q("SELECT user_id, starts, ends FROM staff_leave WHERE community_id = ? AND dept = '' AND status = 'approved' AND starts < ? AND ends >= ?").all(cid, to, from)) m.set(l.user_id, l); return m; };
 export const board = c => { const now = Date.now(), wk = weekStart(now), C = conf(c), week = totals(c.id, wk, now), month = totals(c.id, now - 30 * DAY, now), leave = onLeave(c.id, wk, now + 7 * DAY);
   const open = new Map(q('SELECT * FROM staff_shifts WHERE community_id = ? AND ended IS NULL').all(c.id).map(r => [r.user_id, r]));
   return members.staffOf(c.id).map(s => { const l = leave.get(s.id), wMs = week.get(s.id) || 0;
@@ -106,7 +110,7 @@ export const person = (c, uid) => { const u = users.byId(+uid), role = members.r
   return { id: u.id, name: nameOf(u), rid: u.roblox_id || '', role, total: Math.round([...totals(c.id, 0, now).entries()].filter(([k]) => k === u.id).reduce((a, [, v]) => a + v, 0) / 60000),
     actions: q('SELECT id, kind, title, reason, rank_from, rank_to, by_name, created FROM staff_actions WHERE community_id = ? AND user_id = ? ORDER BY created DESC LIMIT 100').all(c.id, u.id),
     shifts: q('SELECT * FROM staff_shifts WHERE community_id = ? AND user_id = ? ORDER BY started DESC LIMIT 20').all(c.id, u.id).map(r => ({ type: r.type, started: r.started, ended: r.ended, auto: !!r.auto, minutes: Math.round(worked(r, 0, Infinity) / 60000) })),
-    leave: q('SELECT id, starts, ends, reason, status, by_name FROM staff_leave WHERE community_id = ? AND user_id = ? ORDER BY starts DESC LIMIT 20').all(c.id, u.id) }; };
+    leave: q('SELECT id, starts, ends, reason, status, by_name, dept FROM staff_leave WHERE community_id = ? AND user_id = ? ORDER BY starts DESC LIMIT 20').all(c.id, u.id).map(l => ({ ...l, dept_name: deptName(c, l.dept) })) }; };
 
 // ── infractions and promotions ──
 const canActOn = (c, actorId, actorRole, uid) => { if (+uid === actorId) return 'You can’t add a record to yourself.';
@@ -133,26 +137,34 @@ export const delAction = (c, actorRole, id) => { if ((RANK[actorRole] || 0) < RA
 
 // ── leave ──
 const day = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN; };
-export const requestLeave = (c, user, j) => { if (!isStaff(c.id, user.id)) return { error: 'Only staff can request leave.' };
+export const requestLeave = (c, user, j) => { const dept = LEAVE_DEPTS.includes(j.dept) ? j.dept : '';
+  if (!dept && !isStaff(c.id, user.id)) return { error: 'Only staff can request staff leave. Pick your department instead.' };
+  if (dept && !members.role(c.id, user.id)) return { error: 'Join this server first.' };
   const s = day(j.starts), e = day(j.ends); if (!Number.isFinite(s) || !Number.isFinite(e)) return { error: 'Pick the first and last day.' };
   if (e < s) return { error: 'The last day is before the first.' }; if (s < weekStart() - 7 * DAY) return { error: 'Leave can’t start that far in the past.' };
   if (e - s > 90 * DAY) return { error: 'Leave can be up to 90 days. Ask again after that.' };
   const reason = TL(j.reason, 500); if (!reason) return { error: 'Say why you need the time off.' };
   if (q("SELECT COUNT(*) AS n FROM staff_leave WHERE community_id = ? AND user_id = ? AND status = 'pending'").get(c.id, user.id).n >= 3) return { error: 'You already have requests waiting. Wait for those first.' };
-  const id = q('INSERT INTO staff_leave (community_id, user_id, starts, ends, reason, created) VALUES (?, ?, ?, ?, ?, ?)').run(c.id, user.id, s, e + DAY - 1, reason, Date.now()).lastInsertRowid;
-  emit(c.id, 'leave.request', { id, user: user.id, name: nameOf(user), starts: s, ends: e + DAY - 1, reason }); return { ok: true, id }; };
+  const id = q('INSERT INTO staff_leave (community_id, user_id, starts, ends, reason, created, dept) VALUES (?, ?, ?, ?, ?, ?, ?)').run(c.id, user.id, s, e + DAY - 1, reason, Date.now(), dept).lastInsertRowid;
+  emit(c.id, 'leave.request', { id, user: user.id, name: nameOf(user), discord_id: user.discord_id || null, roblox_id: user.roblox_id ? String(user.roblox_id) : null, dept: dept || 'staff', dept_name: deptName(c, dept), starts: s, ends: e + DAY - 1, reason }); return { ok: true, id }; };
 export const decideLeave = (c, actor, actorRole, id, approve) => { if ((RANK[actorRole] || 0) < RANK.admin) return { error: 'Only admins and up can approve leave.' };
   const l = q('SELECT * FROM staff_leave WHERE id = ? AND community_id = ?').get(+id, c.id); if (!l) return { error: 'No such request.' };
   if (l.user_id === actor.id && actorRole !== 'owner') return { error: 'Someone else has to approve your own leave.' };
   if (l.status !== 'pending') return { error: 'That request was already answered.' };
   const status = approve ? 'approved' : 'denied'; q('UPDATE staff_leave SET status = ?, by_name = ?, decided = ? WHERE id = ?').run(status, nameOf(actor), Date.now(), l.id);
-  emit(c.id, 'leave.decided', { id: l.id, user: l.user_id, name: nameOf(users.byId(l.user_id)), status, by: nameOf(actor) }); return { ok: true }; };
+  const who = users.byId(l.user_id); emit(c.id, 'leave.decided', { id: l.id, user: l.user_id, name: nameOf(who), discord_id: who?.discord_id || null, roblox_id: who?.roblox_id ? String(who.roblox_id) : null, dept: l.dept || 'staff', dept_name: deptName(c, l.dept), starts: l.starts, ends: l.ends, status, by: nameOf(actor) }); return { ok: true }; };
 export const cancelLeave = (c, user, id) => { const l = q('SELECT * FROM staff_leave WHERE id = ? AND community_id = ? AND user_id = ?').get(+id, c.id, user.id); if (!l) return { error: 'No such request.' };
   if (l.status === 'approved' && l.ends < Date.now()) return { error: 'That leave is over.' };
   q("UPDATE staff_leave SET status = 'cancelled', decided = ? WHERE id = ?").run(Date.now(), l.id); return { ok: true }; };
-export const leaveList = c => q(`SELECT l.id, l.user_id, l.starts, l.ends, l.reason, l.status, l.by_name, l.created, u.roblox_name, u.name FROM staff_leave l JOIN users u ON u.id = l.user_id
+export const leaveList = c => q(`SELECT l.id, l.user_id, l.starts, l.ends, l.reason, l.status, l.by_name, l.created, l.dept, u.roblox_name, u.name FROM staff_leave l JOIN users u ON u.id = l.user_id
   WHERE l.community_id = ? AND (l.status = 'pending' OR l.ends > ?) AND l.status != 'cancelled' ORDER BY l.status = 'pending' DESC, l.starts LIMIT 200`).all(c.id, Date.now() - 30 * DAY)
-  .map(l => ({ id: l.id, user: l.user_id, name: l.roblox_name || l.name, starts: l.starts, ends: l.ends, reason: l.reason, status: l.status, by: l.by_name, created: l.created }));
+  .map(l => ({ id: l.id, user: l.user_id, name: l.roblox_name || l.name, starts: l.starts, ends: l.ends, reason: l.reason, status: l.status, by: l.by_name, created: l.created, dept: l.dept || '', dept_name: deptName(c, l.dept) }));
+// someone's own leave requests, for the MDT
+export const myLeave = (c, user) => q("SELECT id, starts, ends, reason, status, by_name, dept FROM staff_leave WHERE community_id = ? AND user_id = ? AND status != 'cancelled' ORDER BY created DESC LIMIT 10").all(c.id, user.id)
+  .map(l => ({ id: l.id, starts: l.starts, ends: l.ends, reason: l.reason, status: l.status, by: l.by_name, dept: l.dept || '', dept_name: deptName(c, l.dept) }));
+// pending and recent requests, for bots that read them instead of being sent events
+export const leaveForBots = (c, status) => q(`SELECT l.*, u.roblox_name, u.name, u.discord_id, u.roblox_id FROM staff_leave l JOIN users u ON u.id = l.user_id WHERE l.community_id = ? ${status === 'pending' ? "AND l.status = 'pending'" : "AND l.status != 'cancelled'"} ORDER BY l.created DESC LIMIT 50`).all(c.id)
+  .map(l => ({ id: l.id, name: l.roblox_name || l.name, discord_id: l.discord_id || null, roblox_id: l.roblox_id ? String(l.roblox_id) : null, dept: l.dept || 'staff', dept_name: deptName(c, l.dept), starts: l.starts, ends: l.ends, reason: l.reason, status: l.status, by: l.by_name || null, created: l.created }));
 
 // ── applications ──
 const cleanQs = qs => (Array.isArray(qs) ? qs : []).slice(0, 25).map(x => ({ q: T(x?.q, 200), type: QTYPES.includes(x?.type) ? x.type : 'short', req: x?.req !== false,
