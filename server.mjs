@@ -27,6 +27,9 @@ import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
 import * as duty from './app/duty.mjs';
 import * as monitors from './app/monitors.mjs';
+import * as weather from './app/weather.mjs';
+import * as texts from './app/texts.mjs';
+import { POSTALS } from './app/postals.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
 import * as staffhub from './app/staffhub.mjs';
@@ -433,6 +436,28 @@ const communityApi = async (req, res, slug, rest) => {
     const r = rest === 'monitors/save' ? monitors.saveMonitor(c, by, j) : rest === 'monitors/remove' ? monitors.removeMonitor(c, by, j.id) : { error: 'Not found.' };
     if (!r.error) console.log(`monitors: ${c.slug} ${rest.slice(9)} by ${by}`);
     return json(res, r.error ? r : { ...r, list: monitors.monitors(c) }, r.error ? 400 : 200); }
+  // the Civilian phone's Messages (app/texts.mjs): texts between two people in this server
+  if (rest === 'texts' || rest.startsWith('texts/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    const qs = new URL(req.url, 'http://x').searchParams;
+    if (rest === 'texts' && M === 'GET') return json(res, { threads: texts.threads(c, user), unread: texts.unread(c, user) });
+    if (rest === 'texts/unread' && M === 'GET') return json(res, { unread: texts.unread(c, user) });
+    if (rest === 'texts/with' && M === 'GET') { const r = texts.thread(c, user, qs.get('id'), qs.get('after')); return json(res, r, r.error ? 404 : 200); }
+    if (rest === 'texts/people' && M === 'GET') return json(res, { people: texts.people(c, user, qs.get('q')) });
+    if (rest === 'texts/send' && M === 'POST') { const j = await jsonBody(req), r = texts.send(c, user, j.to, j.body); return json(res, r, r.error ? 400 : 200); }
+    return json(res, { error: 'Not found.' }, 404); }
+  // the Civilian phone's Maps: where you are in game right now (on the 2D map picture, 5355 across), and the postals
+  if (rest === 'phone/where' && M === 'GET') { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    if (!user.roblox_id) return json(res, { linked: false });
+    let me = null; try { const s = await feedFor(c).snapshot(); if (s.status === 200) me = (JSON.parse(s.body).Players || []).find(p => String(p.Player || '').split(':')[1] === String(user.roblox_id)); } catch (e) {}
+    const L = me?.Location, off = mapOff(c); if (!L || !Number.isFinite(+L.LocationX)) return json(res, { linked: true, ingame: false });
+    return json(res, { linked: true, ingame: true, x: +L.LocationX + off[0], z: +L.LocationZ + off[1], postal: L.PostalCode || null, street: L.StreetName || null, team: me.Team || '' }); }
+  if (rest === 'phone/postals' && M === 'GET') { const K = 5355 / 2000; return json(res, { postals: Object.fromEntries(Object.entries(POSTALS).map(([k, [x, y]]) => [k, [Math.round(x * K), Math.round(y * K)]])) }); }
+  // the Civilian phone's weather widget: real weather where the server is (app/weather.mjs); the owner and co-owners set the place
+  if (rest === 'weather' && M === 'GET') { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    try { return json(res, { ...await weather.now(c), canSet: can(role, 'co_owner') }); } catch (e) { return json(res, { error: 'The weather is unavailable right now.' }, 502); } }
+  if (rest === 'weather/place' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can set where the server is.' }, 403);
+    try { const r = await weather.setPlace(c, (await jsonBody(req)).q); if (r.error) return json(res, r, 400); return json(res, { ...await weather.now(c), canSet: true }); }
+    catch (e) { return json(res, { error: 'The weather service couldn’t be reached. Try again in a minute.' }, 502); } }
   if (rest === 'units/ride' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     const w = String((await jsonBody(req)).with || '').trim(); if (w && (!/^\d{1,20}$/.test(w) || w === String(user.roblox_id))) return json(res, { error: 'Pick a teammate to ride with.' }, 400);
     const R = rideWith.all(c.id); if (w && R[w] === String(user.roblox_id)) rideWith.set(c.id, w, '');   // they were riding with you: now you ride with them instead
