@@ -62,7 +62,7 @@
   let sel = -1, draft = null, hover = null, vb = [0, 0, SIZE, SIZE];
   const D = { bounds: null, safe: null, fire: null, cams: null }, dirty = { bounds: false, safe: false, fire: false, cams: false }, errs = {};
   const CAM = '#B98CFF', CAM_R = { short: 35, normal: 55, long: 90 }, CAM_M = { short: 15, normal: 25, long: 40 };   // plate cameras, and how far each sees (ER:LC map pixels)
-  let camLog = [], camAlpr = true, placing = false;
+  let camLog = [], camAlpr = true;
   let B = { cur: '', scope: ALL, teams: [], depts: {}, players: [], log: [], connected: true }, calls = [], fireRecent = [], safeLog = [];
 
   // ── the map layers ──
@@ -114,16 +114,16 @@
       el('polyline', { points: pts.map(p => p.join(',')).join(' '), fill: c, 'fill-opacity': .1, stroke: c, 'stroke-width': 2, 'stroke-dasharray': '7 5', 'vector-effect': 'non-scaling-stroke' }, gD);
       draft.forEach((q, k) => el('circle', { cx: q[0], cy: q[1], r: k ? r * .8 : r * 1.25, fill: k ? c : '#0d1416', stroke: c, 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke' }, gD)); }
     if (mode === 'cams') { const R = CAM_R[D.cams.range] || 55; D.cams.list.forEach((k, i) => { const on = i === sel;
-        el('circle', { cx: k.x, cy: k.z, r: R, fill: CAM, 'fill-opacity': on ? .3 : .2, stroke: CAM, 'stroke-width': on ? 2.5 : 2, 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, gA);
-        el('circle', { cx: k.x, cy: k.z, r: Math.min(r * 1.3, R * .45), fill: on ? '#FFFFFF' : CAM, stroke: '#0d1416', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', class: 'mp-cam', 'data-c': i, style: can() ? 'cursor:move' : 'cursor:pointer' }, gA);   // the dot shrinks when zoomed out, so the circle around it always shows
-        el('text', { x: k.x + Math.max(R, r * 1.3) + 5 * px(), y: k.z + r * .5, 'font-size': 12 * px(), 'font-weight': 600, fill: '#fff', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * px(), 'pointer-events': 'none' }, gA).textContent = k.name; }); }
+        // just how far it sees (never under a few pixels, so it shows zoomed out); click it to pick that camera
+        el('circle', { cx: k.x, cy: k.z, r: Math.max(R, r * .7), fill: CAM, 'fill-opacity': on ? .42 : .25, stroke: on ? '#FFFFFF' : CAM, 'stroke-width': on ? 2.5 : 2, 'vector-effect': 'non-scaling-stroke', class: 'mp-cam', 'data-c': i, style: 'cursor:pointer' }, gA); }); }
     for (const d of M().dots()) { const g = el('g', {}, gP); const c = el('circle', { cx: d.x, cy: d.z, r: r * (d.name ? .9 : 1.1), fill: d.fill, stroke: d.ring || '#0d1416', 'stroke-width': d.ring ? 3 : 1.5, 'vector-effect': 'non-scaling-stroke' }, g);
       if (d.title) el('title', {}, c).textContent = d.title;
       if (d.name) el('text', { x: d.x + r * 1.5, y: d.z + r * .5, 'font-size': 11 * px(), fill: '#F0F2F5', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * px() }, g).textContent = d.name; }
     $('mpKey').innerHTML = M().key().map(k => `<span><i style="background:${k.c}"></i>${esc(k.t)}</span>`).join(''); bar(); };
-  const bar = () => { if (mode === 'cams') { const ok = can() && ready(), n = ready() ? D.cams.list.length : 0;
-      $('mpDraw').disabled = !ok; $('mpDraw').textContent = placing ? 'Cancel' : 'Add camera'; $('mpDel').disabled = !ok || sel < 0; $('mpDel').textContent = 'Delete camera'; $('mpUndo').hidden = true; svg.classList.toggle('drawing', placing);
-      $('mpHint').textContent = !ready() ? (errs.cams || 'Loading…') : !can() ? 'You can look. Admins and up change these.' : placing ? 'Click the map where the camera is.' : sel >= 0 ? 'Drag the camera to move it.' : n ? 'Click a camera to edit it, or add another.' : 'No cameras yet. Press Add camera, then click the map where one is.'; return; }
+  // the cameras are the game's own, in fixed places: nothing to add, move or delete
+  const bar = () => { $('mpDraw').hidden = $('mpDel').hidden = mode === 'cams';
+    if (mode === 'cams') { $('mpUndo').hidden = true; svg.classList.remove('drawing');
+      $('mpHint').textContent = !ready() ? (errs.cams || 'Loading…') : 'These are the cameras in ER:LC, where the game has them. Click one to see it.'; return; }
     $('mpDel').textContent = 'Delete area'; const n = ready() ? M().items().length : 0, ok = can() && ready();
     $('mpDraw').disabled = !ok; $('mpDel').disabled = !ok || sel < 0 || !!draft; $('mpUndo').hidden = !draft; $('mpDraw').textContent = draft ? 'Finish area' : 'Draw area'; svg.classList.toggle('drawing', !!draft);
     $('mpHint').textContent = !ready() ? (errs[mode] || 'Loading…') : !can() ? (mode === 'fire' && !OV.premium ? 'Fire AOP comes with Premium.' : 'You can look. Admins and up change these.')
@@ -173,17 +173,17 @@
         ${saveRow()}${recent(fireRecent, x => `${esc(x.what)}${x.where ? ' · ' + esc(x.where) : ''}<small${x.stop === 'refused' ? ' class="bad"' : ''}>${[x.hidden ? 'Taken off the fire board' : '', { sent: 'Put out in game', refused: 'ER:LC refused to put it out', kept: 'Left burning: a fire is burning inside the AOP', sending: 'Putting it out…' }[x.stop] || ''].filter(Boolean).join(' · ')}${x.msg ? ': ' + esc(x.msg) : ''}</small>`)}
         ${can() ? '<div><button type="button" class="st-btn" id="mpFireOut">Put out every fire now</button></div>' : ''}`; }
     if (mode === 'cams') { const k = D.cams;
-      side.innerHTML = `<div class="mp-head"><div><h2>Plate cameras</h2><small>Fixed plate readers, like Flock cameras. When a flagged car (stolen, a BOLO, its owner wanted, bad papers) drives past one, police and dispatch get an alert that says which camera saw it.</small></div>${sw('mpOn', k.on, 'Cameras on')}</div>
+      side.innerHTML = `<div class="mp-head"><div><h2>Plate cameras</h2><small>The Flock cameras in ER:LC, in the places the game has them. When a flagged car (stolen, a BOLO, its owner wanted, bad papers) drives past one, police and dispatch get an alert that says which camera saw it.</small></div>${sw('mpOn', k.on, 'Cameras on')}</div>
         ${camAlpr ? '' : '<p class="mp-note mp-warn">The plate reader is switched off in Settings, Features, so cameras won’t alert until it’s on.</p>'}
         <p class="mp-note">While cameras are on, the plate reader only watches at cameras instead of the whole map.</p>
         <div class="mp-sec"><b>How far each sees</b><div class="mp-seg" id="mpRange" role="group" aria-label="Range">${[['short', 'Short, 15 m'], ['normal', 'Normal, 25 m'], ['long', 'Long, 40 m']].map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${k.range === v}"${can() ? '' : ' disabled'}>${t}</button>`).join('')}</div></div>
-        <div class="mp-sec"><b>Cameras</b><div id="mpAreas">${areaRows(k.list, () => '<b style="background:' + CAM + '"></b>', 'None yet. Press Add camera under the map, then click where one is.')}</div></div>
+        <div class="mp-sec"><b>Cameras · ${k.list.length}</b><div id="mpAreas">${k.list.map((c, i) => `<div class="mp-area${i === sel ? ' sel' : ''}" data-i="${i}"><b style="background:${CAM}"></b><span style="font-size:13px">${esc(c.name)}</span><span></span></div>`).join('')}</div></div>
         ${saveRow()}${recent(camLog, x => `<b>${esc(x.plate)}</b>${x.vehicle ? ' · ' + esc(x.vehicle) : ''}<small>${esc(x.camera)} · ${esc(x.reasons)}${x.owner ? ' · ' + esc(x.owner) : ''}</small>`)}`; }
     const m = $('mpMsg'); if (m && flash && Date.now() - flash.at < 6000) { m.textContent = flash.t; m.className = 'msg ' + flash.k; } };
 
   // ── side panel input ──
   side.addEventListener('click', async e => { const t = e.target; if (!ready()) return;
-    const row0 = t.closest('[data-i]'); if (row0 && mode === 'cams') { const i = +row0.dataset.i; if (t.closest('[data-k="rm"]')) return removeCam(i); if (sel !== i) { sel = i; const k = D.cams.list[i]; if (!t.closest('input')) { vb = [k.x - 350, k.z - 350, 700, 700]; setVB(); } drawSide(); draw(); } return; }
+    const row0 = t.closest('[data-i]'); if (row0 && mode === 'cams') { const i = +row0.dataset.i; if (sel !== i) { sel = i; const k = D.cams.list[i]; vb = [k.x - 350, k.z - 350, 700, 700]; setVB(); drawSide(); draw(); } return; }
     const rg = t.closest('#mpRange [data-v]'); if (rg) { D.cams.range = rg.dataset.v; mark(); drawSide(); draw(); return; }
     const row = t.closest('[data-i]'); if (row && (mode !== 'bounds')) { const i = +row.dataset.i; if (t.closest('[data-k="rm"]')) return removeArea(i); if (sel !== i && !t.closest('input')) choose(i); else if (sel !== i) { sel = i; draw(); side.querySelectorAll('.mp-area').forEach(x => x.classList.toggle('sel', x === row)); } return; }
     if (mode === 'bounds') { const b = D.bounds, P = preset();
@@ -217,7 +217,6 @@
     if (!dirty.bounds) { D.bounds = j.bounds; B.teams = j.teams || []; B.depts = j.depts || {}; if (!B.cur || !D.bounds.presets.some(p => p.id === B.cur)) B.cur = D.bounds.active; if (B.scope !== ALL && !B.teams.includes(B.scope)) B.scope = ALL; } };
   const takeSafe = (j, force) => { off(j); safeLog = j.log || []; if (!dirty.safe || force) D.safe = { on: j.on, zones: (j.zones || []).map(z => ({ ...z, pts: z.pts.map(q => q.slice()) })), enter: j.enter, enterMsg: j.enterMsg, kill: j.kill }; };
   const takeCams = (j, force) => { off(j); camLog = j.log || []; camAlpr = j.alpr !== false; if (!dirty.cams || force) D.cams = { on: j.on, range: j.range, list: (j.list || []).map(k => ({ ...k })) }; };
-  const removeCam = i => { const k = D.cams.list[i]; if (!k || !confirm('Delete ' + k.name + '? Press Save to keep the change.')) return; D.cams.list.splice(i, 1); sel = -1; mark(); drawSide(); draw(); };
   const takeFire = (j, force) => { off(j); calls = j.calls || []; fireRecent = j.recent || []; if (!dirty.fire || force) D.fire = { on: j.on, hide: j.hide, stop: j.stop, scope: j.scope, command: j.command, areas: (j.areas || []).map(a => ({ ...a, pts: a.pts.map(q => q.slice()) })) }; };
   const load = async (first) => { const m = mode;
     try { if (m === 'fire' && !OV.premium) { errs.fire = 'Fire AOP comes with Premium: fire calls outside your AOP come off the board, and fires outside it are put out.'; }
@@ -225,18 +224,18 @@
         if ((m === 'safe' || m === 'cams') && m !== 'bounds') call('/bounds').then(takeBounds).catch(() => {}); }   // who is where, from the same reading   // safe zones show who is where, from the same reading
       if (mode !== m) return; if (first || (!dirty[m] && !draft && !side.contains(document.activeElement))) drawSide();   // never redrawn under someone typing
       draw(); } catch (x) { errs[m] = x.message; if (mode === m && first) { drawSide(); draw(); } } };
-  const setMode = m => { if (m === mode) return; flash = null; placing = false; draft = null; hover = null; sel = -1; mode = m; try { localStorage.setItem('ov.mapping', m); } catch (e) {} drawSide(); draw(); load(true); };
+  const setMode = m => { if (m === mode) return; flash = null; draft = null; hover = null; sel = -1; mode = m; try { localStorage.setItem('ov.mapping', m); } catch (e) {} drawSide(); draw(); load(true); };
   box.querySelector('.mp-modes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) setMode(b.dataset.mode); });
 
   // ── drawing, as in Boundaries. Drawing: a click adds a corner, holding and dragging draws the outline freehand. Otherwise a drag
   // moves the map, and a click picks an area. The middle button (or right button, or Space held down) always moves the map. ──
   $('mpDraw').addEventListener('click', () => { if (!can() || !ready()) return;
-    if (mode === 'cams') { if (!placing && D.cams.list.length >= 60) return say('A server can have up to 60 cameras.', 'err'); placing = !placing; sel = -1; drawSide(); draw(); return; }
+    if (mode === 'cams') return;
     if (draft) return finish(); if (M().items().length >= M().max) return say('That’s the most areas there can be here.', 'err'); draft = []; sel = -1; drawSide(); draw(); });
   $('mpUndo').addEventListener('click', () => { if (draft) { draft.pop(); draw(); } });
-  $('mpDel').addEventListener('click', () => { if (sel >= 0) mode === 'cams' ? removeCam(sel) : removeArea(sel); });
+  $('mpDel').addEventListener('click', () => { if (sel >= 0 && mode !== 'cams') removeArea(sel); });
   $('mpIn').addEventListener('click', () => zoom(.7)); $('mpOut').addEventListener('click', () => zoom(1 / .7)); $('mpFit').addEventListener('click', () => { vb = [0, 0, SIZE, SIZE]; setVB(); draw(); });
-  document.addEventListener('keydown', e => { if (placing && e.key === 'Escape' && box.offsetParent) { placing = false; draw(); return; } if (!draft || !box.offsetParent || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) return;
+  document.addEventListener('keydown', e => { if (!draft || !box.offsetParent || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) return;
     if (e.key === 'Escape') { draft = null; hover = null; draw(); } else if (e.key === 'Enter') { e.preventDefault(); finish(); } else if (e.key === 'Backspace') { e.preventDefault(); draft.pop(); draw(); } });
   let down = null, space = false;
   addEventListener('keydown', e => { if (e.code === 'Space' && box.offsetParent && document.activeElement === document.body) { space = true; e.preventDefault(); } });
@@ -257,7 +256,7 @@
   svg.addEventListener('pointerdown', e => { if (!ready()) return; svg.setPointerCapture(e.pointerId); const t = e.target, P = toMap(e), edit = can();
     const pan = () => ({ kind: 'pan', x: e.clientX, y: e.clientY, vb: [...vb], moved: false, t });
     if (e.button || space) { if (e.button === 1) e.preventDefault(); down = { ...pan(), force: true }; return; }
-    if (mode === 'cams') { if (edit && t.classList.contains('mp-cam')) { sel = +t.dataset.c; down = { kind: 'cam', i: sel, x: e.clientX, y: e.clientY, moved: false }; draw(); } else down = pan(); return; }
+    if (mode === 'cams') { down = pan(); return; }
     if (edit && !draft && sel >= 0 && t.classList.contains('mp-pt')) down = { kind: 'pt', k: +t.dataset.k };
     else if (edit && !draft && sel >= 0 && t.classList.contains('mp-mid')) { const p = M().items()[sel].pts, k = +t.dataset.k; p.splice(k + 1, 0, P); down = { kind: 'pt', k: k + 1 }; mark(); draw(); }
     else if (edit && !draft && !t.closest('.mp-poly') && !t.closest('.mp-other') && !M().items().length) { draft = []; sel = -1; down = { kind: 'draw', x: e.clientX, y: e.clientY, moved: false, n: 0 }; draw(); }   // nothing drawn yet: just start drawing
@@ -265,7 +264,6 @@
     else down = pan(); });
   svg.addEventListener('pointermove', e => { const P = toMap(e);
     if (down?.kind === 'pt') { M().items()[sel].pts[down.k] = P; mark(); draw(); return; }
-    if (down?.kind === 'cam') { if (!down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 4) return; down.moved = true; const k = D.cams.list[down.i]; k.x = P[0]; k.z = P[1]; mark(); draw(); return; }
     if (down?.kind === 'pan') { const dx = e.clientX - down.x, dy = e.clientY - down.y; if (!down.moved && Math.hypot(dx, dy) < 5) return; down.moved = true;
       const s = down.vb[2] / svg.clientWidth; vb = [down.vb[0] - dx * s, down.vb[1] - dy * s, vb[2], vb[3]]; setVB(); return; }
     if (down?.kind === 'draw') { if (!down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) return;
@@ -274,10 +272,7 @@
     if (draft) { hover = P; draw(); } });
   svg.addEventListener('pointerup', e => { const d = down; down = null; if (!d) return; const P = toMap(e);
     if (d.kind === 'pt') return;
-    if (d.kind === 'cam') { drawSide(); draw(); return; }
     if (mode === 'cams' && d.kind === 'pan') { if (d.moved || d.force) { draw(); return; } const cm = d.t.closest?.('.mp-cam'); if (cm) { sel = +cm.dataset.c; drawSide(); draw(); return; }
-      if (placing && can()) { D.cams.list.push({ name: 'Camera ' + (D.cams.list.length + 1), x: P[0], z: P[1] }); sel = D.cams.list.length - 1; placing = false; mark(); drawSide(); draw();
-        const inp = side.querySelector(`[data-i="${sel}"] input[type=text]`); if (inp) { inp.focus(); inp.select(); } return; }
       sel = -1; drawSide(); draw(); return; }
     if (d.kind === 'pan') { if (d.moved || d.force) { draw(); return; } const o = d.t.closest?.('.mp-other'); if (o) return M().others()[+o.dataset.o]?.pick();
       const hit = d.t.closest?.('.mp-poly'); if (hit) return choose(+hit.dataset.i); sel = -1; drawSide(); draw(); return; }

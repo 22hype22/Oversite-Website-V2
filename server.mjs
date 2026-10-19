@@ -91,7 +91,7 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
   f.onSnap = body => { const cc = communities.byId(c.id) || c, read = police.observe(c.id, body, cc.settings.teams) || [];
     // the plate reader's hits go to every CAD and to automations; automations also watch for players joining and new calls.
     // With plate cameras placed, only cars passing a camera count (checked on every reading), not cars anywhere on the map
-    const hits = cameras.active(cc) ? cameras.check(cc, body) : read;
+    const hits = cameras.active(cc) ? cameras.check(cc, body, mapOff(cc)) : read;
     if (features.on(cc, 'alpr')) for (const h of hits) { f.bcast('alpr', JSON.stringify(h)); if (features.on(cc, 'automations')) automations.fire(cc, 'alpr', h); bots.emit(cc, 'alpr', h); }
     try { bots.observe(cc, f.withExtra(body), callKey); } catch (e) {}
     monitorRead(cc, body);
@@ -444,7 +444,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (rest === 'flock/save') { if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can change cameras.' }, 403);
       const r = cameras.save(c, await jsonBody(req)); if (r.error) return json(res, r, 400); console.log(`flock: ${c.slug} cameras saved by ${user.roblox_name || user.name}`); }
     else if (M !== 'GET') return json(res, { error: 'Not found.' }, 404);
-    return json(res, { ...cameras.of(c), ranges: cameras.RANGES, max: cameras.MAX, log: cameras.log(c), off: mapOff(c), edit: can(role, 'admin') }); }
+    return json(res, { ...cameras.of(c, mapOff(c)), ranges: cameras.RANGES, max: cameras.MAX, log: cameras.log(c), off: mapOff(c), edit: can(role, 'admin') }); }
   // Mapping, in the CAD's Server Staff panel: boundaries (presets of areas per team, the live one enforced in game, app/bounds.mjs)
   // and safe zones (app/safezones.mjs). Staff can look; admins and up change them. Not Premium: Boundaries has always been free.
   if ((rest === 'bounds' || rest === 'safezones' || rest === 'cameras') && (M === 'GET' || M === 'POST')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403);
@@ -452,7 +452,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (M === 'POST') { const j = await jsonBody(req), r = rest === 'bounds' ? bounds.save(c, j) : rest === 'cameras' ? cameras.save(c, j) : safezones.save(c, j); if (r.error) return json(res, r, 400);
       console.log(`mapping: ${c.slug} ${rest} saved by ${user.roblox_name || user.name}`); if (rest === 'bounds') return json(res, r); }
     if (rest === 'safezones') return json(res, { ...safezones.of(c), log: safezones.log(c), off: mapOff(c) });
-    if (rest === 'cameras') return json(res, { ...cameras.of(c), log: cameras.log(c), alpr: features.on(c, 'alpr'), off: mapOff(c) });
+    if (rest === 'cameras') return json(res, { ...cameras.of(c, mapOff(c)), log: cameras.log(c), alpr: features.on(c, 'alpr'), off: mapOff(c) });
     let players = []; try { if (f.snap && Date.now() - f.snap.t < 15000) players = (JSON.parse(f.snap.body).Players || []).filter(p => p.Location).map(p => ({ name: String(p.Player).split(':')[0], team: p.Team || '', x: p.Location.LocationX, z: p.Location.LocationZ })); } catch (e) {}
     return json(res, { bounds: bounds.of(c), log: bounds.log(c), teams: Object.keys(c.settings.teams || {}), depts: c.settings.teams, off: mapOff(c), players, connected: !!communities.key(c.id) }); }
   if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can do that.' }, 403);

@@ -1,7 +1,7 @@
 // Flock cameras: one window for dispatch and police, opened from the map controls on Dispatch and from BOLOs on the police MDT.
 // The map shows every plate camera and how far it sees; the side lists the cameras and the flagged cars they caught lately
-// (a camera that caught one in the last ten minutes glows red). Admins and up can place, move, rename and remove cameras here
-// too: the same cameras as Server Staff, Mapping, Cameras. Drag the map to move around, scroll to zoom.
+// (a camera that caught one in the last ten minutes glows red). The cameras are the game's own, in fixed places (app/cameras.mjs);
+// admins can switch them off and pick how far they see, here or in Server Staff, Mapping. Drag the map to move around, scroll to zoom.
 (() => { const OV = window.OVERSITE; if (!OV || !OV.api || (OV.features || {}).alpr === false) return;
   const API = OV.api + '/flock', METRES = { short: 15, normal: 25, long: 40 }, SIZE = 5355, NS = 'http://www.w3.org/2000/svg', CAM = '#B98CFF', HOT = '#E24B4B';
   const ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.4 4.9 21.9 9.95Q22.9 10.5 22 11.15L19.2 12.75Q18.9 12.9 18.6 12.8L5.6 8.4Q4.5 8 4.75 6.95L5.15 5.7Q5.5 4.65 6.4 4.9Z"/><path d="M5.2 8.95 19.85 13.3 19.05 15.25Q18.6 16 17.9 15.75L5.75 11.6Q4.5 11.1 4.75 10.2Z"/><path d="M20.55 12.05 22.6 12.4Q23 12.55 22.85 12.95L21.5 16.1Q21.35 16.35 21.05 16.25L20.1 15.95Q19.6 15.7 19.75 15.2Z"/><path d="M9.95 13.05 11.5 13.45 10.35 15.6 8.85 15.1Z"/><circle cx="9.25" cy="16.25" r="1.35"/><rect x="2.6" y="15.75" width="5.9" height="1.1"/><rect x="1" y="12.9" width="1.95" height="6.3" rx=".5"/></svg>';
@@ -52,8 +52,8 @@
     const w = Math.max(700, Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)) * 1.4, cx = (Math.max(...xs) + Math.min(...xs)) / 2, cz = (Math.max(...zs) + Math.min(...zs)) / 2;
     vb = [cx - w / 2, cz - w / 2, w, w]; setVB(); draw(); };
 
-  // D: what the server has { on, range, ranges, list, log, edit }. ed: a copy being changed { on, range, list }. placing: the next map click adds a camera
-  let D = null, ed = null, sel = '', placing = false, timer = 0, flash = null;
+  // D: what the server has { on, range, ranges, list, log, edit }. ed: the settings being changed { on, range, list }
+  let D = null, ed = null, sel = '', timer = 0, flash = null;
   const say = (t, k = '') => { flash = { t, k }; const m = $('flkMsg'); if (m) { m.textContent = t; m.className = 'msg ' + k; } };
   const cams = () => (ed || D)?.list || [];
   const hot = id => (D?.log || []).some(h => h.cam === id && Date.now() - h.at < 600000);
@@ -62,42 +62,34 @@
   // ── the map ──
   const draw = () => { gC.textContent = ''; if (!D) return; const p = px(), r = R();
     for (const k of cams()) { const h = hot(k.id), s = k.id === sel, c = h ? HOT : CAM;
-      el('circle', { cx: k.x, cy: k.z, r, fill: c, 'fill-opacity': s ? .32 : .22, stroke: c, 'stroke-width': s ? 2.5 : 2, 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, gC);   // how far it sees, to scale
-      el('circle', { cx: k.x, cy: k.z, r: Math.min((s ? 8 : 6.5) * p, r * .45), fill: c, stroke: '#0d1416', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', 'data-c': k.id, style: `cursor:${ed ? 'move' : 'pointer'}` }, gC);   // the dot shrinks when zoomed out, so the circle around it always shows
-      el('text', { x: k.x, y: k.z - Math.max(r, 8 * p) - 5 * p, 'text-anchor': 'middle', 'font-size': 12 * p, 'font-weight': 600, fill: '#fff', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * p, 'pointer-events': 'none' }, gC).textContent = k.name; }
-    svg.classList.toggle('placing', placing);
-    $('flkHint').textContent = placing ? 'Click the map where the camera is. Esc cancels.' : ed ? 'Drag a camera to move it. Press Add camera for another.' : cams().length ? `Each circle is how far that camera sees: about ${METRES[(ed || D).range] || 25} m.` : ''; };
+      // just how far it sees, to scale, never smaller than a few pixels so it shows zoomed out; click it to see what it caught
+      el('circle', { cx: k.x, cy: k.z, r: Math.max(r, 4 * p), fill: c, 'fill-opacity': s ? .4 : .25, stroke: c, 'stroke-width': s ? 2.5 : 2, 'vector-effect': 'non-scaling-stroke', 'data-c': k.id, style: 'cursor:pointer' }, gC); }
+    $('flkHint').textContent = cams().length ? `Each circle is how far that camera sees: about ${METRES[(ed || D).range] || 25} m.` : ''; };
 
   // dragging a camera moves it (while editing); anything else pans; a click picks a camera, or places one
   let drag = null;
   svg.addEventListener('pointerdown', e => { if (e.button !== 0 && e.button !== 1) return; const id = e.target.dataset?.c;
-    drag = id && ed ? { id, moved: false } : { pan: [e.clientX, e.clientY, vb[0], vb[1]], at: toMap(e), id, moved: false }; svg.setPointerCapture(e.pointerId); });
+    drag = { pan: [e.clientX, e.clientY, vb[0], vb[1]], at: toMap(e), id, moved: false }; svg.setPointerCapture(e.pointerId); });
   svg.addEventListener('pointermove', e => { if (!drag) return;
     if (drag.pan) { const dx = e.clientX - drag.pan[0], dy = e.clientY - drag.pan[1]; if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
       if (drag.moved) { vb[0] = drag.pan[2] - dx * px(); vb[1] = drag.pan[3] - dy * px(); setVB(); } return; }
-    const k = ed.list.find(c => c.id === drag.id); if (!k) return; drag.moved = true; [k.x, k.z] = toMap(e); draw(); });
+  });
   svg.addEventListener('pointerup', () => { const d = drag; drag = null; if (!d || d.moved) return;
-    if (placing && ed) { placing = false; const id = Math.random().toString(36).slice(2, 9); ed.list.push({ id, name: `Camera ${ed.list.length + 1}`, x: d.at[0], z: d.at[1] }); sel = id; drawSide(); draw(); dlg.querySelector(`[data-name="${id}"]`)?.select(); return; }
     if (d.id) { sel = d.id; drawSide(); draw(); } });
   svg.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY > 0 ? 1.2 : 1 / 1.2, toMap(e)); }, { passive: false });
-  dlg.addEventListener('keydown', e => { if (e.key === 'Escape' && placing) { e.preventDefault(); placing = false; drawSide(); draw(); } });
 
   // ── the side panel ──
   const lastHit = id => (D.log || []).find(h => h.cam === id);
-  const camRow = k => { const h = lastHit(k.id); return `<div class="it${k.id === sel ? ' sel' : ''}" data-cam="${esc(k.id)}"><i class="${hot(k.id) ? 'hot' : ''}"></i>${ed
-    ? `<input data-name="${esc(k.id)}" maxlength="32" value="${esc(k.name)}" aria-label="Camera name"><button type="button" class="wt-x" data-rm="${esc(k.id)}" aria-label="Remove ${esc(k.name)}">&times;</button>`
-    : `<div><b>${esc(k.name)}</b><small>${h ? 'Caught ' + esc(h.plate) + ' at ' + hhmm(h.at) : 'Nothing caught lately'}</small></div>${hot(k.id) ? '<span class="tag bad">Hit</span>' : '<span></span>'}`}</div>`; };
+  const camRow = k => { const h = lastHit(k.id); return `<div class="it${k.id === sel ? ' sel' : ''}" data-cam="${esc(k.id)}"><i class="${hot(k.id) ? 'hot' : ''}"></i><div><b>${esc(k.name)}</b><small>${h ? 'Caught ' + esc(h.plate) + ' at ' + hhmm(h.at) : 'Nothing caught lately'}</small></div>${hot(k.id) ? '<span class="tag bad">Hit</span>' : '<span></span>'}</div>`; };
   const hits = () => { const L = (D.log || []).filter(h => !sel || h.cam === sel); return L.length ? `<div class="log">${L.map(h => `<div><time>${when(h.at)}</time><span><b>${esc(h.plate)}</b>${h.vehicle ? ' · ' + esc(h.vehicle) : ''}<small>${esc(h.camera)} · ${esc(h.reasons)}${h.owner ? ' · ' + esc(h.owner) : ''}</small></span></div>`).join('')}</div>`
     : `<p class="empty">${sel ? 'This camera hasn’t caught a flagged car lately.' : 'No flagged cars caught lately.'}</p>`; };
-  const view = () => `<p class="sub">Fixed plate readers. When a stolen car, a car matching a BOLO, one whose owner has a warrant or one with bad papers drives past, police and dispatch get an alert that names the camera.</p>
-    ${D.on ? '' : `<p class="warn">Cameras are switched off${D.list.length ? '' : ' and none are placed yet'}. ${D.edit ? 'Press Edit cameras to set them up.' : 'An admin can set them up here or in Server Staff, Mapping.'}</p>`}
-    ${D.edit ? '<div class="acts"><button type="button" class="bt" data-act="edit">Edit cameras</button><span class="msg" id="flkMsg" role="status"></span></div>' : ''}
+  const view = () => `<p class="sub">The Flock cameras in ER:LC, where the game has them. When a stolen car, a car matching a BOLO, one whose owner has a warrant or one with bad papers drives past, police and dispatch get an alert that names the camera.</p>
+    ${D.on ? '' : `<p class="warn">Cameras are switched off. ${D.edit ? 'Press Camera settings to switch them on.' : 'An admin can switch them on here or in Server Staff, Mapping.'}</p>`}
+    ${D.edit ? '<div class="acts"><button type="button" class="bt" data-act="edit">Camera settings</button><span class="msg" id="flkMsg" role="status"></span></div>' : ''}
     <h3>Cameras${D.list.length ? ' · ' + D.list.length : ''}</h3><div class="list">${D.list.length ? D.list.map(camRow).join('') : '<p class="empty">No cameras yet.</p>'}</div>
     <h3>${sel ? 'Caught by ' + esc(D.list.find(k => k.id === sel)?.name || 'this camera') : 'Lately'}</h3>${hits()}${sel ? '<div><button type="button" class="bt" data-act="all">Show every camera</button></div>' : ''}`;
   const editor = () => `<label class="sw"><input type="checkbox" id="flkOn"${ed.on ? ' checked' : ''}>Cameras on<small style="color:#9A9EA6">While they’re on, the plate reader only alerts at cameras</small></label>
     <h3>How far each sees</h3><div class="seg">${[['short', 'Short, 15 m'], ['normal', 'Normal, 25 m'], ['long', 'Long, 40 m']].map(([v, t]) => `<button type="button" class="bt" data-range="${v}" aria-pressed="${ed.range === v}">${t}</button>`).join('')}</div>
-    <h3>Cameras · ${ed.list.length}</h3><div class="list">${ed.list.length ? ed.list.map(camRow).join('') : '<p class="empty">None yet. Press Add camera, then click the map where one is.</p>'}</div>
-    <div><button type="button" class="bt" data-act="add" aria-pressed="${placing}"${ed.list.length >= (D.max || 60) ? ' disabled' : ''}>${placing ? 'Click the map…' : 'Add camera'}</button></div>
     <div class="acts" style="justify-content:flex-end"><span class="msg" id="flkMsg" role="status"></span><button type="button" class="bt" data-act="cancel">Cancel</button><button type="button" class="go" data-act="save">Save</button></div>`;
   const drawSide = () => { side.innerHTML = `<div class="wt-top"><h2>Flock cameras</h2><button type="button" class="wt-x" data-act="close" aria-label="Close">&times;</button></div>${ed ? editor() : view()}`;
     if (flash) { const m = $('flkMsg'); if (m) { m.textContent = flash.t; m.className = 'msg ' + flash.k; } } };
@@ -106,24 +98,22 @@
   const load = async () => { try { D = await call(''); if (Array.isArray(D.off)) { img.setAttribute('x', -D.off[0]); img.setAttribute('y', -D.off[1]); } if (sel && !cams().some(k => k.id === sel)) sel = ''; return true; }
     catch (x) { side.innerHTML = `<div class="wt-top"><h2>Flock cameras</h2><button type="button" class="wt-x" data-act="close" aria-label="Close">&times;</button></div><p class="sub">${esc(x.message)}</p>`; return false; } };
   const tick = async () => { if (!dlg.open) return; if (!ed && !drag && await load()) { drawSide(); draw(); } timer = setTimeout(tick, 10000); };
-  window.ovFlock = async () => { ed = null; placing = false; flash = null; sel = ''; if (!dlg.open) dlg.showModal(); side.innerHTML = '<p class="sub">Loading…</p>'; if (!await load()) return;
+  window.ovFlock = async () => { ed = null; flash = null; sel = ''; if (!dlg.open) dlg.showModal(); side.innerHTML = '<p class="sub">Loading…</p>'; if (!await load()) return;
     drawSide(); fitTo(D.list.map(k => [k.x, k.z])); clearTimeout(timer); timer = setTimeout(tick, 10000); };
-  dlg.addEventListener('close', () => { clearTimeout(timer); ed = null; placing = false; });
+  dlg.addEventListener('close', () => { clearTimeout(timer); ed = null; });
 
   // ── the panel's buttons ──
   dlg.addEventListener('input', e => { const t = e.target; if (!ed) return; if (t.id === 'flkOn') ed.on = t.checked;
-    if (t.dataset.name) { const k = ed.list.find(c => c.id === t.dataset.name); if (k) { k.name = t.value; draw(); } } });
+  });
   dlg.addEventListener('click', async e => { const t = e.target.closest('button,[data-cam]'); if (!t) { if (e.target === dlg) dlg.close(); return; } const a = t.dataset.act;
     if (a === 'close') return dlg.close();
     if (t.dataset.z) return t.dataset.z === 'fit' ? fitTo([]) : zoom(t.dataset.z === 'in' ? 1 / 1.4 : 1.4);
-    if (t.dataset.rm) { ed.list = ed.list.filter(k => k.id !== t.dataset.rm); if (sel === t.dataset.rm) sel = ''; drawSide(); draw(); return; }
     if (t.dataset.range) { ed.range = t.dataset.range; drawSide(); draw(); return; }
     if (t.dataset.cam) { if (e.target.closest('input')) return; sel = t.dataset.cam; flash = null; drawSide(); const k = cams().find(c => c.id === sel); if (k && !ed) fitTo([[k.x, k.z]]); else draw(); return; }
     if (a === 'all') { sel = ''; drawSide(); fitTo(D.list.map(k => [k.x, k.z])); return; }
-    if (a === 'edit') { ed = { on: D.on, range: D.range, list: D.list.map(k => ({ ...k })) }; flash = null; drawSide(); draw(); return; }
-    if (a === 'add') { placing = !placing; drawSide(); draw(); return; }
-    if (a === 'cancel') { ed = null; placing = false; flash = null; drawSide(); draw(); return; }
-    if (a === 'save') { t.disabled = true; try { D = await call('/save', ed); ed = null; placing = false; say(D.on ? 'Saved. Cameras are on.' : 'Saved. Cameras are off.', 'ok'); drawSide(); draw(); } catch (x) { say(x.message, 'err'); t.disabled = false; } } });
+    if (a === 'edit') { ed = { on: D.on, range: D.range, list: D.list }; flash = null; drawSide(); draw(); return; }
+    if (a === 'cancel') { ed = null; flash = null; drawSide(); draw(); return; }
+    if (a === 'save') { t.disabled = true; try { D = await call('/save', ed); ed = null; say(D.on ? 'Saved. Cameras are on.' : 'Saved. Cameras are off.', 'ok'); drawSide(); draw(); } catch (x) { say(x.message, 'err'); t.disabled = false; } } });
 
   // ── where to open it: Dispatch's map controls (next to Ankle monitors), and the police MDT's BOLOs ──
   const ctl = document.querySelector('.mapctl'); if (ctl) { const b = document.createElement('button'); b.type = 'button'; b.className = 'flk-open'; b.innerHTML = ICON;
