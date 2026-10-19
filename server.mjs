@@ -22,6 +22,7 @@ import * as police from './app/police.mjs';
 import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
 import * as safezones from './app/safezones.mjs';
+import * as cameras from './app/cameras.mjs';
 import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
 import * as duty from './app/duty.mjs';
@@ -83,8 +84,10 @@ const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === '
 // who is on each open call and how far they've got (0 assigned, 1 en route, 2 on scene), shared by every dispatcher and MDT; kept 12 hours
 const callStates = (c, s = c.settings) => (s.callstate && typeof s.callstate === 'object' ? s.callstate : {});
 const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f);
-  f.onSnap = body => { const cc = communities.byId(c.id) || c, hits = police.observe(c.id, body, cc.settings.teams) || [];
-    // the plate reader's hits go to every CAD and to automations; automations also watch for players joining and new calls
+  f.onSnap = body => { const cc = communities.byId(c.id) || c, read = police.observe(c.id, body, cc.settings.teams) || [];
+    // the plate reader's hits go to every CAD and to automations; automations also watch for players joining and new calls.
+    // With plate cameras placed, only cars passing a camera count (checked on every reading), not cars anywhere on the map
+    const hits = cameras.active(cc) ? cameras.check(cc, body) : read;
     if (features.on(cc, 'alpr')) for (const h of hits) { f.bcast('alpr', JSON.stringify(h)); if (features.on(cc, 'automations')) automations.fire(cc, 'alpr', h); bots.emit(cc, 'alpr', h); }
     try { bots.observe(cc, f.withExtra(body), callKey); } catch (e) {}
     if (premium.isPremium(cc) && features.on(cc, 'staff')) try { fireaop.observe(cc, body, fireHands); } catch (e) {}
@@ -420,11 +423,12 @@ const communityApi = async (req, res, slug, rest) => {
     rideWith.set(c.id, String(user.roblox_id), w); const out = { of: unitMembers.all(c.id), ride: rideWith.all(c.id) }; f.bcast('unitsof', JSON.stringify(out)); return json(res, { ok: true, ...out }); }
   // Mapping, in the CAD's Server Staff panel: boundaries (presets of areas per team, the live one enforced in game, app/bounds.mjs)
   // and safe zones (app/safezones.mjs). Staff can look; admins and up change them. Not Premium: Boundaries has always been free.
-  if ((rest === 'bounds' || rest === 'safezones') && (M === 'GET' || M === 'POST')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403);
+  if ((rest === 'bounds' || rest === 'safezones' || rest === 'cameras') && (M === 'GET' || M === 'POST')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403);
     if (M === 'POST' && !can(role, 'admin')) return json(res, { error: 'Only admins and up can change these.' }, 403);
-    if (M === 'POST') { const r = rest === 'bounds' ? bounds.save(c, await jsonBody(req)) : safezones.save(c, await jsonBody(req)); if (r.error) return json(res, r, 400);
+    if (M === 'POST') { const j = await jsonBody(req), r = rest === 'bounds' ? bounds.save(c, j) : rest === 'cameras' ? cameras.save(c, j) : safezones.save(c, j); if (r.error) return json(res, r, 400);
       console.log(`mapping: ${c.slug} ${rest} saved by ${user.roblox_name || user.name}`); if (rest === 'bounds') return json(res, r); }
     if (rest === 'safezones') return json(res, { ...safezones.of(c), log: safezones.log(c), off: mapOff(c) });
+    if (rest === 'cameras') return json(res, { ...cameras.of(c), log: cameras.log(c), alpr: features.on(c, 'alpr'), off: mapOff(c) });
     let players = []; try { if (f.snap && Date.now() - f.snap.t < 15000) players = (JSON.parse(f.snap.body).Players || []).filter(p => p.Location).map(p => ({ name: String(p.Player).split(':')[0], team: p.Team || '', x: p.Location.LocationX, z: p.Location.LocationZ })); } catch (e) {}
     return json(res, { bounds: bounds.of(c), log: bounds.log(c), teams: Object.keys(c.settings.teams || {}), depts: c.settings.teams, off: mapOff(c), players, connected: !!communities.key(c.id) }); }
   if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can do that.' }, 403);

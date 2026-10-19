@@ -3290,7 +3290,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
 
   // the plate reader flagged a car out in game: police (and dispatch) can start a traffic stop on it straight away
   addEventListener('ov:alpr', e => { const h = e.detail || {}; if (!h.plate) return;
-    const el = alert('alpr:' + h.plate + ':' + Math.floor(Date.now() / 600000), 'alpr', `Plate reader: ${h.plate}${h.vehicle ? ', ' + h.vehicle : ''}`, [h.reasons, h.owner ? 'driven by ' + h.owner : '', h.where].filter(Boolean).join(' · '),
+    const el = alert('alpr:' + h.plate + ':' + Math.floor(Date.now() / 600000), 'alpr', `${h.camera ? (/camera/i.test(h.camera) ? h.camera : 'Camera ' + h.camera) : 'Plate reader'}: ${h.plate}${h.vehicle ? ', ' + h.vehicle : ''}`, [h.reasons, h.owner ? 'driven by ' + h.owner : '', h.where].filter(Boolean).join(' · '),
       [['stop', 'Start traffic stop', true], ['x', 'Dismiss']], 60000); if (el) el.dataset.plate = h.plate; });
   // an automation's alert: shown on dispatch and to the departments it names
   addEventListener('ov:autoalert', e => { const a = e.detail || {}, D = a.depts || ['all'], mine = document.body.classList.contains('mdt-open') ? (window.mdtDept || '') : 'dispatch';

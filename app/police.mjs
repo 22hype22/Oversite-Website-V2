@@ -98,14 +98,17 @@ export const observe = (cid, body, teams = {}) => { const t = now(); if (t - (se
 // A hit is returned (for the CAD and automations) once per car every ten minutes while it stays flagged ──
 const alprAt = new Map(), G2M = 2000 / 5355;
 const postalNear = (x, z) => { let best = '', d = Infinity; for (const [k, [px, py]] of Object.entries(POSTALS)) { const e = (px - x * G2M) ** 2 + (py - z * G2M) ** 2; if (e < d) { d = e; best = k; } } return best ? 'near postal ' + best : ''; };
+// why the plate reader (or a plate camera) would flag a car on file: stolen, a BOLO on it, its owner wanted, bad papers
+export const flagReasons = (cid, plate) => { const car = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(cid, plate); if (!car) return null; const why = [];
+  if (car.stolen) why.push('reported stolen');
+  if (q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'bolo' AND status = 'Active' AND plate = ?").get(cid, plate)) why.push('matches a BOLO');
+  if (car.owner_rid && q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'warrant' AND status = 'Active' AND subject_rid = ?").get(cid, car.owner_rid)) why.push('owner has a warrant');
+  if (car.civ && (car.reg !== 'Valid' || car.ins !== 'Active')) why.push(car.reg !== 'Valid' ? `registration ${car.reg.toLowerCase()}` : `insurance ${car.ins.toLowerCase()}`);
+  return { car, why }; };
+export { postalNear, G2M, PLATE };
 const alpr = (cid, j) => { const hits = [], at = new Map((j.Players || []).map(p => [String(p.Player || '').split(':')[0].toLowerCase(), p.Location]));
   for (const v of j.Vehicles || []) { const plate = PLATE(v.Plate); if (!plate) continue; const k = `${cid}:${plate}`; if (now() - (alprAt.get(k) || 0) < 600000) continue;
-    const car = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(cid, plate); if (!car) continue; const why = [];
-    if (car.stolen) why.push('reported stolen');
-    if (q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'bolo' AND status = 'Active' AND plate = ?").get(cid, plate)) why.push('matches a BOLO');
-    if (car.owner_rid && q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'warrant' AND status = 'Active' AND subject_rid = ?").get(cid, car.owner_rid)) why.push('owner has a warrant');
-    if (car.civ && (car.reg !== 'Valid' || car.ins !== 'Active')) why.push(car.reg !== 'Valid' ? `registration ${car.reg.toLowerCase()}` : `insurance ${car.ins.toLowerCase()}`);
-    if (!why.length) continue; alprAt.set(k, now()); const L = at.get(String(car.owner || '').toLowerCase());
+    const f = flagReasons(cid, plate); if (!f || !f.why.length) continue; const { car, why } = f; alprAt.set(k, now()); const L = at.get(String(car.owner || '').toLowerCase());
     hits.push({ plate, vehicle: [car.color, car.model].filter(Boolean).join(' '), owner: car.owner || '', owner_rid: car.owner_rid || '', reasons: why.join(', '),
       where: L && Number.isFinite(+L.LocationX) ? postalNear(+L.LocationX, +L.LocationZ) : '', x: L ? +L.LocationX * G2M : null, y: L ? +L.LocationZ * G2M : null }); }
   return hits; };

@@ -12,8 +12,8 @@
   const COL = { pd: '#4C8DFF', fd: '#E24B4B', dot: '#E9C24C', '': '#46D07C', [ALL]: '#F0F2F5' }, SAFE = '#5AB8F0', AOP = '#46D07C', OFF = '#C9CDD3';
   const CSS = `.mp{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;height:100%;min-height:0}
 .mp-side{display:flex;flex-direction:column;gap:14px;min-height:0;overflow-y:auto;padding:2px 2px 10px;scrollbar-width:none}
-.mp-modes{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:3px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
-.mp-modes button{font:inherit;font-size:12.5px;font-weight:500;padding:8px 6px;border:0;border-radius:9px;background:none;color:var(--mute);cursor:pointer;transition:background-color .15s ease,color .15s ease}
+.mp-modes{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:3px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.mp-modes button{font:inherit;font-size:12px;font-weight:500;padding:8px 4px;border:0;border-radius:9px;background:none;color:var(--mute);cursor:pointer;transition:background-color .15s ease,color .15s ease}
 .mp-modes button[aria-pressed="true"]{background:rgba(255,255,255,.1);color:#fff}.mp-modes button:hover{color:#ECEDEF}
 .mp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.mp-head h2{margin:0;font-size:17px;font-weight:600;color:#ECEDEF}.mp-head small{display:block;margin-top:3px;font-size:12px;color:var(--mute);line-height:1.45}
 .mp-sw{position:relative;flex:none;width:40px;height:23px;margin-top:2px;cursor:pointer}.mp-sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}.mp-sw i{position:absolute;inset:0;pointer-events:none;border-radius:999px;background:rgba(255,255,255,.14);transition:background-color .2s ease}
@@ -53,14 +53,16 @@
     const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong (' + r.status + ')'); return j; };
   const hhmm = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
-  box.innerHTML = `<div class="mp"><div class="mp-side"><div class="mp-modes" role="group" aria-label="What to map"><button type="button" data-mode="bounds">Boundaries</button><button type="button" data-mode="safe">Safe zones</button><button type="button" data-mode="fire">Fire AOP</button></div><div id="mpSide"></div></div>
+  box.innerHTML = `<div class="mp"><div class="mp-side"><div class="mp-modes" role="group" aria-label="What to map"><button type="button" data-mode="bounds">Boundaries</button><button type="button" data-mode="safe">Safe zones</button><button type="button" data-mode="fire">Fire AOP</button><button type="button" data-mode="cams">Cameras</button></div><div id="mpSide"></div></div>
     <div class="mp-mapcol"><div class="mp-map"><svg id="mpSvg" preserveAspectRatio="xMidYMid slice" aria-label="Map. Click to add corners, drag to move around, scroll to zoom."></svg><div class="mp-key" id="mpKey" aria-hidden="true"></div>
       <div class="mp-zoom"><button type="button" id="mpIn" aria-label="Zoom in">+</button><button type="button" id="mpOut" aria-label="Zoom out">&minus;</button><button type="button" id="mpFit" aria-label="Show the whole map">&#x2922;</button></div></div>
       <div class="mp-bar"><button type="button" class="st-go" id="mpDraw">Draw area</button><button type="button" class="st-btn" id="mpUndo" hidden>Undo corner</button><button type="button" class="st-btn danger" id="mpDel" disabled>Delete area</button><p class="mp-hint" id="mpHint"></p></div></div></div>`;
   const $ = id => document.getElementById(id), svg = $('mpSvg'), side = $('mpSide');
-  let mode = 'bounds'; try { mode = localStorage.getItem('ov.mapping') || 'bounds'; } catch (e) {} if (!['bounds', 'safe', 'fire'].includes(mode)) mode = 'bounds';
+  let mode = 'bounds'; try { mode = localStorage.getItem('ov.mapping') || 'bounds'; } catch (e) {} if (!['bounds', 'safe', 'fire', 'cams'].includes(mode)) mode = 'bounds';
   let sel = -1, draft = null, hover = null, vb = [0, 0, SIZE, SIZE];
-  const D = { bounds: null, safe: null, fire: null }, dirty = { bounds: false, safe: false, fire: false }, errs = {};
+  const D = { bounds: null, safe: null, fire: null, cams: null }, dirty = { bounds: false, safe: false, fire: false, cams: false }, errs = {};
+  const CAM = '#B98CFF', CAM_R = { short: 35, normal: 55, long: 90 };   // plate cameras, and how far each sees (ER:LC map pixels)
+  let camLog = [], camAlpr = true, placing = false;
   let B = { cur: '', scope: ALL, teams: [], depts: {}, players: [], log: [], connected: true }, calls = [], fireRecent = [], safeLog = [];
 
   // ── the map layers ──
@@ -91,7 +93,9 @@
     fire: { items: () => (D.fire?.areas || []).map(a => ({ pts: a.pts, name: a.name, color: a.on ? AOP : OFF, dashed: !a.on })), others: () => [],
       dots: () => calls.map(k => ({ x: k.x, z: k.z, fill: /fire/i.test(k.what) ? '#FF8A3D' : '#E9EAEC', ring: k.in === false ? '#E24B4B' : '', title: k.what + (k.where ? ', ' + k.where : '') + (k.in === false ? ' (outside the AOP)' : '') })),
       add: pts => { D.fire.areas.push({ name: 'Area ' + (D.fire.areas.length + 1), on: true, pts }); return D.fire.areas.length - 1; }, remove: i => D.fire.areas.splice(i, 1), max: 12,
-      key: () => [{ c: AOP, t: 'AOP' }, { c: '#FF8A3D', t: 'Fire' }, { c: '#E9EAEC', t: 'Other call' }] } };
+      key: () => [{ c: AOP, t: 'AOP' }, { c: '#FF8A3D', t: 'Fire' }, { c: '#E9EAEC', t: 'Other call' }] },
+    // cameras are points, not areas: they're drawn and moved by their own code below
+    cams: { items: () => [], others: () => [], dots: () => B.players.map(p => ({ x: p.x, z: p.z, fill: '#E9EAEC', name: p.name })), max: 60, key: () => [{ c: CAM, t: 'Plate camera' }] } };
   const M = () => MODES[mode], ready = () => !!D[mode];
 
   const poly = (pts, at, parent) => el('polygon', { points: pts.map(p => p.join(',')).join(' '), 'vector-effect': 'non-scaling-stroke', ...at }, parent);
@@ -106,11 +110,18 @@
     if (draft) { const c = mode === 'bounds' ? colorOf(B.scope) : mode === 'safe' ? SAFE : AOP, pts = hover ? [...draft, hover] : draft;
       el('polyline', { points: pts.map(p => p.join(',')).join(' '), fill: c, 'fill-opacity': .1, stroke: c, 'stroke-width': 2, 'stroke-dasharray': '7 5', 'vector-effect': 'non-scaling-stroke' }, gD);
       draft.forEach((q, k) => el('circle', { cx: q[0], cy: q[1], r: k ? r * .8 : r * 1.25, fill: k ? c : '#0d1416', stroke: c, 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke' }, gD)); }
+    if (mode === 'cams') { const R = CAM_R[D.cams.range] || 55; D.cams.list.forEach((k, i) => { const on = i === sel;
+        el('circle', { cx: k.x, cy: k.z, r: R, fill: CAM, 'fill-opacity': on ? .2 : .12, stroke: CAM, 'stroke-width': on ? 2.5 : 1.5, 'stroke-dasharray': '5 4', 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, gA);
+        el('circle', { cx: k.x, cy: k.z, r: r * 1.3, fill: on ? '#FFFFFF' : CAM, stroke: '#0d1416', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', class: 'mp-cam', 'data-c': i, style: can() ? 'cursor:move' : 'cursor:pointer' }, gA);
+        el('text', { x: k.x + r * 2, y: k.z + r * .5, 'font-size': 12 * px(), 'font-weight': 600, fill: '#fff', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * px(), 'pointer-events': 'none' }, gA).textContent = k.name; }); }
     for (const d of M().dots()) { const g = el('g', {}, gP); const c = el('circle', { cx: d.x, cy: d.z, r: r * (d.name ? .9 : 1.1), fill: d.fill, stroke: d.ring || '#0d1416', 'stroke-width': d.ring ? 3 : 1.5, 'vector-effect': 'non-scaling-stroke' }, g);
       if (d.title) el('title', {}, c).textContent = d.title;
       if (d.name) el('text', { x: d.x + r * 1.5, y: d.z + r * .5, 'font-size': 11 * px(), fill: '#F0F2F5', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * px() }, g).textContent = d.name; }
     $('mpKey').innerHTML = M().key().map(k => `<span><i style="background:${k.c}"></i>${esc(k.t)}</span>`).join(''); bar(); };
-  const bar = () => { const n = ready() ? M().items().length : 0, ok = can() && ready();
+  const bar = () => { if (mode === 'cams') { const ok = can() && ready(), n = ready() ? D.cams.list.length : 0;
+      $('mpDraw').disabled = !ok; $('mpDraw').textContent = placing ? 'Cancel' : 'Add camera'; $('mpDel').disabled = !ok || sel < 0; $('mpDel').textContent = 'Delete camera'; $('mpUndo').hidden = true; svg.classList.toggle('drawing', placing);
+      $('mpHint').textContent = !ready() ? (errs.cams || 'Loading…') : !can() ? 'You can look. Admins and up change these.' : placing ? 'Click the map where the camera is.' : sel >= 0 ? 'Drag the camera to move it.' : n ? 'Click a camera to edit it, or add another.' : 'No cameras yet. Press Add camera, then click the map where one is.'; return; }
+    $('mpDel').textContent = 'Delete area'; const n = ready() ? M().items().length : 0, ok = can() && ready();
     $('mpDraw').disabled = !ok; $('mpDel').disabled = !ok || sel < 0 || !!draft; $('mpUndo').hidden = !draft; $('mpDraw').textContent = draft ? 'Finish area' : 'Draw area'; svg.classList.toggle('drawing', !!draft);
     $('mpHint').textContent = !ready() ? (errs[mode] || 'Loading…') : !can() ? (mode === 'fire' && !OV.premium ? 'Fire AOP comes with Premium.' : 'You can look. Admins and up change these.')
       : draft ? (draft.length < 3 ? 'Click to place corners, or hold and drag to draw the outline. Scroll to zoom, hold the middle mouse button to move the map.' : 'Click the first corner, or press Finish area, to close it. Esc cancels.')
@@ -129,7 +140,7 @@
   const sw = (id, on, label) => `<label class="mp-sw" title="${label}"><input type="checkbox" id="${id}"${on ? ' checked' : ''}${can() ? '' : ' disabled'} aria-label="${label}"><i></i></label>`;
   const saveRow = () => can() ? `<div class="mp-act"><span class="msg" id="mpMsg" role="status"></span><button type="button" class="st-go" id="mpSave"${dirty[mode] ? '' : ' disabled'}>Save</button></div>` : '';
   const recent = (list, fmt) => `<div class="mp-sec"><b>Lately</b><div class="mp-rec">${list && list.length ? list.slice(0, 8).map(x => `<div><time>${hhmm(x.at)}</time><span>${fmt(x)}</span></div>`).join('') : '<p class="mp-empty">Nothing yet.</p>'}</div></div>`;
-  const areaRows = (list, extra) => list.length ? list.map((a, i) => `<div class="mp-area${i === sel ? ' sel' : ''}" data-i="${i}">${extra ? extra(a) : '<b style="background:' + SAFE + '"></b>'}<input type="text" data-k="name" maxlength="32" value="${esc(a.name)}" aria-label="Name"${can() ? '' : ' readonly'}>${can() ? `<button type="button" class="mp-x" data-k="rm" aria-label="Delete ${esc(a.name)}">&times;</button>` : '<span></span>'}</div>`).join('') : '<p class="mp-empty">None drawn yet. Draw one on the map.</p>';
+  const areaRows = (list, extra, none) => list.length ? list.map((a, i) => `<div class="mp-area${i === sel ? ' sel' : ''}" data-i="${i}">${extra ? extra(a) : '<b style="background:' + SAFE + '"></b>'}<input type="text" data-k="name" maxlength="32" value="${esc(a.name)}" aria-label="Name"${can() ? '' : ' readonly'}>${can() ? `<button type="button" class="mp-x" data-k="rm" aria-label="Delete ${esc(a.name)}">&times;</button>` : '<span></span>'}</div>`).join('') : '<p class="mp-empty">' + (none || 'None drawn yet. Draw one on the map.') + '</p>';
   const drawSide = () => { box.querySelectorAll('.mp-modes button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
     if (!ready()) { side.innerHTML = `<p class="mp-note">${esc(errs[mode] || 'Loading…')}</p>`; return; }
     if (mode === 'bounds') { const b = D.bounds, P = preset(), z = P.zones;
@@ -158,10 +169,19 @@
           <div class="mp-seg" id="mpScopeF" role="group" aria-label="Which calls"><button type="button" data-v="fires" aria-pressed="${f.scope === 'fires'}"${can() ? '' : ' disabled'}>Fires and alarms</button><button type="button" data-v="all" aria-pressed="${f.scope === 'all'}"${can() ? '' : ' disabled'}>Every fire department call</button></div></div>
         ${saveRow()}${recent(fireRecent, x => `${esc(x.what)}${x.where ? ' · ' + esc(x.where) : ''}<small${x.stop === 'refused' ? ' class="bad"' : ''}>${[x.hidden ? 'Taken off the fire board' : '', { sent: 'Put out in game', refused: 'ER:LC refused to put it out', kept: 'Left burning: a fire is burning inside the AOP', sending: 'Putting it out…' }[x.stop] || ''].filter(Boolean).join(' · ')}${x.msg ? ': ' + esc(x.msg) : ''}</small>`)}
         ${can() ? '<div><button type="button" class="st-btn" id="mpFireOut">Put out every fire now</button></div>' : ''}`; }
+    if (mode === 'cams') { const k = D.cams;
+      side.innerHTML = `<div class="mp-head"><div><h2>Plate cameras</h2><small>Fixed plate readers, like Flock cameras. When a flagged car (stolen, a BOLO, its owner wanted, bad papers) drives past one, police and dispatch get an alert that says which camera saw it.</small></div>${sw('mpOn', k.on, 'Cameras on')}</div>
+        ${camAlpr ? '' : '<p class="mp-note mp-warn">The plate reader is switched off in Settings, Features, so cameras won’t alert until it’s on.</p>'}
+        <p class="mp-note">While cameras are on, the plate reader only watches at cameras instead of the whole map.</p>
+        <div class="mp-sec"><b>How far each sees</b><div class="mp-seg" id="mpRange" role="group" aria-label="Range">${[['short', 'Short, 15 m'], ['normal', 'Normal, 25 m'], ['long', 'Long, 40 m']].map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${k.range === v}"${can() ? '' : ' disabled'}>${t}</button>`).join('')}</div></div>
+        <div class="mp-sec"><b>Cameras</b><div id="mpAreas">${areaRows(k.list, () => '<b style="background:' + CAM + '"></b>', 'None yet. Press Add camera under the map, then click where one is.')}</div></div>
+        ${saveRow()}${recent(camLog, x => `<b>${esc(x.plate)}</b>${x.vehicle ? ' · ' + esc(x.vehicle) : ''}<small>${esc(x.camera)} · ${esc(x.reasons)}${x.owner ? ' · ' + esc(x.owner) : ''}</small>`)}`; }
     const m = $('mpMsg'); if (m && flash && Date.now() - flash.at < 6000) { m.textContent = flash.t; m.className = 'msg ' + flash.k; } };
 
   // ── side panel input ──
   side.addEventListener('click', async e => { const t = e.target; if (!ready()) return;
+    const row0 = t.closest('[data-i]'); if (row0 && mode === 'cams') { const i = +row0.dataset.i; if (t.closest('[data-k="rm"]')) return removeCam(i); if (sel !== i) { sel = i; const k = D.cams.list[i]; if (!t.closest('input')) { vb = [k.x - 350, k.z - 350, 700, 700]; setVB(); } drawSide(); draw(); } return; }
+    const rg = t.closest('#mpRange [data-v]'); if (rg) { D.cams.range = rg.dataset.v; mark(); drawSide(); draw(); return; }
     const row = t.closest('[data-i]'); if (row && (mode !== 'bounds')) { const i = +row.dataset.i; if (t.closest('[data-k="rm"]')) return removeArea(i); if (sel !== i && !t.closest('input')) choose(i); else if (sel !== i) { sel = i; draw(); side.querySelectorAll('.mp-area').forEach(x => x.classList.toggle('sel', x === row)); } return; }
     if (mode === 'bounds') { const b = D.bounds, P = preset();
       const pc = t.closest('#mpSlots [data-p]'); if (pc) { draft = null; sel = -1; if (pc.dataset.p === '+') { const id = Math.random().toString(36).slice(2, 9); b.presets.push({ id, name: 'Preset ' + (b.presets.length + 1), zones: {} }); B.cur = id; mark(); } else B.cur = pc.dataset.p; drawSide(); draw(); return; }
@@ -174,7 +194,7 @@
     if (t.id === 'mpFireOut') { t.disabled = true; try { takeFire(await call('/staff/fires/out', {})); say('Every fire was put out.', 'ok'); } catch (x) { say(x.message, 'err'); } t.disabled = false; return; }
     if (t.id === 'mpSave') save(); });
   side.addEventListener('input', e => { const t = e.target; if (!ready() || !can()) return;
-    const row = t.closest('[data-i]'); if (row && t.dataset.k) { const L = mode === 'safe' ? D.safe.zones : D.fire.areas, a = L[+row.dataset.i]; if (t.dataset.k === 'on') a.on = t.checked; if (t.dataset.k === 'name') a.name = t.value; draw(); return mark(); }
+    const row = t.closest('[data-i]'); if (row && t.dataset.k) { const L = mode === 'safe' ? D.safe.zones : mode === 'cams' ? D.cams.list : D.fire.areas, a = L[+row.dataset.i]; if (t.dataset.k === 'on') a.on = t.checked; if (t.dataset.k === 'name') a.name = t.value; draw(); return mark(); }
     if (t.id === 'mpName') { preset().name = t.value.slice(0, 32); const c = side.querySelector('#mpSlots .on'); if (c) c.firstChild.textContent = preset().name || 'Untitled'; return mark(); }
     if (t.id === 'mpEnterMsg') { D.safe.enterMsg = t.value; return mark(); } });
   side.addEventListener('change', e => { const t = e.target; if (!ready() || !can()) return; const d = D[mode];
@@ -183,6 +203,7 @@
   const save = async () => { if (draft) finish(); const b = $('mpSave'); if (b) b.disabled = true; say('Saving…'); const m = mode;
     try { if (m === 'bounds') { const j = await call('/bounds', D.bounds); D.bounds = j.bounds; B.log = j.log || B.log; if (!D.bounds.presets.some(p => p.id === B.cur)) B.cur = D.bounds.active; }
       else if (m === 'safe') { const j = await call('/safezones', D.safe); takeSafe(j, true); }
+      else if (m === 'cams') { takeCams(await call('/cameras', D.cams), true); }
       else { const f = D.fire; takeFire(await call('/staff/fires', { on: f.on, hide: f.hide, stop: f.stop, scope: f.scope, areas: f.areas }), true); }
       dirty[m] = false; if (mode === m) { drawSide(); draw(); say(D[m].on ? 'Saved. It’s on.' : 'Saved. It’s off, so nothing happens in game.', 'ok'); } }
     catch (x) { if (b) b.disabled = false; say(x.message, 'err'); } };
@@ -192,23 +213,27 @@
   const takeBounds = j => { off(j); B.players = j.players || []; B.log = j.log || []; B.connected = j.connected !== false;
     if (!dirty.bounds) { D.bounds = j.bounds; B.teams = j.teams || []; B.depts = j.depts || {}; if (!B.cur || !D.bounds.presets.some(p => p.id === B.cur)) B.cur = D.bounds.active; if (B.scope !== ALL && !B.teams.includes(B.scope)) B.scope = ALL; } };
   const takeSafe = (j, force) => { off(j); safeLog = j.log || []; if (!dirty.safe || force) D.safe = { on: j.on, zones: (j.zones || []).map(z => ({ ...z, pts: z.pts.map(q => q.slice()) })), enter: j.enter, enterMsg: j.enterMsg, kill: j.kill }; };
+  const takeCams = (j, force) => { off(j); camLog = j.log || []; camAlpr = j.alpr !== false; if (!dirty.cams || force) D.cams = { on: j.on, range: j.range, list: (j.list || []).map(k => ({ ...k })) }; };
+  const removeCam = i => { const k = D.cams.list[i]; if (!k || !confirm('Delete ' + k.name + '? Press Save to keep the change.')) return; D.cams.list.splice(i, 1); sel = -1; mark(); drawSide(); draw(); };
   const takeFire = (j, force) => { off(j); calls = j.calls || []; fireRecent = j.recent || []; if (!dirty.fire || force) D.fire = { on: j.on, hide: j.hide, stop: j.stop, scope: j.scope, command: j.command, areas: (j.areas || []).map(a => ({ ...a, pts: a.pts.map(q => q.slice()) })) }; };
   const load = async (first) => { const m = mode;
     try { if (m === 'fire' && !OV.premium) { errs.fire = 'Fire AOP comes with Premium: fire calls outside your AOP come off the board, and fires outside it are put out.'; }
-      else { const j = await call(m === 'bounds' ? '/bounds' : m === 'safe' ? '/safezones' : '/staff/fires'); (m === 'bounds' ? takeBounds : m === 'safe' ? takeSafe : takeFire)(j); errs[m] = '';
-        if (m === 'safe' && !D.bounds) call('/bounds').then(takeBounds).catch(() => {}); }   // safe zones show who is where, from the same reading
+      else { const j = await call({ bounds: '/bounds', safe: '/safezones', cams: '/cameras' }[m] || '/staff/fires'); ({ bounds: takeBounds, safe: takeSafe, cams: takeCams }[m] || takeFire)(j); errs[m] = '';
+        if ((m === 'safe' || m === 'cams') && m !== 'bounds') call('/bounds').then(takeBounds).catch(() => {}); }   // who is where, from the same reading   // safe zones show who is where, from the same reading
       if (mode !== m) return; if (first || (!dirty[m] && !draft && !side.contains(document.activeElement))) drawSide();   // never redrawn under someone typing
       draw(); } catch (x) { errs[m] = x.message; if (mode === m && first) { drawSide(); draw(); } } };
-  const setMode = m => { if (m === mode) return; flash = null; draft = null; hover = null; sel = -1; mode = m; try { localStorage.setItem('ov.mapping', m); } catch (e) {} drawSide(); draw(); load(true); };
+  const setMode = m => { if (m === mode) return; flash = null; placing = false; draft = null; hover = null; sel = -1; mode = m; try { localStorage.setItem('ov.mapping', m); } catch (e) {} drawSide(); draw(); load(true); };
   box.querySelector('.mp-modes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) setMode(b.dataset.mode); });
 
   // ── drawing, as in Boundaries. Drawing: a click adds a corner, holding and dragging draws the outline freehand. Otherwise a drag
   // moves the map, and a click picks an area. The middle button (or right button, or Space held down) always moves the map. ──
-  $('mpDraw').addEventListener('click', () => { if (!can() || !ready()) return; if (draft) return finish(); if (M().items().length >= M().max) return say('That’s the most areas there can be here.', 'err'); draft = []; sel = -1; drawSide(); draw(); });
+  $('mpDraw').addEventListener('click', () => { if (!can() || !ready()) return;
+    if (mode === 'cams') { if (!placing && D.cams.list.length >= 60) return say('A server can have up to 60 cameras.', 'err'); placing = !placing; sel = -1; drawSide(); draw(); return; }
+    if (draft) return finish(); if (M().items().length >= M().max) return say('That’s the most areas there can be here.', 'err'); draft = []; sel = -1; drawSide(); draw(); });
   $('mpUndo').addEventListener('click', () => { if (draft) { draft.pop(); draw(); } });
-  $('mpDel').addEventListener('click', () => { if (sel >= 0) removeArea(sel); });
+  $('mpDel').addEventListener('click', () => { if (sel >= 0) mode === 'cams' ? removeCam(sel) : removeArea(sel); });
   $('mpIn').addEventListener('click', () => zoom(.7)); $('mpOut').addEventListener('click', () => zoom(1 / .7)); $('mpFit').addEventListener('click', () => { vb = [0, 0, SIZE, SIZE]; setVB(); draw(); });
-  document.addEventListener('keydown', e => { if (!draft || !box.offsetParent || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) return;
+  document.addEventListener('keydown', e => { if (placing && e.key === 'Escape' && box.offsetParent) { placing = false; draw(); return; } if (!draft || !box.offsetParent || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) return;
     if (e.key === 'Escape') { draft = null; hover = null; draw(); } else if (e.key === 'Enter') { e.preventDefault(); finish(); } else if (e.key === 'Backspace') { e.preventDefault(); draft.pop(); draw(); } });
   let down = null, space = false;
   addEventListener('keydown', e => { if (e.code === 'Space' && box.offsetParent && document.activeElement === document.body) { space = true; e.preventDefault(); } });
@@ -229,6 +254,7 @@
   svg.addEventListener('pointerdown', e => { if (!ready()) return; svg.setPointerCapture(e.pointerId); const t = e.target, P = toMap(e), edit = can();
     const pan = () => ({ kind: 'pan', x: e.clientX, y: e.clientY, vb: [...vb], moved: false, t });
     if (e.button || space) { if (e.button === 1) e.preventDefault(); down = { ...pan(), force: true }; return; }
+    if (mode === 'cams') { if (edit && t.classList.contains('mp-cam')) { sel = +t.dataset.c; down = { kind: 'cam', i: sel, x: e.clientX, y: e.clientY, moved: false }; draw(); } else down = pan(); return; }
     if (edit && !draft && sel >= 0 && t.classList.contains('mp-pt')) down = { kind: 'pt', k: +t.dataset.k };
     else if (edit && !draft && sel >= 0 && t.classList.contains('mp-mid')) { const p = M().items()[sel].pts, k = +t.dataset.k; p.splice(k + 1, 0, P); down = { kind: 'pt', k: k + 1 }; mark(); draw(); }
     else if (edit && !draft && !t.closest('.mp-poly') && !t.closest('.mp-other') && !M().items().length) { draft = []; sel = -1; down = { kind: 'draw', x: e.clientX, y: e.clientY, moved: false, n: 0 }; draw(); }   // nothing drawn yet: just start drawing
@@ -236,6 +262,7 @@
     else down = pan(); });
   svg.addEventListener('pointermove', e => { const P = toMap(e);
     if (down?.kind === 'pt') { M().items()[sel].pts[down.k] = P; mark(); draw(); return; }
+    if (down?.kind === 'cam') { if (!down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 4) return; down.moved = true; const k = D.cams.list[down.i]; k.x = P[0]; k.z = P[1]; mark(); draw(); return; }
     if (down?.kind === 'pan') { const dx = e.clientX - down.x, dy = e.clientY - down.y; if (!down.moved && Math.hypot(dx, dy) < 5) return; down.moved = true;
       const s = down.vb[2] / svg.clientWidth; vb = [down.vb[0] - dx * s, down.vb[1] - dy * s, vb[2], vb[3]]; setVB(); return; }
     if (down?.kind === 'draw') { if (!down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) return;
@@ -244,6 +271,11 @@
     if (draft) { hover = P; draw(); } });
   svg.addEventListener('pointerup', e => { const d = down; down = null; if (!d) return; const P = toMap(e);
     if (d.kind === 'pt') return;
+    if (d.kind === 'cam') { drawSide(); draw(); return; }
+    if (mode === 'cams' && d.kind === 'pan') { if (d.moved || d.force) { draw(); return; } const cm = d.t.closest?.('.mp-cam'); if (cm) { sel = +cm.dataset.c; drawSide(); draw(); return; }
+      if (placing && can()) { D.cams.list.push({ name: 'Camera ' + (D.cams.list.length + 1), x: P[0], z: P[1] }); sel = D.cams.list.length - 1; placing = false; mark(); drawSide(); draw();
+        const inp = side.querySelector(`[data-i="${sel}"] input[type=text]`); if (inp) { inp.focus(); inp.select(); } return; }
+      sel = -1; drawSide(); draw(); return; }
     if (d.kind === 'pan') { if (d.moved || d.force) { draw(); return; } const o = d.t.closest?.('.mp-other'); if (o) return M().others()[+o.dataset.o]?.pick();
       const hit = d.t.closest?.('.mp-poly'); if (hit) return choose(+hit.dataset.i); sel = -1; drawSide(); draw(); return; }
     if (d.moved) { const stroke = draft.splice(d.n); stroke.push(P); draft.push(...simplify(stroke, 2.5 * px()));   // a freehand stroke: keep its shape with fewer points
@@ -257,5 +289,5 @@
   drawSide();
   setInterval(() => { if (box.offsetParent !== null && !down && !document.hidden) load(false); }, 5000);
   document.getElementById('stTabs')?.addEventListener('click', e => { if (e.target.closest('[data-p="mapping"]')) setTimeout(() => { load(true); draw(); }, 30); });
-  addEventListener('beforeunload', e => { if (dirty.bounds || dirty.safe || dirty.fire) { e.preventDefault(); e.returnValue = ''; } });
+  addEventListener('beforeunload', e => { if (dirty.bounds || dirty.safe || dirty.fire || dirty.cams) { e.preventDefault(); e.returnValue = ''; } });
 })();
