@@ -43,13 +43,13 @@
 
   /* ───────── the map: full-bleed, under everything ───────── */
   body.mode-2d{--blur:blur(14px) saturate(1.2)}   /* a lighter blur over the moving map: cheap enough to never stutter */
-  .world{will-change:transform;transform:translateZ(0)}
+  .world{transform:translateZ(0)}   /* will-change is set only while zooming (see apply), so Chrome redraws the map sharp at the new zoom once it stops */
   .world img.hd{visibility:hidden}
   .world.zoomed img.hd{visibility:visible}
   .view{position:fixed;inset:0;z-index:0;background:#386069;overflow:hidden;cursor:grab;touch-action:none}   /* sea colour of the map, so the ocean runs to the edges */
   body.theme-dark .view{background:#111113}
   .view.drag{cursor:grabbing}
-  .world{position:absolute;left:0;top:0;width:2000px;height:2000px;transform-origin:0 0;will-change:transform}
+  .world{position:absolute;left:0;top:0;width:2000px;height:2000px;transform-origin:0 0}
   .world img{position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-drag:none;
     filter:saturate(1.08) brightness(1.18)}
   body.theme-light .world img{filter:saturate(1.02) brightness(.92)}
@@ -2802,8 +2802,12 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   buildUnitPins(); syncCallPins(); addEventListener('calls', syncCallPins); addEventListener('focuscall', syncCallPins); addEventListener('units', () => { buildUnitPins(); syncCallPins(); });
   const clampPan = () => { const r = stage.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, m = 60 * s;   // the screen centre must stay over the map (60 units of ocean allowed)
     tx = Math.min(cx + m, Math.max(cx - W * s - m, tx)); ty = Math.min(cy + m, Math.max(cy - W * s - m, ty)); };
+  // while the zoom is changing the map is one GPU layer that is only stretched (smooth); a moment after it stops, the hint goes and Chrome
+  // draws it again at the new zoom, so it's sharp instead of a stretched copy of how it looked zoomed out
+  let crispT = 0, lastS = s;
   const apply = () => { if (!fly) clampPan();
     world.style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
+    if (s !== lastS) { lastS = s; world.style.willChange = 'transform'; clearTimeout(crispT); crispT = setTimeout(() => { world.style.willChange = 'auto'; }, 250); }
     for (const p of pins) {
       const u = byId[p.dataset.unit];
       if (u) { p.dataset.x = u.x; p.dataset.y = u.y; const nav = p.querySelector('.nav') || p.querySelector('.hd-ptr'); if (nav) nav.style.transform = `rotate(${u.heading + Math.PI / 2}rad)`;
