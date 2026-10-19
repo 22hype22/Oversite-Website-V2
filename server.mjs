@@ -64,6 +64,11 @@ const page = (res, p, status) => html(res, p, status);
 const watched = (p, c, on) => on ? p.replace(/<\/body>/i, () => `${pages.oversightBar(c)}</body>`) : p;   // the moderation bar on a server's pages
 const msg = (res, user, title, text, action, status = 200) => page(res, pages.message({ logo: LOGO, user, title, text, action, code: status }), status);
 
+// what ER:LC tells us about fire calls (type, whether it has a caller and a position), to learn whether game-spawned fires show up; never names
+const fireSeen = new Set(); let fireLogs = 0;
+const fireProbe = (c, body) => { if (fireLogs >= 200 || !/"Team":"Fire/i.test(body)) return; let j; try { j = JSON.parse(body); } catch (e) { return; }
+  for (const k of Array.isArray(j.EmergencyCalls) ? j.EmergencyCalls : []) { if (!/fire/i.test(k.Team || '')) continue; const id = `${c.id}:${k.CallNumber}:${k.StartedAt}`; if (fireSeen.has(id)) continue; fireSeen.add(id); fireLogs++;
+    console.log(`fire-call: ${c.slug} #${k.CallNumber} team=${k.Team} desc=${JSON.stringify(String(k.Description || '').slice(0, 60))} where=${JSON.stringify(String(k.PositionDescriptor || '').slice(0, 40))} caller=${k.Caller ? 'yes' : 'no'} pos=${Array.isArray(k.Position) || k.Position ? 'yes' : 'no'} keys=${Object.keys(k).join(',')}`); } };
 // ── live feeds, one per community ──
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
@@ -74,6 +79,7 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
     // the plate reader's hits go to every CAD and to automations; automations also watch for players joining and new calls
     if (features.on(cc, 'alpr')) for (const h of hits) { f.bcast('alpr', JSON.stringify(h)); if (features.on(cc, 'automations')) automations.fire(cc, 'alpr', h); bots.emit(cc, 'alpr', h); }
     try { bots.observe(cc, f.withExtra(body), callKey); } catch (e) {}
+    try { fireProbe(cc, body); } catch (e) {}
     if (features.on(cc, 'automations')) automations.observe(cc, body); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => { res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); res.write(`event: callstates\ndata: ${JSON.stringify(callStates(communities.byId(c.id) || c))}\n\n`); }; } return f; };   // everyone's 10-code on connect
