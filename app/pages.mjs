@@ -2,7 +2,7 @@
 import { DOCS, UPDATED } from './legal.mjs';
 import { isSiteAdmin, isSiteMod } from './admins.mjs';
 import { GROUPS as FEATURES } from './features.mjs';
-import { TRIGGERS as AUTO_WHEN, ACTIONS as AUTO_DO } from './automations.mjs';
+import { TRIGGERS as AUTO_WHEN, ACTIONS as AUTO_DO, SAMPLE as AUTO_SAMPLE } from './automations.mjs';
 import { SCOPES as BOT_SCOPES, EVENTS as BOT_EVENTS, PRESETS as BOT_PRESETS } from './bots.mjs';
 // the settings search: every card on the settings page (found by its heading) with the words people use for it, and every feature
 const SETTING_CARDS = [
@@ -1049,10 +1049,10 @@ export const ST_CSS = `.stm{max-width:1060px}
 .au-tpls{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 16px}.au-tpls button{font:inherit;font-size:12.5px;color:var(--ink);background:rgba(240,242,245,.05);border:1px solid var(--hair2);border-radius:999px;padding:7px 13px;cursor:pointer}
 @media (hover:hover) and (pointer:fine){.au-tpls button:hover{background:rgba(240,242,245,.1)}}
 .au{border:1px solid var(--hair);border-radius:14px;padding:14px;margin-top:10px;background:rgba(255,255,255,.02)}.au.off{opacity:.6}
-.au-h{display:flex;align-items:center;gap:10px}.au-h input.au-name{flex:1;font-weight:600}.au-h .au-x{font:inherit;font-size:12px;color:var(--dim);background:none;border:0;cursor:pointer;text-decoration:underline}
+.au-h{display:flex;align-items:center;gap:10px}.au-h input.au-name{flex:1;font-weight:600}.au-x{font:inherit;font-size:12px;color:var(--dim);background:none;border:0;padding:4px 2px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;flex:none}.au-x:hover{color:var(--ink)}
 .au-row{display:grid;grid-template-columns:70px minmax(0,1fr);gap:10px;align-items:center;margin-top:10px}.au-k{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 .au-if{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim)}.au-if input{flex:1}
-.au-act{display:grid;gap:8px;padding:10px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--hair);margin-top:8px}.au-act .au-ah{display:flex;gap:8px;align-items:center}.au-act .au-ah select{flex:1;min-width:0}.au select,.au input{max-width:100%;min-width:0}
+.au-act{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:10px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--hair);margin-top:8px}.au-act .au-ah{display:flex;gap:8px;align-items:center}.au-act .au-ah select{flex:1;min-width:0}.au select,.au input{max-width:100%;min-width:0}
 .au-depts{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--dim)}.au-depts label{display:flex;align-items:center;gap:6px;margin:0}.au-depts input{width:auto;margin:0}
 .au-vars{font-size:11.5px;color:var(--faint);margin-top:6px}.au-vars code{font-size:11px;color:var(--dim)}
 .au-foot{display:flex;gap:8px;align-items:center;margin-top:10px}.au-foot .msg{margin:0}
@@ -1217,7 +1217,7 @@ ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><d
 <div class="au-tpls" id="auTpls"></div><div id="auList"></div>
 <div class="row" style="margin-top:12px;gap:8px"><button type="button" class="btn sm" id="auAdd">New automation</button><span style="flex:1"></span><button type="button" class="btn pri" id="auSave" disabled>Save automations</button></div><p class="msg" id="auMsg"></p>
 <h3 class="au-rh">Recent runs</h3><div id="auRecent" class="au-recent"><p class="note">Nothing has run yet.</p></div>
-<script type="application/json" id="auData">${JSON.stringify({ rules: autos, when: AUTO_WHEN, act: AUTO_DO }).replace(/</g, '\\u003c')}</script></section></div>
+<script src="/discord-msg.js?v=4"></script><script type="application/json" id="auData">${JSON.stringify({ rules: autos, when: AUTO_WHEN, act: AUTO_DO, sample: AUTO_SAMPLE, server: { name: c.name, icon: `/c/${c.slug}/icon` } }).replace(/</g, '\\u003c')}</script></section></div>
 <div class="st-pane wide" id="tab-laws" data-pane="laws" role="tabpanel" aria-labelledby="t-laws">
 <section class="card" id="laws" data-api="/c/${esc(c.slug)}/api"><h2 class="hrow">Laws<span class="tag" id="lwCount"></span></h2>
 <p class="note">The charges officers pick in the MDT when they write a citation, an arrest or a warrant. Fines and jail time come from here. Start from a set, then add, change or remove anything. Records already written keep the charges they had.</p>
@@ -1307,14 +1307,17 @@ const A='/c/${esc(c.slug)}/api';
     +(a.do==='alert'?'<div class="au-depts">'+[['all','Everyone'],['pd','Police'],['fd','Fire'],['dot','DOT']].map(([d,l])=>'<label><input type="checkbox" data-a="dept" value="'+d+'"'+((a.depts||[]).includes(d)?' checked':'')+'>'+l+'</label>').join('')+'</div>':'')
     +(a.do==='discord'?'<input data-a="url" type="password" placeholder="Discord webhook link (channel settings, Integrations, Webhooks)" value="'+e(a.url)+'" spellcheck="false">':'')
     +(a.do==='call'?'<select data-a="dept1">'+[['pd','Police'],['fd','Fire'],['dot','DOT']].map(([d,l])=>'<option value="'+d+'"'+(a.dept===d?' selected':'')+'>'+l+' call</option>').join('')+'</select>':'')
-    +'<input data-a="text" maxlength="400" value="'+e(a.text)+'" placeholder="'+({alert:'What the alert says',discord:'What to post',pm:'The message',announce:'The announcement',call:'What the call is about'}[a.do])+'"></div>';
+    +(a.do==='discord'?'<div class="au-msg"></div>':'<input data-a="text" maxlength="400" value="'+e(a.text)+'" placeholder="'+({alert:'What the alert says',discord:'What to post',pm:'The message',announce:'The announcement',call:'What the call is about'}[a.do])+'">')+'</div>';
   const draw=()=>{document.getElementById('auCount').textContent=R.length?R.filter(r=>r.on!==false).length+' of '+R.length+' on':'';
     list.innerHTML=R.map((r,i)=>{const w=W[r.when];return '<div class="au'+(r.on===false?' off':'')+'" data-i="'+i+'"><div class="au-h"><input class="au-name" data-f="name" maxlength="60" value="'+e(r.name)+'" aria-label="Name"><span class="sw-mini" title="On or off"><input type="checkbox" data-f="on"'+(r.on!==false?' checked':'')+' aria-label="On"><i></i></span><button type="button" class="au-x" data-f="del">Delete</button></div>'
       +'<div class="au-row"><span class="au-k">When</span><select data-f="when">'+Object.entries(W).map(([k,x])=>'<option value="'+k+'"'+(r.when===k?' selected':'')+'>'+e(x.name)+'</option>').join('')+'</select></div>'
       +(w.filter?'<div class="au-row"><span class="au-k">Only if</span><span class="au-if">'+e(w.filter[1])+' has<input data-f="match" maxlength="60" value="'+e(r.match)+'" placeholder="anything (leave empty for all)"></span></div>':'')
       +'<div class="au-row" style="align-items:start"><span class="au-k" style="padding-top:12px">Then</span><div>'+(r.then||[]).map(actHtml).join('')+'<button type="button" class="btn sm" data-f="addact" style="margin-top:8px">Add an action</button>'
       +'<p class="au-vars">Fill in: '+w.vars.map(v=>'<code>{'+v+'}</code>').join(' ')+'</p></div></div>'
-      +'<div class="au-foot"><button type="button" class="btn sm" data-f="test">Test it</button><span class="msg" data-f="tmsg"></span></div></div>'}).join('')||'<p class="note">No automations yet.</p>'};
+      +'<div class="au-foot"><button type="button" class="btn sm" data-f="test">Test it</button><span class="msg" data-f="tmsg"></span></div></div>'}).join('')||'<p class="note">No automations yet.</p>'
+    /* a Discord post gets the message editor, with a preview filled in with this trigger's made-up details */
+    if(window.OvMsg)list.querySelectorAll('.au-msg').forEach(el=>{const r=R[+el.closest('.au').dataset.i],a=r.then[+el.closest('.au-act').dataset.j];a.msg=a.msg||{content:a.text||''};
+      OvMsg.mount(el,a.msg,{vars:W[r.when].vars,sample:DATA.sample[r.when],server:DATA.server},()=>{a.text=String(a.msg.content||'').slice(0,400);dirty()})})};
   const recent=L=>{document.getElementById('auRecent').innerHTML=L&&L.length?L.map(x=>'<div><time>'+new Date(x.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+'</time><span><b>'+e(x.rule)+'</b> · '+e(x.action)+(x.test?' (test)':'')+(x.detail?' · '+e(x.detail):'')+'</span><span class="'+(x.ok?'good':'bad')+'">'+(x.ok?'Done':'Failed')+'</span></div>').join(''):'<p class="note">Nothing has run yet.</p>'};
   fetch(A+'/automations').then(r=>r.json()).then(j=>recent(j.recent)).catch(()=>{});
   draw();
