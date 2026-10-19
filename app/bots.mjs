@@ -41,7 +41,7 @@ const store = (c, L) => { const s = communities.byId(c.id).settings; s.bots = L;
 const used = new Map(), stat = new Map();   // bot id -> last request time and count; bot id -> how its events are getting through (in memory)
 
 // what the settings page sees: never the key or the signing secret
-export const view = b => ({ id: b.id, name: b.name, scopes: b.scopes, hint: b.hint, created: b.created, by: b.by, oversite: !!b.oversite, hook: b.hook ? { url: b.hook.url, events: b.hook.events } : null,
+export const view = b => ({ id: b.id, name: b.name, scopes: b.scopes, hint: b.hint, created: b.created, by: b.by, oversite: !!b.oversite, dept: b.dept || '', hook: b.hook ? { url: b.hook.url, events: b.hook.events } : null,
   used: used.get(b.id)?.at || b.used || null, uses: used.get(b.id)?.n || 0, delivery: stat.get(b.id) || null });
 export const list = c => list0(c).map(view);
 export const max = prem => prem ? PREMIUM_BOTS : FREE_BOTS;
@@ -85,7 +85,7 @@ export const hasOversite = (c, kind) => list0(c).some(b => b.oversite && b.base 
 // changes every minute) and types it here. Oversite checks the code and keeps the bot's key itself, so nobody copies a key.
 const LINK_URL = process.env.OVERSITE_LINK_URL || 'https://kqhyjxtylvigrezlxzpl.supabase.co/functions/v1/cad-link';
 const LINK_KIND = { department: 'department', dispatch: 'department', roleplay: 'roleplay', customs: 'roleplay', protection: 'moderation' };
-export const link = async (c, code, prem, by) => { const secret = process.env.CAD_LINK_SECRET || ''; if (!secret) return { error: 'Linking Oversite bots isn’t set up on this site yet.' };
+export const link = async (c, code, prem, by, dept = '') => { const secret = process.env.CAD_LINK_SECRET || ''; if (!secret) return { error: 'Linking Oversite bots isn’t set up on this site yet.' };
   const clean = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (clean.length !== 8) return { error: 'The code is 8 letters and numbers. Copy it from the bot’s page on oversite.shop.' };
   const L = list0(c); if (L.length >= max(prem) && !L.some(b => b.oversite)) return { error: prem ? `A server can connect up to ${PREMIUM_BOTS} bots. Disconnect one first.` : `Free servers can connect ${FREE_BOTS} bot. Disconnect it first, or get Premium for up to ${PREMIUM_BOTS}.` };
   const id = randomBytes(5).toString('hex'), key = `ovb_${id}_${randomBytes(30).toString('base64url')}`, evSecret = 'whsec_' + randomBytes(24).toString('base64url'); let r;
@@ -101,9 +101,13 @@ export const link = async (c, code, prem, by) => { const secret = process.env.CA
   const p = PRESETS[LINK_KIND[String(r.base || '').split(/[^a-z]/)[0]]] || PRESETS.readonly;
   // the bot can take events (LOA requests, calls…) if it says where: signed with the secret sent above, the events its kind of bot gets
   const ev = r.events_url ? await checkUrl(r.events_url) : null, hook = ev?.url ? { url: ev.url, events: [...(p.events || [])], secret: seal(evSecret) } : null;
-  const b = { id, name: T(r.bot_name, 40) || 'Oversite bot', scopes: [...p.scopes], hook, key: sha(key), hint: key.slice(-4), created: Date.now(), by: T(by, 40), oversite: String(r.bot_id), base: T(String(r.base || '').split(/[^a-z]/)[0], 20) };
+  const b = { id, name: T(r.bot_name, 40) || 'Oversite bot', scopes: [...p.scopes], hook, key: sha(key), hint: key.slice(-4), created: Date.now(), by: T(by, 40), oversite: String(r.bot_id), base: T(String(r.base || '').split(/[^a-z]/)[0], 20), dept: DUTY_DEPTS.includes(dept) ? dept : '' };
   store(c, old >= 0 ? L.map((x, i) => (i === old ? b : x)) : [...L, b]);
   return { ok: true, bot: view(b), linked: true }; };
+// which department an Oversite bot is for ('' for every department): it counts MDT duty shifts from that one only
+export const DUTY_DEPTS = ['pd', 'fd', 'dot'];
+export const setDept = (c, id, dept) => { const L = list0(c), b = L.find(x => x.id === id); if (!b) return { error: 'That bot isn’t connected any more.' };
+  if (!b.oversite) return { error: 'Only Oversite bots have a department here.' }; b.dept = DUTY_DEPTS.includes(dept) ? dept : ''; store(c, L); return { ok: true, bot: view(b) }; };
 export const remove = (c, id) => { store(c, list0(c).filter(b => b.id !== id)); used.delete(id); stat.delete(id); return { ok: true }; };
 
 // a key to its server and bot; a server over its plan's limit (Premium ended) keeps only its first bot working

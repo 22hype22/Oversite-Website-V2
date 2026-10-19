@@ -24,6 +24,7 @@ import * as bounds from './app/bounds.mjs';
 import * as safezones from './app/safezones.mjs';
 import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
+import * as duty from './app/duty.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
 import * as staffhub from './app/staffhub.mjs';
@@ -211,11 +212,12 @@ const communityApi = async (req, res, slug, rest) => {
     return json(res, { error: 'Not found.' }, 404); }
   // Settings → Bots: the server's own bots, each with its key and permissions, and where its events go
   if (rest === 'bots' || rest.startsWith('bots/')) { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can connect bots.' }, 403);
-    const prem = premium.isPremium(c), info = () => ({ bots: bots.list(c), max: bots.max(prem), premium: prem, on: features.on(c, 'bots'), base: `${PUBLIC()}/api/bot/v1`, docs: `${PUBLIC()}/developers` });
+    const prem = premium.isPremium(c), info = () => ({ bots: bots.list(c), depts: bots.DUTY_DEPTS.filter(d => features.on(c, 'dept_' + d)).map(d => ({ key: d, name: duty.deptName(c, d) })), max: bots.max(prem), premium: prem, on: features.on(c, 'bots'), base: `${PUBLIC()}/api/bot/v1`, docs: `${PUBLIC()}/developers` });
     if (rest === 'bots' && M === 'GET') return json(res, info());
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req), id = String(j.id || '');
     const r = rest === 'bots/create' ? await bots.create(c, j, prem, user.roblox_name || user.name) : rest === 'bots/update' ? await bots.update(c, id, j) : rest === 'bots/rotate' ? bots.rotate(c, id, j.what)
-      : rest === 'bots/test' ? await bots.test(c, id) : rest === 'bots/delete' ? bots.remove(c, id) : rest === 'bots/link' ? await bots.link(c, j.code, prem, user.roblox_name || user.name) : { error: 'Not found.' };
+      : rest === 'bots/test' ? await bots.test(c, id) : rest === 'bots/delete' ? bots.remove(c, id) : rest === 'bots/link' ? await bots.link(c, j.code, prem, user.roblox_name || user.name, String(j.dept || ''))
+      : rest === 'bots/dept' ? bots.setDept(c, id, String(j.dept || '')) : { error: 'Not found.' };
     if (!r.error && rest !== 'bots/test') console.log(`bots: ${c.slug} ${rest.slice(5)} ${id || r.bot?.id || ''} by ${user.roblox_name || user.name}`);
     return json(res, { ...info(), ...r }, r.error ? 400 : 200); }
   if (rest === 'srvstatus' && M === 'GET') return json(res, srvStatus.view(c, can(role, 'co_owner')));
@@ -400,6 +402,18 @@ const communityApi = async (req, res, slug, rest) => {
     return json(res, { mine: staffhub.myLeave(c, user), depts: can(role, 'mod') ? [...D, { key: '', name: 'Server staff' }] : D, bot: bots.listens(c, 'loa.requested') }); }
   if (rest === 'loa' && M === 'POST') { const r = staffhub.requestLeave(c, user, await jsonBody(req)); return json(res, r.error ? r : { ...r, mine: staffhub.myLeave(c, user) }, r.error ? 400 : 200); }
   if (rest === 'loa/cancel' && M === 'POST') { const r = staffhub.cancelLeave(c, user, (await jsonBody(req)).id); return json(res, r.error ? r : { ...r, mine: staffhub.myLeave(c, user) }, r.error ? 400 : 200); }
+  // duty shifts from the MDT (app/duty.mjs): start and end one, add one you forgot, fix or delete your own; a department's supervisors see every change
+  if (rest === 'duty' || rest.startsWith('duty/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    const D = duty.DEPTS.filter(d => features.on(c, 'dept_' + d)), R = ranksFor(c, premium.isPremium(c)), on = mdtSignin.mine(c.id, user.id);
+    const sup = can(role, 'admin') ? D : D.filter(d => R[d]?.find(r => r[0] === on[d])?.[2]);
+    const state = () => ({ ...duty.mine(c, user), depts: D.map(d => ({ key: d, name: duty.deptName(c, d) })), supervises: sup, bot: bots.hasOversite(c, 'department') || bots.hasOversite(c, 'roleplay') });
+    if (rest === 'duty' && M === 'GET') return json(res, state());
+    if (rest === 'duty/changes' && M === 'GET') return sup.length ? json(res, { changes: duty.changes(c, sup) }) : json(res, { error: 'Only supervisors see shift changes.' }, 403);
+    if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req);
+    if ((rest === 'duty/start' || rest === 'duty/add') && !D.includes(j.dept)) return json(res, { error: 'That department is switched off.' }, 400);
+    const r = rest === 'duty/start' ? duty.start(c, user, j.dept) : rest === 'duty/end' ? duty.end(c, user) : rest === 'duty/edit' ? duty.edit(c, user, j.id, j)
+      : rest === 'duty/add' ? duty.add(c, user, j) : rest === 'duty/delete' ? duty.remove(c, user, j.id) : { error: 'Not found.' };
+    return json(res, r.error ? r : { ...r, ...state() }, r.error ? 400 : 200); }
   if (rest === 'units/ride' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     const w = String((await jsonBody(req)).with || '').trim(); if (w && (!/^\d{1,20}$/.test(w) || w === String(user.roblox_id))) return json(res, { error: 'Pick a teammate to ride with.' }, 400);
     const R = rideWith.all(c.id); if (w && R[w] === String(user.roblox_id)) rideWith.set(c.id, w, '');   // they were riding with you: now you ride with them instead
@@ -499,6 +513,8 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
     const P = v.players.map(p => { const [name, id] = String(p.Player || '').split(':'), u = bots.can(bot, 'people') && id ? users.byRoblox(id) : null;
       return { name, roblox_id: id || null, team: p.Team || '', department: (c.settings.teams || {})[p.Team] || null, callsign: p.Callsign || null, postal: p.Location?.PostalCode || null, street: p.Location?.StreetName || null, ...(bots.can(bot, 'people') ? { discord_id: u?.discord_id || null } : {}) }; });
     return ok({ live: v.live, players: P }); }
+  // MDT duty shifts changed since a time (ms), deleted ones too; an Oversite bot linked for one department reads only that one
+  if (rest === 'duty-shifts' && M === 'GET') { if (need('read')) return; return ok(duty.forBots(c, bot.dept && duty.DEPTS.includes(bot.dept) ? [bot.dept] : duty.DEPTS, qs.get('since'))); }
   if (rest === 'loa' && M === 'GET') { if (need('read')) return; return ok({ requests: staffhub.leaveForBots(c, qs.get('status')).map(({ dept, dept_name, ...l }) => ({ ...l, department: dept, department_name: dept_name, starts: isoDay(l.starts), ends: isoDay(l.ends) })) }); }
   if (rest === 'people' && M === 'GET') { if (need('people')) return; const u = person(Object.fromEntries(qs)); if (!u) return bad('Nobody with that ID or name has an Oversite account.', 404); return ok({ person: who(u) }); }
   // police lookups
