@@ -13,6 +13,7 @@ import * as voice from './app/voice.mjs';
 import { voicePage } from './app/voicepage.mjs';
 import { staffHub, applyPage, coursePage } from './app/staffpage.mjs';
 import * as courses from './app/courses.mjs';
+import * as fireaop from './app/fireaop.mjs';
 import { Feed, testKey, appSide, NOKEY, appKey, appId, appKeyChanged, authLink, erlcHeaders } from './app/feed.mjs';
 import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
@@ -64,11 +65,8 @@ const page = (res, p, status) => html(res, p, status);
 const watched = (p, c, on) => on ? p.replace(/<\/body>/i, () => `${pages.oversightBar(c)}</body>`) : p;   // the moderation bar on a server's pages
 const msg = (res, user, title, text, action, status = 200) => page(res, pages.message({ logo: LOGO, user, title, text, action, code: status }), status);
 
-// what ER:LC tells us about fire calls (type, whether it has a caller and a position), to learn whether game-spawned fires show up; never names
-const fireSeen = new Set(); let fireLogs = 0;
-const fireProbe = (c, body) => { if (fireLogs >= 200 || !/"Team":"Fire/i.test(body)) return; let j; try { j = JSON.parse(body); } catch (e) { return; }
-  for (const k of Array.isArray(j.EmergencyCalls) ? j.EmergencyCalls : []) { if (!/fire/i.test(k.Team || '')) continue; const id = `${c.id}:${k.CallNumber}:${k.StartedAt}`; if (fireSeen.has(id)) continue; fireSeen.add(id); fireLogs++;
-    console.log(`fire-call: ${c.slug} #${k.CallNumber} team=${k.Team} desc=${JSON.stringify(String(k.Description || '').slice(0, 60))} where=${JSON.stringify(String(k.PositionDescriptor || '').slice(0, 40))} caller=${k.Caller ? 'yes' : 'no'} pos=${Array.isArray(k.Position) || k.Position ? 'yes' : 'no'} keys=${Object.keys(k).join(',')}`); } };
+// Fire AOP's hands: the CAD's call key, taking a call off the board, and running a command credited to it in the command log
+const fireHands = { key: k => callKey(k), clear: (c, k) => clearCall(c, k, 'Fire AOP'), command: (c, cmd) => communities.key(c.id) ? staff.commandAs(c, communities.key(c.id), cmd, 'Oversite Fire AOP') : Promise.resolve({ ok: false, message: 'No ER:LC key connected.' }) };
 // ── live feeds, one per community ──
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
@@ -79,7 +77,7 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
     // the plate reader's hits go to every CAD and to automations; automations also watch for players joining and new calls
     if (features.on(cc, 'alpr')) for (const h of hits) { f.bcast('alpr', JSON.stringify(h)); if (features.on(cc, 'automations')) automations.fire(cc, 'alpr', h); bots.emit(cc, 'alpr', h); }
     try { bots.observe(cc, f.withExtra(body), callKey); } catch (e) {}
-    try { fireProbe(cc, body); } catch (e) {}
+    if (premium.isPremium(cc) && features.on(cc, 'staff')) try { fireaop.observe(cc, body, fireHands); } catch (e) {}
     if (features.on(cc, 'automations')) automations.observe(cc, body); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => { res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); res.write(`event: callstates\ndata: ${JSON.stringify(callStates(communities.byId(c.id) || c))}\n\n`); }; } return f; };   // everyone's 10-code on connect
@@ -245,6 +243,10 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest.startsWith('staff/')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403); if (!features.on(c, 'staff')) return off('staff'); if (!premium.isPremium(c)) return json(res, { error: 'The Server Staff CAD is part of Premium.', premium: true }, 402);
     const sub = rest.slice(6), by = { id: user.id, name: user.roblox_name || user.name };
     if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); return json(res, v, v.error ? 502 : 200); }
+    // Fire AOP: the areas fires may burn in, drawn and switched by staff
+    if (sub === 'fires' && M === 'GET') return json(res, fireaop.view(c));
+    if (sub === 'fires' && M === 'POST') { const r = fireaop.save(c, await jsonBody(req)); if (r.ok) console.log(`fire aop: ${c.slug} saved by ${by.name}`); return json(res, r.error ? r : fireaop.view(c), r.error ? 400 : 200); }
+    if (sub === 'fires/out' && M === 'POST') { const r = await fireaop.putOut(c, fireHands); return json(res, r.error ? r : fireaop.view(c), r.error ? 400 : 200); }
     if (sub === 'action' && M === 'POST') { const k = features.STAFF_ACT[String((req._body ||= await jsonBody(req)).kind)]; if (k && !features.on(c, k)) return off(k); }
     if (sub === 'action' && M === 'POST' && !can(role, 'admin') && !staff.MOD_KINDS.includes(String((req._body ||= await jsonBody(req)).kind))) return json(res, { error: 'Mods can warn, message, kick and add notes. Bans, unbans and announcements need an admin.' }, 403);
     if (sub === 'action' && M === 'POST') { const r = await staff.act(c, communities.key(c.id), by, req._body || await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
