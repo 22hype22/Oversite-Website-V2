@@ -12,6 +12,7 @@ const ROUTES = [
   ['GET', 'calls', 'read', 'Open 911 calls with their <code>key</code>, who called, where, and the units on them.'],
   ['GET', 'units', 'read', 'Units on duty by department, with callsign and 10-code status.'],
   ['GET', 'shifts?days=7&roblox_id=', 'read', 'Time on duty, counted from the in-game team (1 to 30 days; one person with <code>roblox_id</code>).'],
+  ['GET', 'duty-shifts?since=', 'read', 'Shifts people started and ended on their department’s MDT, changed since <code>since</code> (ms; send back the <code>now</code> it answered). Deleted ones come with <code>deleted: true</code>. An Oversite bot linked for one department gets only that one.'],
   ['GET', 'loa?status=pending', 'read', 'Leave (LOA) requests from departments and the staff team: who, which department, first and last day, reason and status. Leave out <code>status</code> for recent ones too. Or get them as they happen with the <code>loa.requested</code> event.'],
   ['GET', 'people?discord_id=', 'people', 'A member’s Roblox account from their Discord ID. Also takes <code>roblox_id</code> or <code>roblox_name</code>.'],
   ['GET', 'lookup?q=', 'lookup', 'Search people and plates, with their warrant and BOLO flags.'],

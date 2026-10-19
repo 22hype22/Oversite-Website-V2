@@ -16,6 +16,7 @@
       (b.delivery ? '. Last sent ' + ago(b.delivery.at) + ': ' + (b.delivery.ok ? '<span class="ok">delivered</span>' : '<span class="bad">' + e(b.delivery.error) + '</span>') : '. Nothing sent yet.') + '</div>' : '';
     return '<div class="bt" data-id="' + e(b.id) + '"><div class="bt-h"><b>' + e(b.name) + '</b><small>' + (b.oversite ? 'Oversite bot, linked with a code' : 'Key ending ' + e(b.hint)) + ' · ' + (b.used ? 'last used ' + ago(b.used) : 'not used yet') + '</small><span class="sp"></span></div>' +
       '<div class="bt-perms">' + b.scopes.map(s => '<span>' + e((D.scopes[s] || [s])[0]) + '</span>').join('') + '</div>' + ev +
+      (b.oversite ? '<div style="margin-top:10px">' + deptPick(b.dept, b.id) + '</div>' : '') +
       '<div class="bt-acts"><button type="button" class="btn sm" data-act="edit">Edit</button>' + (b.oversite ? '' : '<button type="button" class="btn sm" data-act="key">New key</button>') +
       (b.hook ? '<button type="button" class="btn sm" data-act="test">Send a test event</button><button type="button" class="btn sm" data-act="secret">New signing secret</button>' : '') +
       '<button type="button" class="btn sm danger" data-act="del">Disconnect</button></div>' + (reveal && reveal.id === b.id ? keyBox(b) : '') + (editing === b.id ? form(b) : '') + '</div>'; };
@@ -37,10 +38,14 @@
       '<div class="bt-checks" id="btEvents" style="margin-top:10px">' + Object.entries(D.events).map(([k, [t, need]]) => '<label data-need="' + need + '"><input type="checkbox" name="event" value="' + k + '"' + (ev.has(k) ? ' checked' : '') + '><b>' + e(t) + '</b><small>' + e(k) + '</small></label>').join('') + '</div>' +
       '<div class="bt-acts" style="margin-top:16px"><button class="btn pri">' + (isNew ? 'Connect bot' : 'Save') + '</button><button type="button" class="btn sm" data-act="cancel">Cancel</button></div></form>'; };
 
+  // which department an Oversite bot is for: it counts MDT shifts from that department only (or all of them)
+  const deptPick = (v, id) => (S.depts && S.depts.length ? '<span class="bt-lbl">Department</span><select name="dept"' + (id ? ' data-dept="' + e(id) + '"' : '') + '><option value="">Every department</option>' +
+    S.depts.map(d => '<option value="' + e(d.key) + '"' + (d.key === v ? ' selected' : '') + '>' + e(d.name) + '</option>').join('') + '</select><small class="note" style="display:block;margin-top:4px">Shifts people start on this department’s MDT count on the bot too.</small>' : '');
   // an Oversite bot: its owner types the code from the bot's page on oversite.shop; Oversite keeps the key
   const linkForm = () => '<form class="bt-f" id="btL"><h3>Link an Oversite bot</h3>' +
     '<p class="note" style="margin:0 0 10px">For bots bought on oversite.shop. Open the bot’s page there and find <b>Link to your CAD</b>. Type the code it shows. It changes every minute, so use it right away. Only the bot’s owner can see it.</p>' +
     '<span class="bt-lbl">Code</span><input name="code" maxlength="9" placeholder="ABCD 2345" autocomplete="off" spellcheck="false" style="text-transform:uppercase;letter-spacing:.12em;font-family:ui-monospace,monospace">' +
+    deptPick('') +
     '<div class="bt-acts" style="margin-top:16px"><button class="btn pri">Link bot</button><button type="button" class="btn sm" data-act="cancel">Cancel</button></div></form>';
 
   const draw = () => { document.getElementById('btCount').textContent = S.bots.length ? S.bots.length + ' of ' + S.max : '';
@@ -54,7 +59,7 @@
 
   const bindLink = f => { const inp = f.querySelector('[name=code]'); inp.focus();
     f.addEventListener('submit', async ev => { ev.preventDefault(); const btn = f.querySelector('button.pri'); btn.disabled = true;
-      try { const r = await call('/bots/link', { code: inp.value }); S = r; editing = null; reveal = null; draw(); say('Linked ' + r.bot.name + '. Oversite keeps its key, so there is nothing to copy.', true); }
+      try { const r = await call('/bots/link', { code: inp.value, dept: f.querySelector('[name=dept]')?.value || '' }); S = r; editing = null; reveal = null; draw(); say('Linked ' + r.bot.name + '. Oversite keeps its key, so there is nothing to copy.', true); }
       catch (x) { say(x.message); btn.disabled = false; } }); };
 
   const bindForm = f => { const nm = f.querySelector('[name=name]'), ur = f.querySelector('[name=url]'); const need = () => { const on = new Set([...f.querySelectorAll('[name=scope]:checked')].map(i => i.value));
@@ -88,6 +93,10 @@
       const r = await call(a === 'del' ? '/bots/delete' : '/bots/rotate', { id, what: a === 'secret' ? 'secret' : 'key' }); S = r;
       reveal = r.key || r.secret ? { id, key: r.key, secret: r.secret } : null; draw(); say(a === 'del' ? 'Disconnected.' : 'Done. Copy it below.', true); }
     catch (x) { say(x.message); if (a === 'test') { try { S = await call('/bots'); draw(); } catch (y) {} } t.disabled = false; } });
+
+  body.addEventListener('change', async ev => { const t = ev.target.closest('[data-dept]'); if (!t) return; t.disabled = true;
+    try { S = await call('/bots/dept', { id: t.dataset.dept, dept: t.value }); draw(); say('Saved. The bot counts shifts from ' + (t.value ? t.selectedOptions[0].textContent : 'every department') + '.', true); }
+    catch (x) { say(x.message); t.disabled = false; } });
 
   call('/bots').then(r => { S = r; draw(); }).catch(x => { body.innerHTML = '<p class="msg err">' + e(x.message) + '</p>'; });
 })();

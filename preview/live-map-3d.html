@@ -1356,7 +1356,7 @@
 </style>
 <script src="/dropdown.js?v=1" defer></script>
 <script src="/license-card.js?v=4" defer></script>
-<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=1" defer></script><script src="/loa.js?v=1" defer></script>
+<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=1" defer></script><script src="/loa.js?v=1" defer></script><script src="/duty.js?v=1" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
   .mtabs{display:none}
@@ -2807,7 +2807,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const closeMenu = () => { menu.classList.remove('open'); ubtn.setAttribute('aria-expanded', 'false'); };
   const openMenu = () => { const d = DEPT(), u = me();
     menu.innerHTML = `<div class="tm-h"><i>${$('tuserAv').innerHTML}</i><div><b>${esc(OVS?.me || $('tuserName').textContent)}</b><small>${esc([signed[d], u && u.name].filter(Boolean).join(' · ') || DEPT_NAME[d])}</small></div></div>
-      ${OVS ? `<button type="button" role="menuitem" data-m="loa">Request leave (LOA)</button><a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}">Account settings</a>` : ''}
+      ${OVS ? `<button type="button" role="menuitem" data-m="duty">${esc(window.ovDutyLabel?.() || 'Your shifts')}</button>` : ''}${OVS ? `<button type="button" role="menuitem" data-m="loa">Request leave (LOA)</button><a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}">Account settings</a>` : ''}
       ${LOCKS ? '<hr><button type="button" role="menuitem" class="tm-out" data-m="out">Sign out</button>' : ''}`;
     menu.classList.add('open'); ubtn.setAttribute('aria-expanded', 'true'); menu.querySelector('[role="menuitem"]')?.focus({ preventScroll: true }); };
   ubtn.addEventListener('click', () => menu.classList.contains('open') ? closeMenu() : openMenu());
@@ -2815,6 +2815,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   menu.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); ubtn.focus(); } });
   menu.addEventListener('click', async e => { const m = e.target.closest('[data-m]')?.dataset.m; if (!m) return; const d = DEPT(); closeMenu();
     if (m === 'loa') { window.ovLoa?.(d); return; }
+    if (m === 'duty') { window.ovDuty?.(d); return; }
     if (m === 'out') { try { await fetch(OVS.api + '/mdt/signout', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d }) }); } catch (x) {}
       logIt(`Signed off${signed[d] ? ', ' + signed[d] : ''}`); delete signed[d]; locked.delete(d); saveLocks(); showLock(); } });
   addEventListener('calls', assist); addEventListener('mdt', e => { if (!e.detail) { closeMenu(); return; } applyDept(); if (isLocked(DEPT())) showLock(); else { hideLock(); if (!LOG.length) logIt(signed[DEPT()] ? `Signed on as ${signed[DEPT()]}, 10-8` : 'Logged on, 10-8'); } renderUnit(); renderApp(); renderCalls(); renderReports(); assist(); });
