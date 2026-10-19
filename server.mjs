@@ -170,7 +170,12 @@ const communityApi = async (req, res, slug, rest) => {
   // dispatch radio: a channel is for players on that department's team in game (server staff can use any), All units for any department
   if (rest.startsWith('radio/')) { const qs = new URL(req.url, 'http://x').searchParams, j = M === 'POST' ? await jsonBody(req) : {}, ch = String(qs.get('ch') || j.ch || '');
     if (!bots.hasOversite(c, 'dispatch')) return json(res, { error: 'The radio comes with the Oversite Dispatch bot. The server’s owner links it in Settings, under Bots.', needBot: true }, 403);
-    if (!radio.CHANNELS[ch]) return json(res, { error: 'There is no such channel.' }, 400); if (ch !== 'all' && !features.on(c, 'dept_' + ch)) return off('dept_' + ch);
+    if (!radio.CHANNELS[ch]) return json(res, { error: 'There is no such channel.' }, 400);
+    // overhearing someone's radio in proximity voice: listen only, and only while one is out loud nearby
+    if (qs.get('listen') === '1' || j.listen) { if (!voice.canOverhear(c.id, user, ch)) return json(res, { error: 'No radio near you.' }, 403);
+      if (rest === 'radio/join' && M === 'GET') return radio.join(req, res, c, user, ch, '', true);
+      if (rest === 'radio/signal' && M === 'POST') { const r = radio.signal(c, user, ch, j.to, j.data, true); return json(res, r, r.error ? 400 : 200); }
+      return json(res, { error: 'Listeners can’t talk.' }, 403); } if (ch !== 'all' && !features.on(c, 'dept_' + ch)) return off('dept_' + ch);
     if (!can(role, 'mod')) { const side = liveSide(c, user); if (side === 'civ') return json(res, { error: 'Radio is for department players. You’re on the civilian team in game.' }, 403);
       if (ch !== 'all' && side !== undefined && side !== ch) return json(res, { error: `The ${radio.CHANNELS[ch]} channel is for players on that team in game.` }, 403); }
     if (rest === 'radio/join' && M === 'GET') return radio.join(req, res, c, user, ch, qs.get('unit'));

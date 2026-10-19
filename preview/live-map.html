@@ -4839,6 +4839,7 @@ body.voice-snap .stage{transition:none!important}
   <div class="rd-ch" id="rdCh" role="radiogroup" aria-label="Channel"></div>
   <div class="rd-air" id="rdAir"><i></i><span>Not on a channel</span></div>
   <button type="button" class="rd-ptt" id="rdPtt" disabled><span>Hold to talk</span><small>or hold V</small></button>
+  <div class="rd-ear" id="rdEar" hidden></div>
   <div class="rd-foot"><span class="rd-msg" id="rdMsg"></span><button type="button" class="rd-x" id="rdLeave" hidden>Leave channel</button></div>
 </div>
 <style>
@@ -4849,6 +4850,7 @@ body.voice-snap .stage{transition:none!important}
   @keyframes rdPulse{50%{opacity:.35}}
   .rd-ptt{display:grid;place-items:center;gap:2px;width:100%;padding:16px 0;border-radius:14px;border:1px solid #2a2c31;background:#1d1e22;color:#ECEDEF;font:inherit;font-weight:600;font-size:14px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;transition:background-color .15s ease,transform .1s ease}
   .rd-ptt small{font-weight:400;font-size:11px;color:var(--dim)}.rd-ptt:disabled{opacity:.45;cursor:default}.rd-ptt.on{background:#B3362C;border-color:#B3362C;transform:scale(.98)}.rd-ptt.on small{color:#fff}
+  .rd-ear{margin-top:10px;padding:8px 10px;border-radius:9px;background:#1d1e22;color:#C9CDD3;font-size:11.5px;line-height:1.45}.rd-ear.on{color:#9BE3B8}.rd-ear[hidden]{display:none}
   .rd-lock{margin-top:10px}.rd-lock p{margin:0;line-height:1.5;color:#C9CDD3}.rd-lock b{color:#ECEDEF}.rd-lock .rd-sub{margin-top:8px;color:var(--dim);font-size:11.5px}
   .rd-link{display:block;margin-top:12px;padding:10px 0;border-radius:10px;background:#ECEDEF;color:#0d0e10;font-weight:600;text-align:center;text-decoration:none}.rd-link:hover{background:#fff}
   .rd-foot{display:flex;align-items:center;gap:8px;margin-top:10px;min-height:16px}.rd-msg{flex:1;color:var(--dim);font-size:11.5px}.rd-msg.bad{color:#F0A0A0}
@@ -4867,7 +4869,7 @@ body.voice-snap .stage{transition:none!important}
   btn.hidden = false;
   // the radio comes with the Oversite Dispatch bot: without one linked, the panel says so (and where the owner links it)
   if (!OV.radioBot) { const own = OV.role === 'owner' || OV.role === 'co_owner';
-    box.querySelectorAll('.rd-ch,.rd-air,.rd-ptt,.rd-foot').forEach(x => x.remove());
+    box.querySelectorAll('.rd-ch,.rd-air,.rd-ptt,.rd-ear,.rd-foot').forEach(x => x.remove());
     box.insertAdjacentHTML('beforeend', `<div class="rd-lock"><p>The radio comes with the <b>Oversite Dispatch</b> bot. Once it's linked to this server, every department gets push-to-talk channels here.</p>${own ? `<a class="rd-link" href="/${encodeURIComponent(OV.slug)}/settings#bots">Link it in Settings</a>` : '<p class="rd-sub">Ask the server owner to link it in Settings, under Bots.</p>'}</div>`);
     $('rdHide').addEventListener('click', () => { box.hidden = true; btn.setAttribute('aria-expanded', 'false'); });
     btn.addEventListener('click', () => { box.hidden = !box.hidden; btn.setAttribute('aria-expanded', String(!box.hidden)); }); return; }
@@ -4895,13 +4897,16 @@ body.voice-snap .stage{transition:none!important}
   const onSignal = async ({ from, data }) => { const x = ensure(from), pc = x.pc;
     try { if (data.sdp) { await pc.setRemoteDescription(data.sdp); if (data.sdp.type === 'offer') { await pc.setLocalDescription(await pc.createAnswer()); sig(from, { sdp: pc.localDescription }); } for (const c of x.queue.splice(0)) await pc.addIceCandidate(c).catch(() => {}); }
       else if (data.ice) { if (pc.remoteDescription) await pc.addIceCandidate(data.ice).catch(() => {}); else x.queue.push(data.ice); } } catch (e) { console.warn('radio', e); } };
-  const leave = () => { if (talking) release(); if (es) es.close(); es = null; for (const k of [...peers.keys()]) drop(k); people.clear(); floor = null; ch = ''; drawCh(); drawAir(); };
+  const leave = () => { if (talking) release(); if (es) es.close(); es = null; const ex = $('rdEar'); if (ex) ex.hidden = true; for (const k of [...peers.keys()]) drop(k); people.clear(); floor = null; ch = ''; drawCh(); drawAir(); };
   const unit = () => (window.ME && window.ME.callsign) || OV.me || '';
   const join = async k => { audio(); if (ac.state === 'suspended') ac.resume(); leave(); say('Joining…');
     const r = await post('/talk', { ch: k, on: false }); if (r.status === 403 || r.status === 404) { say(r.error || 'You can’t use that channel.', true); return; }   // not joined yet, so this only checks you may
     ch = k; drawCh(); es = new EventSource(`${API}/join?ch=${k}&unit=${encodeURIComponent(unit())}`);
-    es.addEventListener('hello', e => { const j = JSON.parse(e.data); me = j.you; ice = j.ice; floor = j.floor; for (const p of j.peers) { people.set(p.uid, p); ensure(p.uid); } say(''); drawAir(); });
-    es.addEventListener('join', e => { const p = JSON.parse(e.data); people.set(p.uid, p); ensure(p.uid); drawAir(); });
+    // listeners (people overhearing a radio out loud near them in game) get the audio but aren't counted as on the channel
+    es.addEventListener('hello', e => { const j = JSON.parse(e.data); me = j.you; ice = j.ice; floor = j.floor; for (const p of j.peers) { if (!p.listen) people.set(p.uid, p); ensure(p.uid); } say(''); drawAir(); });
+    es.addEventListener('join', e => { const p = JSON.parse(e.data); if (!p.listen) people.set(p.uid, p); ensure(p.uid); drawAir(); });
+    es.addEventListener('ear', e => { const { ear } = JSON.parse(e.data), x = $('rdEar'); x.hidden = false; x.className = 'rd-ear' + (ear ? ' on' : '');
+      x.textContent = ear ? 'Earpiece on: only you hear your radio.' : 'No earpiece on your avatar: players near you in game hear your radio in proximity chat.'; });
     es.addEventListener('gone', e => { const { uid } = JSON.parse(e.data); people.delete(uid); drop(uid); drawAir(); });
     es.addEventListener('signal', e => onSignal(JSON.parse(e.data)));
     es.addEventListener('talk', e => { const t = JSON.parse(e.data); const was = floor; floor = t.on ? t : (floor && floor.uid === t.uid ? null : floor); if (t.uid !== me) chirp(!!t.on && !was); drawAir(); });
