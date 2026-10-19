@@ -65,6 +65,8 @@ const page = (res, p, status) => html(res, p, status);
 const watched = (p, c, on) => on ? p.replace(/<\/body>/i, () => `${pages.oversightBar(c)}</body>`) : p;   // the moderation bar on a server's pages
 const msg = (res, user, title, text, action, status = 200) => page(res, pages.message({ logo: LOGO, user, title, text, action, code: status }), status);
 
+// how far the map picture sits from ER:LC's positions, from the server's map calibration (map units); editors that draw on it shift it by this
+const mapOff = c => { const A = 2000 / 5355, cal = c.settings.cal || []; return cal.length ? [0, 1].map(i => cal.reduce((t, p) => t + (i ? p.wy - A * p.sz : p.wx - A * p.sx), 0) / cal.length / A) : [0, 0]; };
 // Fire AOP's hands: the CAD's call key, taking a call off the board, and running a command credited to it in the command log
 const fireHands = { key: k => callKey(k), clear: (c, k) => clearCall(c, k, 'Fire AOP'), command: (c, cmd) => communities.key(c.id) ? staff.commandAs(c, communities.key(c.id), cmd, 'Oversite Fire AOP') : Promise.resolve({ ok: false, message: 'No ER:LC key connected.' }) };
 // ── live feeds, one per community ──
@@ -244,9 +246,9 @@ const communityApi = async (req, res, slug, rest) => {
     const sub = rest.slice(6), by = { id: user.id, name: user.roblox_name || user.name };
     if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); return json(res, v, v.error ? 502 : 200); }
     // Fire AOP: the areas fires may burn in, drawn and switched by staff
-    if (sub === 'fires' && M === 'GET') return json(res, fireaop.view(c));
-    if (sub === 'fires' && M === 'POST') { const r = fireaop.save(c, await jsonBody(req)); if (r.ok) console.log(`fire aop: ${c.slug} saved by ${by.name}`); return json(res, r.error ? r : fireaop.view(c), r.error ? 400 : 200); }
-    if (sub === 'fires/out' && M === 'POST') { const r = await fireaop.putOut(c, fireHands); return json(res, r.error ? r : fireaop.view(c), r.error ? 400 : 200); }
+    if (sub === 'fires' && M === 'GET') return json(res, { ...fireaop.view(c), off: mapOff(c) });
+    if (sub === 'fires' && M === 'POST') { const r = fireaop.save(c, await jsonBody(req)); if (r.ok) console.log(`fire aop: ${c.slug} saved by ${by.name}`); return json(res, r.error ? r : { ...fireaop.view(c), off: mapOff(c) }, r.error ? 400 : 200); }
+    if (sub === 'fires/out' && M === 'POST') { const r = await fireaop.putOut(c, fireHands); return json(res, r.error ? r : { ...fireaop.view(c), off: mapOff(c) }, r.error ? 400 : 200); }
     if (sub === 'action' && M === 'POST') { const k = features.STAFF_ACT[String((req._body ||= await jsonBody(req)).kind)]; if (k && !features.on(c, k)) return off(k); }
     if (sub === 'action' && M === 'POST' && !can(role, 'admin') && !staff.MOD_KINDS.includes(String((req._body ||= await jsonBody(req)).kind))) return json(res, { error: 'Mods can warn, message, kick and add notes. Bans, unbans and announcements need an admin.' }, 403);
     if (sub === 'action' && M === 'POST') { const r = await staff.act(c, communities.key(c.id), by, req._body || await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
@@ -385,7 +387,7 @@ const communityApi = async (req, res, slug, rest) => {
     rideWith.set(c.id, String(user.roblox_id), w); const out = { of: unitMembers.all(c.id), ride: rideWith.all(c.id) }; f.bcast('unitsof', JSON.stringify(out)); return json(res, { ok: true, ...out }); }
   if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can do that.' }, 403);
   // jurisdiction boundaries: presets of areas per team, the live one enforced in game (app/bounds.mjs)
-  if (rest === 'bounds' && M === 'GET') { const A = 2000 / 5355, cal = c.settings.cal || [], off = cal.length ? [0, 1].map(i => cal.reduce((t, p) => t + (i ? p.wy - A * p.sz : p.wx - A * p.sx), 0) / cal.length / A) : [0, 0];
+  if (rest === 'bounds' && M === 'GET') { const off = mapOff(c);
     let players = []; try { if (f.snap && Date.now() - f.snap.t < 15000) players = (JSON.parse(f.snap.body).Players || []).filter(p => p.Location).map(p => ({ name: String(p.Player).split(':')[0], team: p.Team || '', x: p.Location.LocationX, z: p.Location.LocationZ })); } catch (e) {}
     return json(res, { bounds: bounds.of(c), log: bounds.log(c), teams: Object.keys(c.settings.teams || {}), depts: c.settings.teams, off, players, connected: !!communities.key(c.id) }); }
   if (rest === 'bounds' && M === 'POST') { const r = bounds.save(c, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
