@@ -110,7 +110,7 @@
   .menu button{font-size:12.5px;color:var(--dim);white-space:nowrap;padding:7px 12px;border-radius:999px;border:1px solid transparent;
     transition:color .18s cubic-bezier(.32,.72,0,1),background .18s cubic-bezier(.32,.72,0,1)}
   .menu button:hover{color:var(--ink);background:rgba(240,242,245,.05)}
-  .menu button.locked{opacity:.45}.menu button[hidden],.icons [hidden],#cvClose[hidden]{display:none!important}
+  .menu button.locked{opacity:.45}.menu button[hidden],.icons [hidden]{display:none!important}
   .menu button[aria-selected="true"]{color:var(--ink);font-weight:500;background:transparent}
   .menu button[aria-selected="true"]:hover{background:transparent}
   /* one shared pill slides behind the selected tab: clipped to a true oval (blur would otherwise show square corners),
@@ -522,8 +522,6 @@
   .tablet .cam{position:absolute;top:4px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#070708;box-shadow:inset 0 0 0 1px #2A2C33;z-index:2}
   .tablet .screen{position:relative;height:100%;border-radius:18px;overflow:hidden;background:#0C0D0F;color:#E9EAEC;display:flex;flex-direction:column;
     font-variant-numeric:tabular-nums;--fd:#E0453B;--fd-soft:rgba(224,69,59,.14);--line:rgba(255,255,255,.08);--mute:#8F939B;--r:10px}
-  .mdt-close{position:absolute;top:-6px;left:-6px;width:28px;height:28px;border-radius:50%;background:#1C1C1F;border:1px solid var(--hair2);color:var(--dim);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.5)}
-  .mdt-close:hover{color:var(--ink)}
   .sbar{display:flex;align-items:center;justify-content:space-between;padding:10px 22px 6px;font-size:12px;font-weight:600;color:#D9DBE0}
   .sbar .sb-mid{font-size:11px;font-weight:500;color:var(--mute)}
   .sbar .sb-r{display:flex;gap:6px;align-items:center;color:#D9DBE0}
@@ -1367,7 +1365,6 @@
     .mdt-dock .tablet,.sdock .tablet{aspect-ratio:auto;height:100%;max-height:none;border-radius:0;padding:0;box-shadow:none}
     .tablet .screen{border-radius:0}
     .tablet .cam,.sbar{display:none}
-    .mdt-close{top:auto;bottom:calc(14px + env(safe-area-inset-bottom));left:auto;right:14px;width:44px;height:44px;z-index:5}
     .tbody{flex-direction:column}
     .tside{width:auto;flex-direction:row;align-items:center;overflow-x:auto;scrollbar-width:none;border-right:0;border-bottom:1px solid var(--line);padding:6px 8px;gap:4px}
     .tside::-webkit-scrollbar{display:none}
@@ -1584,7 +1581,6 @@
         </div>
       </div>
     </div>
-    <button class="mdt-close" id="stClose" type="button" aria-label="Close staff MDT"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </div>
 </aside>
 <dialog class="st-dlg" id="stDlg"><form method="dialog"><h2 id="stDlgT">Warn</h2><p id="stDlgP"></p><textarea id="stDlgR" maxlength="180"></textarea><div class="st-chips" id="stDlgC"></div>
@@ -1627,7 +1623,6 @@
         </div>
       </div>
     </div>
-    <button class="mdt-close" id="cvClose" type="button" aria-label="Close civilian tab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </div>
 </aside>
 <!-- civ:end -->
@@ -1777,7 +1772,6 @@
       </div>
       <span class="homebar"></span>
     </div>
-    <button class="mdt-close" id="mdtClose" type="button" aria-label="Close MDT"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </div>
 </aside>
 
@@ -2395,7 +2389,6 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   // every department (only yours opens) but not Civilian. Not in game: everything shows. Server staff (mod and up) always see it all.
   const onCivTeam = () => !OFF.civ && !!(window.ME && window.ME.team && !window.ME.dept);   // with the Civilian tab off, civilians see the CAD like anyone not in game
   const updateTabs = () => { if (!gated() || STAFF) return; const civ = onCivTeam(), dept = !!myDept(); window.__civOnly = civ; window.__deptOnly = dept;
-    const cvx = document.getElementById('cvClose'); if (cvx) cvx.hidden = civ;
     tabs.forEach(t => { const v = t.dataset.view; t.hidden = civ ? (v === 'dispatch' || v === 'mdt') : dept ? v === 'civ' : false; });
     if (mdtBtn) mdtBtn.hidden = civ;
     const cur = document.body.dataset.view;
@@ -2413,7 +2406,6 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     if (d) { setView('mdt', d); toastMsg(`You're on the ${DEPT_NAME[d]} team now, so its MDT is open.`); }
     else { setView('dispatch'); toastMsg(`You left the ${DEPT_NAME[prev] || 'department'} team, so its MDT closed.`); } });
   if (mdtBtn) mdtBtn.addEventListener('click', () => { const d = myDept() || (gated() ? null : 'fd'); if (!d) return canOpen('fd'); if (document.body.dataset.view !== 'dispatch') setView('dispatch'); if (document.body.classList.contains('mdt-open')) openMdt(false); else setView('mdt', d); });
-  document.getElementById('mdtClose').addEventListener('click', () => setView('dispatch'));
   tabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.view === 'mdt') { if (canOpen(t.dataset.dept)) setView('mdt', t.dataset.dept); } else if (t.dataset.view) setView(t.dataset.view); else tabs.forEach(x => x.setAttribute('aria-selected', x === t)); }));
   document.body.dataset.view = 'dispatch';
 
@@ -4092,7 +4084,6 @@ body.voice-snap .stage{transition:none!important}
   const RK = { member: 1, mod: 2, staff: 3, admin: 3, co_owner: 4, owner: 5 }[OV && OV.role] || (OV ? 0 : 5);
   const isStaff = RK >= 2, canBan = RK >= 3, isAdmin = RK >= 4;
   if (OV && !isStaff) { tab.remove(); dispatchEvent(new Event('resize')); return; }             // members never see the staff tab
-  const toDispatch = () => document.querySelector('.menu [data-view="dispatch"]').click(); $('stClose').addEventListener('click', toDispatch);
   if (!OV) { page.querySelector('.tscreens').innerHTML = '<div class="st-gate" style="height:100%"><div><b>Server Staff</b>Open your server\'s CAD from the dashboard to use the staff tools.</div></div>'; return; }
   const API = OV.api + '/staff', post = (p, b) => fetch(API + p, { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(b) }).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong.'); return j; });
   const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -4300,7 +4291,6 @@ body.voice-snap .stage{transition:none!important}
 (() => {
   const OV = window.OVERSITE, tab = document.querySelector('.menu [data-view="civ"]'), page = document.getElementById('civMdt'); if (!tab || !page) return;
   const $ = id => document.getElementById(id), offK = k => document.body.classList.contains('off-' + k);   // a part switched off in Settings → Features
-  const toDispatch = () => document.querySelector('.menu [data-view="dispatch"]').click(); $('cvClose').addEventListener('click', toDispatch);
   const clock = () => { $('cvClock').textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }; clock(); setInterval(clock, 15000);
   if (!OV) { page.querySelector('.tscreens').innerHTML = '<div class="st-gate" style="height:100%"><div><b>Civilian</b>Open your server\'s CAD from the dashboard to use your wallet, bills and ID.</div></div>'; return; }
   const API = OV.api + '/civ', post = (p, b) => fetch(API + p, { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(b || {}) }).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong.'); return j; });
