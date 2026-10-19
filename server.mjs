@@ -437,6 +437,14 @@ const communityApi = async (req, res, slug, rest) => {
     const w = String((await jsonBody(req)).with || '').trim(); if (w && (!/^\d{1,20}$/.test(w) || w === String(user.roblox_id))) return json(res, { error: 'Pick a teammate to ride with.' }, 400);
     const R = rideWith.all(c.id); if (w && R[w] === String(user.roblox_id)) rideWith.set(c.id, w, '');   // they were riding with you: now you ride with them instead
     rideWith.set(c.id, String(user.roblox_id), w); const out = { of: unitMembers.all(c.id), ride: rideWith.all(c.id) }; f.bcast('unitsof', JSON.stringify(out)); return json(res, { ok: true, ...out }); }
+  // Flock cameras (preview/flock.js, from Dispatch's map controls and the police MDT): every member sees the cameras and what they
+  // caught lately; admins and up place and move them here too (the same settings as Server Staff, Mapping, Cameras)
+  if (rest === 'flock' || rest === 'flock/save') { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    if (!features.on(c, 'alpr')) return json(res, { error: 'This server has switched off the plate reader, which Flock cameras use.' }, 403);
+    if (rest === 'flock/save') { if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can change cameras.' }, 403);
+      const r = cameras.save(c, await jsonBody(req)); if (r.error) return json(res, r, 400); console.log(`flock: ${c.slug} cameras saved by ${user.roblox_name || user.name}`); }
+    else if (M !== 'GET') return json(res, { error: 'Not found.' }, 404);
+    return json(res, { ...cameras.of(c), ranges: cameras.RANGES, max: cameras.MAX, log: cameras.log(c), off: mapOff(c), edit: can(role, 'admin') }); }
   // Mapping, in the CAD's Server Staff panel: boundaries (presets of areas per team, the live one enforced in game, app/bounds.mjs)
   // and safe zones (app/safezones.mjs). Staff can look; admins and up change them. Not Premium: Boundaries has always been free.
   if ((rest === 'bounds' || rest === 'safezones' || rest === 'cameras') && (M === 'GET' || M === 'POST')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403);

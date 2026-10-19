@@ -30,7 +30,7 @@
 #monDlg .log time{font-size:11.5px;color:#62666D}#monDlg .log .bad{color:#F3A0A0}#monDlg .empty{font-size:12.5px;color:#62666D;margin:0}
 #monDlg .mon-pick{position:relative;display:grid}#monDlg .mon-pick input{width:100%}#monDlg .mon-pick ul{position:absolute;z-index:3;left:0;right:0;top:100%;margin:4px 0 0;padding:4px;list-style:none;border-radius:10px;background:#1c1d21;border:1px solid rgba(255,255,255,.14);max-height:220px;overflow:auto}
 #monDlg .mon-pick li button{width:100%;text-align:left;font:inherit;font-size:13px;padding:7px 9px;border:0;border-radius:7px;background:none;color:#E9EAEC;cursor:pointer}#monDlg .mon-pick li button:hover{background:rgba(255,255,255,.07)}
-#monDlg .wt-map{position:relative;min-height:0;background:#0b1113}#monDlg svg{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none}#monDlg svg.drawing{cursor:crosshair}
+#monDlg .wt-map{position:relative;min-height:0;background:#3E6972}#monDlg svg{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none}#monDlg svg.drawing{cursor:crosshair}
 #monDlg .zm{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.14);background:rgba(13,20,22,.88)}
 #monDlg .zm button{width:34px;height:34px;border:0;background:none;color:#ECEDEF;font:500 17px/1 inherit;cursor:pointer}#monDlg .zm button+button{border-top:1px solid rgba(255,255,255,.08)}
 #monDlg .hint{position:absolute;left:12px;right:60px;bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;border-radius:10px;background:rgba(13,20,22,.9);font-size:12px;color:#C9CDD3}#monDlg .hint:empty{display:none}#monDlg .hint span{flex:1 1 200px}
@@ -43,10 +43,13 @@
   const el = (tag, at = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (parent) parent.appendChild(e); return e; };
   el('image', { href: '/liberty-county.jpg', width: SIZE, height: SIZE, preserveAspectRatio: 'none' }, svg);
   const gA = el('g', {}, svg), gD = el('g', {}, svg), gP = el('g', {}, svg);
-  let vb = [0, 0, SIZE, SIZE]; const setVB = () => svg.setAttribute('viewBox', vb.map(v => v.toFixed(1)).join(' ')); setVB();
+  let vb = [0, 0, SIZE, SIZE]; const setVB = () => { const w = Math.min(SIZE, vb[2]), cw = svg.clientWidth || 1, ch = svg.clientHeight || 1;   // never past the edge of the map:
+    const sx = w * (1 - Math.min(1, cw / ch)) / 2, sy = w * (1 - Math.min(1, ch / cw)) / 2, lim = (v, s) => Math.max(-s, Math.min(SIZE - w + s, v));   // (the box is cropped to the panel's shape)
+    vb = [lim(vb[0], sx), lim(vb[1], sy), w, w];
+    svg.setAttribute('viewBox', vb.map(v => v.toFixed(1)).join(' ')); }; setVB();
   const px = () => vb[2] / (svg.clientWidth || 600);
   const toMap = e => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse()); return [Math.round(q.x * 10) / 10, Math.round(q.y * 10) / 10]; };
-  const zoom = (f, at) => { const [cx, cy] = at || [vb[0] + vb[2] / 2, vb[1] + vb[3] / 2], w = Math.min(SIZE * 1.1, Math.max(200, vb[2] * f));
+  const zoom = (f, at) => { const [cx, cy] = at || [vb[0] + vb[2] / 2, vb[1] + vb[3] / 2], w = Math.min(SIZE, Math.max(200, vb[2] * f));
     vb = [cx - (cx - vb[0]) * w / vb[2], cy - (cy - vb[1]) * w / vb[3], w, w]; setVB(); draw(); };
   const fitTo = pts => { if (!pts.length) { vb = [0, 0, SIZE, SIZE]; setVB(); draw(); return; } const xs = pts.map(q => q[0]), zs = pts.map(q => q[1]);
     const w = Math.max(500, Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)) * 1.5, cx = (Math.max(...xs) + Math.min(...xs)) / 2, cz = (Math.max(...zs) + Math.min(...zs)) / 2;

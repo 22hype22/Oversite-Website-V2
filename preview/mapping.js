@@ -38,7 +38,7 @@
 .mp-rec{display:grid}.mp-rec div{display:grid;grid-template-columns:52px minmax(0,1fr);gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:12.5px;color:#E3E5E8}.mp-rec div:first-child{border-top:0}
 .mp-rec time{font-size:11.5px;color:var(--faint);padding-top:1px}.mp-rec small{display:block;color:var(--mute);font-size:11.5px;margin-top:1px}.mp-rec .bad{color:#F3A0A0}
 .mp-mapcol{display:flex;flex-direction:column;min-height:0;gap:10px}
-.mp-map{position:relative;flex:1;min-height:0;border-radius:12px;overflow:hidden;border:1px solid var(--hair2,rgba(255,255,255,.14));background:#0b1113}
+.mp-map{position:relative;flex:1;min-height:0;border-radius:12px;overflow:hidden;border:1px solid var(--hair2,rgba(255,255,255,.14));background:#3E6972}
 .mp-map svg{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none}.mp-map svg:active{cursor:grabbing}.mp-map svg.drawing{cursor:crosshair}.mp-map:has(svg.drawing){outline:2px solid rgba(240,242,245,.35);outline-offset:-2px}
 .mp-map .mp-poly,.mp-map .mp-other{cursor:pointer}.mp-map .mp-pt{cursor:move}.mp-map .mp-mid{cursor:copy}
 .mp-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1px solid var(--hair2,rgba(255,255,255,.14));background:rgba(13,20,22,.86)}
@@ -69,10 +69,13 @@
   const el = (tag, at = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (parent) parent.appendChild(e); return e; };
   const img = el('image', { href: 'liberty-county.jpg', width: SIZE, height: SIZE, preserveAspectRatio: 'none' }, svg);
   const gO = el('g', {}, svg), gA = el('g', {}, svg), gD = el('g', {}, svg), gP = el('g', { 'pointer-events': 'none' }, svg);
-  const setVB = () => svg.setAttribute('viewBox', vb.map(v => v.toFixed(1)).join(' ')); setVB();
+  const setVB = () => { const w = Math.min(SIZE, vb[2]), cw = svg.clientWidth || 1, ch = svg.clientHeight || 1;   // never past the edge of the map:
+    const sx = w * (1 - Math.min(1, cw / ch)) / 2, sy = w * (1 - Math.min(1, ch / cw)) / 2, lim = (v, s) => Math.max(-s, Math.min(SIZE - w + s, v));   // (the box is cropped to the panel's shape)
+    vb = [lim(vb[0], sx), lim(vb[1], sy), w, w];
+    svg.setAttribute('viewBox', vb.map(v => v.toFixed(1)).join(' ')); }; setVB();
   const px = () => vb[2] / (svg.clientWidth || 600);
   const toMap = e => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse()); return [Math.round(q.x * 10) / 10, Math.round(q.y * 10) / 10]; };
-  const zoom = (f, at) => { const [cx, cy] = at || [vb[0] + vb[2] / 2, vb[1] + vb[3] / 2], w = Math.min(SIZE * 1.1, Math.max(250, vb[2] * f));
+  const zoom = (f, at) => { const [cx, cy] = at || [vb[0] + vb[2] / 2, vb[1] + vb[3] / 2], w = Math.min(SIZE, Math.max(250, vb[2] * f));
     vb = [cx - (cx - vb[0]) * w / vb[2], cy - (cy - vb[1]) * w / vb[3], w, w]; setVB(); draw(); };
 
   // ── what each mode puts on the map. items(): the areas you edit now ({ pts, name, color, dashed }); others(): faint areas you can

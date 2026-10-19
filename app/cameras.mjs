@@ -33,5 +33,5 @@ export const check = (c, body) => { if (!active(c)) return []; let j; try { j = 
     const f = flagReasons(c.id, plate); if (!f || !f.why.length) continue; seen.set(key, t); if (seen.size > 5000) seen.clear();
     const h = { plate, vehicle: [f.car.color, f.car.model].filter(Boolean).join(' '), owner: f.car.owner || '', owner_rid: f.car.owner_rid || '', reasons: f.why.join(', '),
       camera: cam.name, where: `${cam.name}${postalNear(x, z) ? ', ' + postalNear(x, z) : ''}`, x: x * G2M, y: z * G2M };
-    hits.push(h); const L2 = recent.get(c.id) || []; L2.unshift({ at: t, plate, vehicle: h.vehicle, owner: h.owner, reasons: h.reasons, camera: cam.name }); recent.set(c.id, L2.slice(0, 30)); }
+    hits.push(h); const L2 = recent.get(c.id) || []; L2.unshift({ at: t, plate, vehicle: h.vehicle, owner: h.owner, reasons: h.reasons, camera: cam.name, cam: cam.id }); recent.set(c.id, L2.slice(0, 30)); }
   return hits; };
