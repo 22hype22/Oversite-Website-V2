@@ -3,7 +3,7 @@
 // (a camera that caught one in the last ten minutes glows red). Admins and up can place, move, rename and remove cameras here
 // too: the same cameras as Server Staff, Mapping, Cameras. Drag the map to move around, scroll to zoom.
 (() => { const OV = window.OVERSITE; if (!OV || !OV.api || (OV.features || {}).alpr === false) return;
-  const API = OV.api + '/flock', SIZE = 5355, NS = 'http://www.w3.org/2000/svg', CAM = '#B98CFF', HOT = '#E24B4B';
+  const API = OV.api + '/flock', METRES = { short: 15, normal: 25, long: 40 }, SIZE = 5355, NS = 'http://www.w3.org/2000/svg', CAM = '#B98CFF', HOT = '#E24B4B';
   const ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.4 4.9 21.9 9.95Q22.9 10.5 22 11.15L19.2 12.75Q18.9 12.9 18.6 12.8L5.6 8.4Q4.5 8 4.75 6.95L5.15 5.7Q5.5 4.65 6.4 4.9Z"/><path d="M5.2 8.95 19.85 13.3 19.05 15.25Q18.6 16 17.9 15.75L5.75 11.6Q4.5 11.1 4.75 10.2Z"/><path d="M20.55 12.05 22.6 12.4Q23 12.55 22.85 12.95L21.5 16.1Q21.35 16.35 21.05 16.25L20.1 15.95Q19.6 15.7 19.75 15.2Z"/><path d="M9.95 13.05 11.5 13.45 10.35 15.6 8.85 15.1Z"/><circle cx="9.25" cy="16.25" r="1.35"/><rect x="2.6" y="15.75" width="5.9" height="1.1"/><rect x="1" y="12.9" width="1.95" height="6.3" rx=".5"/></svg>';
   const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const call = async (p, b) => { const r = await fetch(API + p, b ? { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(b) } : { cache: 'no-store' });
@@ -62,11 +62,11 @@
   // ── the map ──
   const draw = () => { gC.textContent = ''; if (!D) return; const p = px(), r = R();
     for (const k of cams()) { const h = hot(k.id), s = k.id === sel, c = h ? HOT : CAM;
-      el('circle', { cx: k.x, cy: k.z, r, fill: c, 'fill-opacity': s ? .22 : .12, stroke: c, 'stroke-opacity': .7, 'stroke-width': s ? 2.5 : 1.5, 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, gC);
-      el('circle', { cx: k.x, cy: k.z, r: (s ? 8 : 6.5) * p, fill: c, stroke: '#0d1416', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', 'data-c': k.id, style: `cursor:${ed ? 'move' : 'pointer'}` }, gC);
-      el('text', { x: k.x, y: k.z - 14 * p, 'text-anchor': 'middle', 'font-size': 12 * p, 'font-weight': 600, fill: '#fff', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * p, 'pointer-events': 'none' }, gC).textContent = k.name; }
+      el('circle', { cx: k.x, cy: k.z, r, fill: c, 'fill-opacity': s ? .32 : .22, stroke: c, 'stroke-width': s ? 2.5 : 2, 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, gC);   // how far it sees, to scale
+      el('circle', { cx: k.x, cy: k.z, r: Math.min((s ? 8 : 6.5) * p, r * .45), fill: c, stroke: '#0d1416', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', 'data-c': k.id, style: `cursor:${ed ? 'move' : 'pointer'}` }, gC);   // the dot shrinks when zoomed out, so the circle around it always shows
+      el('text', { x: k.x, y: k.z - Math.max(r, 8 * p) - 5 * p, 'text-anchor': 'middle', 'font-size': 12 * p, 'font-weight': 600, fill: '#fff', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * p, 'pointer-events': 'none' }, gC).textContent = k.name; }
     svg.classList.toggle('placing', placing);
-    $('flkHint').textContent = placing ? 'Click the map where the camera is. Esc cancels.' : ed ? 'Drag a camera to move it. Press Add camera for another.' : ''; };
+    $('flkHint').textContent = placing ? 'Click the map where the camera is. Esc cancels.' : ed ? 'Drag a camera to move it. Press Add camera for another.' : cams().length ? `Each circle is how far that camera sees: about ${METRES[(ed || D).range] || 25} m.` : ''; };
 
   // dragging a camera moves it (while editing); anything else pans; a click picks a camera, or places one
   let drag = null;

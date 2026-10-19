@@ -61,7 +61,7 @@
   let mode = 'bounds'; try { mode = localStorage.getItem('ov.mapping') || 'bounds'; } catch (e) {} if (!['bounds', 'safe', 'fire', 'cams'].includes(mode)) mode = 'bounds';
   let sel = -1, draft = null, hover = null, vb = [0, 0, SIZE, SIZE];
   const D = { bounds: null, safe: null, fire: null, cams: null }, dirty = { bounds: false, safe: false, fire: false, cams: false }, errs = {};
-  const CAM = '#B98CFF', CAM_R = { short: 35, normal: 55, long: 90 };   // plate cameras, and how far each sees (ER:LC map pixels)
+  const CAM = '#B98CFF', CAM_R = { short: 35, normal: 55, long: 90 }, CAM_M = { short: 15, normal: 25, long: 40 };   // plate cameras, and how far each sees (ER:LC map pixels)
   let camLog = [], camAlpr = true, placing = false;
   let B = { cur: '', scope: ALL, teams: [], depts: {}, players: [], log: [], connected: true }, calls = [], fireRecent = [], safeLog = [];
 
@@ -98,7 +98,7 @@
       add: pts => { D.fire.areas.push({ name: 'Area ' + (D.fire.areas.length + 1), on: true, pts }); return D.fire.areas.length - 1; }, remove: i => D.fire.areas.splice(i, 1), max: 12,
       key: () => [{ c: AOP, t: 'AOP' }, { c: '#FF8A3D', t: 'Fire' }, { c: '#E9EAEC', t: 'Other call' }] },
     // cameras are points, not areas: they're drawn and moved by their own code below
-    cams: { items: () => [], others: () => [], dots: () => B.players.map(p => ({ x: p.x, z: p.z, fill: '#E9EAEC', name: p.name })), max: 60, key: () => [{ c: CAM, t: 'Plate camera' }] } };
+    cams: { items: () => [], others: () => [], dots: () => B.players.map(p => ({ x: p.x, z: p.z, fill: '#E9EAEC', name: p.name })), max: 60, key: () => [{ c: CAM, t: `Plate camera; the circle is how far it sees, about ${CAM_M[D.cams.range] || 25} m` }] } };
   const M = () => MODES[mode], ready = () => !!D[mode];
 
   const poly = (pts, at, parent) => el('polygon', { points: pts.map(p => p.join(',')).join(' '), 'vector-effect': 'non-scaling-stroke', ...at }, parent);
@@ -114,9 +114,9 @@
       el('polyline', { points: pts.map(p => p.join(',')).join(' '), fill: c, 'fill-opacity': .1, stroke: c, 'stroke-width': 2, 'stroke-dasharray': '7 5', 'vector-effect': 'non-scaling-stroke' }, gD);
       draft.forEach((q, k) => el('circle', { cx: q[0], cy: q[1], r: k ? r * .8 : r * 1.25, fill: k ? c : '#0d1416', stroke: c, 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke' }, gD)); }
     if (mode === 'cams') { const R = CAM_R[D.cams.range] || 55; D.cams.list.forEach((k, i) => { const on = i === sel;
-        el('circle', { cx: k.x, cy: k.z, r: R, fill: CAM, 'fill-opacity': on ? .2 : .12, stroke: CAM, 'stroke-width': on ? 2.5 : 1.5, 'stroke-dasharray': '5 4', 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, gA);
-        el('circle', { cx: k.x, cy: k.z, r: r * 1.3, fill: on ? '#FFFFFF' : CAM, stroke: '#0d1416', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', class: 'mp-cam', 'data-c': i, style: can() ? 'cursor:move' : 'cursor:pointer' }, gA);
-        el('text', { x: k.x + r * 2, y: k.z + r * .5, 'font-size': 12 * px(), 'font-weight': 600, fill: '#fff', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * px(), 'pointer-events': 'none' }, gA).textContent = k.name; }); }
+        el('circle', { cx: k.x, cy: k.z, r: R, fill: CAM, 'fill-opacity': on ? .3 : .2, stroke: CAM, 'stroke-width': on ? 2.5 : 2, 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, gA);
+        el('circle', { cx: k.x, cy: k.z, r: Math.min(r * 1.3, R * .45), fill: on ? '#FFFFFF' : CAM, stroke: '#0d1416', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', class: 'mp-cam', 'data-c': i, style: can() ? 'cursor:move' : 'cursor:pointer' }, gA);   // the dot shrinks when zoomed out, so the circle around it always shows
+        el('text', { x: k.x + Math.max(R, r * 1.3) + 5 * px(), y: k.z + r * .5, 'font-size': 12 * px(), 'font-weight': 600, fill: '#fff', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * px(), 'pointer-events': 'none' }, gA).textContent = k.name; }); }
     for (const d of M().dots()) { const g = el('g', {}, gP); const c = el('circle', { cx: d.x, cy: d.z, r: r * (d.name ? .9 : 1.1), fill: d.fill, stroke: d.ring || '#0d1416', 'stroke-width': d.ring ? 3 : 1.5, 'vector-effect': 'non-scaling-stroke' }, g);
       if (d.title) el('title', {}, c).textContent = d.title;
       if (d.name) el('text', { x: d.x + r * 1.5, y: d.z + r * .5, 'font-size': 11 * px(), fill: '#F0F2F5', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * px() }, g).textContent = d.name; }
