@@ -52,7 +52,7 @@
   .world{position:absolute;left:0;top:0;width:2000px;height:2000px;transform-origin:0 0}
   .world img{position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-drag:none;
     filter:saturate(1.08) brightness(1.18)}
-  body.theme-light .world img,body.theme-labels .world img{filter:saturate(1.02) brightness(.92)}
+  body.theme-light .world img{filter:saturate(1.02) brightness(.92)}
   body.theme-dark .world img{filter:none}
   .world svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .route{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
@@ -1356,7 +1356,7 @@
 </style>
 <script src="/dropdown.js?v=1" defer></script>
 <script src="/license-card.js?v=4" defer></script>
-<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=5" defer></script><script src="/loa.js?v=1" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=3" defer></script><script src="/map-labels.js?v=3" defer></script>
+<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=5" defer></script><script src="/loa.js?v=1" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=3" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
   .mtabs{display:none}
@@ -1435,7 +1435,7 @@
 <!-- ─────────── map ─────────── -->
 <div class="view" id="view" aria-label="Live map">
   <div class="world" id="world">
-    <img alt="" data-hd="liberty-county-hd.jpg" data-labels="liberty-county-labels.jpg" data-hd-labels="liberty-county-labels-hd.jpg">
+    <img alt="" data-hd="liberty-county-hd.jpg">
     <svg viewBox="0 0 2000 2000" aria-hidden="true">
     </svg>
   </div>
@@ -1835,7 +1835,6 @@
       <button id="zlayers" aria-label="Map style" aria-haspopup="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5"/></svg></button>
       <div class="fly"><div class="flyout" role="group" aria-label="Map style">
         <button role="menuitemradio" data-dim="2d" data-theme="light" aria-checked="false"><span class="thumb light"><i></i></span>2D</button>
-        <button role="menuitemradio" data-dim="2d" data-theme="labels" aria-checked="false"><span class="thumb labels"><i></i></span>2D Labels</button>
         <button role="menuitemradio" data-dim="2d" data-theme="dark" aria-checked="false"><span class="thumb dark"><i></i></span>2D Dark</button>
       </div></div>
     </div>
@@ -2867,7 +2866,6 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
         const known = !u.live || !!u.headingKnown; if (p.classList.contains('nohead') === known) p.classList.toggle('nohead', !known); }   // no arrow until the unit has really moved
       p.style.translate = `${tx + p.dataset.x * s}px ${ty + p.dataset.y * s}px`;   // GPU translate: no layout per frame
     }
-    window.mapLabels?.draw(tx, ty, s);   // street names and postals stay readable at any zoom (map-labels.js)
   };
   let fly = null;                                                       // { x0,y0,s0, x1,y1,s1, t0, ms }
   const ease = t => 1 - Math.pow(1 - t, 3);
@@ -2917,10 +2915,8 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   let hdImg = null; if (img.dataset.hd && /^https?:$/.test(location.protocol)) { hdImg = new Image(); hdImg.className = 'hd'; hdImg.alt = ''; hdImg.decoding = 'async'; hdImg.onload = () => { hdImg.decode?.().catch(() => {}).finally(() => { world.insertBefore(hdImg, img.nextSibling); pickSrc(); }); }; hdImg.src = img.dataset.hd; }
   const pickSrc = () => { const dark = img.getAttribute('src') === img.dataset.dark; world.classList.toggle('zoomed', !dark && !!hdImg && hdImg.parentNode && s >= 1.25); };
   window.map2d = { zoomIn: () => zoomAt(1.25, ...center()), zoomOut: () => zoomAt(.8, ...center()), fit, flyTo, pickSrc, screenToWorld: (cx, cy) => [(cx - tx) / s, (cy - ty) / s],
-    // "2D Labels": the plain map with the names drawn on top at a readable size (map-labels.js); the picture with them painted on until those load
-    setTheme: t => { window.mapLabels?.show(t === 'labels'); const live = t === 'labels' && !!window.mapLabels?.ready();
-      const want = img.dataset[t === 'dark' ? 'dark' : t === 'labels' && !live && img.dataset.labels ? 'labels' : 'light']; if (want && img.getAttribute('src') !== want) img.setAttribute('src', want);
-      const hd = t === 'labels' && !live && img.dataset.hdLabels ? img.dataset.hdLabels : img.dataset.hd; if (hdImg && hd && !hdImg.src.endsWith(hd)) { hdImg.remove(); hdImg.src = hd; }   // the street-name map has its own full-resolution picture
+    setTheme: t => { const want = img.dataset[t === 'dark' ? 'dark' : 'light']; if (want && img.getAttribute('src') !== want) img.setAttribute('src', want);
+      const hd = img.dataset.hd; if (hdImg && hd && !hdImg.src.endsWith(hd)) { hdImg.remove(); hdImg.src = hd; }
       pickSrc(); } };
   document.getElementById('zin').onclick  = window.map2d.zoomIn;
   document.getElementById('zout').onclick = window.map2d.zoomOut;
@@ -3507,7 +3503,7 @@ body.voice-snap .stage{transition:none!important}
     const u = myUnit(), c = (window.CALLS || []).find(k => k.startedAt === callT);
     if (!c) { Q('.nav-ic').innerHTML = svg('arrive'); Q('.nav-top b').textContent = 'Call closed'; Q('.nav-top span').textContent = 'This call was cleared.'; return; }
     if (!u) { Q('.nav-top b').textContent = 'Not on duty'; Q('.nav-top span').textContent = 'Join your team in ER:LC to get directions.'; return; }
-    let src = document.querySelector('#world img')?.currentSrc || document.querySelector('#world img')?.src || 'liberty-county.jpg'; if (/^https?:$/.test(location.protocol) && !/dark/.test(src)) src = /labels/.test(src) ? 'liberty-county-labels-hd.jpg' : 'liberty-county-hd.jpg'; if (src !== imgSrc) { imgSrc = src; img.src = src; }
+    let src = document.querySelector('#world img')?.currentSrc || document.querySelector('#world img')?.src || 'liberty-county.jpg'; if (/^https?:$/.test(location.protocol) && !/dark/.test(src)) src = 'liberty-county-hd.jpg'; if (src !== imgSrc) { imgSrc = src; img.src = src; }
     if (!R) route(u, c);
     let pos = along(u.x, u.y);
     if (pos.off > 16 && performance.now() - rAt > 700) { route(u, c); pos = along(u.x, u.y); say('Rerouting'); }   // left the route: find a new one from here
@@ -4477,7 +4473,7 @@ body.voice-snap .stage{transition:none!important}
   const gpsKick = () => { if (!gRaf && D?.job && page.querySelector('.trip')) gRaf = requestAnimationFrame(gpsFrame); };
   const gpsFrame = () => { gRaf = 0; const K = window.NAVKIT, J = D?.job, boxes = [...page.querySelectorAll('.trip')].filter(b => b.offsetParent); if (!J || !boxes.length || !K) return; gRaf = requestAnimationFrame(gpsFrame);
     const st = J.steps[J.step] || {}, me = myPos(), key = J.id + ':' + J.step; if (key !== gKey) { gKey = key; gR = null; gRot = null; }
-    let src = document.querySelector('#world img')?.currentSrc || document.querySelector('#world img')?.src || 'liberty-county.jpg'; if (/^https?:$/.test(location.protocol) && !/dark/.test(src)) src = /labels/.test(src) ? 'liberty-county-labels-hd.jpg' : 'liberty-county-hd.jpg'; if (src !== gSrc) { gSrc = src; gImg.src = src; }
+    let src = document.querySelector('#world img')?.currentSrc || document.querySelector('#world img')?.src || 'liberty-county.jpg'; if (/^https?:$/.test(location.protocol) && !/dark/.test(src)) src = 'liberty-county-hd.jpg'; if (src !== gSrc) { gSrc = src; gImg.src = src; }
     const u = me && [me[0] * G2M, me[1] * G2M], last = J.steps.slice(0, J.step + 1).reverse().find(x => x.x != null), t = st.x != null ? [st.x * G2M, st.z * G2M] : null;
     let ic = 'arrive', big = st.what || '', sub = '', chip = '', eta = '–', mi = '–', pos = null, want = -Math.PI / 2;
     if (t && u) { if (!gR) gRoute(u[0], u[1], t[0], t[1]); pos = gAlong(u[0], u[1]); if (pos.off > 16 && performance.now() - gAt > 700) { gRoute(u[0], u[1], t[0], t[1]); pos = gAlong(u[0], u[1]); }
@@ -5012,13 +5008,13 @@ const slow = (() => { try { const c = document.createElement('canvas'), g = c.ge
   return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(r); } catch (e) { return false; } })();
 if (slow) { body.classList.add('lowgpu'); const st = document.createElement('style'); st.textContent = 'body.lowgpu{--blur:none;--glass:rgba(13,13,15,.88);--glass2:rgba(20,20,23,.9)}'; document.head.appendChild(st); }
 let saved = null; try { saved = JSON.parse(localStorage.getItem('ov.mapstyle') || 'null'); } catch (e) {}
-const state = { dim: '2d', theme: saved && saved.dim === '2d' && ['dark', 'labels'].includes(saved.theme) ? saved.theme : 'light' };   // an old 3D choice opens the light 2D map
+const state = { dim: '2d', theme: saved && saved.dim === '2d' && saved.theme === 'dark' ? 'dark' : 'light' };   // an old 3D or 2D Labels choice opens the light 2D map
 const remember = () => { try { localStorage.setItem('ov.mapstyle', JSON.stringify(state)); } catch (e) {} };
 const L = document.getElementById('mapsrc').getAttribute('href'), D = document.getElementById('mapsrc-dark').getAttribute('href');
-const img2d = document.querySelector('.view img'); img2d.dataset.light = L; img2d.dataset.dark = D; const LB = img2d.dataset.labels;
-for (const t of picker.querySelectorAll('.thumb i')) { const c = t.parentElement.classList; t.style.backgroundImage = `url("${c.contains('dark') ? D : c.contains('labels') ? LB : L}")`; }
+const img2d = document.querySelector('.view img'); img2d.dataset.light = L; img2d.dataset.dark = D;
+for (const t of picker.querySelectorAll('.thumb i')) { const c = t.parentElement.classList; t.style.backgroundImage = `url("${c.contains('dark') ? D : L}")`; }
 const apply = () => {
-  body.classList.add('mode-2d'); for (const t of ['dark', 'light', 'labels']) body.classList.toggle('theme-' + t, state.theme === t);
+  body.classList.add('mode-2d'); for (const t of ['dark', 'light']) body.classList.toggle('theme-' + t, state.theme === t);
   window.map2d.setTheme(state.theme);
   for (const b of picker.querySelectorAll('[data-dim]')) b.setAttribute('aria-checked', b.dataset.theme === state.theme);
   dispatchEvent(new CustomEvent('maptheme', { detail: { ...state } }));

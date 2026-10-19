@@ -8,7 +8,7 @@ const q = sql => db.prepare(sql);
 export const OPTIONS = {
   call: ['station', 'pager', 'chime', 'soft'], panic: ['erlc', 'siren', 'klaxon'],
   accent: ['dept', 'blue', 'teal', 'violet', 'amber', 'gold', 'rose'], wall: ['none', 'grid', 'topo', 'carbon', 'glow'], frame: ['graphite', 'silver', 'gold', 'white'],
-  map: ['', '2d-light', '2d-labels', '2d-dark'] };   // the 3D map was removed: a saved 3D choice falls back to the default
+  map: ['', '2d-light', '2d-dark'] };   // the 3D map and the 2D Labels map were removed: a saved choice of either falls back to the default
 export const DEFAULTS = { call: 'station', panic: 'erlc', vol: 90, accent: 'dept', wall: 'none', frame: 'graphite', map: '' };
 
 const pick = (k, v) => OPTIONS[k].includes(v) ? v : DEFAULTS[k];
