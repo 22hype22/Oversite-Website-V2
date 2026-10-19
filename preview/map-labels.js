@@ -29,7 +29,8 @@
       cells(x0, y0, x1, y1, g => { if (!clash) for (const r of grid.get(g) || []) if (Math.min(x1, r[2]) - Math.max(x0, r[0]) > 0 && Math.min(y1, r[3]) - Math.max(y0, r[1]) > 0) { clash = true; break; } });
       if (clash) return; out.add(i); const r = [x0, y0, x1, y1]; cells(x0, y0, x1, y1, g => { if (!grid.has(g)) grid.set(g, []); grid.get(g).push(r); }); });
     shown = out; shownFor = s; };
-  const draw = (tx, ty, s) => { st = [tx, ty, s]; if (!on || !L || !sheet || document.body.classList.contains('mode-3d')) { if (cv && last) { ctx.clearRect(0, 0, cv.width, cv.height); last = ''; } return; }
+  // off (any other map style, or 3D): wipe what was drawn, whatever the last frame was
+  const draw = (tx, ty, s) => { st = [tx, ty, s]; if (!on || !L || !sheet || document.body.classList.contains('mode-3d')) { if (cv && last !== 'off') { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); last = 'off'; } return; }
     const c = canvas(); if (!c) return; const dpr = Math.min(2, devicePixelRatio || 1), W = innerWidth, H = innerHeight;
     const key = `${tx.toFixed(1)},${ty.toFixed(1)},${s.toFixed(4)},${W},${H},${dpr}`; if (key === last) return; last = key;
     if (!shown) pick(s);
