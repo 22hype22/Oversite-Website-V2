@@ -195,7 +195,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (rest === 'bots' && M === 'GET') return json(res, info());
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req), id = String(j.id || '');
     const r = rest === 'bots/create' ? await bots.create(c, j, prem, user.roblox_name || user.name) : rest === 'bots/update' ? await bots.update(c, id, j) : rest === 'bots/rotate' ? bots.rotate(c, id, j.what)
-      : rest === 'bots/test' ? await bots.test(c, id) : rest === 'bots/delete' ? bots.remove(c, id) : { error: 'Not found.' };
+      : rest === 'bots/test' ? await bots.test(c, id) : rest === 'bots/delete' ? bots.remove(c, id) : rest === 'bots/link' ? await bots.link(c, j.code, prem, user.roblox_name || user.name) : { error: 'Not found.' };
     if (!r.error && rest !== 'bots/test') console.log(`bots: ${c.slug} ${rest.slice(5)} ${id || r.bot?.id || ''} by ${user.roblox_name || user.name}`);
     return json(res, { ...info(), ...r }, r.error ? 400 : 200); }
   if (rest === 'srvstatus' && M === 'GET') return json(res, srvStatus.view(c, can(role, 'co_owner')));

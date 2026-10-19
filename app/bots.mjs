@@ -40,7 +40,7 @@ const store = (c, L) => { const s = communities.byId(c.id).settings; s.bots = L;
 const used = new Map(), stat = new Map();   // bot id -> last request time and count; bot id -> how its events are getting through (in memory)
 
 // what the settings page sees: never the key or the signing secret
-export const view = b => ({ id: b.id, name: b.name, scopes: b.scopes, hint: b.hint, created: b.created, by: b.by, hook: b.hook ? { url: b.hook.url, events: b.hook.events } : null,
+export const view = b => ({ id: b.id, name: b.name, scopes: b.scopes, hint: b.hint, created: b.created, by: b.by, oversite: !!b.oversite, hook: b.hook ? { url: b.hook.url, events: b.hook.events } : null,
   used: used.get(b.id)?.at || b.used || null, uses: used.get(b.id)?.n || 0, delivery: stat.get(b.id) || null });
 export const list = c => list0(c).map(view);
 export const max = prem => prem ? PREMIUM_BOTS : FREE_BOTS;
@@ -74,7 +74,29 @@ export const update = async (c, id, j) => { const L = list0(c), i = L.findIndex(
   return { ok: true, bot: view(L[i]), secret: fresh ? unseal(L[i].hook.secret) : undefined }; };
 export const rotate = (c, id, what) => { const L = list0(c), b = L.find(x => x.id === id); if (!b) return { error: 'That bot isn’t connected any more.' };
   if (what === 'secret') { if (!b.hook) return { error: 'This bot has no events link.' }; const secret = 'whsec_' + randomBytes(24).toString('base64url'); b.hook.secret = seal(secret); store(c, L); return { ok: true, bot: view(b), secret }; }
+  if (b.oversite) return { error: 'Oversite keeps this bot’s key. To link it again, use a new code from the bot’s page on oversite.shop.' };
   const key = `ovb_${b.id}_${randomBytes(30).toString('base64url')}`; b.key = sha(key); b.hint = key.slice(-4); store(c, L); return { ok: true, bot: view(b), key }; };
+// Linking one of the server's Oversite bots (bought on oversite.shop): its owner reads a code off the bot's page there (it
+// changes every minute) and types it here. Oversite checks the code and keeps the bot's key itself, so nobody copies a key.
+const LINK_URL = process.env.OVERSITE_LINK_URL || 'https://kqhyjxtylvigrezlxzpl.supabase.co/functions/v1/cad-link';
+const LINK_KIND = { department: 'department', dispatch: 'department', roleplay: 'roleplay', customs: 'roleplay', protection: 'moderation' };
+export const link = async (c, code, prem, by) => { const secret = process.env.CAD_LINK_SECRET || ''; if (!secret) return { error: 'Linking Oversite bots isn’t set up on this site yet.' };
+  const clean = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (clean.length !== 8) return { error: 'The code is 8 letters and numbers. Copy it from the bot’s page on oversite.shop.' };
+  const L = list0(c); if (L.length >= max(prem) && !L.some(b => b.oversite)) return { error: prem ? `A server can connect up to ${PREMIUM_BOTS} bots. Disconnect one first.` : `Free servers can connect ${FREE_BOTS} bot. Disconnect it first, or get Premium for up to ${PREMIUM_BOTS}.` };
+  const id = randomBytes(5).toString('hex'), key = `ovb_${id}_${randomBytes(30).toString('base64url')}`; let r;
+  try { const x = await fetch(LINK_URL, { method: 'POST', signal: AbortSignal.timeout(10000), headers: { 'content-type': 'application/json', 'x-cad-link-secret': secret },
+      body: JSON.stringify({ code: clean, key, server: { name: c.name, slug: c.slug }, cad_bot_id: id }) });
+    r = await x.json().catch(() => ({})); if (!x.ok && !r.error) r.error = `Oversite answered ${x.status}. Try again in a minute.`; }
+  catch (e) { return { error: 'Oversite couldn’t be reached. Try again in a minute.' }; }
+  if (!r.ok) return { error: r.error || 'That code didn’t work.' };
+  // linked somewhere before: that link's key is no longer the bot's, so its old entry goes (here or on the other server)
+  if (r.previous_slug && r.previous_cad_bot_id && r.previous_slug !== c.slug) { const pc = communities.all().find(x => x.slug === r.previous_slug); if (pc) store(pc, list0(pc).filter(b => b.id !== r.previous_cad_bot_id)); }
+  const old = L.findIndex(b => b.oversite === r.bot_id || (r.previous_cad_bot_id && b.id === r.previous_cad_bot_id));
+  if (old < 0 && L.length >= max(prem)) return { error: `This server is at its limit of ${max(prem)} connected bots. Disconnect one, then use a new code.` };
+  const p = PRESETS[LINK_KIND[String(r.base || '').split(/[^a-z]/)[0]]] || PRESETS.readonly;
+  const b = { id, name: T(r.bot_name, 40) || 'Oversite bot', scopes: [...p.scopes], hook: null, key: sha(key), hint: key.slice(-4), created: Date.now(), by: T(by, 40), oversite: String(r.bot_id) };
+  store(c, old >= 0 ? L.map((x, i) => (i === old ? b : x)) : [...L, b]);
+  return { ok: true, bot: view(b), linked: true }; };
 export const remove = (c, id) => { store(c, list0(c).filter(b => b.id !== id)); used.delete(id); stat.delete(id); return { ok: true }; };
 
 // a key to its server and bot; a server over its plan's limit (Premium ended) keeps only its first bot working

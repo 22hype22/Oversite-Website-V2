@@ -9,14 +9,14 @@
     const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong (' + r.status + ')'); return j; };
   const confirmIt = o => typeof ask === 'function' ? ask(o) : Promise.resolve(confirm(o.title));
   const ago = t => { if (!t) return 'never'; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' days ago'; };
-  let S = null, editing = null, reveal = null;   // the server's bots; the bot being edited ('new' for a new one); a key or secret to show once
+  let S = null, editing = null, reveal = null;   // the server's bots; the bot being edited ('new' for a new one, 'link' for an Oversite bot); a key or secret to show once
 
   const card = b => {
     const ev = b.hook ? '<div class="bt-ev">Events go to <b>' + e(b.hook.url) + '</b> (' + b.hook.events.length + ' kind' + (b.hook.events.length === 1 ? '' : 's') + ')' +
       (b.delivery ? '. Last sent ' + ago(b.delivery.at) + ': ' + (b.delivery.ok ? '<span class="ok">delivered</span>' : '<span class="bad">' + e(b.delivery.error) + '</span>') : '. Nothing sent yet.') + '</div>' : '';
-    return '<div class="bt" data-id="' + e(b.id) + '"><div class="bt-h"><b>' + e(b.name) + '</b><small>Key ending ' + e(b.hint) + ' · ' + (b.used ? 'last used ' + ago(b.used) : 'not used yet') + '</small><span class="sp"></span></div>' +
+    return '<div class="bt" data-id="' + e(b.id) + '"><div class="bt-h"><b>' + e(b.name) + '</b><small>' + (b.oversite ? 'Oversite bot, linked with a code' : 'Key ending ' + e(b.hint)) + ' · ' + (b.used ? 'last used ' + ago(b.used) : 'not used yet') + '</small><span class="sp"></span></div>' +
       '<div class="bt-perms">' + b.scopes.map(s => '<span>' + e((D.scopes[s] || [s])[0]) + '</span>').join('') + '</div>' + ev +
-      '<div class="bt-acts"><button type="button" class="btn sm" data-act="edit">Edit</button><button type="button" class="btn sm" data-act="key">New key</button>' +
+      '<div class="bt-acts"><button type="button" class="btn sm" data-act="edit">Edit</button>' + (b.oversite ? '' : '<button type="button" class="btn sm" data-act="key">New key</button>') +
       (b.hook ? '<button type="button" class="btn sm" data-act="test">Send a test event</button><button type="button" class="btn sm" data-act="secret">New signing secret</button>' : '') +
       '<button type="button" class="btn sm danger" data-act="del">Disconnect</button></div>' + (reveal && reveal.id === b.id ? keyBox(b) : '') + (editing === b.id ? form(b) : '') + '</div>'; };
 
@@ -37,13 +37,25 @@
       '<div class="bt-checks" id="btEvents" style="margin-top:10px">' + Object.entries(D.events).map(([k, [t, need]]) => '<label data-need="' + need + '"><input type="checkbox" name="event" value="' + k + '"' + (ev.has(k) ? ' checked' : '') + '><b>' + e(t) + '</b><small>' + e(k) + '</small></label>').join('') + '</div>' +
       '<div class="bt-acts" style="margin-top:16px"><button class="btn pri">' + (isNew ? 'Connect bot' : 'Save') + '</button><button type="button" class="btn sm" data-act="cancel">Cancel</button></div></form>'; };
 
+  // an Oversite bot: its owner types the code from the bot's page on oversite.shop; Oversite keeps the key
+  const linkForm = () => '<form class="bt-f" id="btL"><h3>Link an Oversite bot</h3>' +
+    '<p class="note" style="margin:0 0 10px">For bots bought on oversite.shop. Open the bot’s page there and find <b>Link to your CAD</b>. Type the code it shows. It changes every minute, so use it right away. Only the bot’s owner can see it.</p>' +
+    '<span class="bt-lbl">Code</span><input name="code" maxlength="9" placeholder="ABCD 2345" autocomplete="off" spellcheck="false" style="text-transform:uppercase;letter-spacing:.12em;font-family:ui-monospace,monospace">' +
+    '<div class="bt-acts" style="margin-top:16px"><button class="btn pri">Link bot</button><button type="button" class="btn sm" data-act="cancel">Cancel</button></div></form>';
+
   const draw = () => { document.getElementById('btCount').textContent = S.bots.length ? S.bots.length + ' of ' + S.max : '';
     const full = S.bots.length >= S.max;
     body.innerHTML = (S.on ? '' : '<p class="msg err">Connected bots are switched off under Features, so bots’ keys don’t work right now.</p>') +
       (S.bots.length ? S.bots.map(card).join('') : (editing === 'new' ? '' : '<p class="note">No bots connected yet.</p>')) +
-      (editing === 'new' ? form(null) : full ? '<p class="note" style="margin-top:14px">' + (S.premium ? 'This server has connected the most bots it can (' + S.max + ').' : 'Free servers connect ' + S.max + ' bot. <a href="#premium">Premium</a> connects up to 10.') + '</p>'
-        : '<div class="bt-acts" style="margin-top:14px"><button type="button" class="btn pri" data-act="new">Connect a bot</button></div>');
-    const f = document.getElementById('btF'); if (f) bindForm(f); };
+      (editing === 'new' ? form(null) : editing === 'link' ? linkForm() : full && !S.bots.some(b => b.oversite) ? '<p class="note" style="margin-top:14px">' + (S.premium ? 'This server has connected the most bots it can (' + S.max + ').' : 'Free servers connect ' + S.max + ' bot. <a href="#premium">Premium</a> connects up to 10.') + '</p>'
+        : '<div class="bt-acts" style="margin-top:14px">' + (full ? '' : '<button type="button" class="btn pri" data-act="new">Connect a bot</button>') + '<button type="button" class="btn' + (full ? ' pri' : '') + '" data-act="link">Link an Oversite bot</button></div>');
+    const f = document.getElementById('btF'); if (f) bindForm(f);
+    const l = document.getElementById('btL'); if (l) bindLink(l); };
+
+  const bindLink = f => { const inp = f.querySelector('[name=code]'); inp.focus();
+    f.addEventListener('submit', async ev => { ev.preventDefault(); const btn = f.querySelector('button.pri'); btn.disabled = true;
+      try { const r = await call('/bots/link', { code: inp.value }); S = r; editing = null; reveal = null; draw(); say('Linked ' + r.bot.name + '. Oversite keeps its key, so there is nothing to copy.', true); }
+      catch (x) { say(x.message); btn.disabled = false; } }); };
 
   const bindForm = f => { const nm = f.querySelector('[name=name]'), ur = f.querySelector('[name=url]'); const need = () => { const on = new Set([...f.querySelectorAll('[name=scope]:checked')].map(i => i.value));
       f.querySelectorAll('#btEvents label').forEach(l => { const ok = on.has(l.dataset.need); l.classList.toggle('dis', !ok); const i = l.querySelector('input'); i.disabled = !ok; if (!ok) i.checked = false; }); };
@@ -63,6 +75,7 @@
   body.addEventListener('click', async ev => { const t = ev.target.closest('[data-act],[data-copy]'); if (!t) return; const id = t.closest('.bt')?.dataset.id, a = t.dataset.act;
     if (t.dataset.copy) { try { await navigator.clipboard.writeText(t.dataset.copy); say('Copied. Paste it to whoever runs the bot.', true); } catch (x) { say('Couldn’t copy. Select the key and copy it by hand.'); } return; }
     if (a === 'new') { editing = 'new'; reveal = null; say(''); draw(); document.getElementById('btF')?.scrollIntoView({ block: 'nearest' }); return; }
+    if (a === 'link') { editing = 'link'; reveal = null; say(''); draw(); document.getElementById('btL')?.scrollIntoView({ block: 'nearest' }); return; }
     if (a === 'edit') { editing = editing === id ? null : id; draw(); return; }
     if (a === 'cancel') { editing = null; draw(); return; }
     if (a === 'done') { reveal = null; draw(); return; }
