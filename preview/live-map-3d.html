@@ -905,7 +905,7 @@
   .pdalerts{position:fixed;left:50%;top:calc(var(--barh,58px) + 10px);transform:translateX(-50%);z-index:69;width:min(620px,calc(100vw - 24px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
   .panicbar:not(:empty)~.pdalerts{top:calc(var(--barh,58px) + 96px)}
   .pda{pointer-events:auto;display:grid;grid-template-columns:4px 1fr auto;gap:0 14px;align-items:center;padding:12px 12px 12px 0;border-radius:12px;background:rgba(18,19,22,.96);border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 40px rgba(0,0,0,.5);backdrop-filter:blur(10px);color:#E9EAEC;overflow:hidden;animation:pdaIn .32s cubic-bezier(.32,.72,0,1)}
-  .pda::before{content:"";align-self:stretch;margin:-12px 0;background:#4C8DFF}.pda.c3::before{background:#E0453B}.pda.bolo::before{background:#F2C14E}.pda.alpr::before{background:#E0453B}.pda.auto::before{background:#9AA0A6}
+  .pda::before{content:"";align-self:stretch;margin:-12px 0;background:#4C8DFF}.pda.c3::before{background:#E0453B}.pda.bolo::before{background:#F2C14E}.pda.alpr::before{background:#E0453B}.pda.monitor::before{background:#E9C24C}.pda.monitor.out::before{background:#E0453B}.pda.auto::before{background:#9AA0A6}
   .pda b{display:block;font-size:14px}.pda small{display:block;font-size:12.5px;color:#A9ADB5;margin-top:2px}
   .pda .a{display:flex;gap:6px}.pda button{font:600 12.5px inherit;font-family:inherit;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:none;color:#E9EAEC;cursor:pointer}
   .pda button.p{background:#E9EAEC;color:#0C0D0F;border-color:#E9EAEC}.pda button:hover{background:rgba(255,255,255,.08)}.pda button.p:hover{background:#fff}
@@ -1356,7 +1356,7 @@
 </style>
 <script src="/dropdown.js?v=1" defer></script>
 <script src="/license-card.js?v=4" defer></script>
-<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=2" defer></script><script src="/loa.js?v=1" defer></script><script src="/duty.js?v=1" defer></script>
+<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=2" defer></script><script src="/loa.js?v=1" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=1" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
   .mtabs{display:none}
@@ -3275,6 +3275,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const bye = () => { el.classList.add('out'); setTimeout(() => el.remove(), 220); }; el._bye = bye; alerts.prepend(el); while (alerts.children.length > 3) alerts.lastChild.remove(); if (ttl) setTimeout(bye, ttl); return el; };
   alerts.addEventListener('click', async e => { const b = e.target.closest('button'); if (!b) return; const el = b.closest('.pda'), k = b.dataset.k, id = +el.dataset.id.split(':')[1];
     if (k === 'x') return el._bye();
+    if (k === 'monitor') { el._bye(); window.ovMonitors?.(el.dataset.monitor); return; }
     if (k === 'stop') { const plate = el.dataset.plate; el._bye(); if (!document.body.classList.contains('mdt-open')) window.openMdt?.(true, 'pd'); setTimeout(() => openStop(plate), 150); return; }
     if (k === 'respond') { try { await req('records/act', { id, action: 'respond', unit: myUnit()?.name || '' }); window.mdtSetStatus?.('10-76'); toast('Responding. Dispatch and the officer can see you are on the way.'); } catch (x) { toast(x.message); } el._bye(); return; }
     if (k === 'view') { const r = recCache.get(id); el._bye(); if (r) { if (!document.body.classList.contains('mdt-open') && window.openMdtFor) window.openMdt?.(true, 'pd'); openRecord(r, 'bolos'); } } });
@@ -3292,6 +3293,10 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   addEventListener('ov:alpr', e => { const h = e.detail || {}; if (!h.plate) return;
     const el = alert('alpr:' + h.plate + ':' + Math.floor(Date.now() / 600000), 'alpr', `${h.camera ? (/camera/i.test(h.camera) ? h.camera : 'Camera ' + h.camera) : 'Plate reader'}: ${h.plate}${h.vehicle ? ', ' + h.vehicle : ''}`, [h.reasons, h.owner ? 'driven by ' + h.owner : '', h.where].filter(Boolean).join(' · '),
       [['stop', 'Start traffic stop', true], ['x', 'Dismiss']], 60000); if (el) el.dataset.plate = h.plate; });
+  // someone on an ankle monitor left their area, went into a no-go zone, or came back
+  addEventListener('ov:monitor', e => { const h = e.detail || {}; if (!h.name) return; const bad = h.state === 'out' || h.state === 'nogo';
+    const el = alert('mon:' + h.id + ':' + h.at, bad ? 'monitor out' : 'monitor', `Ankle monitor: ${h.name} ${h.state === 'out' ? 'left their area' : h.state === 'nogo' ? 'is in a no-go zone' : 'is back in their area'}`,
+      h.where || '', [['monitor', 'Show', true], ['x', 'Dismiss']], bad ? 90000 : 30000); if (el) el.dataset.monitor = h.id; });
   // an automation's alert: shown on dispatch and to the departments it names
   addEventListener('ov:autoalert', e => { const a = e.detail || {}, D = a.depts || ['all'], mine = document.body.classList.contains('mdt-open') ? (window.mdtDept || '') : 'dispatch';
     if (!D.includes('all') && mine !== 'dispatch' && !D.includes(mine)) return; alert('auto:' + Date.now() + Math.random(), 'auto', a.title || 'Automation', a.text || '', [['x', 'OK']], 45000, true); });
@@ -4063,7 +4068,7 @@ body.voice-snap .stage{transition:none!important}
     es.addEventListener('panics', e => { try { for (const p of JSON.parse(e.data) || []) dispatchEvent(new CustomEvent('panic', { detail: p })); } catch (x) {} });
     es.addEventListener('panicclear', e => { try { dispatchEvent(new CustomEvent('panicclear', { detail: JSON.parse(e.data) })); } catch (x) {} });   // suspended (you or this server): reload straight into the notice
     // the law enforcement MDT: 10-codes, and records (warrants, BOLOs, stops and backup calls) as officers write them
-    for (const ev of ['unitstatus', 'unitstatuses', 'pdrec', 'deptreports', 'alpr', 'autoalert']) es.addEventListener(ev, e => { try { dispatchEvent(new CustomEvent('ov:' + ev, { detail: JSON.parse(e.data) })); } catch (x) {} });
+    for (const ev of ['unitstatus', 'unitstatuses', 'pdrec', 'deptreports', 'alpr', 'autoalert', 'monitor']) es.addEventListener(ev, e => { try { dispatchEvent(new CustomEvent('ov:' + ev, { detail: JSON.parse(e.data) })); } catch (x) {} });
     es.addEventListener('roads', e => { try { window.ROADNET?.setOv(JSON.parse(e.data).ov); } catch (x) {} });   // an owner fixed a road: re-route now
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }

@@ -26,6 +26,7 @@ import * as cameras from './app/cameras.mjs';
 import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
 import * as duty from './app/duty.mjs';
+import * as monitors from './app/monitors.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
 import * as staffhub from './app/staffhub.mjs';
@@ -78,6 +79,9 @@ onEvent((cid, e) => { if (e.type !== 'leave.request' && e.type !== 'leave.decide
     starts: isoDay(e.starts), ends: isoDay(e.ends), ...(e.reason ? { reason: e.reason } : {}), ...(e.status ? { status: e.status, by: e.by } : {}) }); });
 // Fire AOP's hands: the CAD's call key, taking a call off the board, and running a command credited to it in the command log
 const fireHands = { key: k => callKey(k), clear: (c, k) => clearCall(c, k, 'Fire AOP'), command: (c, cmd) => communities.key(c.id) ? staff.commandAs(c, communities.key(c.id), cmd, 'Oversite Fire AOP') : Promise.resolve({ ok: false, message: 'No ER:LC key connected.' }) };
+// ankle monitors (app/monitors.mjs): checked on every reading of the server, open CAD or not; alerts go to dispatch, police and bots
+const monitorRead = (c, body) => { if (!features.on(c, 'monitors')) return;
+  try { monitors.observe(c, body, d => { feeds.get(c.id)?.bcast('monitor', JSON.stringify(d)); bots.emit(c, 'monitor.alert', d); }); } catch (e) { console.log('monitors:', e.message); } };
 // ── live feeds, one per community ──
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
@@ -90,6 +94,7 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
     const hits = cameras.active(cc) ? cameras.check(cc, body) : read;
     if (features.on(cc, 'alpr')) for (const h of hits) { f.bcast('alpr', JSON.stringify(h)); if (features.on(cc, 'automations')) automations.fire(cc, 'alpr', h); bots.emit(cc, 'alpr', h); }
     try { bots.observe(cc, f.withExtra(body), callKey); } catch (e) {}
+    monitorRead(cc, body);
     if (premium.isPremium(cc) && features.on(cc, 'staff')) try { fireaop.observe(cc, body, fireHands); } catch (e) {}
     if (features.on(cc, 'automations')) automations.observe(cc, body); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
   f.wantKills = () => safezones.wantsKills(communities.byId(c.id) || c);   // safe zones need the kill log
@@ -417,6 +422,17 @@ const communityApi = async (req, res, slug, rest) => {
     const r = rest === 'duty/start' ? duty.start(c, user, j.dept) : rest === 'duty/end' ? duty.end(c, user) : rest === 'duty/edit' ? duty.edit(c, user, j.id, j)
       : rest === 'duty/add' ? duty.add(c, user, j) : rest === 'duty/delete' ? duty.remove(c, user, j.id) : { error: 'Not found.' };
     return json(res, r.error ? r : { ...r, ...state() }, r.error ? 400 : 200); }
+  // ankle monitors (app/monitors.mjs): every member can look, and put one on or take it off, like writing a BOLO
+  if (rest === 'monitors' || rest.startsWith('monitors/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    if (!features.on(c, 'monitors')) return json(res, { error: 'This server has switched off ankle monitors.' }, 403);
+    const qs = new URL(req.url, 'http://x').searchParams, by = user.roblox_name || user.name;
+    if (rest === 'monitors' && M === 'GET') return json(res, { list: monitors.monitors(c), players: [...monitors.positions(c.id).values()] });
+    if (rest === 'monitors/history' && M === 'GET') return json(res, { history: monitors.history(c, qs.get('id')) });
+    if (rest === 'monitors/people' && M === 'GET') { const t = String(qs.get('q') || '').trim(); return json(res, { people: t ? (police.search(c.id, t).people || []).map(p => ({ rid: String(p.rid), name: p.name })).filter(p => p.rid) : [] }); }
+    if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req);
+    const r = rest === 'monitors/save' ? monitors.saveMonitor(c, by, j) : rest === 'monitors/remove' ? monitors.removeMonitor(c, by, j.id) : { error: 'Not found.' };
+    if (!r.error) console.log(`monitors: ${c.slug} ${rest.slice(9)} by ${by}`);
+    return json(res, r.error ? r : { ...r, list: monitors.monitors(c) }, r.error ? 400 : 200); }
   if (rest === 'units/ride' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     const w = String((await jsonBody(req)).with || '').trim(); if (w && (!/^\d{1,20}$/.test(w) || w === String(user.roblox_id))) return json(res, { error: 'Pick a teammate to ride with.' }, 400);
     const R = rideWith.all(c.id); if (w && R[w] === String(user.roblox_id)) rideWith.set(c.id, w, '');   // they were riding with you: now you ride with them instead
@@ -517,6 +533,8 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
     const P = v.players.map(p => { const [name, id] = String(p.Player || '').split(':'), u = bots.can(bot, 'people') && id ? users.byRoblox(id) : null;
       return { name, roblox_id: id || null, team: p.Team || '', department: (c.settings.teams || {})[p.Team] || null, callsign: p.Callsign || null, postal: p.Location?.PostalCode || null, street: p.Location?.StreetName || null, ...(bots.can(bot, 'people') ? { discord_id: u?.discord_id || null } : {}) }; });
     return ok({ live: v.live, players: P }); }
+  // who is on an ankle monitor, where they were last seen and whether they are inside their area
+  if (rest === 'monitors' && M === 'GET') { if (need('lookup') || off('monitors')) return; return ok({ monitors: monitors.monitors(c).map(({ zones, nogo, rid, ...m }) => ({ ...m, roblox_id: rid })) }); }
   // MDT duty shifts changed since a time (ms), deleted ones too; an Oversite bot linked for one department reads only that one
   if (rest === 'duty-shifts' && M === 'GET') { if (need('read')) return; return ok(duty.forBots(c, bot.dept && duty.DEPTS.includes(bot.dept) ? [bot.dept] : duty.DEPTS, qs.get('since'))); }
   if (rest === 'loa' && M === 'GET') { if (need('read')) return; return ok({ requests: staffhub.leaveForBots(c, qs.get('status')).map(({ dept, dept_name, ...l }) => ({ ...l, department: dept, department_name: dept_name, starts: isoDay(l.starts), ends: isoDay(l.ends) })) }); }
@@ -1086,7 +1104,7 @@ setInterval(() => { const d = new Date(), day = d.toISOString().slice(0, 10); if
 // a crash: say so before Railway restarts the process; a promise nobody caught: say so and keep going
 process.on('uncaughtException', e => { console.error('uncaught:', e); alerts.send('crash', 'Oversite crashed and is restarting', String(e?.stack || e).slice(0, 1800), 'crit').finally(() => setTimeout(() => process.exit(1), 500)); setTimeout(() => process.exit(1), 4000); });
 process.on('unhandledRejection', e => { console.error('unhandled rejection:', e); alerts.send('rejection', 'Oversite hit an error it didn’t handle', String(e?.stack || e).slice(0, 1800), 'warn'); });
-staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); safezones.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), staffhub.observe);
+staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); safezones.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), (cid, body) => { staffhub.observe(cid, body); const cc = communities.byId(cid); if (cc) monitorRead(cc, body); });
 supporter.start(); civ.start();
 // business shifts end when the worker leaves the server or the civilian team; loans take their weekly payment
 setInterval(() => { for (const c of communities.all()) { try { civbiz.sweep(c, uid => { const u = users.byId(uid); return u ? liveSide(c, u) : undefined; }); } catch (e) { console.log('civbiz:', e.message); } } }, 120000); premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);
