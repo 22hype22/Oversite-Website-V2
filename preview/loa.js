@@ -42,12 +42,12 @@
     try { const j = await call('', { dept: f.dept.value, starts: f.starts.value, ends: f.ends.value, reason: f.reason.value }); D.mine = j.mine; dlg.querySelector('#loaMine').innerHTML = list(D.mine); f.reason.value = '';
       say(D.bot ? 'Sent. Your bot is posting it in Discord.' : 'Sent. Admins see it on the staff page.', 'ok'); } catch (x) { say(x.message, 'err'); } go.disabled = false; });
 
-  // the Staff and Civilian MDTs: your name opens a small menu too
+  // the Staff and Civilian MDTs: your name opens a small menu too (leave is for staff and departments, not civilians)
   for (const btn of document.querySelectorAll('[data-umenu]')) { const menu = document.getElementById(btn.getAttribute('aria-controls')); if (!menu) continue;
     const close = () => { menu.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
     btn.addEventListener('click', () => { if (menu.classList.contains('open')) return close(); const av = btn.querySelector('i')?.innerHTML || '';
       menu.innerHTML = `<div class="tm-h"><i>${av}</i><div><b>${esc(OV.me || OV.user || 'You')}</b><small>${btn.dataset.umenu === 'staff' ? 'Server staff' : 'Civilian'}</small></div></div>
-        <button type="button" role="menuitem" data-loa>Request leave (LOA)</button><a role="menuitem" href="/account?from=${encodeURIComponent('/' + OV.slug)}">Account settings</a>`;
+        ${btn.dataset.umenu === 'staff' ? '<button type="button" role="menuitem" data-loa>Request leave (LOA)</button>' : ''}<a role="menuitem" href="/account?from=${encodeURIComponent('/' + OV.slug)}">Account settings</a>`;
       menu.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); menu.querySelector('[role="menuitem"]')?.focus({ preventScroll: true }); });
     menu.addEventListener('click', e => { if (e.target.closest('[data-loa]')) { close(); window.ovLoa(btn.dataset.umenu === 'staff' ? '' : undefined); } });
     menu.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); close(); btn.focus(); } });
