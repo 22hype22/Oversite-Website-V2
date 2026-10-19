@@ -1317,7 +1317,7 @@
 </style>
 <script src="/dropdown.js?v=1" defer></script>
 <script src="/license-card.js?v=4" defer></script>
-<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=4" defer></script><script src="/loa.js?v=1" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=2" defer></script>
+<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=4" defer></script><script src="/loa.js?v=1" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=2" defer></script><script src="/map-labels.js?v=1" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
   .mtabs{display:none}
@@ -2815,6 +2815,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
         const known = !u.live || !!u.headingKnown; if (p.classList.contains('nohead') === known) p.classList.toggle('nohead', !known); }   // no arrow until the unit has really moved
       p.style.translate = `${tx + p.dataset.x * s}px ${ty + p.dataset.y * s}px`;   // GPU translate: no layout per frame
     }
+    window.mapLabels?.draw(tx, ty, s);   // street names and postals stay readable at any zoom (map-labels.js)
   };
   let fly = null;                                                       // { x0,y0,s0, x1,y1,s1, t0, ms }
   const ease = t => 1 - Math.pow(1 - t, 3);
@@ -2864,8 +2865,10 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   let hdImg = null; if (img.dataset.hd && /^https?:$/.test(location.protocol)) { hdImg = new Image(); hdImg.className = 'hd'; hdImg.alt = ''; hdImg.decoding = 'async'; hdImg.onload = () => { hdImg.decode?.().catch(() => {}).finally(() => { world.insertBefore(hdImg, img.nextSibling); pickSrc(); }); }; hdImg.src = img.dataset.hd; }
   const pickSrc = () => { const dark = img.getAttribute('src') === img.dataset.dark; world.classList.toggle('zoomed', !dark && !!hdImg && hdImg.parentNode && s >= 1.25); };
   window.map2d = { zoomIn: () => zoomAt(1.25, ...center()), zoomOut: () => zoomAt(.8, ...center()), fit, flyTo, pickSrc, screenToWorld: (cx, cy) => [(cx - tx) / s, (cy - ty) / s],
-    setTheme: t => { const want = img.dataset[t === 'dark' ? 'dark' : t === 'labels' && img.dataset.labels ? 'labels' : 'light']; if (want && img.getAttribute('src') !== want) img.setAttribute('src', want);
-      const hd = t === 'labels' && img.dataset.hdLabels ? img.dataset.hdLabels : img.dataset.hd; if (hdImg && hd && !hdImg.src.endsWith(hd)) { hdImg.remove(); hdImg.src = hd; }   // the street-name map has its own full-resolution picture
+    // "2D Labels": the plain map with the names drawn on top at a readable size (map-labels.js); the picture with them painted on until those load
+    setTheme: t => { window.mapLabels?.show(t === 'labels'); const live = t === 'labels' && !!window.mapLabels?.ready();
+      const want = img.dataset[t === 'dark' ? 'dark' : t === 'labels' && !live && img.dataset.labels ? 'labels' : 'light']; if (want && img.getAttribute('src') !== want) img.setAttribute('src', want);
+      const hd = t === 'labels' && !live && img.dataset.hdLabels ? img.dataset.hdLabels : img.dataset.hd; if (hdImg && hd && !hdImg.src.endsWith(hd)) { hdImg.remove(); hdImg.src = hd; }   // the street-name map has its own full-resolution picture
       pickSrc(); } };
   document.getElementById('zin').onclick  = window.map2d.zoomIn;
   document.getElementById('zout').onclick = window.map2d.zoomOut;
