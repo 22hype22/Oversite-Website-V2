@@ -492,7 +492,7 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
   if (rest === 'calls/clear' && M === 'POST') { if (need('calls') || off('clearcall')) return; const r = clearCall(c, String(J.key || ''), by); return r.error ? bad(r.error) : ok(r); }
   if (rest === 'units/status' && M === 'POST') { if (need('units') || off('unitstatus')) return; const r = setUnitStatus(c, J.unit, String(J.status || ''), by); return r.error ? bad(r.error + ` Codes: ${police.STATUS_CODES.join(', ')}.`) : ok(r); }
   if (rest === 'records' && M === 'POST') { if (need('records') || off('dept_pd')) return; const k = features.RECORD[String(J.kind || '')]; if (k && off(k)) return;
-    const unknown = (Array.isArray(J.charges) ? J.charges : []).find(x => !police.chargeFor(x, police.penalOf(c))); if (unknown) return bad(`Unknown charge: ${JSON.stringify(unknown).slice(0, 60)}. Use a code like "T-101" from GET penal.`);
+    const unknown = (Array.isArray(J.charges) ? J.charges : []).find(x => !(x && typeof x === 'object' && x.custom) && !police.chargeFor(x, police.penalOf(c))); if (unknown) return bad(`Unknown charge: ${JSON.stringify(unknown).slice(0, 60)}. Use a code like "T-101" from GET penal, or { "custom": "…", "fine": 0, "jail": 0 } for one that isn't listed.`);
     if (J.discord_id && !J.subject) { const u = person(J); if (u?.roblox_name) { J.subject = u.roblox_name; J.subject_rid = u.roblox_id; } }
     const r = police.create(c.id, { uid: 0, name: by, supervisor: false }, J, police.penalOf(c)); if (r.error) return bad(r.error);
     f.bcast('pdrec', JSON.stringify(r.record)); if (!(r.record.kind === 'warrant' && r.record.status === 'Pending')) recordEvent(c, r.record); return ok(r); }

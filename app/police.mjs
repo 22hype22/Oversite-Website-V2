@@ -121,7 +121,10 @@ export const list = (cid, { kind, status, mine } = {}, uid) => { const w = ['com
 // a charge by its code (T-101), or for bots by its title when only one charge matches it ("Hit and run")
 export const chargeFor = (x, list = PENAL) => { const k = String(x?.code || x?.title || x || '').trim(); if (!k) return null; const up = k.toUpperCase(), byCode = list.find(p => p[0] === up); if (byCode) return byCode;
   const lo = k.toLowerCase(), same = list.find(p => p[1].toLowerCase() === lo); if (same) return same; const some = list.filter(p => p[1].toLowerCase().includes(lo)); return some.length === 1 ? some[0] : null; };
-const charges = (arr, list) => (Array.isArray(arr) ? arr : []).slice(0, 20).map(c => { const p = chargeFor(c, list); return p && { code: p[0], title: p[1], fine: p[2], jail: p[3], cls: p[4], count: Math.min(9, Math.max(1, +c?.count || 1)) }; }).filter(Boolean);
+// a charge from the penal code, or one the officer typed because it isn't listed ({ custom, fine, jail }), with what they set it at
+const charges = (arr, list) => (Array.isArray(arr) ? arr : []).slice(0, 20).map(c => { const count = Math.min(9, Math.max(1, +c?.count || 1));
+  if (c && typeof c === 'object' && c.custom != null) { const title = T(c.custom, 100); return title && { code: '', title, fine: Math.max(0, Math.min(1e7, Math.round(+c.fine || 0))), jail: Math.max(0, Math.min(1e4, Math.round(+c.jail || 0))), cls: 'Other', count, custom: true }; }
+  const p = chargeFor(c, list); return p && { code: p[0], title: p[1], fine: p[2], jail: p[3], cls: p[4], count }; }).filter(Boolean);
 const sum = (cs, k) => cs.reduce((a, c) => a + c[k] * c.count, 0);
 const KINDS = ['warrant', 'citation', 'warning', 'arrest', 'bolo', 'stop'];
 // what each kind keeps; the officer never types a fine or a total, they come from the penal code

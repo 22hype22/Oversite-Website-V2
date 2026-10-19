@@ -53,7 +53,7 @@ ${code(`POST /api/bot/v1/records
   "charges": ["T-102"],
   "reason": "72 in a 45"
 }`)}
-<p><code>kind</code> is <code>citation</code>, <code>warning</code>, <code>arrest</code>, <code>warrant</code>, <code>bolo</code> or <code>stop</code>. Charges are codes from <code>GET penal</code> (like <code>"T-102"</code>), or a title when only one charge matches it (<code>"Hit and run"</code>); fines come from the code. Name the person with <code>subject</code> (their Roblox username) or any of the ways above. Warrants from a bot always wait for a supervisor to approve them in the MDT.</p>`],
+<p><code>kind</code> is <code>citation</code>, <code>warning</code>, <code>arrest</code>, <code>warrant</code>, <code>bolo</code> or <code>stop</code>. Charges are codes from <code>GET penal</code> (like <code>"T-102"</code>), or a title when only one charge matches it (<code>"Hit and run"</code>); fines come from the code. A charge that isn't in the server's laws can be written out: <code>{ "custom": "Solicitation to commit murder", "fine": 5000, "jail": 60 }</code>. Name the person with <code>subject</code> (their Roblox username) or any of the ways above. Warrants from a bot always wait for a supervisor to approve them in the MDT.</p>`],
   ['events', 'Events', `<p class="lg-short"><b>In short</b><span>Give the owner a web address. Oversite sends a signed POST to it the moment something happens, for the events they tick.</span></p>
 <div class="lg-tw"><table class="lg-t"><thead><tr><th>Event</th><th>When</th><th>Needs</th></tr></thead><tbody>
 ${Object.entries(EVENTS).map(([k, [d, s]]) => `<tr><td><code>${k}</code></td><td>${esc(d)}</td><td><code>${s}</code></td></tr>`).join('')}</tbody></table></div>
