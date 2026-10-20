@@ -407,7 +407,7 @@ const LN_CSS = `.ln{min-height:100dvh;display:grid;place-items:center;padding:32
   .ln-form{max-width:none;padding:26px 22px 28px;border-top:1px solid rgba(255,255,255,.1);border-radius:22px 22px 0 0;margin-top:-18px;position:relative;background:var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}}
 @media (prefers-reduced-motion:no-preference){.ln-card{animation:lnIn .5s cubic-bezier(.23,1,.32,1) both}}@keyframes lnIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}`;
 // A service notice shown wherever Roblox sign-in is offered. Set to '' to take it down.
-export const ROBLOX_NOTICE = 'Roblox login is temporarily unavailable. We apologize for the inconvenience.';
+export const ROBLOX_NOTICE = '';
 const rbxNotice = () => ROBLOX_NOTICE ? `<p class="svc-note" role="status"><b>Service notice</b>${esc(ROBLOX_NOTICE)}</p>` : '';
 export const landing = ({ logo, discord, owner, roblox, next = '/dashboard', error = '', servers = 0 }) => layout({ title: 'Oversite CAD: Free ERLC CAD, MDT and Dispatch for ER:LC Servers', logo, top: false, seo: { path: '/', ld: [...SITE_LD, FAQ_LD] }, body: `<style>${LN_CSS}</style>
 <section class="ln"><div class="ln-card">
