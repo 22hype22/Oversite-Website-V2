@@ -78,7 +78,7 @@ export const check = (c, body, off) => { if (!active(c)) return []; let j; try {
     for (const k of s.list) { const e = Math.hypot(k.x - x, k.z - z); if (e <= R && e < d) { d = e; cam = k; } } if (!cam) continue;
     const key = `${c.id}:${plate}:${cam.id}`; if (t - (seen.get(key) || 0) < 600000) continue;   // a flagged car at the same camera: one alert every ten minutes
     const f = flagReasons(c.id, plate); if (!f || !f.why.length) continue; seen.set(key, t); if (seen.size > 5000) seen.clear();
-    const h = { plate, vehicle: [f.car.color, f.car.model].filter(Boolean).join(' '), owner: f.car.owner || '', owner_rid: f.car.owner_rid || '', reasons: f.why.join(', '),
+    const h = { plate, vehicle: [f.car.color, f.car.model].filter(Boolean).join(' '), owner: f.owner.name, owner_rid: f.owner.key, reasons: f.why.join(', '),
       camera: cam.name, where: postalNear(x, z) || cam.name, x: x * G2M, y: z * G2M };
     hits.push(h); const L2 = recent.get(c.id) || []; L2.unshift({ at: t, plate, vehicle: h.vehicle, owner: h.owner, reasons: h.reasons, camera: cam.name, cam: cam.id }); recent.set(c.id, L2.slice(0, 30)); }
   return hits; };

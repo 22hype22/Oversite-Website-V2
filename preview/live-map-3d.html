@@ -1667,7 +1667,7 @@
           <section class="tscreen cv-pane" data-p="shops"><div class="thead"><div><h2>Shops</h2><small>Every business in this server. Buy from the ones that are open.</small></div></div><div id="cvShops"></div></section>
           <section class="tscreen cv-pane" data-p="jobs"><div class="thead"><div><h2>Work</h2><small>Clock in, take jobs in game and get paid. Or find a business that is hiring.</small></div></div><div id="cvJobs"></div></section>
           <section class="tscreen cv-pane" data-p="biz"><div class="thead"><div><h2>Business</h2><small>Run your own: staff, jobs, a menu and customers.</small></div></div><div id="cvBiz"></div></section>
-          <section class="tscreen cv-pane" data-p="id"><div class="thead"><div><h2>My ID</h2><small>Your character and license. Police see this when they run your name.</small></div><button class="btn" type="submit" form="cvIdF">Save</button></div><form class="cv-form" id="cvIdF" autocomplete="off"></form></section>
+          <section class="tscreen cv-pane" data-p="id"><div class="thead"><div><h2>My ID</h2><small>Your character and license. Police see this when they run your name.</small></div><button class="btn" type="submit" form="cvIdF">Save</button></div><div id="cvChars"></div><form class="cv-form" id="cvIdF" autocomplete="off"></form></section>
           <section class="tscreen cv-pane" data-p="record"><div class="thead"><div><h2>Record</h2><small>Citations, warnings and arrests written against you</small></div></div><div id="cvRecord"></div></section>
           <section class="tscreen cv-pane" data-p="server"><div class="thead"><div><h2>Server economy</h2><small>Money and bills for everyone in this server</small></div></div><div id="cvServer"></div></section>
         </div>
@@ -3038,7 +3038,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const ppl = k === 'veh' ? [] : src.people, veh = k === 'people' ? [] : src.vehicles;
     let h = '';
     if (ppl.length) h += `<h4>${q ? 'People' : 'In the server now'}</h4>` + ppl.slice(0, 25).map(p => { const id = p.rid || p.name, ws = wanted(p.rid);
-      return `<button type="button" class="pd-r" data-p="${esc(p.rid || '')}" data-n="${esc(p.name)}" aria-current="${sel === 'p:' + id}">${av(p.rid, p.name)}<div><b>${esc(p.name)}</b><small>${esc([p.team, p.live ? 'in game' : p.last_seen ? 'seen ' + ago(p.last_seen) : 'from a record', p.addr ? 'address match' : ''].filter(Boolean).join(' · '))}</small>${(p.flags?.length || ws) ? `<div class="tags">${flagTags(p.flags || [])}${ws ? tag('Wanted ' + '★'.repeat(Math.min(ws, 5)), 'r') : ''}</div>` : ''}</div></button>`; }).join('');
+      return `<button type="button" class="pd-r" data-p="${esc(p.rid || '')}" data-n="${esc(p.name)}" aria-current="${sel === 'p:' + id}">${av(p.rid, p.name)}<div><b>${esc(p.name)}</b><small>${esc([p.player ? 'played by ' + p.player : '', p.team, p.live ? 'in game' : p.last_seen ? 'seen ' + ago(p.last_seen) : p.player ? '' : 'from a record', p.addr ? 'address match' : ''].filter(Boolean).join(' · '))}</small>${(p.flags?.length || ws) ? `<div class="tags">${flagTags(p.flags || [])}${ws ? tag('Wanted ' + '★'.repeat(Math.min(ws, 5)), 'r') : ''}</div>` : ''}</div></button>`; }).join('');
     if (veh.length) h += `<h4>${q ? 'Vehicles' : 'Vehicles out now'}</h4>` + veh.slice(0, 25).map(v => `<button type="button" class="pd-r" data-v="${esc(v.plate)}" aria-current="${sel === 'v:' + v.plate}">${plate(v.plate)}<div><b>${esc(v.model || 'Vehicle')}</b><small>${v.hex ? `<span class="pd-sw" style="background:${esc(v.hex)}"></span>` : ''}${esc([v.color, v.owner ? 'owner ' + v.owner : ''].filter(Boolean).join(' · '))}</small>${v.flags?.length ? `<div class="tags">${flagTags(v.flags)}</div>` : ''}</div></button>`).join('');
     $('pdRes').innerHTML = h || `<div class="pd-empty">${q ? `<b>No matches</b>Nobody or nothing called “${esc(q)}” has been seen in this server.` : '<b>Search to begin</b>Players and vehicles in the server show here while it is live.'}</div>`; };
   const search = async () => { const q = $('pdQ').value.trim(); if (!q) { drawRes(); return; } try { res = await req('search?q=' + encodeURIComponent(q)); } catch (e) { res = { people: [], vehicles: [] }; $('pdRes').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; return; } drawRes(); };
@@ -3076,7 +3076,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const dl = (j.licenses || []).find(l => l.kind === 'driver'), fp = (j.licenses || []).find(l => l.kind === 'firearm'); cur.p = p;
     const lic = (dl && dl.status !== 'Valid' ? tag('License ' + dl.status.toLowerCase(), dl.status === 'Revoked' ? 'R' : 'r') : !j.account ? tag('No Oversite account', '') : !L || L.none ? tag('No license on file', 'a') : tag('License valid', 'g'))
       + (fp && fp.status !== 'Valid' ? tag('Firearms permit ' + fp.status.toLowerCase(), fp.status === 'Revoked' ? 'R' : 'r') : '');
-    $('pdDet').innerHTML = `<div class="pd-hd">${av(p.rid, p.name, true)}<div><h3>${esc(p.name)}</h3><p>${esc([L?.display && L.display !== p.name ? L.display : '', p.rid ? 'Roblox ID ' + p.rid : '', p.team ? 'last on ' + p.team : '', p.last_seen ? 'seen ' + ago(p.last_seen) : ''].filter(Boolean).join(' · '))}</p>
+    $('pdDet').innerHTML = `<div class="pd-hd">${av(p.rid, p.name, true)}<div><h3>${esc(p.name)}</h3><p>${esc([L?.display && L.display !== p.name ? L.display : '', p.character ? (p.player ? 'Played by ' + p.player : 'Character') : p.rid ? 'Roblox ID ' + p.rid : '', p.team ? 'last on ' + p.team : '', p.last_seen ? 'seen ' + ago(p.last_seen) : ''].filter(Boolean).join(' · '))}</p>
       <div class="tags">${flagTags(j.flags)}${ws ? tag('Wanted in game ' + '★'.repeat(Math.min(ws, 5)), 'r') : ''}${lic}</div></div></div>
       ${actions(p.name, p.rid, '')}
       ${L && !L.none ? `<h4>Driver's license</h4><div class="pd-kv"><div><span>License no.</span><b>${esc(L.num)}</b></div><div><span>Age</span><b>${esc(L.age || '–')}</b></div><div><span>Sex</span><b>${esc(L.gndr || '–')}</b></div><div><span>Issued</span><b>${esc(L.iss || '–')}</b></div>
@@ -3094,7 +3094,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     $('pdDet').innerHTML = `<div class="pd-hd">${plate(v.plate, true)}<div><h3>${esc(v.model || 'Vehicle')}</h3><p>${v.hex ? `<span class="pd-sw" style="background:${esc(v.hex)}"></span>` : ''}${esc([v.color, 'first seen ' + ago(v.first_seen), 'last seen ' + ago(v.last_seen)].filter(Boolean).join(' · '))}</p>
       <div class="tags">${flagTags([...j.flags, ...(v.stolen ? ['stolen'] : [])])}${j.owner_flags.some(f => f.kind === 'warrant' && f.status === 'Active') ? tag('Owner has a warrant', 'R') : ''}${v.reg !== 'Valid' ? tag('Registration ' + v.reg, 'a') : ''}${v.ins !== 'Active' ? tag('Insurance ' + v.ins, 'a') : ''}</div></div></div>
       <div class="pd-acts-row"><button type="button" class="btn sm" data-stopv="${esc(v.plate)}">Start traffic stop</button><button type="button" class="btn ghost sm" data-new="citation" data-subject="${esc(v.owner)}" data-rid="${esc(v.owner_rid)}" data-plate="${esc(v.plate)}">Citation</button><button type="button" class="btn ghost sm" data-new="bolo" data-plate="${esc(v.plate)}" data-model="${esc(v.model)}" data-color="${esc(v.color)}">BOLO</button><button type="button" class="btn ghost sm" data-stolen="${v.stolen ? 0 : 1}">${v.stolen ? 'Recovered' : 'Report stolen'}</button></div>
-      <h4>Registration</h4><div class="pd-kv"><div><span>Registered owner</span><b>${v.owner ? `<a href="#" data-owner="${esc(v.owner_rid)}" data-on="${esc(v.owner)}" style="color:inherit">${esc(v.owner)}</a>` : '–'}</b></div><div><span>Registration</span>${opt('reg', ['Valid', 'Expired', 'Suspended'], v.reg)}</div><div><span>Insurance</span>${opt('ins', ['Active', 'Lapsed', 'None'], v.ins)}</div><div><span>Status</span><b>${v.stolen ? 'Reported stolen' : 'Not reported stolen'}</b></div></div>
+      <h4>Registration</h4><div class="pd-kv"><div><span>Registered owner</span><b>${v.owner ? `<a href="#" data-owner="${esc(v.owner_rid)}" data-on="${esc(v.owner)}" style="color:inherit">${esc(v.owner)}</a>${v.player && v.player !== v.owner ? ` <small style="color:var(--faint)">player ${esc(v.player)}</small>` : ''}` : '–'}</b></div><div><span>Registration</span>${opt('reg', ['Valid', 'Expired', 'Suspended'], v.reg)}</div><div><span>Insurance</span>${opt('ins', ['Active', 'Lapsed', 'None'], v.ins)}</div><div><span>Status</span><b>${v.stolen ? 'Reported stolen' : 'Not reported stolen'}</b></div></div>
       ${j.owner_flags.length ? `<h4>Owner's warrants and BOLOs</h4><div class="pd-list">${j.owner_flags.map(histRow).join('')}</div>` : ''}
       <h4>History</h4>${j.history.length ? `<div class="pd-list">${j.history.map(histRow).join('')}</div>` : '<p class="pd-empty" style="padding:10px 0;text-align:left">Nothing on file for this plate.</p>'}`;
     $('pdDet').dataset.cur = v.plate; };
@@ -4418,6 +4418,7 @@ body.voice-snap .stage{transition:none!important}
   const renderCars = () => { const v = D.vehicles || [];
     $('cvCars').innerHTML = v.length ? v.map(c => `<div class="st-row cv-car"><span class="cv-plate">${esc(c.plate)}</span><span class="grow"><b>${esc(c.model || 'Vehicle')}</b><br><small>${c.color ? esc(c.color) + ' · ' : ''}out now</small></span>
         <span class="cv-pills" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><small style="color:var(--faint)">Reg</small>${regPill(c.reg)}<small style="color:var(--faint)">Ins</small>${insPill(c.ins)}${c.stolen ? pill('Stolen', 'bad') : ''}</span>
+        ${rpOn() && (D.characters.list || []).length > 1 ? `<label class="cv-sw" title="Who police see as the owner. Playing: whoever you are playing at the time.">Owner <select data-car-char="${esc(c.plate)}"><option value="0">Who I'm playing</option>${D.characters.list.map(x => `<option value="${x.id}"${c.pinned && c.char === x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
         <button class="st-btn" data-stolen="${esc(c.plate)}" data-on="${c.stolen ? '' : '1'}">${c.stolen ? 'Recovered' : 'Report stolen'}</button></div>`).join('')
       : `<div class="st-empty">${!D.linked ? 'Link your Roblox account to see your cars.' : D.carsLive ? 'No car out right now. Spawn one in game and it shows up here.' : 'Can\'t see the server right now. Your car shows up here once it\'s back.'}</div>`; };
   const ID_FIELDS = [['first', 'First name', 'text', 30], ['last', 'Last name', 'text', 30], ['dob', 'Date of birth', 'date', 10], ['phone', 'Phone', 'text', 20], ['address', 'Address', 'text', 80], ['occupation', 'Occupation', 'text', 40]];
@@ -4427,16 +4428,31 @@ body.voice-snap .stage{transition:none!important}
   let idShown = false, LIC = null;
   const licVals = f => { const v = fields(f); return { age: (v.age || '').trim(), gndr: v.gndr || '', hair: v.hair || '', eyes: v.eyes || '', ft: v.ft || '', in: v.in || '', wgt: v.wgt || '', addr: (v.address || '').trim().slice(0, 34), iss: v.iss || '', finish: v.finish || '', occx: (v.occupation || '').trim().slice(0, 20), sig: (v.sig || '').trim() }; };
   const drawLic = () => { const w = $('cvLicW'), f = $('cvIdF'); if (!w || !LIC || !window.LicenseCard) return; const v = licVals(f), h = v.ft !== '' && v.in !== '' ? v.ft + "' " + v.in + '"' : '', S = OV.license;
-    w.innerHTML = window.LicenseCard.html({ ...LIC, ...(S ? { title: S.title, color: S.color, seal: S.seal === 'icon' ? `/c/${OV.slug}/icon` : '' } : {}), age: v.age, gndr: v.gndr, hair: v.hair, eyes: v.eyes, hgt: h, wgt: v.wgt ? Math.round(v.wgt) + ' lbs' : '', addr: v.addr, iss: v.iss,
+    const nm = rpOn() ? [f.elements.first?.value, f.elements.last?.value].map(x => (x || '').trim()).filter(Boolean).join(' ') : '';
+    w.innerHTML = window.LicenseCard.html({ ...LIC, ...(nm ? { display: nm } : {}), ...(S ? { title: S.title, color: S.color, seal: S.seal === 'icon' ? `/c/${OV.slug}/icon` : '' } : {}), age: v.age, gndr: v.gndr, hair: v.hair, eyes: v.eyes, hgt: h, wgt: v.wgt ? Math.round(v.wgt) + ' lbs' : '', addr: v.addr, iss: v.iss,
       finish: LIC.premium ? v.finish : '', sig: LIC.premium ? v.sig : '', occ: (LIC.premium && v.occx) || 'Civilian' });
     const c = w.querySelector('.lcard'); if (c) c.style.setProperty('--ls', (w.clientWidth / 400).toFixed(4)); };
   const fillLic = j => { LIC = j || {}; const f = $('cvIdF'); if (!f || !f.elements.age) return; const E = f.elements, m = /^(\d)' (\d+)"$/.exec(LIC.hgt || '');
     E.age.value = LIC.age || ''; E.gndr.value = LIC.gndr || ''; E.hair.value = LIC.hair || ''; E.eyes.value = LIC.eyes || ''; E.ft.value = m ? m[1] : ''; E.in.value = m ? m[2] : ''; E.wgt.value = parseInt(LIC.wgt) || ''; E.iss.value = LIC.iss || '';
     E.finish.value = LIC.finish || ''; E.sig.value = LIC.sig || ''; if (!E.address.value && LIC.addr && LIC.addr !== 'N/A') E.address.value = LIC.addr;
     f.querySelectorAll('.cv-lprem select,.cv-lprem input').forEach(x => { x.disabled = !LIC.premium; }); $('cvLicP').innerHTML = LIC.premium ? 'Your occupation goes on the card too.' : 'Gold, holographic and obsidian cards and your own signature come with <a href="/account#premium" target="_blank" rel="noopener">Premium</a>.'; drawLic(); };
-  const renderId = () => { if (idShown) return; const ch = D.character || {}; idShown = true;   // drawn once: a refresh never wipes what you're typing
+  // roleplay characters (when the server uses them): the ones you have, who you are playing, and which one the form below is editing (0: a new one)
+  let editChar = null;
+  const rpOn = () => D.characters?.names === 'roleplay';
+  const editing = () => { const L = D.characters?.list || []; if (editChar === 0) return {}; return L.find(c => c.id === editChar) || L.find(c => c.id === D.characters.active) || D.character || {}; };
+  const renderChars = () => { const box = $('cvChars'); if (!box) return; const C = D.characters || {}, L = C.list || [];
+    if (!rpOn()) { box.innerHTML = ''; return; }
+    const cur = editChar === 0 ? 0 : editing().id;
+    box.innerHTML = `<div class="cv-form"><div class="st-h"><span>Your characters</span><span>${L.length} of ${C.max}</span></div>
+      <p class="cv-note">This server uses roleplay names. Police see the character you're playing when they run your name or your plate. Each one has its own record, licenses and cars.</p>
+      ${L.map(c => `<div class="st-row"><span class="grow"><b>${esc(c.name)}</b><br><small>${esc([c.occupation, c.dob ? 'born ' + c.dob : ''].filter(Boolean).join(' · ') || 'No details yet')}</small></span>
+        ${c.id === C.active ? pill('Playing', 'good') : `<button class="st-btn" data-char-use="${c.id}">Play as</button>`}
+        <button class="st-btn" data-char-edit="${c.id}"${c.id === cur ? ' aria-pressed="true" disabled' : ''}>${c.id === cur ? 'Editing' : 'Edit'}</button>
+        <button class="st-btn" data-char-del="${c.id}" data-name="${esc(c.name)}">Delete</button></div>`).join('') || '<div class="st-empty">No characters yet. Make your first one below.</div>'}
+      ${L.length < C.max ? `<div class="cv-inl"><button class="st-btn" data-char-new="1"${cur === 0 ? ' disabled' : ''}>${cur === 0 ? 'New character below' : 'New character'}</button></div>` : ''}<div class="cv-msg" id="cvCharMsg"></div></div>`; };
+  const renderId = () => { renderChars(); if (idShown) return; const ch = editing(); idShown = true;   // drawn once: a refresh never wipes what you're typing
     $('cvIdF').innerHTML = (D.linked ? '<div class="cv-licw" id="cvLicW"></div>' : '')
-      + `<div class="st-h"><span>Character</span></div><div class="grid2">${ID_FIELDS.map(([k, l, t, n]) => `<label>${l}<input name="${k}" type="${t}" maxlength="${n}" value="${esc(ch[k] || '')}"${k === 'first' || k === 'last' ? ' required' : ''}></label>`).join('')}</div>`
+      + `<input type="hidden" name="char" value="${rpOn() ? esc(ch.id || '') : ''}"><div class="st-h"><span>${rpOn() ? (ch.id ? esc(ch.name || 'Character') : 'New character') : 'Character'}</span></div><div class="grid2">${ID_FIELDS.map(([k, l, t, n]) => `<label>${l}<input name="${k}" type="${t}" maxlength="${n}" value="${esc(ch[k] || '')}"${k === 'first' || k === 'last' ? ' required' : ''}></label>`).join('')}</div>`
       + (D.linked ? `<div class="st-h"><span>License</span><span>The MDT card reader shows it on every server</span></div>
       <div class="grid2"><label>Age<input name="age" list="cvAges" maxlength="16" placeholder="Young Adult"><datalist id="cvAges"><option>Young Adult</option><option>Adult</option><option>Middle Aged</option><option>Senior</option></datalist></label>
       <label>Gender${SEL('gndr', [['M', 'M'], ['F', 'F'], ['O', 'O']])}</label><label>Hair${SEL('hair', HAIR)}</label><label>Eyes${SEL('eyes', EYES)}</label>
@@ -4794,7 +4810,11 @@ body.voice-snap .stage{transition:none!important}
   let srvShown = false;
   const renderServer = () => { const can = isOwner || D.admin; $('cvServerTab').hidden = !can; if (!can) { if (pane === 'server') show('home'); return; }
     if (srvShown && $('cvServer').contains(document.activeElement)) return; srvShown = true; const cf = D.conf || {};
-    $('cvServer').innerHTML = (isOwner ? `<form class="cv-form" id="cvSetF"><label class="chk"><input type="checkbox" name="on" ${cf.on ? 'checked' : ''}>Civilian economy on</label>
+    $('cvServer').innerHTML = (isOwner ? `<form class="cv-form" id="cvSetF"><div class="st-h"><span>Names</span></div>
+        <div class="grid3"><label>People go by<select name="names"><option value="roblox"${cf.names !== 'roleplay' ? ' selected' : ''}>Roblox usernames</option><option value="roleplay"${cf.names === 'roleplay' ? ' selected' : ''}>Roleplay characters</option></select></label>
+        <label>Characters each<input name="maxchars" type="number" min="1" max="10" value="${cf.maxchars || 3}"></label></div>
+        <p class="cv-note">With roleplay characters, everyone makes their characters in My ID and picks who they're playing. Police lookups, plates and linked bots like Dispatch then use that character's name, record and licenses instead of the Roblox username.</p>
+        <div class="st-h" style="margin-top:6px"><span>Economy</span></div><label class="chk"><input type="checkbox" name="on" ${cf.on ? 'checked' : ''}>Civilian economy on</label>
         <p class="cv-note">Time runs on ER:LC's clock: a day is one 24-minute day and night cycle, and a week is 7 of them (2 hours 48 minutes). Pay, bills, due dates and evictions all count in these.</p>
         <div class="grid3"><label>Starting money<input name="start" type="number" min="0" value="${cf.start}"></label><label>Weekly payment<input name="weekly" type="number" min="0" value="${cf.weekly}"></label><label>Late fee (%)<input name="late" type="number" min="0" max="100" value="${cf.late}"></label>
         <label>Registration a week<input name="reg" type="number" min="0" value="${cf.reg}"></label><label>Insurance a week<input name="ins" type="number" min="0" value="${cf.ins}"></label><label>Days to pay<input name="grace" type="number" min="1" max="14" value="${cf.grace}"></label></div>
@@ -4830,7 +4850,12 @@ body.voice-snap .stage{transition:none!important}
     const btn = e.target.closest('button'); if (btn && !btn.closest('form[data-bizf]') || btn?.dataset.close) bizClick(btn);
     if (ed) { const p = (D.props || []).find(x => x.id === +ed.dataset.edit), f = $('cvPropF'); if (!p || !f) return;
       f.pid.value = p.id; for (const k of ['name', 'kind', 'address', 'price', 'rent']) f.elements[k].value = p[k]; $('cvPropBtn').textContent = 'Save home'; f.elements.name.focus(); } });
-  page.addEventListener('change', e => { if (e.target.id === 'cvAuto') act('/autopay', { on: e.target.checked });
+  page.addEventListener('click', e => { const b = e.target.closest('[data-char-use],[data-char-edit],[data-char-del],[data-char-new]'); if (!b) return; const d = b.dataset;
+    if (d.charEdit || d.charNew) { editChar = d.charNew ? 0 : +d.charEdit; idShown = false; renderId(); $('cvIdF').elements.first?.focus(); return; }
+    if (d.charUse) { b.disabled = true; act('/character/use', { id: +d.charUse }, $('cvCharMsg'), 'Playing as them now.').finally(() => { b.disabled = false; }); }
+    if (d.charDel && confirm(`Delete ${d.name}? Their record stays with the police.`)) { if (editChar === +d.charDel) editChar = null; idShown = false; act('/character/delete', { id: +d.charDel }, $('cvCharMsg'), 'Deleted.'); } });
+  page.addEventListener('change', e => { if (e.target.dataset.carChar) act('/character/car', { plate: e.target.dataset.carChar, id: +e.target.value });
+    if (e.target.id === 'cvAuto') act('/autopay', { on: e.target.checked });
     if (e.target.id === 'cvBizKind') { const g = gigOf(e.target.value); $('cvBizKindHow').textContent = `Your staff do ${plural(g.name).toLowerCase()}: ${g.how}`; } });
   const fields = f => Object.fromEntries(new FormData(f).entries());
   const val = (el, k) => el?.querySelector(`[data-f="${k}"]`)?.value ?? '';
@@ -4879,7 +4904,8 @@ body.voice-snap .stage{transition:none!important}
     else if (d.hold) { srvShown = false; go('/biz/admin', { id: +d.hold, suspend: !!d.on }); }
     else if (d.bizrm) { if (confirm(`Close ${d.name} for good?`)) { srvShown = false; go('/biz/admin', { id: +d.bizrm, remove: true }); } } };
   page.addEventListener('submit', async e => { e.preventDefault(); const f = e.target;
-    if (f.id === 'cvIdF') { const lv = licVals(f), ok = await act('/character', fields(f), $('cvIdMsg'), 'Saved. Police see this when they run your name.'); if (!ok || !LIC) return;
+    if (f.id === 'cvIdF') { const lv = licVals(f), ok = await act('/character', { ...fields(f), id: +f.elements.char?.value || 0 }, $('cvIdMsg'), 'Saved. Police see this when they run your name.');
+      if (ok && rpOn()) { editChar = ok.id || editChar; idShown = false; renderId(); $('cvIdMsg').className = 'cv-msg ok'; $('cvIdMsg').textContent = 'Saved.'; } if (!ok || !LIC) return;
       try { const r = await fetch('/api/me/license', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(lv) }), j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error || 'Your license didn\'t save.'); LIC = j; dispatchEvent(new CustomEvent('ov-license')); } catch (x) { $('cvIdMsg').className = 'cv-msg err'; $('cvIdMsg').textContent = x.message; } }
     if (f.id === 'cvBizNew') { const fee = offK('bizfee') ? 0 : (D.conf || {}).bizfee || 0; if (fee && !confirm(`Pay ${money(fee)} to register ${f.elements.name.value.trim() || 'this business'}?`)) return;
@@ -4887,7 +4913,7 @@ body.voice-snap .stage{transition:none!important}
     if (f.dataset.bizf) { const v = fields(f), body = { id: +f.dataset.bizf, kind: v.kind, address: v.address, about: v.about, clean: +v.clean || 0 };
       for (const k of ['hiring', 'warrants', 'felony', 'license', 'debt']) body[k] = !!v[k]; document.activeElement?.blur(); await act('/biz/edit', body); }
     if (f.id === 'cvPropF') { const v = fields(f); srvShown = false; await act('/prop', { name: v.name, kind: v.kind, address: v.address, price: v.price, rent: v.rent, id: +v.pid || 0 }, $('cvPropMsg'), 'Saved.'); }
-    if (f.id === 'cvSetF') { const v = fields(f), body = { on: !!v.on }; for (const k of ['start', 'weekly', 'late', 'reg', 'ins', 'grace', 'tax', 'down', 'weeks', 'rate', 'evict', 'bizfee', 'bizlic', 'showpay']) body[k] = +v[k];
+    if (f.id === 'cvSetF') { const v = fields(f), body = { on: !!v.on, names: v.names, maxchars: +v.maxchars || 3 }; idShown = false; for (const k of ['start', 'weekly', 'late', 'reg', 'ins', 'grace', 'tax', 'down', 'weeks', 'rate', 'evict', 'bizfee', 'bizlic', 'showpay']) body[k] = +v[k];
       srvShown = false; await act('/settings', body, $('cvSetMsg'), 'Saved.'); }
     if (f.id === 'cvGrantF') { const j = await act('/grant', fields(f), $('cvGrantMsg'), 'Done.'); if (j) f.reset(); } });
 })();

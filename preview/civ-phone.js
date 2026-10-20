@@ -1,8 +1,9 @@
 // The Civilian tab as a phone that looks like an iPhone: a wallpaper, the status bar with the Dynamic Island, widgets (the
 // weather where the server is, the wallet balance, today's date), the apps as rounded icons with red badges, a Search pill that
 // narrows the apps, and the dock. Tapping an app opens it full screen; "Apps" at the top, the bar at the bottom (or Esc) goes back
-// home. The Settings app picks the wallpaper and which widgets show (kept on this device). More apps (Messages, Maps, News) plug
-// in with window.ovPhone.addApp (civ-apps.js). On a phone it fills the screen.
+// home. The Settings app picks the wallpaper, which widgets show and the device: this phone, or a tablet like an iPad (wider, more
+// apps to a row, the widgets side by side, the dock centred); all kept on this device. More apps (Messages, Maps, News) plug in
+// with window.ovPhone.addApp (civ-apps.js). On a phone it fills the screen, whichever device is picked.
 (() => { const page = document.getElementById('civMdt'), tabs = document.getElementById('cvTabs'), OV = window.OVERSITE || {}; if (!page || !tabs) return;
   const $ = id => document.getElementById(id), API = OV.api || '';
   const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -16,8 +17,8 @@
     graphite: ['Graphite', 'radial-gradient(120% 60% at 50% 0%,rgba(255,255,255,.12),transparent 60%),linear-gradient(170deg,#2A2C31,#0E0F12)'],
     forest: ['Forest', 'radial-gradient(120% 60% at 0% 0%,rgba(120,200,110,.45),transparent 60%),radial-gradient(100% 60% at 100% 100%,rgba(30,120,90,.6),transparent 60%),linear-gradient(170deg,#0D1C14,#050C08)'],
     rose: ['Rose', 'radial-gradient(120% 60% at 100% 0%,rgba(255,150,190,.6),transparent 60%),radial-gradient(100% 60% at 0% 100%,rgba(160,90,255,.5),transparent 60%),linear-gradient(170deg,#2A1426,#120A16)'] };
-  let prefs = { wall: 'blue', widgets: ['weather', 'wallet'] };
-  try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) prefs = { wall: WALLS[p.wall] ? p.wall : 'blue', widgets: (p.widgets || []).filter(w => WIDGETS.includes(w)) }; } catch (e) {}
+  let prefs = { wall: 'blue', widgets: ['weather', 'wallet'], device: 'phone' };
+  try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) prefs = { wall: WALLS[p.wall] ? p.wall : 'blue', widgets: (p.widgets || []).filter(w => WIDGETS.includes(w)), device: p.device === 'tablet' ? 'tablet' : 'phone' }; } catch (e) {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (e) {} };
 
   const css = document.createElement('style'); css.textContent = `
@@ -112,12 +113,40 @@
 @media (max-width:760px){#civMdt.phone{width:100vw}#civMdt.phone .tablet{aspect-ratio:auto;height:100%;border-radius:0;padding:0;box-shadow:none;background:#05070D}
   #civMdt.phone .tablet .screen{border-radius:0}#civMdt.phone .tablet .cam{display:none}#civMdt.phone .sbar{padding:10px 20px 6px;min-height:0}
   #civMdt.phone .tside button[data-p] svg{width:56px;height:56px;padding:14px}#civMdt.phone .ph-dock{margin-bottom:30px}}
-@media (prefers-reduced-motion:reduce){#civMdt.phone .tside,#civMdt.phone.home .tside{transition:none;transform:none}}`;
+@media (prefers-reduced-motion:reduce){#civMdt.phone .tside,#civMdt.phone.home .tside{transition:none;transform:none}}
+/* the tablet, above phone width: the same home screen and apps on an iPad, landscape, a thin bezel with a camera dot in it (on a phone it stays the phone) */
+@media (min-width:761px){#civMdt.phone.pad{width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * 1.36))}
+#civMdt.phone.pad .tablet{aspect-ratio:4/3;border-radius:34px;padding:12px}
+#civMdt.phone.pad .tablet .screen{border-radius:23px}
+#civMdt.phone.pad .tablet .cam{top:4px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#14161B;box-shadow:0 0 0 1px rgba(255,255,255,.06)}
+#civMdt.phone.pad .sbar{padding:9px 26px 4px;min-height:32px;font-size:13.5px}#civMdt.phone.pad .sb-ic{gap:5px}
+#civMdt.phone.pad .tside{padding:22px max(56px,8%) 0}
+#civMdt.phone.pad .ph-wid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 24px;max-width:860px;width:100%;align-self:center;margin:4px 0 0}
+#civMdt.phone.pad .ph-w>div{aspect-ratio:2.1/1;border-radius:24px;padding:15px 18px}
+#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3){grid-column:auto;flex-direction:column;justify-content:normal;gap:6px}#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3)>span{display:block}
+#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3)>div{aspect-ratio:2.1/1;height:auto;flex-direction:column;align-items:stretch;gap:0;padding:15px 18px;border-radius:24px}
+#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3)>div b{font-size:44px;margin:2px 0 0;order:0}#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3)>div>:last-child{margin-left:0;margin-top:auto!important}
+#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3) .ph-wx svg{display:inline}#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3) .ph-wx b{font-size:40px}
+#civMdt.phone.pad .ph-apps{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:26px 8px;margin-top:28px;max-width:960px;width:100%;align-self:center}
+#civMdt.phone.pad .tside button[data-p] svg{width:68px;height:68px;padding:17px}#civMdt.phone.pad .tside button[data-p]{font-size:12.5px}
+#civMdt.phone.pad .tside button[data-p] .badge{left:calc(50% + 21px)}
+#civMdt.phone.pad .ph-search{margin:auto 0 14px}
+#civMdt.phone.pad .ph-dock{align-self:center;display:flex;gap:20px;margin:0 0 24px;padding:12px 18px;border-radius:30px;bottom:24px}
+#civMdt.phone.pad .ph-bar::before{width:160px}#civMdt.phone.pad .ph-bar:hover::before{width:170px}
+#civMdt.phone.pad .ph-back{margin-left:22px}
+#civMdt.phone.pad .tscreen{padding-left:max(28px,4%);padding-right:max(28px,4%)}
+#civMdt.phone.pad .cv-form .grid2{grid-template-columns:repeat(3,minmax(0,1fr))}#civMdt.phone.pad .cv-form .grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+#civMdt.phone.pad .cv-car .cv-pills{order:0;flex-basis:auto}
+#civMdt.phone.pad .ps{max-width:680px;margin:0 auto;padding:4px 0 28px}#civMdt.phone.pad .ps-walls{grid-template-columns:repeat(6,1fr)}}
+#civMdt.phone .ps-chk{width:20px;height:20px;flex:none;color:#0A84FF;visibility:hidden}#civMdt.phone .ps-r[aria-pressed="true"] .ps-chk{visibility:visible}
+#civMdt.phone button.ps-r{width:100%;background:none;border-left:0;border-right:0;border-bottom:0;font:inherit;font-size:15px;color:#fff;text-align:left;cursor:pointer}
+#civMdt.phone .ps-r .ps-sw{flex:none}#civMdt.phone .ps-walls{row-gap:30px}#civMdt.phone button.ps-r:first-child{border-top:0}`;
   document.head.appendChild(css);
   page.classList.add('phone', 'home');
   const screen = page.querySelector('.screen'), screens = page.querySelector('.tscreens'), sbar = page.querySelector('.sbar');
   const applyWall = () => { for (const k of Object.keys(WALLS)) page.classList.toggle('wall-' + k, k === prefs.wall); page.style.setProperty('--wall', WALLS[prefs.wall][1]); };
-  applyWall();
+  const applyDevice = () => { page.classList.toggle('pad', prefs.device === 'tablet'); dispatchEvent(new CustomEvent('ovphonedevice', { detail: { device: prefs.device } })); };
+  applyWall(); applyDevice();
 
   // status bar: signal, Wi-Fi and battery on the right, like the real thing
   const ic = document.createElement('span'); ic.className = 'sb-ic'; ic.setAttribute('aria-hidden', 'true');
@@ -172,7 +201,10 @@
     calendar: ['Calendar', '#FF3B30', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>'] };
   let setSec = null, placeMsg = null;
   const drawSettings = () => { if (!setSec) return; const keep = document.activeElement?.id;
-    setSec.innerHTML = `<div class="thead"><div><h2>Settings</h2><small>How your phone looks. Kept on this device.</small></div></div><div class="ps">
+    setSec.innerHTML = `<div class="thead"><div><h2>Settings</h2><small>How your ${prefs.device === 'tablet' ? 'tablet' : 'phone'} looks. Kept on this device.</small></div></div><div class="ps">
+      <h3>Device</h3><div class="ps-g">${[['phone', 'Phone', '#2F3136', '<svg width="15" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>'],
+        ['tablet', 'Tablet', '#2F3136', '<svg width="18" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="M11 17h2"/></svg>']].map(([k, n, bg, svg]) =>
+        `<button type="button" class="ps-r" data-dev="${k}" aria-pressed="${prefs.device === k}"><i class="ps-ic" style="background:${bg}">${svg}</i><span>${n}</span><svg class="ps-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button>`).join('')}</div>
       <h3>Wallpaper</h3><div class="ps-g"><div class="ps-walls">${Object.entries(WALLS).map(([k, [n, bg]]) => `<button type="button" data-wall="${k}" style="--w:${bg}" aria-pressed="${prefs.wall === k}" aria-label="${n}"><span>${n}</span></button>`).join('')}</div></div>
       <h3>Widgets</h3><div class="ps-g">${WIDGETS.map(w => `<label class="ps-r"><i class="ps-ic" style="background:${SW[w][1]}">${SW[w][2]}</i><span>${SW[w][0]}</span><span class="ps-sw"><input type="checkbox" data-wid="${w}"${prefs.widgets.includes(w) ? ' checked' : ''}><i></i></span></label>`).join('')}</div>
       <h3>Weather</h3><div class="ps-g"><div class="ps-r"><i class="ps-ic" style="background:#2A84F0">${WX.sun}</i><span>${wx && !wx.error ? esc(wx.full) : 'Not found yet'}<small>${wx && !wx.error ? (wx.set ? 'Where this server is' : 'Guessed from the server’s name') : esc(wx?.error || '')}</small></span></div>
@@ -181,7 +213,8 @@
     if (keep && $(keep)) $(keep).focus(); };
   const settings = addApp({ id: 'phset', name: 'Settings', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
     color: 'linear-gradient(180deg,#A3A8B1,#6E737C)', render: sec => { setSec = sec; drawSettings(); }, onOpen: () => loadWx(true) });
-  settings.section.addEventListener('click', e => { const w = e.target.closest('[data-wall]'); if (!w) return; prefs.wall = w.dataset.wall; save(); applyWall(); drawSettings(); });
+  settings.section.addEventListener('click', e => { const d = e.target.closest('[data-dev]'); if (d) { prefs.device = d.dataset.dev; save(); applyDevice(); drawSettings(); fit(); return; }
+    const w = e.target.closest('[data-wall]'); if (!w) return; prefs.wall = w.dataset.wall; save(); applyWall(); drawSettings(); });
   settings.section.addEventListener('change', e => { const t = e.target; if (!t.dataset.wid) return;
     prefs.widgets = WIDGETS.filter(w => w === t.dataset.wid ? t.checked : prefs.widgets.includes(w)); save(); drawWidgets(); });
   settings.section.addEventListener('submit', async e => { e.preventDefault(); const q = e.target.q.value.trim(); placeMsg = { t: 'Looking that up…' }; drawSettings();

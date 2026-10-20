@@ -1,9 +1,11 @@
 // The law enforcement MDT's records: people and vehicles seen in game, and the warrants, BOLOs, citations, warnings,
 // arrests and traffic stops officers write. Everything is per server and shared by everyone on it, so dispatch and every
 // officer see the same thing. ER:LC's API gives plates, vehicle colors and owners, and players' wanted stars; it has no
-// characters, so a person is their Roblox account, and their license details are the ones they filled in on Oversite.
+// characters, so a person is their Roblox account, and their license details are the ones they filled in on Oversite. A server
+// that uses roleplay characters (app/chars.mjs) has a person be a character instead: keyed 'c<id>', with the cars given to it.
 import { db, now, users, licenses, mdtSignin } from './db.mjs';
 import { statusOf as licenseStatus } from './pdlicense.mjs';
+import * as chars from './chars.mjs';
 import { POSTALS } from './postals.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS pd_people (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, rid TEXT NOT NULL, name TEXT NOT NULL, team TEXT,
@@ -18,6 +20,9 @@ CREATE INDEX IF NOT EXISTS pd_records_s ON pd_records (community_id, subject_rid
 CREATE INDEX IF NOT EXISTS pd_records_p ON pd_records (community_id, plate);`);
 // civ: 1 when its owner was on the civilian team when we last saw it (police cars, fire trucks and the like aren't theirs to pay for)
 try { db.exec('ALTER TABLE pd_vehicles ADD COLUMN civ INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
+// char_id: the roleplay character the car is on file under; char_pin: 1 when its player gave it to that character, so it stays put
+try { db.exec('ALTER TABLE pd_vehicles ADD COLUMN char_id INTEGER'); } catch (e) {}
+try { db.exec('ALTER TABLE pd_vehicles ADD COLUMN char_pin INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
 const q = sql => db.prepare(sql);
 
 // Liberty County's default penal code: [code, title, fine, jail in minutes, class]. A server can replace it with its own (penalOf). Infractions are tickets; misdemeanors and felonies can be jailed.
@@ -78,7 +83,8 @@ export const isSupervisor = (cid, uid, adminRole, pdRanks) => adminRole || !!pdR
 
 const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
 const PLATE = v => String(v ?? '').toUpperCase().replace(/[^A-Z0-9 -]/g, '').trim().slice(0, 10);
-const RID = v => /^\d{1,20}$/.test(String(v ?? '')) ? String(v) : '';
+// a person: a Roblox ID, or a roleplay character's key (c12)
+const RID = v => /^c?\d{1,20}$/.test(String(v ?? '')) ? String(v) : '';
 
 // ── what ER:LC shows: who is in the server and which vehicles are out, recorded at most every 20 s per server ──
 const seen = new Map();
@@ -92,6 +98,10 @@ export const observe = (cid, body, teams = {}) => { const t = now(); if (t - (se
     for (const p of j.Players || []) { const [name, id] = String(p.Player || '').split(':'); if (!name || !RID(id)) continue; byName.set(name.toLowerCase(), id); if (!(teams || {})[p.Team]) civName.add(name.toLowerCase()); up.run(cid, id, T(name, 40), T(p.Team, 30), t, t); }
     for (const v of j.Vehicles || []) { const plate = PLATE(v.Plate); if (!plate) continue; const owner = T(String(v.Owner || '').split(':')[0], 40);
       upV.run(cid, plate, T(v.Name, 60), T(v.ColorName, 30), /^#?[0-9a-f]{6}$/i.test(v.ColorHex || '') ? '#' + String(v.ColorHex).replace('#', '') : '', owner, byName.get(owner.toLowerCase()) || '', t, t, civName.has(owner.toLowerCase()) ? 1 : 0); }
+    // with characters, a car is on file under whoever its player is playing, unless they gave it to one of their characters
+    if (chars.rp(cid)) { const on = new Map(), give = q('UPDATE pd_vehicles SET char_id = ? WHERE community_id = ? AND plate = ? AND char_pin = 0 AND char_id IS NOT ?');
+      for (const v of j.Vehicles || []) { const plate = PLATE(v.Plate), rid = byName.get(T(String(v.Owner || '').split(':')[0], 40).toLowerCase()); if (!plate || !rid) continue;
+        if (!on.has(rid)) on.set(rid, chars.playing(cid, rid)?.id ?? null); const id = on.get(rid); if (id) give.run(id, cid, plate, id); } }
     db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); console.log('pd observe:', e.message); }
   return alpr(cid, j); };
 
@@ -99,19 +109,22 @@ export const observe = (cid, body, teams = {}) => { const t = now(); if (t - (se
 // A hit is returned (for the CAD and automations) once per car every ten minutes while it stays flagged ──
 const alprAt = new Map(), G2M = 2000 / 5355;
 const postalNear = (x, z) => { let best = '', d = Infinity; for (const [k, [px, py]] of Object.entries(POSTALS)) { const e = (px - x * G2M) ** 2 + (py - z * G2M) ** 2; if (e < d) { d = e; best = k; } } return best ? 'near postal ' + best : ''; };
+// who a car is on file under: { key, name } of its character on a server with characters, else of its Roblox owner
+const ownerOf = (cid, v) => { const ch = v.char_id && chars.rp(cid) ? chars.byId(cid, v.char_id) : null;
+  return ch ? { key: ch.key, name: ch.name } : { key: v.owner_rid || '', name: v.owner || '' }; };
 // why the plate reader (or a plate camera) would flag a car on file: stolen, a BOLO on it, its owner wanted, bad papers
-export const flagReasons = (cid, plate) => { const car = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(cid, plate); if (!car) return null; const why = [];
+export const flagReasons = (cid, plate) => { const car = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(cid, plate); if (!car) return null; const why = [], o = ownerOf(cid, car);
   if (car.stolen) why.push('reported stolen');
   if (q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'bolo' AND status = 'Active' AND plate = ?").get(cid, plate)) why.push('matches a BOLO');
-  if (car.owner_rid && q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'warrant' AND status = 'Active' AND subject_rid = ?").get(cid, car.owner_rid)) why.push('owner has a warrant');
-  if (car.owner_rid || car.owner) { const s = licenseStatus(cid, car.owner_rid, car.owner, 'driver'); if (s !== 'Valid') why.push(`owner’s license ${s.toLowerCase()}`); }
+  if (o.key && q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'warrant' AND status = 'Active' AND subject_rid = ?").get(cid, o.key)) why.push('owner has a warrant');
+  if (o.key || o.name) { const s = licenseStatus(cid, o.key, o.name, 'driver'); if (s !== 'Valid') why.push(`owner’s license ${s.toLowerCase()}`); }
   if (car.civ && (car.reg !== 'Valid' || car.ins !== 'Active')) why.push(car.reg !== 'Valid' ? `registration ${car.reg.toLowerCase()}` : `insurance ${car.ins.toLowerCase()}`);
-  return { car, why }; };
+  return { car, why, owner: o }; };
 export { postalNear, G2M, PLATE };
 const alpr = (cid, j) => { const hits = [], at = new Map((j.Players || []).map(p => [String(p.Player || '').split(':')[0].toLowerCase(), p.Location]));
   for (const v of j.Vehicles || []) { const plate = PLATE(v.Plate); if (!plate) continue; const k = `${cid}:${plate}`; if (now() - (alprAt.get(k) || 0) < 600000) continue;
     const f = flagReasons(cid, plate); if (!f || !f.why.length) continue; const { car, why } = f; alprAt.set(k, now()); const L = at.get(String(car.owner || '').toLowerCase());
-    hits.push({ plate, vehicle: [car.color, car.model].filter(Boolean).join(' '), owner: car.owner || '', owner_rid: car.owner_rid || '', reasons: why.join(', '),
+    const o = ownerOf(cid, car); hits.push({ plate, vehicle: [car.color, car.model].filter(Boolean).join(' '), owner: o.name, owner_rid: o.key, reasons: why.join(', '),
       where: L && Number.isFinite(+L.LocationX) ? postalNear(+L.LocationX, +L.LocationZ) : '', x: L ? +L.LocationX * G2M : null, y: L ? +L.LocationZ * G2M : null }); }
   return hits; };
 
@@ -144,7 +157,9 @@ const shape = (kind, b, list) => { const cs = charges(b.charges, list), base = {
   return base; };
 
 export const create = (cid, by, b, list = PENAL) => { const kind = String(b.kind || ''); if (!KINDS.includes(kind)) return { error: 'Unknown record.' };
-  const d = shape(kind, b, list), subject = T(b.subject, 40), rid = RID(b.subject_rid), plate = PLATE(b.plate);
+  const d = shape(kind, b, list), plate = PLATE(b.plate); let subject = T(b.subject, 40), rid = RID(b.subject_rid);
+  // on a server with characters, a name typed without a lookup is written against that character
+  if (!rid && subject) { const ch = characterFor(cid, subject); if (ch) { subject = ch.name; rid = ch.key; } }
   if (['citation', 'arrest', 'warrant'].includes(kind) && !d.charges.length) return { error: 'Add at least one charge.' };
   if (['citation', 'warning', 'arrest', 'warrant'].includes(kind) && !subject) return { error: 'Who is this for? Look the person up first, or type their username.' };
   if (kind === 'warning' && !d.reason) return { error: 'Say what the warning is for.' };
@@ -172,7 +187,9 @@ export const act = (cid, by, b) => { const r = record(cid, b.id); if (!r) return
 export const remove = (cid, id) => q('DELETE FROM pd_records WHERE community_id = ? AND id = ?').run(cid, +id || 0);
 
 // ── lookups ──
-const vehRow = v => v && { plate: v.plate, model: v.model || '', color: v.color || '', hex: v.color_hex || '', owner: v.owner || '', owner_rid: v.owner_rid || '', reg: v.reg, ins: v.ins, stolen: !!v.stolen, first_seen: v.first_seen, last_seen: v.last_seen };
+// owner and owner_rid are who the car is on file under (its character on a server with characters); player is the Roblox account
+const vehRow = (v, cid) => { if (!v) return v; const o = ownerOf(cid, v);
+  return { plate: v.plate, model: v.model || '', color: v.color || '', hex: v.color_hex || '', owner: o.name, owner_rid: o.key, player: v.owner || '', player_rid: v.owner_rid || '', reg: v.reg, ins: v.ins, stolen: !!v.stolen, first_seen: v.first_seen, last_seen: v.last_seen }; };
 const flagsFor = (cid, rid, name, plates = []) => { const open = q("SELECT * FROM pd_records WHERE community_id = ? AND status IN ('Pending', 'Active') AND kind IN ('warrant', 'bolo')").all(cid).map(row);
   const n = String(name || '').toLowerCase(); return open.filter(r => (rid && r.subject_rid === rid) || (n && r.subject.toLowerCase() === n) || (r.plate && plates.includes(r.plate))); };
 export const search = (cid, text) => { const s = T(text, 40); if (!s) return { people: [], vehicles: [] }; const like = `%${s.replace(/[%_]/g, '')}%`, plate = `%${PLATE(s).replace(/[%_]/g, '')}%`;
@@ -183,23 +200,48 @@ export const search = (cid, text) => { const s = T(text, 40); if (!s) return { p
   for (const e of extra) { const k = e.rid || 'n:' + e.name.toLowerCase(); if (![...out.values()].some(p => p.name.toLowerCase() === e.name.toLowerCase())) out.set(k, { rid: e.rid || '', name: e.name, team: '', last_seen: 0 }); }
   for (const u of q(`SELECT u.roblox_id AS rid, u.roblox_name AS name FROM users u JOIN pd_people p ON p.rid = u.roblox_id AND p.community_id = ? WHERE u.license LIKE ? LIMIT 10`).all(cid, like))
     if (!out.has(u.rid)) out.set(u.rid, { rid: u.rid, name: u.name, team: '', last_seen: 0, addr: true });
-  const vehicles = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND (plate LIKE ? OR owner LIKE ? OR model LIKE ?) ORDER BY last_seen DESC LIMIT 15').all(cid, plate, like, like).map(vehRow);
+  if (chars.rp(cid)) { const rp = new Map();
+    for (const ch of chars.search(cid, s)) rp.set(ch.key, ch);
+    for (const p of people) for (const ch of q('SELECT c.id FROM civ_characters c JOIN users u ON u.id = c.user_id WHERE c.community_id = ? AND u.roblox_id = ?').all(cid, p.rid)) { const x = chars.byId(cid, ch.id); if (x) rp.set(x.key, x); }
+    // a player with characters is found as them; one without any is still found by their username
+    const played = new Set([...rp.values()].map(ch => chars.player(ch)?.rid).filter(Boolean));
+    for (const k of [...out.keys()]) if (played.has(String(k))) out.delete(k);
+    for (const ch of rp.values()) out.set(ch.key, { rid: ch.key, name: ch.name, team: '', last_seen: 0, player: chars.player(ch)?.name || '' }); }
+  const vehicles = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND (plate LIKE ? OR owner LIKE ? OR model LIKE ?) ORDER BY last_seen DESC LIMIT 15').all(cid, plate, like, like).map(v => vehRow(v, cid));
   const ppl = [...out.values()].slice(0, 15).map(p => ({ ...p, flags: flagsFor(cid, p.rid, p.name).map(f => f.kind) }));
   return { people: ppl, vehicles: vehicles.map(v => ({ ...v, flags: [...flagsFor(cid, '', '', [v.plate]).map(f => f.kind), ...(v.stolen ? ['stolen'] : [])] })) }; };
 
-export const person = async (cid, key, licenseOf) => { const rid = RID(key), name = rid ? '' : T(key, 40);
+// a roleplay character as a person: its own name, record, licenses and cars; the details on its ID, the looks from the player's license
+const charPerson = async (cid, ch, licenseOf) => { const pl = chars.player(ch), p = pl?.rid ? q('SELECT * FROM pd_people WHERE community_id = ? AND rid = ?').get(cid, pl.rid) : null;
+  const who = { rid: ch.key, name: ch.name, team: p?.team || '', first_seen: p?.first_seen || 0, last_seen: p?.last_seen || 0, player: pl?.name || '', character: true };
+  const acct = users.byId(ch.user_id); let license = null;
+  const age = ch.dob ? Math.floor((Date.now() - Date.parse(ch.dob)) / 31557600000) : null;
+  if (acct) { const l = await licenseOf(acct); license = { display: ch.name, age: Number.isFinite(age) && age > 0 ? `${age}` : l.saved ? l.age : '', gndr: l.gndr || '', hair: l.hair || '', eyes: l.eyes || '', hgt: l.hgt || '', wgt: l.wgt || '',
+    addr: ch.address || 'N/A', iss: l.iss || '', dob: ch.dob || '', num: 'LC' + String(ch.id).padStart(8, '0').slice(-8) }; }
+  const vehicles = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND char_id = ? ORDER BY last_seen DESC LIMIT 20').all(cid, ch.id).map(v => vehRow(v, cid));
+  const history = q("SELECT * FROM pd_records WHERE community_id = ? AND (subject_rid = ? OR (subject_rid = '' AND lower(subject) = lower(?))) ORDER BY at DESC LIMIT 100").all(cid, ch.key, ch.name).map(row);
+  return { person: who, account: !!acct, license, vehicles, history, flags: flagsFor(cid, ch.key, ch.name, vehicles.map(v => v.plate)), character: { ...Object.fromEntries(Object.keys(chars.FIELDS).map(k => [k, ch[k]])) } }; };
+// a name, Roblox ID or character key to a character: a key always; on a server with characters, also one by that exact name, or the one a player is on
+export const characterFor = (cid, key) => { const k = String(key ?? '').trim(); if (!k) return null;
+  const byKey = chars.byKey(cid, k); if (byKey) return byKey; if (!chars.rp(cid)) return null; const same = chars.named(cid, k); if (same.length === 1) return same[0];
+  const p = /^\d{1,20}$/.test(k) ? q('SELECT rid FROM pd_people WHERE community_id = ? AND rid = ?').get(cid, k) : q('SELECT rid FROM pd_people WHERE community_id = ? AND lower(name) = lower(?)').get(cid, T(k, 40));
+  return p ? chars.playing(cid, p.rid) : null; };
+export const person = async (cid, key, licenseOf) => { const ch = characterFor(cid, key); if (ch) return charPerson(cid, ch, licenseOf);
+  if (chars.KEY.test(String(key ?? ''))) return { error: 'That character is gone.' };
+  const rid = RID(key), name = rid ? '' : T(key, 40);
   const p = rid ? q('SELECT * FROM pd_people WHERE community_id = ? AND rid = ?').get(cid, rid) : q('SELECT * FROM pd_people WHERE community_id = ? AND lower(name) = lower(?)').get(cid, name);
   const who = { rid: p?.rid || rid, name: p?.name || name, team: p?.team || '', first_seen: p?.first_seen || 0, last_seen: p?.last_seen || 0 };
   if (!who.name && !who.rid) return { error: 'Nobody by that name.' };
   const acct = who.rid ? users.byRoblox(who.rid) : null; let license = null;
   if (acct) { const l = await licenseOf(acct); if (l.saved) license = { display: l.display, age: l.age, gndr: l.gndr, hair: l.hair, eyes: l.eyes, hgt: l.hgt, wgt: l.wgt, addr: l.addr, iss: l.iss, num: 'LC' + String(who.rid).padStart(8, '0').slice(-8) }; else license = { display: l.display, none: true }; }
-  const vehicles = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND (owner_rid = ? OR lower(owner) = lower(?)) ORDER BY last_seen DESC LIMIT 20').all(cid, who.rid || '-', who.name || '-').map(vehRow);
+  const vehicles = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND (owner_rid = ? OR lower(owner) = lower(?)) ORDER BY last_seen DESC LIMIT 20').all(cid, who.rid || '-', who.name || '-').map(v => vehRow(v, cid));
   const n = (who.name || '').toLowerCase(), history = q("SELECT * FROM pd_records WHERE community_id = ? AND ((subject_rid <> '' AND subject_rid = ?) OR lower(subject) = ?) ORDER BY at DESC LIMIT 100").all(cid, who.rid || '-', n || '-').map(row);
   return { person: who, account: !!acct, license, vehicles, history, flags: flagsFor(cid, who.rid, who.name, vehicles.map(v => v.plate)) }; };
 
-// someone this server has seen in game, by Roblox ID or exact name: { rid, name } or null
-export const seenPerson = (cid, rid, name) => (RID(rid) ? q('SELECT rid, name FROM pd_people WHERE community_id = ? AND rid = ?').get(cid, RID(rid)) : q('SELECT rid, name FROM pd_people WHERE community_id = ? AND lower(name) = lower(?)').get(cid, T(name, 40))) || null;
-export const vehicle = (cid, plate) => { const v = vehRow(q('SELECT * FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(cid, PLATE(plate)));
+// someone this server has seen in game, by Roblox ID or exact name: { rid, name } or null; on a server with characters, the character
+export const seenPerson = (cid, rid, name) => { const ch = characterFor(cid, rid || name); if (ch) return { rid: ch.key, name: ch.name }; return seenPlayer(cid, rid, name); };
+const seenPlayer = (cid, rid, name) => (/^\d{1,20}$/.test(String(rid ?? '')) ? q('SELECT rid, name FROM pd_people WHERE community_id = ? AND rid = ?').get(cid, RID(rid)) : q('SELECT rid, name FROM pd_people WHERE community_id = ? AND lower(name) = lower(?)').get(cid, T(name, 40))) || null;
+export const vehicle = (cid, plate) => { const v = vehRow(q('SELECT * FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(cid, PLATE(plate)), cid);
   if (!v) return { error: `No vehicle with plate ${PLATE(plate)} has been seen in this server.` };
   const history = q('SELECT * FROM pd_records WHERE community_id = ? AND plate = ? ORDER BY at DESC LIMIT 50').all(cid, v.plate).map(row);
   return { vehicle: v, history, flags: flagsFor(cid, '', '', [v.plate]), owner_flags: v.owner ? flagsFor(cid, v.owner_rid, v.owner).filter(f => !f.plate || f.plate !== v.plate) : [] }; };

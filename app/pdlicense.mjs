@@ -1,7 +1,7 @@
 // License status, from a person's profile in the police MDT: an officer suspends a driver's license or firearms permit (for some
 // days, or until it is reinstated), revokes it, or reinstates it, always with a reason. Per server. A person is their Roblox
 // account, or the name an officer typed when they have none. A suspension with an end date lifts by itself. Every change is kept,
-// so the profile shows who did what and why. The plate reader flags a car whose owner can't drive, and gun stores turn away
+// so the profile shows who did what and why. On a server with roleplay characters a person is the character. The plate reader flags a car whose owner can't drive, and gun stores turn away
 // anyone whose permit is suspended or revoked.
 import { db, now } from './db.mjs';
 
@@ -16,7 +16,8 @@ export const KINDS = { driver: 'Driver’s license', firearm: 'Firearms permit' 
 export const STATUSES = ['Valid', 'Suspended', 'Revoked'];
 export const DAYS = [1, 3, 7, 14, 30];   // how long a suspension can be (0: until someone reinstates it)
 const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
-const key = (rid, name) => /^\d{1,20}$/.test(String(rid || '')) ? 'r:' + rid : name ? 'n:' + String(name).trim().toLowerCase() : '';
+// a Roblox account, a roleplay character (c12, app/chars.mjs), or a typed name
+const key = (rid, name) => /^\d{1,20}$/.test(String(rid || '')) ? 'r:' + rid : /^c\d{1,12}$/.test(String(rid || '')) ? rid : name ? 'n:' + String(name).trim().toLowerCase() : '';
 
 // a person's licenses as they stand now: { kind, name, status, until, reason, by, at }; an ended suspension reads as Valid
 const now_ = (r, t) => !r || (r.status === 'Suspended' && r.until && r.until <= t) ? null : r;

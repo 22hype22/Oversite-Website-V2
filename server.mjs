@@ -19,6 +19,7 @@ import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
 import * as staff from './app/staff.mjs';
 import * as police from './app/police.mjs';
+import * as chars from './app/chars.mjs';
 import * as pdlic from './app/pdlicense.mjs';
 import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
@@ -335,11 +336,15 @@ const communityApi = async (req, res, slug, rest) => {
     const j = await jsonBody(req);
     if (sub === 'settings') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change this.' }, 403); return ok(civ.saveConf(c, j, () => communities.saveSettings(c.id, c.settings))); }
     if (sub === 'character') return ok(civ.saveChar(c, user, j));   // your ID works with the economy off too
+    // roleplay characters (app/chars.mjs): pick who you are playing, delete one, give a car to one
+    if (sub === 'character/use') return ok(chars.use(c, user, j.id));
+    if (sub === 'character/delete') return ok(chars.remove(c, user, j.id));
+    if (sub === 'character/car') return ok(chars.giveCar(c, user, j.plate, j.id));
     if (!civ.conf(c).on) return json(res, { error: 'The civilian economy is switched off on this server.' }, 403);
     if (sub === 'home' && !j.out) { const k = { rent: 'renting', mortgage: 'mortgages' }[j.how]; if (k && !features.on(c, k)) return off(k); }
     if (sub === 'pay') return ok(civ.pay(c, user, j.id));
     if (sub === 'autopay') return ok(civ.setAutopay(c, user, !!j.on));
-    if (sub === 'stolen') { const v = police.vehicle(c.id, j.plate); if (v.error || String(v.vehicle.owner_rid) !== String(user.roblox_id)) return json(res, { error: 'That is not your car.' }, 403);
+    if (sub === 'stolen') { const v = police.vehicle(c.id, j.plate); if (v.error || String(v.vehicle.player_rid) !== String(user.roblox_id)) return json(res, { error: 'That is not your car.' }, 403);
       police.setVehicle(c.id, v.vehicle.plate, { stolen: !!j.on }); return ok({ ok: true }); }
     if (sub === 'grant') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can give or take money.' }, 403); return ok(civ.grant(c, user.roblox_name || user.name, j)); }
     if (sub === 'home') return ok(j.out ? civ.moveOut(c, user, j) : civ.moveIn(c, user, j));
@@ -589,7 +594,9 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
     const cut = premium.isPremium(c) ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5, open = x => x.status === 'Active' || x.status === 'Pending';
     const H = r.history.filter(x => x.kind !== 'stop' && (!cut || x.at >= cut || open(x))), warrants = H.filter(x => x.kind === 'warrant' && open(x)), n = k => H.filter(x => x.kind === k).length;
     const acct = r.person.rid ? users.byRoblox(r.person.rid) : null;
-    return ok({ person: { roblox_name: r.person.name || null, roblox_id: r.person.rid || null, ...(bots.can(bot, 'people') ? { discord_id: acct?.discord_id || null } : {}), last_seen: r.person.last_seen || null },
+    // on a server with roleplay characters the person is a character: its name, and the player behind it
+    return ok({ person: { roblox_name: r.person.name || null, roblox_id: r.person.rid || null, ...(bots.can(bot, 'people') ? { discord_id: acct?.discord_id || null } : {}), last_seen: r.person.last_seen || null,
+        ...(r.person.character ? { character: true, name: r.person.name, player: r.person.player || null } : {}) },
       known: !!(r.person.last_seen || H.length), wanted: warrants.some(w => w.status === 'Active'), warrants, bolos: r.flags.filter(x => x.kind === 'bolo'),
       counts: { arrests: n('arrest'), citations: n('citation'), warnings: n('warning'), warrants: n('warrant') }, records: H.slice(0, 50), vehicles: r.vehicles, license: r.license, ...(features.on(c, 'pd_licenses') ? { licenses: pdlic.of(c.id, r.person.rid, r.person.name) } : {}) }); }
   if (at[0] === 'plates' && at[1] && M === 'GET') { if (need('lookup') || off('pd_lookup')) return; const r = police.vehicle(c.id, decodeURIComponent(at[1])); return r.error ? bad(r.error, 404) : ok({ ...r, history: r.history.slice(0, 25) }); }
@@ -1132,7 +1139,8 @@ const discordCmdsInfo = async () => { let a = null, err = ''; try { a = await di
   const L = communities.withDiscord(); return { ready: discordlink.ready() && !!a, error: err || undefined, name: a?.name || '', endpoint: a?.endpoint || '', ours: interactionsUrl(), connected: discordbot.connected(),
     linked: L.length, added: L.filter(c => discordbot.current(c.settings.discord)).length, failed: L.filter(c => c.settings.discord.cmdsErr).length }; };
 // a record changing on file (served, recalled, denied, cleared, a stop ending); an approval goes out as record.created instead
-const licenseChanged = (c, j, x) => { const u = /^\d{1,20}$/.test(String(j.rid || '')) ? users.byRoblox(String(j.rid)) : null, end = x.until ? ' until ' + new Date(x.until).toUTCString().slice(5, 16) : '';
+// a character's change goes to the player behind it
+const licenseChanged = (c, j, x) => { const ch = chars.byKey(c.id, j.rid), u = ch ? users.byId(ch.user_id) : /^\d{1,20}$/.test(String(j.rid || '')) ? users.byRoblox(String(j.rid)) : null, end = x.until ? ' until ' + new Date(x.until).toUTCString().slice(5, 16) : '';
   if (u) civ.note(c.id, u.id, x.status === 'Valid' ? `Your ${x.name.toLowerCase()} was reinstated by ${x.by}.` : `Your ${x.name.toLowerCase()} was ${x.status.toLowerCase()}${end} by ${x.by}: ${x.reason}`);
   console.log(`licenses: ${c.slug} ${x.kind} ${x.was} -> ${x.status} by ${x.by}`);
   bots.emit(c, 'license.updated', { roblox_id: /^\d{1,20}$/.test(String(j.rid || '')) ? String(j.rid) : null, roblox_name: String(j.name || '') || null, discord_id: u?.discord_id || null, license: x.kind, license_name: x.name, status: x.status, was: x.was, until: x.until, reason: x.reason, by: x.by, at: x.at }); };

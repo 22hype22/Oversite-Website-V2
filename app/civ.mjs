@@ -11,6 +11,7 @@
 // recent arrest, an active warrant, no license or unpaid debts), pays wages weekly from its account, and bills customers.
 import { db, now, communities, licenses } from './db.mjs';
 import { on as feature } from './features.mjs';
+import * as chars from './chars.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS civ_accounts (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   balance INTEGER NOT NULL DEFAULT 0, autopay INTEGER NOT NULL DEFAULT 1, paid_at INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL, PRIMARY KEY (community_id, user_id));
@@ -39,6 +40,7 @@ CREATE TABLE IF NOT EXISTS civ_staff (biz_id INTEGER NOT NULL REFERENCES civ_biz
 CREATE TABLE IF NOT EXISTS civ_apps (id INTEGER PRIMARY KEY, biz_id INTEGER NOT NULL REFERENCES civ_biz(id) ON DELETE CASCADE, user_id INTEGER NOT NULL,
   note TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'Pending', bg TEXT NOT NULL DEFAULT '{}', at INTEGER NOT NULL, decided INTEGER);
 CREATE TABLE IF NOT EXISTS civ_btx (id INTEGER PRIMARY KEY, biz_id INTEGER NOT NULL REFERENCES civ_biz(id) ON DELETE CASCADE, amount INTEGER NOT NULL, balance INTEGER NOT NULL, memo TEXT NOT NULL DEFAULT '', at INTEGER NOT NULL);`);
+chars.carryOver();
 const q = sql => db.prepare(sql);
 export const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 export const DAY = 864e5, WEEK = 7 * DAY;
@@ -55,10 +57,12 @@ const DEFAULTS = { on: true, start: 5000, weekly: 750, reg: 150, ins: 200, late:
 const LIMITS = { start: [0, 1e7], weekly: [0, 1e6], reg: [0, 1e5], ins: [0, 1e5], late: [0, 100], grace: [1, 14], tax: [0, 20], down: [0, 100], weeks: [1, 260], rate: [0, 100], evict: [1, 60], bizfee: [0, 1e7], bizlic: [0, 1e6], biztax: [0, 50], showpay: [0, 1e5] };
 export const conf = c => { const s = c.settings.civ || {}, out = { ...DEFAULTS };
   for (const k of Object.keys(LIMITS)) if (Number.isFinite(+s[k])) out[k] = Math.min(LIMITS[k][1], Math.max(LIMITS[k][0], Math.round(+s[k])));
-  out.on = s.on !== false; out.since = +s.since || 0; return out; };
+  out.on = s.on !== false; out.since = +s.since || 0; out.names = s.names === 'roleplay' ? 'roleplay' : 'roblox'; out.maxchars = chars.limit({ settings: { civ: { ...s, names: 'roleplay' } } }); return out; };
 export const saveConf = (c, j, save) => { const s = { ...(c.settings.civ || {}) };
   for (const k of Object.keys(LIMITS)) if (j[k] != null && Number.isFinite(+j[k])) s[k] = Math.min(LIMITS[k][1], Math.max(LIMITS[k][0], Math.round(+j[k])));
-  if (j.on != null) s.on = !!j.on; c.settings.civ = s; save(); return { ok: true, conf: conf(c) }; };
+  if (j.on != null) s.on = !!j.on; if (j.names != null) s.names = j.names === 'roleplay' ? 'roleplay' : 'roblox';
+  if (j.maxchars != null && Number.isFinite(+j.maxchars)) s.maxchars = Math.min(chars.MAX, Math.max(1, Math.round(+j.maxchars)));
+  c.settings.civ = s; save(); chars.forget(c.id); return { ok: true, conf: conf(c) }; };
 
 // ── accounts ──
 const acct = (cid, uid) => q('SELECT * FROM civ_accounts WHERE community_id = ? AND user_id = ?').get(cid, uid);
@@ -74,17 +78,13 @@ export const move = (cid, uid, amount, kind, memo, force = false) => { const a =
   const bal = a.balance + amount; q('UPDATE civ_accounts SET balance = ? WHERE community_id = ? AND user_id = ?').run(bal, cid, uid);
   q('INSERT INTO civ_tx (community_id, user_id, amount, balance, kind, memo, at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(cid, uid, amount, bal, kind, T(memo, 120), now()); return { ok: true, balance: bal }; };
 
-// ── character: what police see on a name lookup ──
-const CHAR_FIELDS = { first: 30, last: 30, dob: 10, address: 80, phone: 20, occupation: 40 };
-export const charOf = (cid, uid) => { const r = q('SELECT * FROM civ_chars WHERE community_id = ? AND user_id = ?').get(cid, uid); if (!r) return null;
-  return Object.fromEntries(Object.keys(CHAR_FIELDS).map(k => [k, r[k]])); };
-export const saveChar = (c, user, j) => { const v = Object.fromEntries(Object.entries(CHAR_FIELDS).map(([k, n]) => [k, T(j[k], n)]));
-  if (!v.first || !v.last) return { error: 'Give your character a first and last name.' };
-  if (v.dob && !/^\d{4}-\d{2}-\d{2}$/.test(v.dob)) return { error: 'Pick a date of birth.' };
-  q(`INSERT INTO civ_chars (community_id, user_id, first, last, dob, address, phone, occupation, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(community_id, user_id) DO UPDATE SET first = excluded.first, last = excluded.last, dob = excluded.dob, address = excluded.address, phone = excluded.phone,
-    occupation = excluded.occupation, updated = excluded.updated`).run(c.id, user.id, v.first, v.last, v.dob, v.address, v.phone, v.occupation, now());
-  return { ok: true }; };
+// ── character: what police see on a name lookup; the one they are playing when the server uses roleplay characters (app/chars.mjs) ──
+export const charOf = (cid, uid) => { const ch = chars.active(cid, uid); return ch && { id: ch.id, key: ch.key, ...Object.fromEntries(Object.keys(chars.FIELDS).map(k => [k, ch[k]])) }; };
+export const saveChar = (c, user, j) => chars.save(c, user, j);
+// the police key their record is under: the character they are playing, or their Roblox account
+const personKey = (c, user) => chars.roleplay(c) ? chars.active(c.id, user.id)?.key || '-' : user.roblox_id ? String(user.roblox_id) : '-';
+// every key a player's fines can be written under: their Roblox account and each of their characters
+const keysOf = (c, user) => [user.roblox_id ? String(user.roblox_id) : '', ...chars.list(c.id, user.id).map(ch => ch.key)].filter(Boolean);
 
 // ── bills ──
 const bill = (cid, uid, kind, ref, label, amount, issued, due) =>
@@ -115,7 +115,8 @@ export const setAutopay = (c, user, on) => { ensure(c, user.id); q('UPDATE civ_a
 export const cycle = c => { const cf = conf(c); if (!cf.on) return;
   const t = now(), cid = c.id, since = cf.since; if (!since) return;   // nobody has opened an account yet
   const holders = q('SELECT a.*, u.roblox_id AS rid, u.roblox_name AS rname FROM civ_accounts a JOIN users u ON u.id = a.user_id WHERE a.community_id = ?').all(cid);
-  const byRid = new Map(holders.filter(h => h.rid).map(h => [String(h.rid), h]));
+  const byRid = new Map(holders.filter(h => h.rid).map(h => [String(h.rid), h])), byUid = new Map(holders.map(h => [h.user_id, h]));
+  for (const ch of q('SELECT id, user_id FROM civ_characters WHERE community_id = ?').all(cid)) { const h = byUid.get(ch.user_id); if (h) byRid.set('c' + ch.id, h); }
   db.exec('BEGIN'); try {
     if (feature(c, 'payday')) for (const h of holders) if (cf.weekly && t - h.paid_at >= GWEEK) { q('UPDATE civ_accounts SET paid_at = ? WHERE community_id = ? AND user_id = ?').run(t, cid, h.user_id); move(cid, h.user_id, cf.weekly, 'deposit', 'Weekly payment'); }
     // a fine for every citation and arrest written since the economy began, billed to whoever it was written against
@@ -196,7 +197,7 @@ export const moveIn = (c, user, j) => { const cf = conf(c), p = prop(c.id, j.id)
   const t = terms(cf, p), pay = how === 'cash' ? t.cash : how === 'mortgage' ? t.down : p.rent;
   const m = move(c.id, user.id, -pay, 'housing', `${how === 'rent' ? 'First week of rent' : how === 'mortgage' ? 'Down payment' : 'Bought'}, ${p.name}`); if (m.error) return m;
   q('UPDATE civ_props SET owner_id = ?, mode = ?, loan_left = ?, loan_weekly = ?, since = ? WHERE id = ?').run(user.id, how === 'cash' ? 'own' : how, how === 'mortgage' ? t.loan : 0, how === 'mortgage' ? t.loan_weekly : 0, now(), p.id);
-  const ch = charOf(c.id, user.id); if (ch && !ch.address && p.address) q('UPDATE civ_chars SET address = ? WHERE community_id = ? AND user_id = ?').run(T(p.address, 80), c.id, user.id);
+  const ch = chars.active(c.id, user.id); if (ch && !ch.address && p.address) chars.set(ch, 'address', p.address);
   return { ok: true }; };
 // a renter moves out; an owner sells back for 80% of the price, less what is left on the mortgage
 export const moveOut = (c, user, j) => { const p = prop(c.id, j.id); if (!p || p.owner_id !== user.id) return { error: 'That is not your home.' };
@@ -216,11 +217,12 @@ export const dropProp = (c, j) => { const p = prop(c.id, j.id); if (!p) return {
 
 // ── background checks ──
 // what a business sees when someone applies, worked out from the police records written against them
-export const background = (c, uid) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(uid), rid = u?.roblox_id ? String(u.roblox_id) : '-', t = now();
+export const background = (c, uid) => { const u = q('SELECT roblox_id FROM users WHERE id = ?').get(uid), t = now();
+  const rid = chars.roleplay(c) ? chars.active(c.id, uid)?.key || '-' : u?.roblox_id ? String(u.roblox_id) : '-';
   const recs = q("SELECT kind, status, data, at FROM pd_records WHERE community_id = ? AND subject_rid = ? AND kind IN ('arrest', 'citation', 'warrant')").all(c.id, rid);
   const arrests = recs.filter(r => r.kind === 'arrest'), cls = r => { try { return (JSON.parse(r.data || '{}').charges || []).map(x => x.cls); } catch (e) { return []; } };
   const last = arrests.reduce((m, r) => Math.max(m, r.at), 0);
-  return { linked: !!u?.roblox_id, felonies: arrests.filter(r => /Felony|Indictable/.test(cls(r))).length, arrests: arrests.length, citations: recs.filter(r => r.kind === 'citation').length,
+  return { linked: !!u?.roblox_id || rid !== '-', felonies: arrests.filter(r => /Felony|Indictable/.test(cls(r))).length, arrests: arrests.length, citations: recs.filter(r => r.kind === 'citation').length,
     lastArrest: last || null, warrants: recs.filter(r => r.kind === 'warrant' && r.status === 'Active').length, license: !!Object.keys(licenses.get(uid) || {}).length,
     debt: q("SELECT count(*) AS n FROM civ_bills WHERE community_id = ? AND user_id = ? AND status = 'Overdue'").get(c.id, uid).n, at: t }; };
 // what a business may require; each failed one is a reason the application is turned down
@@ -283,7 +285,7 @@ export const decide = (c, user, j) => { const a = q('SELECT * FROM civ_apps WHER
   const title = T(j.title, 40) || 'Employee', wage = Math.max(0, Math.min(1e6, Math.round(+j.wage || 0)));
   q('INSERT OR REPLACE INTO civ_staff (biz_id, user_id, title, wage, hired) VALUES (?, ?, ?, ?, ?)').run(z.id, a.user_id, title, wage, now());
   q("UPDATE civ_apps SET status = 'Hired', decided = ? WHERE id = ?").run(now(), a.id);
-  q('UPDATE civ_chars SET occupation = ? WHERE community_id = ? AND user_id = ?').run(T(`${title}, ${z.name}`, 40), c.id, a.user_id);
+  chars.set(chars.active(c.id, a.user_id), 'occupation', `${title}, ${z.name}`);
   note(c.id, a.user_id, `Hired at ${z.name} as ${title}${wage ? `, ${money(wage)} a week` : ''}.`); return { ok: true }; };
 export const staffSet = (c, user, j) => { const z = runs(c, user, j.id); if (!z) return { error: 'That is not your business.' };
   const w = q('SELECT * FROM civ_staff WHERE biz_id = ? AND user_id = ?').get(z.id, +j.user || 0); if (!w) return { error: 'They do not work there.' };
@@ -312,14 +314,17 @@ const fullName = (cid, uid) => { const ch = charOf(cid, uid); return ch && ch.fi
 
 // ── what the Civilian tab shows ──
 // `live`: the cars they have spawned in game right now (server.mjs reads them off the latest ER:LC snapshot), null when unknown
-export const state = (c, user, isAdmin, live = null) => { const cf = conf(c); if (!cf.on) return { off: true, conf: cf, admin: !!isAdmin, linked: !!user.roblox_id, character: charOf(c.id, user.id) };
-  const a = ensure(c, user.id), rid = user.roblox_id ? String(user.roblox_id) : '-';
+// their characters, with which one they are playing; with usernames, just their one ID
+const characters = (c, user) => { const on = chars.active(c.id, user.id)?.id, all = chars.roleplay(c) ? chars.list(c.id, user.id) : [];
+  return { names: chars.roleplay(c) ? 'roleplay' : 'roblox', max: chars.limit(c), active: on || 0, list: all.map(ch => ({ id: ch.id, first: ch.first, last: ch.last, name: ch.name, dob: ch.dob, address: ch.address, phone: ch.phone, occupation: ch.occupation })) }; };
+export const state = (c, user, isAdmin, live = null) => { const cf = conf(c); if (!cf.on) return { off: true, conf: cf, admin: !!isAdmin, linked: !!user.roblox_id, character: charOf(c.id, user.id), characters: characters(c, user) };
+  const a = ensure(c, user.id), rid = personKey(c, user);
   // a ticket written a moment ago is on their bills straight away, not at the next cycle
-  if (cf.since && rid !== '-' && feature(c, 'fines')) for (const r of q(FINE_SQL).all(c.id, cf.since, rid)) billFine(c.id, user.id, r, cf);
+  if (cf.since && feature(c, 'fines')) for (const k of keysOf(c, user)) for (const r of q(FINE_SQL).all(c.id, cf.since, k)) billFine(c.id, user.id, r, cf);
   const bills = q("SELECT * FROM civ_bills WHERE community_id = ? AND user_id = ? AND (status IN ('Open', 'Overdue') OR paid_at >= ?) ORDER BY CASE status WHEN 'Overdue' THEN 0 WHEN 'Open' THEN 1 ELSE 2 END, due").all(c.id, user.id, now() - 30 * DAY).map(billRow);
-  const onFile = plate => q('SELECT reg, ins, stolen FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(c.id, plate) || {};
+  const onFile = plate => q('SELECT reg, ins, stolen, char_id, char_pin FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(c.id, plate) || {};
   const vehicles = (live || []).slice(0, 10).map(s => { const plate = T(s.plate, 10).toUpperCase(), v = onFile(plate);
-    return { plate, model: T(s.model, 60), color: T(s.color, 30), hex: /^#?[0-9a-f]{6}$/i.test(s.hex || '') ? '#' + String(s.hex).replace('#', '') : '', reg: v.reg || '', ins: v.ins || '', stolen: !!v.stolen }; });
+    return { plate, model: T(s.model, 60), color: T(s.color, 30), hex: /^#?[0-9a-f]{6}$/i.test(s.hex || '') ? '#' + String(s.hex).replace('#', '') : '', reg: v.reg || '', ins: v.ins || '', stolen: !!v.stolen, char: v.char_id || 0, pinned: !!v.char_pin }; });
   const fines = new Map(q("SELECT * FROM civ_bills WHERE community_id = ? AND user_id = ? AND kind = 'fine'").all(c.id, user.id).map(b => [b.ref, b]));
   const record = q("SELECT id, kind, status, data, at, by_name FROM pd_records WHERE community_id = ? AND subject_rid = ? AND kind IN ('citation', 'warning', 'arrest') ORDER BY at DESC LIMIT 50").all(c.id, rid)
     .map(r => { const d = JSON.parse(r.data || '{}'); return { id: r.id, kind: r.kind, status: r.status, at: r.at, by: r.by_name || '', charges: (d.charges || []).map(x => ({ title: x.title, count: x.count, cls: x.cls })),
@@ -343,7 +348,7 @@ export const state = (c, user, isAdmin, live = null) => { const cf = conf(c); if
     apps: q("SELECT * FROM civ_apps WHERE biz_id = ? AND status = 'Pending' ORDER BY at").all(z.id).map(x => ({ id: x.id, who: who(x.user_id), name: fullName(c.id, x.user_id), note: x.note, at: x.at, bg: JSON.parse(x.bg || '{}') })),
     ledger: q('SELECT amount, balance, memo, at FROM civ_btx WHERE biz_id = ? ORDER BY at DESC LIMIT 15').all(z.id) }));
   const allBiz = isAdmin ? q('SELECT b.*, (SELECT count(*) FROM civ_staff s WHERE s.biz_id = b.id) AS staff FROM civ_biz b WHERE b.community_id = ? ORDER BY b.name').all(c.id).map(z => ({ id: z.id, name: z.name, kind: z.kind, owner: who(z.owner_id), status: z.status, staff: z.staff, balance: z.balance })) : undefined;
-  return { conf: cf, admin: !!isAdmin, linked: !!user.roblox_id, balance: a.balance, autopay: !!a.autopay, nextPay, character: charOf(c.id, user.id), bills, vehicles, carsLive: !!live, record, tx, calls, homes, market, props,
+  return { conf: cf, admin: !!isAdmin, linked: !!user.roblox_id, balance: a.balance, autopay: !!a.autopay, nextPay, character: charOf(c.id, user.id), characters: characters(c, user), bills, vehicles, carsLive: !!live, record, tx, calls, homes, market, props,
     bg: me, jobs, work, apps, owned, allBiz, kinds: BIZ_KINDS }; };
 
 // ── staff: put money in or take it out ──
