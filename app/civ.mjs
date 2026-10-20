@@ -10,6 +10,7 @@
 // applications (each one comes with an automatic background check, and a business can refuse anyone with a felony, a
 // recent arrest, an active warrant, no license or unpaid debts), pays wages weekly from its account, and bills customers.
 import { db, now, communities, licenses } from './db.mjs';
+import { licenseStatus } from './police.mjs';
 import { on as feature } from './features.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS civ_accounts (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -221,7 +222,7 @@ export const background = (c, uid) => { const u = q('SELECT roblox_id FROM users
   const arrests = recs.filter(r => r.kind === 'arrest'), cls = r => { try { return (JSON.parse(r.data || '{}').charges || []).map(x => x.cls); } catch (e) { return []; } };
   const last = arrests.reduce((m, r) => Math.max(m, r.at), 0);
   return { linked: !!u?.roblox_id, felonies: arrests.filter(r => /Felony|Indictable/.test(cls(r))).length, arrests: arrests.length, citations: recs.filter(r => r.kind === 'citation').length,
-    lastArrest: last || null, warrants: recs.filter(r => r.kind === 'warrant' && r.status === 'Active').length, license: !!Object.keys(licenses.get(uid) || {}).length,
+    lastArrest: last || null, warrants: recs.filter(r => r.kind === 'warrant' && r.status === 'Active').length, license: !!Object.keys(licenses.get(uid) || {}).length && licenseStatus(c.id, rid === '-' ? '' : rid, '').status === 'Valid',
     debt: q("SELECT count(*) AS n FROM civ_bills WHERE community_id = ? AND user_id = ? AND status = 'Overdue'").get(c.id, uid).n, at: t }; };
 // what a business may require; each failed one is a reason the application is turned down
 const REQS = { felony: 'no felony convictions', clean: 'no arrests in the last {n} days', warrants: 'no active warrants', license: "a driver's license on file", debt: 'no overdue bills' };

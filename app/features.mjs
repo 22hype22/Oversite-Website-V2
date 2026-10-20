@@ -56,6 +56,7 @@ export const GROUPS = [
   { title: 'Law Enforcement MDT', items: [
     F('pd_lookup', 'Person and plate lookups', 'Searching people and plates, with their history.', { parent: 'dept_pd', hide: [tab('lookup', '#mdt .tside')] }),
     F('pd_vehedit', 'Editing vehicles', 'Officers updating a car’s registration and insurance, or marking it stolen.', { parent: 'pd_lookup', hide: ['#pdDet [data-vset]', '#pdDet [data-stolen]'] }),
+    F('pd_licstatus', 'Suspending licenses', 'Officers suspending, revoking or giving back a driver’s license from a person lookup.', { parent: 'pd_lookup', hide: ['#pdDet [data-lic]'] }),
     F('pd_character', 'Characters in lookups', 'The player’s character from their civilian ID in a person lookup.', { parent: 'pd_lookup' }),
     F('pd_warrants', 'Warrants', 'Writing, approving, serving and recalling warrants.', { parent: 'dept_pd', hide: [tab('warrants', '#mdt .tside'), '[data-new="warrant"]', '#tnavWar', '.pda.warrant'] }),
     F('pd_bolos', 'BOLOs', 'Be-on-the-lookout alerts for people and vehicles.', { parent: 'dept_pd', hide: [tab('bolos', '#mdt .tside'), '[data-new="bolo"]', '#tnavBolo', '.pda.bolo'] }),
@@ -169,7 +170,7 @@ export const css = c => ALL.filter(i => i.hide && !on(c, i.key)).flatMap(i => i.
 const ROUTES = [
   [/^panic(\/clear)?$/, 'panic'], [/^calls\/state$/, 'assign'], [/^reports(\/delete)?$/, 'reports'], [/^srvstatus/, 'status'], [/^radio\//, 'radio'], [/^status$/, 'unitstatus'], [/^units\/me$/, 'unitpick'], [/^units\/ride$/, 'ridewith'], [/^calls\/clear$/, 'clearcall'],
   [/^mdt\/sign(in|out)$/, 'mdtsignin'], [/^roads$/, 'roads'],
-  [/^pd\//, 'dept_pd'], [/^pd\/search$/, 'pd_lookup'], [/^pd\/records\/delete$/, 'pd_delete'],
+  [/^pd\//, 'dept_pd'], [/^pd\/search$/, 'pd_lookup'], [/^pd\/license$/, 'pd_licstatus'], [/^pd\/records\/delete$/, 'pd_delete'],
   [/^staff\/records/, 'st_records'], [/^staff\/logs$/, 'st_logs'],
   [/^civ\/autopay$/, 'autopay'], [/^civ\/stolen$/, 'stolen'], [/^civ\/(home|prop)$/, 'housing'], [/^civ\/grant$/, 'civ_grant'], [/^civ\/character$/, 'civid'],
   [/^civ\/biz\/(buy|cancel)$/, 'shops'], [/^civ\/biz\/(request|respond)$/, 'biz_requests'], [/^civ\/biz\/review$/, 'reviews'], [/^civ\/biz\/ad$/, 'ads'],
@@ -207,7 +208,7 @@ export const WORDS = {
   ridewith: 'ride along partner passenger teammate', unitstatus: '10 codes ten codes status buttons 10-8 10-7 busy available', activitylog: 'activity log history what i did', homecall: 'my call assigned call card',
   mdtstats: 'stats numbers counters', mdtcalls: 'calls list call details', mdtunits: 'units apparatus list', mdtmap: 'map inside mdt mini map', gps: 'gps directions navigation route waypoint satnav turn by turn voice directions',
   panic: 'panic emergency button 10-99 officer down help siren distress', reports: 'incident reports fire reports paperwork write ups',
-  pd_lookup: 'lookup search people plates name check ncic database run plate', pd_vehedit: 'edit vehicle registration insurance stolen flag', pd_character: 'character name age civilian profile in lookup',
+  pd_lookup: 'lookup search people plates name check ncic database run plate', pd_vehedit: 'edit vehicle registration insurance stolen flag', pd_character: 'character name age civilian profile in lookup', pd_licstatus: 'suspend revoke license licence driving ban disqualified reinstate',
   pd_warrants: 'warrants arrest warrant judge approval supervisor', pd_bolos: 'bolo be on the lookout wanted alert apb', pd_records: 'records list history database', pd_citations: 'citations tickets fines speeding traffic ticket',
   pd_warnings: 'warnings verbal written warning', pd_arrests: 'arrests jail booking charges cuffs prison', pd_stops: 'traffic stops pull over pullover', pd_backup: 'backup code 2 code 3 assistance help request',
   pd_autochecks: 'automatic checks alpr plate reader auto run', pd_licenses: 'license suspend suspension revoke revoked reinstate drivers license firearms permit gun permit', pd_alerts: 'police alerts popups bolo alerts warrant alerts', monitors: 'ankle monitor house arrest probation parole tracking geofence', pd_delete: 'delete records remove erase', radio: 'radio push to talk ptt walkie talkie comms channels voice dispatch radio', alpr: 'alpr plate reader license plate camera scanner auto flag stolen cars', bots: 'connected bots integrations api keys department bot roleplay bot economy bot erm melonly webhooks developers link my bot connect bot', courses: 'courses training quiz test exam certification staff training academy lessons tests pass mark course', discordcmds: 'discord commands slash commands bot status calls units lookup plate in discord discord bot', automations: 'automations rules triggers if this then that auto messages welcome discord posts bots workflows',

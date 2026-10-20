@@ -366,9 +366,13 @@ const communityApi = async (req, res, slug, rest) => {
       const who = r.person?.rid && users.byRoblox(r.person.rid); if (who && features.on(c, 'pd_character')) r.character = civ.charOf(c.id, who.id);   // the character they made in the Civilian tab
       if (r.person && features.on(c, 'pd_licenses')) { r.licenses = pdlic.of(c.id, r.person.rid, r.person.name); r.licenseHistory = pdlic.history(c.id, r.person.rid, r.person.name); }
       return json(res, r, r.error ? 404 : 200); }
+<<<<<<< Updated upstream
     // suspending, revoking or reinstating a driver's license or firearms permit (app/pdlicense.mjs)
     if (sub === 'license' && M === 'POST') { if (!features.on(c, 'pd_licenses')) return off('pd_licenses'); const j = await jsonBody(req), r = pdlic.set(c.id, by.name, j); if (r.error) return json(res, r, 400);
       licenseChanged(c, j, r.change); return json(res, r); }
+=======
+    if (sub === 'license' && M === 'POST') { const r = police.setLicense(c.id, by, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
+>>>>>>> Stashed changes
     if (sub === 'vehicle' && M === 'GET') { const r = police.vehicle(c.id, qs.get('plate')); if (r.history) r.history = recent(r.history); return json(res, r, r.error ? 404 : 200); }
     if (sub === 'vehicle' && M === 'POST') { const j = await jsonBody(req), r = police.setVehicle(c.id, j.plate, j); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records') { const k = M === 'GET' ? (features.RECORD[qs.get('kind')] || 'pd_records') : features.RECORD[String((req._body ||= await jsonBody(req)).kind)]; if (k && !features.on(c, k)) return off(k); }
@@ -591,7 +595,18 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
     const acct = r.person.rid ? users.byRoblox(r.person.rid) : null;
     return ok({ person: { roblox_name: r.person.name || null, roblox_id: r.person.rid || null, ...(bots.can(bot, 'people') ? { discord_id: acct?.discord_id || null } : {}), last_seen: r.person.last_seen || null },
       known: !!(r.person.last_seen || H.length), wanted: warrants.some(w => w.status === 'Active'), warrants, bolos: r.flags.filter(x => x.kind === 'bolo'),
+<<<<<<< Updated upstream
       counts: { arrests: n('arrest'), citations: n('citation'), warnings: n('warning'), warrants: n('warrant') }, records: H.slice(0, 50), vehicles: r.vehicles, license: r.license, ...(features.on(c, 'pd_licenses') ? { licenses: pdlic.of(c.id, r.person.rid, r.person.name) } : {}) }); }
+=======
+      counts: { arrests: n('arrest'), citations: n('citation'), warnings: n('warning'), warrants: n('warrant') }, records: H.slice(0, 50), vehicles: r.vehicles, license: r.license,
+      license_status: r.licstatus, license_history: r.lichist }); }
+  // a driver's license suspended, revoked or given back: { roblox_name | roblox_id | discord_id, status: suspended | revoked | valid, reason, days? }
+  if (rest === 'license' && M === 'POST') { if (need('records') || off('pd_licstatus')) return; const u = J.discord_id ? person({ discord_id: String(J.discord_id) }) : null;
+    if (J.discord_id && !u?.roblox_id) return bad('Nobody with that Discord ID has a Roblox account linked on Oversite.', 404);
+    const key = String(u?.roblox_id || J.roblox_id || J.roblox_name || '').trim(); if (!key) return bad('Send discord_id, roblox_id or roblox_name.');
+    const r = police.setLicense(c.id, { name: J.officer ? `${String(J.officer).slice(0, 40)} via ${bot.name}` : by }, { rid: /^\d+$/.test(key) ? key : '', name: /^\d+$/.test(key) ? '' : key, status: J.status, reason: J.reason, days: J.days });
+    return r.error ? bad(r.error) : ok({ ok: true, roblox_name: r.name || null, roblox_id: r.rid || null, license_status: r.license }); }
+>>>>>>> Stashed changes
   if (at[0] === 'plates' && at[1] && M === 'GET') { if (need('lookup') || off('pd_lookup')) return; const r = police.vehicle(c.id, decodeURIComponent(at[1])); return r.error ? bad(r.error, 404) : ok({ ...r, history: r.history.slice(0, 25) }); }
   if (at[0] === 'plates' && at[1] && M === 'POST') { if (need('vehicles')) return;
     if (J.reg != null && !['Valid', 'Expired', 'Suspended'].includes(J.reg)) return bad('reg is Valid, Expired or Suspended.'); if (J.ins != null && !['Active', 'Lapsed', 'None'].includes(J.ins)) return bad('ins is Active, Lapsed or None.'); const r = police.setVehicle(c.id, decodeURIComponent(at[1]), J); return r.error ? bad(r.error) : ok(r); }

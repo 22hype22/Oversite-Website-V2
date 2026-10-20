@@ -25,6 +25,7 @@ const ROUTES = [
   ['POST', 'units/status', 'units', 'Set a unit’s status: <code>{ "unit": "1A-12", "status": "10-8" }</code>.'],
   ['POST', 'records', 'records', 'Write a record as the bot, like the MDT does. Warrants wait for a supervisor. See below.'],
   ['POST', 'records/{id}/act', 'records', 'Serve or recall a warrant, or clear a BOLO: <code>{ "action": "serve" }</code>. Sends <code>record.updated</code>.'],
+  ['POST', 'license', 'records', 'Suspend, revoke or give back someone’s driver’s license: <code>{ "roblox_name": "Kesh", "status": "suspended", "reason": "DUI", "days": 7 }</code>. <code>status</code> is suspended, revoked or valid; <code>days</code> only for a suspension (leave it out for until it’s given back); <code>officer</code> names who asked. <code>GET person</code> returns <code>license_status</code>.'],
   ['POST', 'plates/{plate}', 'vehicles', 'Change papers on a plate Oversite has seen: <code>{ "reg": "Expired", "ins": "Lapsed", "stolen": true }</code>. <code>reg</code> is Valid, Expired or Suspended; <code>ins</code> is Active, Lapsed or None.'],
   ['GET', 'bank?discord_id=', 'bank', 'A member’s balance in the Civilian economy.'],
   ['POST', 'bank', 'bank', 'Pay (positive) or charge (negative): <code>{ "discord_id": "…", "amount": 500, "memo": "Paycheck" }</code>. Charges never go below zero unless <code>"force": true</code>.'],
