@@ -3,6 +3,7 @@
 // officer see the same thing. ER:LC's API gives plates, vehicle colors and owners, and players' wanted stars; it has no
 // characters, so a person is their Roblox account, and their license details are the ones they filled in on Oversite.
 import { db, now, users, licenses, mdtSignin } from './db.mjs';
+import { statusOf as licenseStatus } from './pdlicense.mjs';
 import { POSTALS } from './postals.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS pd_people (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, rid TEXT NOT NULL, name TEXT NOT NULL, team TEXT,
@@ -103,6 +104,7 @@ export const flagReasons = (cid, plate) => { const car = q('SELECT * FROM pd_veh
   if (car.stolen) why.push('reported stolen');
   if (q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'bolo' AND status = 'Active' AND plate = ?").get(cid, plate)) why.push('matches a BOLO');
   if (car.owner_rid && q("SELECT 1 FROM pd_records WHERE community_id = ? AND kind = 'warrant' AND status = 'Active' AND subject_rid = ?").get(cid, car.owner_rid)) why.push('owner has a warrant');
+  if (car.owner_rid || car.owner) { const s = licenseStatus(cid, car.owner_rid, car.owner, 'driver'); if (s !== 'Valid') why.push(`owner’s license ${s.toLowerCase()}`); }
   if (car.civ && (car.reg !== 'Valid' || car.ins !== 'Active')) why.push(car.reg !== 'Valid' ? `registration ${car.reg.toLowerCase()}` : `insurance ${car.ins.toLowerCase()}`);
   return { car, why }; };
 export { postalNear, G2M, PLATE };

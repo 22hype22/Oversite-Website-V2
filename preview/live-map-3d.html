@@ -849,6 +849,12 @@
   .pd-it .when{font-size:12px;color:var(--mute);text-align:right;white-space:nowrap}
   .pd-it.bolo{grid-template-columns:4px 1fr auto;padding-left:0}.pd-it.bolo::before{content:"";align-self:stretch;border-radius:2px;background:#F2C14E}.pd-it.bolo.armed::before{background:#E0453B}
   .pd-acts-row{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 16px}
+  .pd-lrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 12px;align-items:center;padding:10px 8px;border-top:1px solid var(--line)}.pd-lics .pd-lrow:first-child{border-top:0}
+  .pd-lrow b{display:block;font-size:13.5px;font-weight:600}.pd-lrow small{display:block;font-size:12px;color:var(--mute);margin-top:2px;overflow-wrap:anywhere}.pd-lbtns{display:flex;gap:6px}
+  .pd-lform{display:grid;gap:8px;padding:12px;margin:2px 0 10px;border:1px solid var(--line);border-radius:var(--r);background:rgba(255,255,255,.02)}.pd-lform b{font-size:13px;font-weight:600}
+  .pd-lform select,.pd-lform input{font:inherit;font-size:13px;color:#E9EAEC;background:#141518;border:1px solid var(--line);border-radius:7px;padding:7px 9px;min-width:0}.pd-lform .pd-lbtns{justify-content:flex-end}
+  .pd-lhist summary{cursor:pointer;font-size:12px;color:var(--mute);padding:6px 8px;list-style-position:inside}.pd-lhist div{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;padding:7px 8px;border-top:1px solid var(--line);font-size:12.5px}.pd-lhist div span{color:var(--mute)}
+  @media (max-width:600px){.pd-lrow{grid-template-columns:minmax(0,1fr) auto}.pd-lrow .pd-lbtns{grid-column:1/-1}}
   .screen .btn.sm{padding:6px 11px;font-size:12px}
   .pd-empty{padding:26px 12px;text-align:center;color:var(--mute);font-size:13px;line-height:1.5}.pd-empty b{display:block;color:#E9EAEC;font-size:14px;margin-bottom:3px}
   /* forms */
@@ -3046,15 +3052,36 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     return `<button type="button" class="pd-it" data-rec="${r.id}">${tag(k, open && r.kind !== 'stop' ? c || 'b' : c)}<div><b>${esc(what || k)}</b><small>${esc([r.status, r.plate, r.by ? 'by ' + r.by : '', r.location].filter(Boolean).join(' · '))}</small></div><span class="when">${esc(ago(r.at))}</span></button>`; };
   const actions = (subj, rid, plateNo) => `<div class="pd-acts-row">${['citation', 'warning', 'arrest', 'warrant', 'bolo'].map(k => `<button type="button" class="btn ${k === 'arrest' ? '' : 'ghost'} sm" data-new="${k}" data-subject="${esc(subj || '')}" data-rid="${esc(rid || '')}" data-plate="${esc(plateNo || '')}">${{ citation: 'Citation', warning: 'Warning', arrest: 'Arrest report', warrant: 'Warrant', bolo: 'BOLO' }[k]}</button>`).join('')}</div>`;
 
+  // licenses: suspend (for some days, or until reinstated), revoke or reinstate, with a reason (app/pdlicense.mjs)
+  const licDay = t => new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const LDAYS = [[1, '1 day'], [3, '3 days'], [7, '1 week'], [14, '2 weeks'], [30, '30 days'], [0, 'Until reinstated']];
+  const licRow = l => { const bad = l.status !== 'Valid', b = (st, t) => `<button type="button" class="btn ghost sm" data-lic="${st}">${t}</button>`;
+    return `<div class="pd-lrow" data-lk="${l.kind}" data-ln="${esc(l.name)}"><div><b>${esc(l.name)}</b><small>${bad ? esc([l.status === 'Suspended' ? (l.until ? 'Until ' + licDay(l.until) : 'Until reinstated') : '', l.reason, l.by ? 'by ' + l.by : ''].filter(Boolean).join(' · ')) : 'Not suspended or revoked'}</small></div>${tag(l.status, l.status === 'Valid' ? 'g' : l.status === 'Revoked' ? 'R' : 'r')}
+      <div class="pd-lbtns">${bad ? b('Valid', 'Reinstate') : ''}${l.status !== 'Suspended' ? b('Suspended', 'Suspend') : ''}${l.status !== 'Revoked' ? b('Revoked', 'Revoke') : ''}</div></div>`; };
+  const licBlock = j => !j.licenses ? '' : `<div class="pd-lic"><h4>Licenses</h4><div class="pd-lics">${j.licenses.map(licRow).join('')}</div>
+    ${j.licenseHistory?.length ? `<details class="pd-lhist"><summary>License history (${j.licenseHistory.length})</summary>${j.licenseHistory.map(h => `<div><span>${licDay(h.at)}</span><span style="color:inherit">${esc(h.name)} ${esc(h.status === 'Valid' ? 'reinstated' : h.status.toLowerCase())}${h.status === 'Suspended' ? (h.until ? ' until ' + licDay(h.until) : ' until reinstated') : ''}${h.reason ? ': ' + esc(h.reason) : ''}${h.by ? ` <span>by ${esc(h.by)}</span>` : ''}</span></div>`).join('')}</details>` : ''}</div>`;
+  $('pdDet').addEventListener('click', async e => { const b = e.target.closest('[data-lic],[data-licgo],[data-liccancel]'); if (!b || cur?.t !== 'p' || !cur.p) return; const row = b.closest('[data-lk]'), kind = row.dataset.lk, nm = row.dataset.ln;
+    const send = async (status, days, reason) => { try { await req('license', { rid: cur.p.rid || '', name: cur.p.name || '', kind, status, days, reason }); toast(status === 'Valid' ? nm + ' reinstated' : nm + ' ' + status.toLowerCase()); openPerson(cur.id, cur.name); } catch (x) { toast(x.message); } };
+    if (b.dataset.liccancel != null) { row.remove(); return; }
+    if (b.dataset.licgo != null) { const inp = row.querySelector('input'), r = inp.value.trim(); if (!r) { toast('Say why.'); inp.focus(); return; } b.disabled = true; await send(row.dataset.st, +(row.querySelector('select')?.value || 0), r); b.disabled = false; return; }
+    const st = b.dataset.lic; if (st === 'Valid') { if (confirm(`Reinstate ${cur.p.name}’s ${nm.toLowerCase()}?`)) send('Valid', 0, ''); return; }
+    row.parentElement.querySelector('.pd-lform')?.remove(); const verb = st === 'Suspended' ? 'Suspend' : 'Revoke';
+    row.insertAdjacentHTML('afterend', `<div class="pd-lform" data-lk="${kind}" data-ln="${esc(nm)}" data-st="${st}"><b>${verb} ${esc(cur.p.name)}’s ${esc(nm.toLowerCase())}</b>
+      ${st === 'Suspended' ? `<select aria-label="For how long">${LDAYS.map(([d, t]) => `<option value="${d}"${d === 7 ? ' selected' : ''}>${t}</option>`).join('')}</select>` : ''}
+      <input maxlength="200" placeholder="Why, for example: DUI, reckless driving" aria-label="Reason"><div class="pd-lbtns"><button type="button" class="btn ghost sm" data-liccancel>Cancel</button><button type="button" class="btn sm" data-licgo>${verb}</button></div></div>`);
+    row.nextElementSibling.querySelector('input').focus(); });
   const openPerson = async (rid, name) => { cur = { t: 'p', id: rid, name }; drawRes(); $('pdDet').innerHTML = '<div class="pd-empty">Running…</div>'; if (!mdt.querySelector('[data-pane="lookup"].on')) show('lookup', 'lookup');
     let j; try { j = await req('person?' + (rid ? 'id=' + encodeURIComponent(rid) : 'name=' + encodeURIComponent(name))); } catch (e) { $('pdDet').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; return; }
     const p = j.person, L = j.license, ws = wanted(p.rid), H = keep(j.history), n = k => H.filter(r => r.kind === k).length; keep(j.flags);
-    const lic = !j.account ? tag('No Oversite account', '') : !L || L.none ? tag('No license on file', 'a') : tag('License valid', 'g');
+    const dl = (j.licenses || []).find(l => l.kind === 'driver'), fp = (j.licenses || []).find(l => l.kind === 'firearm'); cur.p = p;
+    const lic = (dl && dl.status !== 'Valid' ? tag('License ' + dl.status.toLowerCase(), dl.status === 'Revoked' ? 'R' : 'r') : !j.account ? tag('No Oversite account', '') : !L || L.none ? tag('No license on file', 'a') : tag('License valid', 'g'))
+      + (fp && fp.status !== 'Valid' ? tag('Firearms permit ' + fp.status.toLowerCase(), fp.status === 'Revoked' ? 'R' : 'r') : '');
     $('pdDet').innerHTML = `<div class="pd-hd">${av(p.rid, p.name, true)}<div><h3>${esc(p.name)}</h3><p>${esc([L?.display && L.display !== p.name ? L.display : '', p.rid ? 'Roblox ID ' + p.rid : '', p.team ? 'last on ' + p.team : '', p.last_seen ? 'seen ' + ago(p.last_seen) : ''].filter(Boolean).join(' · '))}</p>
       <div class="tags">${flagTags(j.flags)}${ws ? tag('Wanted in game ' + '★'.repeat(Math.min(ws, 5)), 'r') : ''}${lic}</div></div></div>
       ${actions(p.name, p.rid, '')}
       ${L && !L.none ? `<h4>Driver's license</h4><div class="pd-kv"><div><span>License no.</span><b>${esc(L.num)}</b></div><div><span>Age</span><b>${esc(L.age || '–')}</b></div><div><span>Sex</span><b>${esc(L.gndr || '–')}</b></div><div><span>Issued</span><b>${esc(L.iss || '–')}</b></div>
         <div><span>Height</span><b>${esc(L.hgt || '–')}</b></div><div><span>Weight</span><b>${esc(L.wgt || '–')}</b></div><div><span>Hair / eyes</span><b>${esc([L.hair, L.eyes].filter(Boolean).join(' / ') || '–')}</b></div><div><span>Address</span><b title="${esc(L.addr)}">${esc(L.addr || '–')}</b></div></div>` : ''}
+      ${licBlock(j)}
       ${j.character ? `<h4>Character</h4><div class="pd-kv"><div><span>Name</span><b>${esc([j.character.first, j.character.last].filter(Boolean).join(' ') || '–')}</b></div><div><span>Born</span><b>${esc(j.character.dob || '–')}</b></div><div><span>Phone</span><b>${esc(j.character.phone || '–')}</b></div><div><span>Occupation</span><b>${esc(j.character.occupation || '–')}</b></div><div><span>Address</span><b title="${esc(j.character.address || '')}">${esc(j.character.address || '–')}</b></div></div>` : ''}
       ${j.flags.length ? `<h4>Open warrants and BOLOs</h4><div class="pd-list">${j.flags.map(histRow).join('')}</div>` : ''}
       <h4>Vehicles</h4>${j.vehicles.length ? `<div class="pd-list">${j.vehicles.map(v => `<button type="button" class="pd-it" data-plate="${esc(v.plate)}">${plate(v.plate)}<div><b>${esc(v.model)}</b><small>${v.hex ? `<span class="pd-sw" style="background:${esc(v.hex)}"></span>` : ''}${esc([v.color, 'reg ' + v.reg, 'ins ' + v.ins].join(' · '))}</small></div><span class="when">${v.stolen ? tag('Stolen', 'R') : esc(ago(v.last_seen))}</span></button>`).join('')}</div>` : '<p class="pd-empty" style="padding:10px 0;text-align:left">No vehicles seen under this name.</p>'}

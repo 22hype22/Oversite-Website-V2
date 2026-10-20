@@ -19,6 +19,7 @@ import * as auth from './app/auth.mjs';
 import * as discordlink from './app/discordlink.mjs';
 import * as staff from './app/staff.mjs';
 import * as police from './app/police.mjs';
+import * as pdlic from './app/pdlicense.mjs';
 import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
 import * as safezones from './app/safezones.mjs';
@@ -363,7 +364,11 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'search' && M === 'GET') return json(res, police.search(c.id, qs.get('q')));
     if (sub === 'person' && M === 'GET') { const r = await police.person(c.id, qs.get('id') || qs.get('name'), licenseOf); if (r.history) r.history = recent(r.history);
       const who = r.person?.rid && users.byRoblox(r.person.rid); if (who && features.on(c, 'pd_character')) r.character = civ.charOf(c.id, who.id);   // the character they made in the Civilian tab
+      if (r.person && features.on(c, 'pd_licenses')) { r.licenses = pdlic.of(c.id, r.person.rid, r.person.name); r.licenseHistory = pdlic.history(c.id, r.person.rid, r.person.name); }
       return json(res, r, r.error ? 404 : 200); }
+    // suspending, revoking or reinstating a driver's license or firearms permit (app/pdlicense.mjs)
+    if (sub === 'license' && M === 'POST') { if (!features.on(c, 'pd_licenses')) return off('pd_licenses'); const j = await jsonBody(req), r = pdlic.set(c.id, by.name, j); if (r.error) return json(res, r, 400);
+      licenseChanged(c, j, r.change); return json(res, r); }
     if (sub === 'vehicle' && M === 'GET') { const r = police.vehicle(c.id, qs.get('plate')); if (r.history) r.history = recent(r.history); return json(res, r, r.error ? 404 : 200); }
     if (sub === 'vehicle' && M === 'POST') { const j = await jsonBody(req), r = police.setVehicle(c.id, j.plate, j); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records') { const k = M === 'GET' ? (features.RECORD[qs.get('kind')] || 'pd_records') : features.RECORD[String((req._body ||= await jsonBody(req)).kind)]; if (k && !features.on(c, k)) return off(k); }
@@ -586,7 +591,7 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
     const acct = r.person.rid ? users.byRoblox(r.person.rid) : null;
     return ok({ person: { roblox_name: r.person.name || null, roblox_id: r.person.rid || null, ...(bots.can(bot, 'people') ? { discord_id: acct?.discord_id || null } : {}), last_seen: r.person.last_seen || null },
       known: !!(r.person.last_seen || H.length), wanted: warrants.some(w => w.status === 'Active'), warrants, bolos: r.flags.filter(x => x.kind === 'bolo'),
-      counts: { arrests: n('arrest'), citations: n('citation'), warnings: n('warning'), warrants: n('warrant') }, records: H.slice(0, 50), vehicles: r.vehicles, license: r.license }); }
+      counts: { arrests: n('arrest'), citations: n('citation'), warnings: n('warning'), warrants: n('warrant') }, records: H.slice(0, 50), vehicles: r.vehicles, license: r.license, ...(features.on(c, 'pd_licenses') ? { licenses: pdlic.of(c.id, r.person.rid, r.person.name) } : {}) }); }
   if (at[0] === 'plates' && at[1] && M === 'GET') { if (need('lookup') || off('pd_lookup')) return; const r = police.vehicle(c.id, decodeURIComponent(at[1])); return r.error ? bad(r.error, 404) : ok({ ...r, history: r.history.slice(0, 25) }); }
   if (at[0] === 'plates' && at[1] && M === 'POST') { if (need('vehicles')) return;
     if (J.reg != null && !['Valid', 'Expired', 'Suspended'].includes(J.reg)) return bad('reg is Valid, Expired or Suspended.'); if (J.ins != null && !['Active', 'Lapsed', 'None'].includes(J.ins)) return bad('ins is Active, Lapsed or None.'); const r = police.setVehicle(c.id, decodeURIComponent(at[1]), J); return r.error ? bad(r.error) : ok(r); }
@@ -1118,6 +1123,10 @@ const discordCmdsInfo = async () => { let a = null, err = ''; try { a = await di
   const L = communities.withDiscord(); return { ready: discordlink.ready() && !!a, error: err || undefined, name: a?.name || '', endpoint: a?.endpoint || '', ours: interactionsUrl(), connected: discordbot.connected(),
     linked: L.length, added: L.filter(c => discordbot.current(c.settings.discord)).length, failed: L.filter(c => c.settings.discord.cmdsErr).length }; };
 // a record changing on file (served, recalled, denied, cleared, a stop ending); an approval goes out as record.created instead
+const licenseChanged = (c, j, x) => { const u = /^\d{1,20}$/.test(String(j.rid || '')) ? users.byRoblox(String(j.rid)) : null, end = x.until ? ' until ' + new Date(x.until).toUTCString().slice(5, 16) : '';
+  if (u) civ.note(c.id, u.id, x.status === 'Valid' ? `Your ${x.name.toLowerCase()} was reinstated by ${x.by}.` : `Your ${x.name.toLowerCase()} was ${x.status.toLowerCase()}${end} by ${x.by}: ${x.reason}`);
+  console.log(`licenses: ${c.slug} ${x.kind} ${x.was} -> ${x.status} by ${x.by}`);
+  bots.emit(c, 'license.updated', { roblox_id: /^\d{1,20}$/.test(String(j.rid || '')) ? String(j.rid) : null, roblox_name: String(j.name || '') || null, discord_id: u?.discord_id || null, license: x.kind, license_name: x.name, status: x.status, was: x.was, until: x.until, reason: x.reason, by: x.by, at: x.at }); };
 const recordChanged = (c, r, action, who) => { if (!['approve', 'backup', 'respond'].includes(action)) bots.emit(c, 'record.updated', { ...r, action, action_by: who }); };
 const recordEvent = (c, r) => { bots.emit(c, 'record.created', r); if (!features.on(c, 'automations')) return; automations.fire(c, 'record', { kind: r.kind, subject: r.subject || '', plate: r.plate || '', by: r.by || '', charges: (r.charges || []).map(x => x.title).join(', '), reason: r.reason || '' }); };
 // what /admin shows about alerts and backups

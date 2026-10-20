@@ -7,6 +7,7 @@ import { db, now, users, communities } from './db.mjs';
 import * as premium from './premium.mjs';
 import { on as feature } from './features.mjs';
 import { POSTALS } from './postals.mjs';
+import { statusOf as licenseStatus } from './pdlicense.mjs';
 import { TASKS, makeGame, fillText, pickTasks, houseName, NAMES, MIN_GAME_MS } from './tasks.mjs';
 import { T, money, DAY, GDAY, GWEEK, background, conf, ensure, move, bizMove, bizEarn, biz, note, who, hooks, staffSet } from './civ.mjs';
 
@@ -135,7 +136,8 @@ export const buy = (c, user, j) => { const z = biz(c.id, j.id); if (!z) return {
   if (z.owner_id === user.id) return { error: 'You can’t buy from your own business.' };
   const it = q('SELECT * FROM civ_items WHERE id = ? AND biz_id = ? AND live = 1').get(+j.item || 0, z.id); if (!it) return { error: 'That isn’t on the menu any more.' };
   if (it.kind !== 'Product') return { error: 'Send a request for that one instead.' };
-  if (z.kind === 'Gun store' && feature(c, 'guncheck')) { const g = background(c, user.id); if (g.felonies || g.warrants) return { error: `${z.name} ran a background check: ${g.felonies ? 'a felony conviction' : 'an active warrant'} means no sale.` }; }
+  if (z.kind === 'Gun store' && feature(c, 'guncheck')) { const g = background(c, user.id); if (g.felonies || g.warrants) return { error: `${z.name} ran a background check: ${g.felonies ? 'a felony conviction' : 'an active warrant'} means no sale.` };
+    const rid = user.roblox_id, p = feature(c, 'pd_licenses') && rid ? licenseStatus(c.id, rid, '', 'firearm') : 'Valid'; if (p !== 'Valid') return { error: `${z.name} ran a background check: your firearms permit is ${p.toLowerCase()}, so no sale.` }; }
   const qty = Math.max(1, Math.min(20, Math.round(+j.qty || 1))), total = it.price * qty;
   if (!openShifts(z.id).length && !(z.online && premOf(c, z))) return { error: `${z.name} is closed. Come back when someone is working.` };
   ensure(c, user.id); const label = `${it.name}${qty > 1 ? ' ×' + qty : ''}`, m = move(c.id, user.id, -total, 'business', `${label} at ${z.name}`); if (m.error) return m;

@@ -25,11 +25,12 @@ export const EVENTS = {
   'alpr': ['The plate reader flags a car', 'lookup'], 'record.created': ['Police write a record (a warrant once it’s approved)', 'lookup'],
   'record.updated': ['A warrant is served, recalled or denied, a BOLO is cleared, or a stop ends', 'lookup'],
   'monitor.alert': ['Someone on an ankle monitor leaves their area, enters a no-go zone or comes back', 'lookup'],
+  'license.updated': ['Police suspend, revoke or reinstate a driver’s license or firearms permit', 'lookup'],
   'loa.requested': ['Someone asks for leave (LOA) from a department or the staff team', 'read'], 'loa.decided': ['A leave request is approved or denied', 'read'] };
 // what the "Connect a bot" form ticks for each kind of bot
 export const PRESETS = {
-  department: { name: 'Department bot', scopes: ['read', 'people', 'units', 'calls', 'lookup', 'records'], events: ['shift.started', 'shift.ended', 'call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic', 'record.created', 'record.updated', 'loa.requested', 'loa.decided', 'monitor.alert'] },
-  justice: { name: 'Justice (DOJ) bot', scopes: ['read', 'people', 'lookup', 'records'], events: ['record.created', 'record.updated'] },
+  department: { name: 'Department bot', scopes: ['read', 'people', 'units', 'calls', 'lookup', 'records'], events: ['shift.started', 'shift.ended', 'call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic', 'record.created', 'record.updated', 'loa.requested', 'loa.decided', 'monitor.alert', 'license.updated'] },
+  justice: { name: 'Justice (DOJ) bot', scopes: ['read', 'people', 'lookup', 'records'], events: ['record.created', 'record.updated', 'license.updated'] },
   roleplay: { name: 'Roleplay bot', scopes: ['read', 'people', 'lookup', 'vehicles', 'bank', 'records'], events: ['record.created', 'call.created'] },
   moderation: { name: 'Moderation bot', scopes: ['read', 'people', 'game'], events: ['player.joined', 'player.left'] },
   readonly: { name: 'Read only', scopes: ['read'], events: [] } };
