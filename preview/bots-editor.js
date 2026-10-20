@@ -12,7 +12,8 @@
   let S = null, editing = null, reveal = null;   // the server's bots; the bot being edited ('new' for a new one); a key or secret to show once
 
   const card = b => {
-    const ev = b.hook ? '<div class="bt-ev">Events go to <b>' + e(b.hook.url) + '</b> (' + b.hook.events.length + ' kind' + (b.hook.events.length === 1 ? '' : 's') + ')' +
+    // an Oversite bot's events go through Oversite: what matters is whether the last log got there
+    const ev = b.oversite ? (b.delivery ? '<div class="bt-ev">Last log sent ' + ago(b.delivery.at) + ': ' + (b.delivery.ok ? '<span class="ok">delivered</span>' : '<span class="bad">' + e(b.delivery.error) + '</span>') + '</div>' : '') : b.hook ? '<div class="bt-ev">Events go to <b>' + e(b.hook.url) + '</b> (' + b.hook.events.length + ' kind' + (b.hook.events.length === 1 ? '' : 's') + ')' +
       (b.delivery ? '. Last sent ' + ago(b.delivery.at) + ': ' + (b.delivery.ok ? '<span class="ok">delivered</span>' : '<span class="bad">' + e(b.delivery.error) + '</span>') : '. Nothing sent yet.') + '</div>' : '';
     return '<div class="bt" data-id="' + e(b.id) + '"><div class="bt-h"><b>' + e(b.name) + '</b><small>' + (b.oversite ? 'Oversite bot, linked with a code' : 'Key ending ' + e(b.hint)) + ' · ' + (b.used ? 'last used ' + ago(b.used) : 'not used yet') + '</small><span class="sp"></span></div>' +
       '<div class="bt-perms">' + b.scopes.map(s => '<span>' + e((D.scopes[s] || [s])[0]) + '</span>').join('') + '</div>' + ev +
@@ -48,8 +49,8 @@
         h += '<option value="' + e(c.id) + '"' + (c.id === v ? ' selected' : '') + '>#' + e(c.name) + '</option>'; }
       return h + (cat !== null ? '</optgroup>' : ''); };
     return '<div class="bt-logs" style="margin-top:12px"><span class="bt-lbl">Logs in your Discord</span><p class="note" style="margin:0 0 8px">Pick a channel for each log you want. The bot posts it there the moment it happens in the CAD.</p>' +
-      (b.logKinds.length ? b.logKinds.map(k => '<label style="display:flex;gap:12px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line,rgba(255,255,255,.08))"><span><b>' + e(S.logs[k].name) + '</b><br><small class="note">' + e(S.logs[k].desc) + '</small></span>' +
-        '<select data-log="' + e(k) + '" data-bot="' + e(b.id) + '" style="max-width:46%">' + opts(b.logs[k] || '') + '</select></label>').join('')
+      (b.logKinds.length ? b.logKinds.map(k => '<label style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,45%);gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line,rgba(255,255,255,.08))"><span><b>' + e(S.logs[k].name) + '</b><br><small class="note">' + e(S.logs[k].desc) + '</small></span>' +
+        '<select data-log="' + e(k) + '" data-bot="' + e(b.id) + '">' + opts(b.logs[k] || '') + '</select></label>').join('')
         : '<p class="note">This kind of bot doesn’t post CAD logs.</p>') + (ch.list.length ? '' : '<p class="note">No channels yet. Make sure the bot is in your Discord, open its page on oversite.shop once so its channels load, then come back.</p>') + '</div>'; };
   const loadChannels = id => { if (CH[id]) return; CH[id] = null; call('/bots/channels', { id }).then(r => { CH[id] = { list: r.channels || [] }; draw(); }).catch(x => { CH[id] = { error: x.message }; draw(); }); };
 
