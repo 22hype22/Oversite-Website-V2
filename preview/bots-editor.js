@@ -1,4 +1,4 @@
-// Settings → Bots: connect a server's own Discord bots to its CAD. Each bot gets a key (shown once), the permissions ticked
+// Settings → Bots: link an Oversite bot with the code from its page (at the top), or connect a server's own Discord bots to its CAD. Each bot gets a key (shown once), the permissions ticked
 // here, and optionally a link Oversite sends its events to, signed with a secret (also shown once).
 (() => {
   const root = document.getElementById('bots'); if (!root) return;
@@ -9,7 +9,7 @@
     const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong (' + r.status + ')'); return j; };
   const confirmIt = o => typeof ask === 'function' ? ask(o) : Promise.resolve(confirm(o.title));
   const ago = t => { if (!t) return 'never'; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' days ago'; };
-  let S = null, editing = null, reveal = null;   // the server's bots; the bot being edited ('new' for a new one, 'link' for an Oversite bot); a key or secret to show once
+  let S = null, editing = null, reveal = null;   // the server's bots; the bot being edited ('new' for a new one); a key or secret to show once
 
   const card = b => {
     const ev = b.hook ? '<div class="bt-ev">Events go to <b>' + e(b.hook.url) + '</b> (' + b.hook.events.length + ' kind' + (b.hook.events.length === 1 ? '' : 's') + ')' +
@@ -41,23 +41,26 @@
   // which department an Oversite bot is for: it counts MDT shifts from that department only (or all of them)
   const deptPick = (v, id) => (S.depts && S.depts.length ? '<span class="bt-lbl">Department</span><select name="dept"' + (id ? ' data-dept="' + e(id) + '"' : '') + '><option value="">Every department</option>' +
     S.depts.map(d => '<option value="' + e(d.key) + '"' + (d.key === v ? ' selected' : '') + '>' + e(d.name) + '</option>').join('') + '</select><small class="note" style="display:block;margin-top:4px">Shifts people start on this department’s MDT count on the bot too.</small>' : '');
-  // an Oversite bot: its owner types the code from the bot's page on oversite.shop; Oversite keeps the key
-  const linkForm = () => '<form class="bt-f" id="btL"><h3>Link an Oversite bot</h3>' +
+  // an Oversite bot: its owner types the code from the bot's page on oversite.shop; Oversite keeps the key. It sits open at the
+  // top of the page, since that is what most servers come here to do
+  const linkForm = () => '<form class="bt-f" id="btL" style="margin:0 0 18px"><h3>Link an Oversite bot</h3>' +
     '<p class="note" style="margin:0 0 10px">For bots bought on oversite.shop. Open the bot’s page there and find <b>Link to your CAD</b>. Type the code it shows. It changes every minute, so use it right away. Only the bot’s owner can see it.</p>' +
     '<span class="bt-lbl">Code</span><input name="code" maxlength="9" placeholder="ABCD 2345" autocomplete="off" spellcheck="false" style="text-transform:uppercase;letter-spacing:.12em;font-family:ui-monospace,monospace">' +
     deptPick('') +
-    '<div class="bt-acts" style="margin-top:16px"><button class="btn pri">Link bot</button><button type="button" class="btn sm" data-act="cancel">Cancel</button></div></form>';
+    '<div class="bt-acts" style="margin-top:16px"><button class="btn pri">Link bot</button></div></form>';
 
   const draw = () => { document.getElementById('btCount').textContent = S.bots.length ? S.bots.length + ' of ' + S.max : '';
     const full = S.bots.length >= S.max;
+    const canLink = !full || S.bots.some(b => b.oversite), limit = '<p class="note" style="margin-top:14px">' + (S.premium ? 'This server has connected the most bots it can (' + S.max + ').' : 'Free servers connect ' + S.max + ' bot. <a href="#premium">Premium</a> connects up to 10.') + '</p>';
     body.innerHTML = (S.on ? '' : '<p class="msg err">Connected bots are switched off under Features, so bots’ keys don’t work right now.</p>') +
+      (canLink ? linkForm() : '') +
       (S.bots.length ? S.bots.map(card).join('') : (editing === 'new' ? '' : '<p class="note">No bots connected yet.</p>')) +
-      (editing === 'new' ? form(null) : editing === 'link' ? linkForm() : full && !S.bots.some(b => b.oversite) ? '<p class="note" style="margin-top:14px">' + (S.premium ? 'This server has connected the most bots it can (' + S.max + ').' : 'Free servers connect ' + S.max + ' bot. <a href="#premium">Premium</a> connects up to 10.') + '</p>'
-        : '<div class="bt-acts" style="margin-top:14px">' + (full ? '' : '<button type="button" class="btn pri" data-act="new">Connect a bot</button>') + '<button type="button" class="btn' + (full ? ' pri' : '') + '" data-act="link">Link an Oversite bot</button></div>');
+      (editing === 'new' ? form(null) : full ? (canLink ? '' : limit)
+        : '<div class="bt-acts" style="margin-top:14px"><button type="button" class="btn" data-act="new">Connect your own bot</button></div>');
     const f = document.getElementById('btF'); if (f) bindForm(f);
     const l = document.getElementById('btL'); if (l) bindLink(l); };
 
-  const bindLink = f => { const inp = f.querySelector('[name=code]'); inp.focus();
+  const bindLink = f => { const inp = f.querySelector('[name=code]');
     f.addEventListener('submit', async ev => { ev.preventDefault(); const btn = f.querySelector('button.pri'); btn.disabled = true;
       try { const r = await call('/bots/link', { code: inp.value, dept: f.querySelector('[name=dept]')?.value || '' }); S = r; editing = null; reveal = null; draw(); say('Linked ' + r.bot.name + '. Oversite keeps its key, so there is nothing to copy.', true); }
       catch (x) { say(x.message); btn.disabled = false; } }); };
@@ -80,7 +83,6 @@
   body.addEventListener('click', async ev => { const t = ev.target.closest('[data-act],[data-copy]'); if (!t) return; const id = t.closest('.bt')?.dataset.id, a = t.dataset.act;
     if (t.dataset.copy) { try { await navigator.clipboard.writeText(t.dataset.copy); say('Copied. Paste it to whoever runs the bot.', true); } catch (x) { say('Couldn’t copy. Select the key and copy it by hand.'); } return; }
     if (a === 'new') { editing = 'new'; reveal = null; say(''); draw(); document.getElementById('btF')?.scrollIntoView({ block: 'nearest' }); return; }
-    if (a === 'link') { editing = 'link'; reveal = null; say(''); draw(); document.getElementById('btL')?.scrollIntoView({ block: 'nearest' }); return; }
     if (a === 'edit') { editing = editing === id ? null : id; draw(); return; }
     if (a === 'cancel') { editing = null; draw(); return; }
     if (a === 'done') { reveal = null; draw(); return; }
