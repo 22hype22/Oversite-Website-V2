@@ -29,14 +29,8 @@ export const EVENTS = {
   'loa.requested': ['Someone asks for leave (LOA) from a department or the staff team', 'read'], 'loa.decided': ['A leave request is approved or denied', 'read'] };
 // what the "Connect a bot" form ticks for each kind of bot
 export const PRESETS = {
-<<<<<<< Updated upstream
   department: { name: 'Department bot', scopes: ['read', 'people', 'units', 'calls', 'lookup', 'records'], events: ['shift.started', 'shift.ended', 'call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic', 'record.created', 'record.updated', 'loa.requested', 'loa.decided', 'monitor.alert', 'license.updated'] },
   justice: { name: 'Justice (DOJ) bot', scopes: ['read', 'people', 'lookup', 'records'], events: ['record.created', 'record.updated', 'license.updated'] },
-=======
-  department: { name: 'Department bot', scopes: ['read', 'people', 'units', 'calls', 'lookup', 'records'], events: ['shift.started', 'shift.ended', 'call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic', 'record.created', 'record.updated', 'loa.requested', 'loa.decided', 'monitor.alert'] },
-  dispatch: { name: 'Dispatch bot', scopes: ['read', 'people', 'lookup', 'records', 'units', 'calls'], events: ['call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic', 'record.created', 'record.updated', 'alpr'] },
-  justice: { name: 'Justice (DOJ) bot', scopes: ['read', 'people', 'lookup', 'records'], events: ['record.created', 'record.updated'] },
->>>>>>> Stashed changes
   roleplay: { name: 'Roleplay bot', scopes: ['read', 'people', 'lookup', 'vehicles', 'bank', 'records'], events: ['record.created', 'call.created'] },
   moderation: { name: 'Moderation bot', scopes: ['read', 'people', 'game'], events: ['player.joined', 'player.left'] },
   readonly: { name: 'Read only', scopes: ['read'], events: [] } };
@@ -92,7 +86,7 @@ export const hasOversite = (c, kind) => list0(c).some(b => b.oversite && b.base 
 // Linking one of the server's Oversite bots (bought on oversite.shop): its owner reads a code off the bot's page there (it
 // changes every minute) and types it here. Oversite checks the code and keeps the bot's key itself, so nobody copies a key.
 const LINK_URL = process.env.OVERSITE_LINK_URL || 'https://kqhyjxtylvigrezlxzpl.supabase.co/functions/v1/cad-link';
-const LINK_KIND = { department: 'department', dispatch: 'dispatch', roleplay: 'roleplay', customs: 'roleplay', protection: 'moderation' };
+const LINK_KIND = { department: 'department', dispatch: 'department', roleplay: 'roleplay', customs: 'roleplay', protection: 'moderation' };
 export const link = async (c, code, prem, by, dept = '') => { const secret = process.env.CAD_LINK_SECRET || ''; if (!secret) return { error: 'Linking Oversite bots isn’t set up on this site yet.' };
   const clean = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (clean.length !== 8) return { error: 'The code is 8 letters and numbers. Copy it from the bot’s page on oversite.shop.' };
   const L = list0(c); if (L.length >= max(prem) && !L.some(b => b.oversite)) return { error: prem ? `A server can connect up to ${PREMIUM_BOTS} bots. Disconnect one first.` : `Free servers can connect ${FREE_BOTS} bot. Disconnect it first, or get Premium for up to ${PREMIUM_BOTS}.` };

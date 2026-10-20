@@ -18,10 +18,6 @@ CREATE INDEX IF NOT EXISTS pd_records_s ON pd_records (community_id, subject_rid
 CREATE INDEX IF NOT EXISTS pd_records_p ON pd_records (community_id, plate);`);
 // civ: 1 when its owner was on the civilian team when we last saw it (police cars, fire trucks and the like aren't theirs to pay for)
 try { db.exec('ALTER TABLE pd_vehicles ADD COLUMN civ INTEGER NOT NULL DEFAULT 0'); } catch (e) {}
-// a driver's license suspended, revoked or given back by police, per server: every change is a row, the newest one counts
-db.exec(`CREATE TABLE IF NOT EXISTS pd_license (id INTEGER PRIMARY KEY, community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, rid TEXT NOT NULL DEFAULT '',
-  name TEXT NOT NULL DEFAULT '', status TEXT NOT NULL, reason TEXT NOT NULL DEFAULT '', until INTEGER, by_name TEXT, at INTEGER NOT NULL);
-CREATE INDEX IF NOT EXISTS pd_license_p ON pd_license (community_id, rid, name);`);
 const q = sql => db.prepare(sql);
 
 // Liberty County's default penal code: [code, title, fine, jail in minutes, class]. A server can replace it with its own (penalOf). Infractions are tickets; misdemeanors and felonies can be jailed.
@@ -199,31 +195,7 @@ export const person = async (cid, key, licenseOf) => { const rid = RID(key), nam
   if (acct) { const l = await licenseOf(acct); if (l.saved) license = { display: l.display, age: l.age, gndr: l.gndr, hair: l.hair, eyes: l.eyes, hgt: l.hgt, wgt: l.wgt, addr: l.addr, iss: l.iss, num: 'LC' + String(who.rid).padStart(8, '0').slice(-8) }; else license = { display: l.display, none: true }; }
   const vehicles = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND (owner_rid = ? OR lower(owner) = lower(?)) ORDER BY last_seen DESC LIMIT 20').all(cid, who.rid || '-', who.name || '-').map(vehRow);
   const n = (who.name || '').toLowerCase(), history = q("SELECT * FROM pd_records WHERE community_id = ? AND ((subject_rid <> '' AND subject_rid = ?) OR lower(subject) = ?) ORDER BY at DESC LIMIT 100").all(cid, who.rid || '-', n || '-').map(row);
-  return { person: who, account: !!acct, license, licstatus: licenseStatus(cid, who.rid, who.name), lichist: licenseHistory(cid, who.rid, who.name), vehicles, history,
-    flags: flagsFor(cid, who.rid, who.name, vehicles.map(v => v.plate)) }; };
-
-// ── license status: Valid, Suspended (for some days, or until given back) or Revoked ──
-export const LIC_STATUSES = ['Valid', 'Suspended', 'Revoked'];
-const licRows = (cid, rid, name) => q(`SELECT * FROM pd_license WHERE community_id = ? AND ((rid <> '' AND rid = ?) OR (rid = '' AND lower(name) = lower(?))) ORDER BY id DESC LIMIT 20`)
-  .all(cid, rid || '-', name || '-');
-const licRow = r => ({ status: r.status, reason: r.reason || '', until: r.until || null, by: r.by_name || '', at: r.at });
-// what counts now: a suspension that ran out is Valid again
-export const licenseStatus = (cid, rid, name) => { const r = licRows(cid, rid, name)[0]; if (!r || r.status === 'Valid') return { status: 'Valid' };
-  if (r.status === 'Suspended' && r.until && r.until <= now()) return { status: 'Valid', ended: r.until };
-  return licRow(r); };
-export const licenseHistory = (cid, rid, name) => licRows(cid, rid, name).map(licRow);
-// police change it: { rid, name, status, reason, days } (days only for a suspension; 0 or none is until it's given back)
-export const setLicense = (cid, by, b) => { let rid = RID(b.rid); const name = T(b.name, 40), status = LIC_STATUSES.find(s => s.toLowerCase() === String(b.status || '').toLowerCase());
-  if (!rid && !name) return { error: 'Say whose license it is.' }; if (!status) return { error: 'The status is Valid, Suspended or Revoked.' };
-  // only someone seen in this server, so a misheard or misspelled name never gets a record of its own
-  if (!rid) { const seen = q('SELECT rid FROM pd_people WHERE community_id = ? AND lower(name) = lower(?)').get(cid, name); if (!seen) return { error: `Nobody called ${name} has been seen in this server.` }; rid = seen.rid; }
-  const reason = T(b.reason, 200), days = Math.max(0, Math.min(3650, Math.round(+b.days || 0)));
-  if (status !== 'Valid' && !reason) return { error: 'Give a reason, like "DUI" or "Reckless driving".' };
-  const cur = licenseStatus(cid, rid, name); if (status === 'Valid' && cur.status === 'Valid') return { error: 'That license is already valid.' };
-  const p = rid ? q('SELECT name FROM pd_people WHERE community_id = ? AND rid = ?').get(cid, rid) : null;
-  q('INSERT INTO pd_license (community_id, rid, name, status, reason, until, by_name, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(cid, rid, p?.name || name, status, reason, status === 'Suspended' && days ? now() + days * 864e5 : null, T(by?.name, 60), now());
-  return { ok: true, name: p?.name || name, rid, license: licenseStatus(cid, rid, name), history: licenseHistory(cid, rid, name) }; };
+  return { person: who, account: !!acct, license, vehicles, history, flags: flagsFor(cid, who.rid, who.name, vehicles.map(v => v.plate)) }; };
 
 export const vehicle = (cid, plate) => { const v = vehRow(q('SELECT * FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(cid, PLATE(plate)));
   if (!v) return { error: `No vehicle with plate ${PLATE(plate)} has been seen in this server.` };
