@@ -225,12 +225,12 @@ const communityApi = async (req, res, slug, rest) => {
     return json(res, { error: 'Not found.' }, 404); }
   // Settings → Bots: the server's own bots, each with its key and permissions, and where its events go
   if (rest === 'bots' || rest.startsWith('bots/')) { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can connect bots.' }, 403);
-    const prem = premium.isPremium(c), info = () => ({ bots: bots.list(c), depts: bots.DUTY_DEPTS.filter(d => features.on(c, 'dept_' + d)).map(d => ({ key: d, name: duty.deptName(c, d) })), max: bots.max(prem), premium: prem, on: features.on(c, 'bots'), base: `${PUBLIC()}/api/bot/v1`, docs: `${PUBLIC()}/developers` });
+    const prem = premium.isPremium(c), info = () => ({ bots: bots.list(c), depts: bots.DUTY_DEPTS.filter(d => features.on(c, 'dept_' + d)).map(d => ({ key: d, name: duty.deptName(c, d) })), max: bots.max(prem), premium: prem, on: features.on(c, 'bots'), logs: Object.fromEntries(Object.entries(bots.LOGS).map(([k, [name, desc]]) => [k, { name, desc }])), base: `${PUBLIC()}/api/bot/v1`, docs: `${PUBLIC()}/developers` });
     if (rest === 'bots' && M === 'GET') return json(res, info());
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req), id = String(j.id || '');
     const r = rest === 'bots/create' ? await bots.create(c, j, prem, user.roblox_name || user.name) : rest === 'bots/update' ? await bots.update(c, id, j) : rest === 'bots/rotate' ? bots.rotate(c, id, j.what)
       : rest === 'bots/test' ? await bots.test(c, id) : rest === 'bots/delete' ? bots.remove(c, id) : rest === 'bots/link' ? await bots.link(c, j.code, prem, user.roblox_name || user.name, String(j.dept || ''))
-      : rest === 'bots/dept' ? bots.setDept(c, id, String(j.dept || '')) : { error: 'Not found.' };
+      : rest === 'bots/dept' ? bots.setDept(c, id, String(j.dept || '')) : rest === 'bots/logs' ? await bots.setLogs(c, id, j.logs) : rest === 'bots/channels' ? await bots.channels(c, id) : { error: 'Not found.' };
     if (!r.error && rest !== 'bots/test') console.log(`bots: ${c.slug} ${rest.slice(5)} ${id || r.bot?.id || ''} by ${user.roblox_name || user.name}`);
     return json(res, { ...info(), ...r }, r.error ? 400 : 200); }
   if (rest === 'srvstatus' && M === 'GET') return json(res, srvStatus.view(c, can(role, 'co_owner')));
