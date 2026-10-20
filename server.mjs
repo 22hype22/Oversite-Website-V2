@@ -593,6 +593,15 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
       known: !!(r.person.last_seen || H.length), wanted: warrants.some(w => w.status === 'Active'), warrants, bolos: r.flags.filter(x => x.kind === 'bolo'),
       counts: { arrests: n('arrest'), citations: n('citation'), warnings: n('warning'), warrants: n('warrant') }, records: H.slice(0, 50), vehicles: r.vehicles, license: r.license, ...(features.on(c, 'pd_licenses') ? { licenses: pdlic.of(c.id, r.person.rid, r.person.name) } : {}) }); }
   if (at[0] === 'plates' && at[1] && M === 'GET') { if (need('lookup') || off('pd_lookup')) return; const r = police.vehicle(c.id, decodeURIComponent(at[1])); return r.error ? bad(r.error, 404) : ok({ ...r, history: r.history.slice(0, 25) }); }
+  // suspend, revoke or reinstate a license (app/pdlicense.mjs): { discord_id | roblox_id | roblox_name, license: driver | firearm, status: Suspended | Revoked | Valid, reason, days?, officer? }
+  if (rest === 'licenses' && M === 'POST') { if (need('records') || off('pd_licenses')) return; const u = J.discord_id ? person({ discord_id: String(J.discord_id) }) : null;
+    if (J.discord_id && !u?.roblox_id) return bad('Nobody with that Discord ID has a Roblox account linked on Oversite.', 404);
+    let rid = String(u?.roblox_id || J.roblox_id || '').replace(/\D/g, ''), name = String(J.roblox_name || '').trim().slice(0, 40);
+    // only someone seen in this server, so a misheard name never gets a license record of its own
+    const seen = rid ? police.seenPerson(c.id, rid, '') : name ? police.seenPerson(c.id, '', name) : null; if (!seen) return bad(rid || name ? 'Nobody by that name has been seen in this server.' : 'Send discord_id, roblox_id or roblox_name.', rid || name ? 404 : 400);
+    const st = { suspended: 'Suspended', revoked: 'Revoked', valid: 'Valid', reinstated: 'Valid' }[String(J.status || '').toLowerCase()] || J.status, j = { rid: seen.rid, name: seen.name, kind: J.license || 'driver', status: st, reason: J.reason, days: J.days };
+    const who = J.officer ? `${String(J.officer).slice(0, 20)} via ${bot.name}`.slice(0, 40) : by, r = pdlic.set(c.id, who, j); if (r.error) return bad(r.error);
+    licenseChanged(c, j, r.change); return ok({ ok: true, roblox_name: seen.name, roblox_id: seen.rid || null, change: r.change, licenses: r.licenses }); }
   if (at[0] === 'plates' && at[1] && M === 'POST') { if (need('vehicles')) return;
     if (J.reg != null && !['Valid', 'Expired', 'Suspended'].includes(J.reg)) return bad('reg is Valid, Expired or Suspended.'); if (J.ins != null && !['Active', 'Lapsed', 'None'].includes(J.ins)) return bad('ins is Active, Lapsed or None.'); const r = police.setVehicle(c.id, decodeURIComponent(at[1]), J); return r.error ? bad(r.error) : ok(r); }
   // changing things

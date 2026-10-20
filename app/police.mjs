@@ -197,6 +197,8 @@ export const person = async (cid, key, licenseOf) => { const rid = RID(key), nam
   const n = (who.name || '').toLowerCase(), history = q("SELECT * FROM pd_records WHERE community_id = ? AND ((subject_rid <> '' AND subject_rid = ?) OR lower(subject) = ?) ORDER BY at DESC LIMIT 100").all(cid, who.rid || '-', n || '-').map(row);
   return { person: who, account: !!acct, license, vehicles, history, flags: flagsFor(cid, who.rid, who.name, vehicles.map(v => v.plate)) }; };
 
+// someone this server has seen in game, by Roblox ID or exact name: { rid, name } or null
+export const seenPerson = (cid, rid, name) => (RID(rid) ? q('SELECT rid, name FROM pd_people WHERE community_id = ? AND rid = ?').get(cid, RID(rid)) : q('SELECT rid, name FROM pd_people WHERE community_id = ? AND lower(name) = lower(?)').get(cid, T(name, 40))) || null;
 export const vehicle = (cid, plate) => { const v = vehRow(q('SELECT * FROM pd_vehicles WHERE community_id = ? AND plate = ?').get(cid, PLATE(plate)));
   if (!v) return { error: `No vehicle with plate ${PLATE(plate)} has been seen in this server.` };
   const history = q('SELECT * FROM pd_records WHERE community_id = ? AND plate = ? ORDER BY at DESC LIMIT 50').all(cid, v.plate).map(row);
