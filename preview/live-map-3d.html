@@ -982,6 +982,12 @@
   .fleet > .empty{text-align:center;max-width:250px;margin:0 auto}
   @media (prefers-reduced-motion:reduce){.admin,.stage{transition:none}}
   /* staff:start  Staff MDT (Server Staff tab) */
+  /* a section locked to Discord roles (Settings, Discord server): its panels hide and this card says which role opens it */
+  body.sec-locked .rail,body.sec-locked .stage,body.sec-locked .pins,body.sec-locked #mdt,body.sec-locked #civMdt{visibility:hidden}
+  .sec-lock{position:fixed;left:50%;top:50%;z-index:8;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 32px));padding:24px;border-radius:18px;background:rgba(13,14,16,.94);border:1px solid var(--hair2,rgba(255,255,255,.14));box-shadow:0 30px 70px rgba(0,0,0,.55);text-align:center;color:#E9EAEC}
+  .sec-lock[hidden]{display:none}.sec-lock svg{color:var(--mute,#9A9EA6)}.sec-lock h2{margin:10px 0 6px;font-size:17px;font-weight:600}.sec-lock p{margin:0;font-size:13.5px;line-height:1.55;color:var(--mute,#9A9EA6)}
+  .sec-lock .roles{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:14px 0 4px}.sec-lock .roles span{font-size:12.5px;font-weight:500;padding:4px 10px;border-radius:999px;background:rgba(88,101,242,.16);color:#C9CEFF}
+  .sec-lock a{display:inline-block;margin-top:14px;font-size:13px;font-weight:600;padding:8px 16px;border-radius:999px;background:#ECEDEF;color:#0B0B0C;text-decoration:none}
   .sdock{position:fixed;top:calc(var(--barh) + var(--gap));bottom:var(--gap);left:50%;z-index:7;
     width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * 1.6));
     transform:translateX(calc(-50% + 100vw));transition:transform .34s cubic-bezier(.32,.72,0,1);pointer-events:none;display:flex;align-items:center;justify-content:center}
@@ -2429,7 +2435,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     tabs.forEach(t => { if (t.dataset.view === 'mdt') t.setAttribute('aria-selected', on && t.dataset.dept === window.mdtDept); if (t.dataset.view === 'dispatch') t.setAttribute('aria-selected', !on && document.body.dataset.view === 'dispatch'); });
     dispatchEvent(new CustomEvent('mdt', { detail: on })); };
   window.openMdt = openMdt;
-  const canOpen = dept => { if (!gated()) return true; const mine = myDept();
+  const canOpen = dept => { if (!gated() || window.OVERSITE?.locks?.[dept]) return true; const mine = myDept();
     if (!mine) { toastMsg(`You're not on the ${DEPT_NAME[dept]} team in game right now. Join it in ER:LC and its MDT opens here.`); return false; }
     if (mine !== dept) { toastMsg(`You're on the ${DEPT_NAME[mine] || mine} team in game. The ${DEPT_NAME[dept]} MDT is only for its members.`); return false; } return true; };
   const setView = (v, dept) => { if (v === 'mdt' && OFF['dept_' + dept]) v = 'dispatch';   // a department the server switched off has no MDT
@@ -2440,8 +2446,19 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.view === v && (v !== 'mdt' || t.dataset.dept === dept)));
     if (real !== 'dispatch') openMdt(false); else openMdt(v === 'mdt', dept);
     dispatchEvent(new CustomEvent('viewchange', { detail: real })); };
-  const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const ok = !gated() || myDept() === t.dataset.dept; t.classList.toggle('locked', !ok); t.title = ok ? '' : 'For players on the ' + DEPT_NAME[t.dataset.dept] + ' team in game'; }); };
+  const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const rl = window.OVERSITE?.locks?.[t.dataset.dept], ok = !rl && (!gated() || myDept() === t.dataset.dept); t.classList.toggle('locked', !ok);
+    t.title = rl ? 'Locked to Discord roles: ' + rl.join(', ') : ok ? '' : 'For players on the ' + DEPT_NAME[t.dataset.dept] + ' team in game'; }); };
   updateLocks(); addEventListener('me', updateLocks);
+  // sections locked to Discord roles for this person (the server works it out: OVERSITE.locks = { pd: ['Law Enforcement'], … })
+  const RLOCK = window.OVERSITE?.locks || {}, SEC_NAME = { dispatch: 'Dispatch', civ: 'Civilian', ...DEPT_NAME };
+  const secLock = document.createElement('div'); secLock.className = 'sec-lock'; secLock.hidden = true; secLock.setAttribute('role', 'status'); document.body.appendChild(secLock);
+  const showLock = () => { const v = document.body.dataset.view, k = v === 'dispatch' ? (document.body.classList.contains('mdt-open') ? window.mdtDept : 'dispatch') : v === 'civ' ? 'civ' : null, need = k && RLOCK[k];
+    document.body.classList.toggle('sec-locked', !!need); secLock.hidden = !need; if (!need) return;
+    secLock.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <h2>${esc(SEC_NAME[k] || 'This section')} is locked</h2><p>${window.OVERSITE?.discord ? `It’s only for people with ${need.length > 1 ? 'one of these roles' : 'this role'} in ${esc(window.OVERSITE?.name || 'the server')}’s Discord. Ask staff if you should have it.` : `It’s only for people with ${need.length > 1 ? 'one of these roles' : 'this role'} in the server’s Discord. Link Discord to your Oversite account so we can see your roles.`}</p>
+      <div class="roles">${need.map(n => `<span>@${esc(n)}</span>`).join('')}</div>${window.OVERSITE?.discord ? '' : `<a href="/account?from=${encodeURIComponent('/' + (window.OVERSITE?.slug || ''))}">Link Discord</a>`}`; };
+  addEventListener('viewchange', showLock); addEventListener('mdt', showLock);
+  tabs.forEach(t => { const k = t.dataset.view === 'mdt' ? t.dataset.dept : t.dataset.view; if (RLOCK[k]) { t.classList.add('locked'); t.title = 'Locked to Discord roles: ' + RLOCK[k].join(', '); } });
   // tabs follow your team in game: on the civilian team you see only the Civilian tab; on a department team you see Dispatch and
   // every department (only yours opens) but not Civilian. Not in game: everything shows. Server staff (mod and up) always see it all.
   const onCivTeam = () => !OFF.civ && !!(window.ME && window.ME.team && !window.ME.dept);   // with the Civilian tab off, civilians see the CAD like anyone not in game
@@ -2464,7 +2481,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     else { setView('dispatch'); toastMsg(`You left the ${DEPT_NAME[prev] || 'department'} team, so its MDT closed.`); } });
   if (mdtBtn) mdtBtn.addEventListener('click', () => { const d = myDept() || (gated() ? null : 'fd'); if (!d) return canOpen('fd'); if (document.body.dataset.view !== 'dispatch') setView('dispatch'); if (document.body.classList.contains('mdt-open')) openMdt(false); else setView('mdt', d); });
   tabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.view === 'mdt') { if (canOpen(t.dataset.dept)) setView('mdt', t.dataset.dept); } else if (t.dataset.view) setView(t.dataset.view); else tabs.forEach(x => x.setAttribute('aria-selected', x === t)); }));
-  document.body.dataset.view = 'dispatch';
+  document.body.dataset.view = 'dispatch'; queueMicrotask(showLock);   // Dispatch itself may be locked
 
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // ── Status & Updates: this server's real health (checked every minute on the server), its problems, Oversite's updates and the owner's own ──

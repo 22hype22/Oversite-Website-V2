@@ -1,12 +1,13 @@
 // A community's Discord server: the owner adds the Oversite bot to it and picks which roles are staff. Anyone signed in with
 // Discord who holds one of those roles gets the Server Staff tools, checked live (cached for a minute), so taking the role
-// away in Discord takes the access away too. Everything else in the CAD follows the player's in-game team.
+// away in Discord takes the access away too. Sections of the CAD can also be locked to roles (locksFor, below). Everything else in the
+// CAD follows the player's in-game team.
 import { communities, members } from './db.mjs';
 
 const DID = process.env.DISCORD_CLIENT_ID || '', DSECRET = process.env.DISCORD_CLIENT_SECRET || '', BOT = process.env.DISCORD_BOT_TOKEN || '';
 const DAPI = process.env.DISCORD_API || 'https://discord.com/api', DWEB = process.env.DISCORD_WEB || 'https://discord.com';
 export const ready = () => !!(DID && DSECRET && BOT);
-export const LEVELS = ['admin', 'mod'];                            // Discord roles only decide staff rank; departments come from the in-game team
+export const LEVELS = ['admin', 'mod'];                            // Discord roles decide staff rank (and section locks); departments come from the in-game team
 const RANK = { member: 1, mod: 2, admin: 3, co_owner: 4, owner: 5 };
 export const higher = (a, b) => ((RANK[a] || 0) >= (RANK[b] || 0) ? a : b) || null;
 
@@ -39,7 +40,7 @@ export const roles = async gid => { const list = await bot(`/guilds/${gid}/roles
 
 const cache = new Map(), TTL = 60000;
 const memberRoles = async (gid, uid) => { const k = gid + ':' + uid, hit = cache.get(k); if (hit && Date.now() - hit.at < TTL) return hit.roles;
-  let roles = null; try { const m = await bot(`/guilds/${gid}/members/${uid}`); roles = m ? m.roles || [] : null; } catch (e) { return hit ? hit.roles : null; }
+  let roles = null; try { const m = await bot(`/guilds/${gid}/members/${uid}`); roles = m ? m.roles || [] : null; } catch (e) { return hit ? hit.roles : undefined; }   // undefined: Discord didn't answer
   cache.set(k, { roles, at: Date.now() }); return roles; };
 export const forget = gid => { for (const k of cache.keys()) if (k.startsWith(gid + ':')) cache.delete(k); };
 
@@ -49,6 +50,15 @@ export const levelFor = async (c, discordId) => { const d = c.settings && c.sett
   const picks = { ...(d.roles || {}) }; if (picks.staff && !picks.admin) picks.admin = picks.staff;   // older links picked one 'staff' list: those are admins now
   for (const lvl of LEVELS) if ((picks[lvl] || []).some(id => mine.includes(id))) best = higher(best, lvl);
   return best; };
+
+// section locks: the owner can lock Dispatch, each department's MDT and the Civilian tab to Discord roles, so only people holding one
+// of a section's roles open it (settings.discord.locks = { pd: [{ id, name }], … }; no roles means open to everyone). Admins and up
+// open everything. Someone without Discord on their account can't open a locked section; when Discord doesn't answer, nothing is locked.
+export const SECTIONS = ['dispatch', 'pd', 'fd', 'dot', 'civ'];
+export const locksFor = async (c, user, role) => { const d = c.settings && c.settings.discord, L = d && d.locks; if (!L || !d.guild_id || !ready() || (RANK[role] || 0) >= RANK.admin) return {};
+  const set = SECTIONS.filter(k => Array.isArray(L[k]) && L[k].length); if (!set.length) return {};
+  const mine = user?.discord_id ? await memberRoles(d.guild_id, user.discord_id) : null; if (mine === undefined) return {};
+  const out = {}; for (const k of set) if (!L[k].some(r => (mine || []).includes(r.id))) out[k] = L[k].map(r => r.name); return out; };
 
 // after a Discord sign-in: join every community whose Discord server makes this person staff
 export const autoJoin = async user => { if (!ready() || !user?.discord_id) return 0; let n = 0;
