@@ -162,6 +162,10 @@ export const needsDiscord = c => !!(c && c.settings.discordRequired && !c.settin
 const withSetup = list => list.map(x => ({ ...x, setup: needsDiscord(communities.byId(x.id)) }));
 const nextAfterCreate = slug => discordlink.ready() ? `/c/${slug}/discord/connect?new=1` : `/${slug}/settings?new=1`;
 const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
+// a section the server locked to Discord roles (discordlink.locksFor): the refusal for someone without one, or null
+const lockedOut = async (c, user, role, k) => { if (!discordlink.SECTIONS.includes(k)) return null; const L = (await discordlink.locksFor(c, user, role))[k]; if (!L) return null;
+  const what = k === 'civ' ? 'The Civilian tab' : k === 'dispatch' ? 'Dispatch' : 'The ' + (c.settings.depts?.[k]?.name || { pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' }[k]) + ' MDT';
+  return `${what} is only for people with ${L.length > 1 ? 'one of these Discord roles: ' : 'the Discord role '}${L.join(', ')}.`; };
 
 const communityApi = async (req, res, slug, rest) => {
   const { c, user, role, oversight } = await access(req, slug);
@@ -199,7 +203,8 @@ const communityApi = async (req, res, slug, rest) => {
       if (rest === 'radio/signal' && M === 'POST') { const r = radio.signal(c, user, ch, j.to, j.data, true); return json(res, r, r.error ? 400 : 200); }
       return json(res, { error: 'Listeners can’t talk.' }, 403); } if (ch !== 'all' && !features.on(c, 'dept_' + ch)) return off('dept_' + ch);
     if (!can(role, 'mod')) { const side = liveSide(c, user); if (side === 'civ') return json(res, { error: 'Radio is for department players. You’re on the civilian team in game.' }, 403);
-      if (ch !== 'all' && side !== undefined && side !== ch) return json(res, { error: `The ${radio.CHANNELS[ch]} channel is for players on that team in game.` }, 403); }
+      if (ch !== 'all' && side !== undefined && side !== ch) return json(res, { error: `The ${radio.CHANNELS[ch]} channel is for players on that team in game.` }, 403);
+      const no = ch !== 'all' && await lockedOut(c, user, role, ch); if (no) return json(res, { error: no, locked: ch }, 403); }
     if (rest === 'radio/join' && M === 'GET') return radio.join(req, res, c, user, ch, qs.get('unit'));
     if (rest === 'radio/signal' && M === 'POST') { const r = radio.signal(c, user, ch, j.to, j.data); return json(res, r, r.error ? 400 : 200); }
     if (rest === 'radio/talk' && M === 'POST') { const r = radio.talk(c, user, ch, !!j.on); return json(res, r, r.error ? 400 : 200); }
@@ -237,8 +242,9 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'srvstatus/post' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can post updates.' }, 403); const r = srvStatus.post(c, user, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'srvstatus/delete' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can remove updates.' }, 403); return json(res, srvStatus.unpost(c, (await jsonBody(req)).id)); }
   // Fire and DOT incident reports, shared by the department; everyone with the CAD open is told when one changes
-  if (rest === 'reports' && M === 'GET') return json(res, { reports: deptReports.list(c.id, new URL(req.url, 'http://x').searchParams.get('dept'), user.id) });
-  if (rest === 'reports' && M === 'POST') { const j = await jsonBody(req), r = deptReports.save(c.id, String(j.dept || ''), user, j); if (r.ok) f.bcast('deptreports', JSON.stringify({ dept: j.dept })); return json(res, r, r.error ? 400 : 200); }
+  if (rest === 'reports' && M === 'GET') { const d = new URL(req.url, 'http://x').searchParams.get('dept'), no = await lockedOut(c, user, role, d); if (no) return json(res, { error: no, locked: d }, 403);
+    return json(res, { reports: deptReports.list(c.id, d, user.id) }); }
+  if (rest === 'reports' && M === 'POST') { const j = await jsonBody(req), no = await lockedOut(c, user, role, String(j.dept || '')); if (no) return json(res, { error: no, locked: j.dept }, 403); const r = deptReports.save(c.id, String(j.dept || ''), user, j); if (r.ok) f.bcast('deptreports', JSON.stringify({ dept: j.dept })); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'reports/delete' && M === 'POST') { const j = await jsonBody(req), r = deptReports.remove(c.id, user, j.num, can(role, 'admin')); if (r.ok) f.bcast('deptreports', JSON.stringify({ dept: j.dept })); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'calls/state' && M === 'POST') { const j = await jsonBody(req), k = String(j.key || ''); if (!/^[\w .:@#-]{1,120}$/.test(k)) return json(res, { error: 'Bad call.' }, 400);
     const T = v => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 40), D = v => ['pd', 'fd', 'dot'].includes(v) ? v : '';
@@ -417,7 +423,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'app/decide') return ok(staffhub.decideApp(c, user, role, j.id, !!j.accept, j.note, !!j.mod));
     return json(res, { error: 'Not found.' }, 404); }
   // signing in to a department's MDT with your license and rank; it stays until you sign out
-  if (rest === 'mdt/signin' && M === 'POST') { const j = await jsonBody(req); if (!validRank(j.dept, j.rank, ranksFor(c, premium.isPremium(c)))) return json(res, { error: 'Pick your rank.' }, 400);
+  if (rest === 'mdt/signin' && M === 'POST') { const j = await jsonBody(req), no = await lockedOut(c, user, role, j.dept); if (no) return json(res, { error: no, locked: j.dept }, 403); if (!validRank(j.dept, j.rank, ranksFor(c, premium.isPremium(c)))) return json(res, { error: 'Pick your rank.' }, 400);
     mdtSignin.set(c.id, user.id, j.dept, j.rank); return json(res, { ok: true, mdt: mdtSignin.mine(c.id, user.id) }); }
   if (rest === 'mdt/signout' && M === 'POST') { const j = await jsonBody(req); if (!RANKS[j.dept]) return json(res, { error: 'Bad request.' }, 400); mdtSignin.out(c.id, user.id, j.dept); return json(res, { ok: true, mdt: mdtSignin.mine(c.id, user.id) }); }
   // ride with a teammate: you join their unit on the map and in dispatch (empty to ride alone again)
@@ -435,6 +441,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (rest === 'duty/changes' && M === 'GET') return sup.length ? json(res, { changes: duty.changes(c, sup) }) : json(res, { error: 'Only supervisors see shift changes.' }, 403);
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req);
     if ((rest === 'duty/start' || rest === 'duty/add') && !D.includes(j.dept)) return json(res, { error: 'That department is switched off.' }, 400);
+    if (rest === 'duty/start' || rest === 'duty/add') { const no = await lockedOut(c, user, role, j.dept); if (no) return json(res, { error: no, locked: j.dept }, 403); }
     const r = rest === 'duty/start' ? duty.start(c, user, j.dept) : rest === 'duty/end' ? duty.end(c, user) : rest === 'duty/edit' ? duty.edit(c, user, j.id, j)
       : rest === 'duty/add' ? duty.add(c, user, j) : rest === 'duty/delete' ? duty.remove(c, user, j.id) : { error: 'Not found.' };
     return json(res, r.error ? r : { ...r, ...state() }, r.error ? 400 : 200); }
