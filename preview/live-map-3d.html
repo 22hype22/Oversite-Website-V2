@@ -1488,7 +1488,6 @@
     <div class="srch-list" id="srchList" role="listbox"></div>
   </div>
   <div class="icons">
-    <button id="radioBtn" aria-label="Radio" title="Radio" aria-expanded="false" hidden><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="7" width="12" height="15" rx="2"/><path d="M9 7 15 2M10 12h4M10 16h4"/></svg></button>
     <a id="voiceBtn" class="mdt-btn" aria-label="Proximity voice" title="Proximity voice" target="_blank" rel="noopener" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></svg></a>
     <button aria-label="Settings" id="adminToggle" aria-pressed="false" title="Admin"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     <div class="avatar" aria-label="Account"></div>
@@ -3366,11 +3365,12 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const v = document.getElementById('voiceBtn'), url = '/' + O.slug + '/prox'; v.href = url; v.removeAttribute('target'); v.removeAttribute('rel'); v.hidden = false;
   const css = document.createElement('style');
   css.textContent = `#voicePanel{position:fixed;top:calc(var(--barh) + var(--gap));right:var(--gap);bottom:var(--gap);width:var(--adminw);z-index:9;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;background:#0f1012;border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 40px rgba(0,0,0,.28);will-change:transform;transform:translate3d(0,0,0);transition:transform .2s cubic-bezier(.23,1,.32,1),visibility 0s}
-body.voice-open .stage{right:calc(var(--adminw) + var(--gap))}
+@media (max-width:760px){body.voice-open .stage{right:calc(var(--adminw) + var(--gap))}}
+@media (min-width:761px){.stage .warn{transition:transform .2s cubic-bezier(.23,1,.32,1)}.stage .foot{transition:right .2s cubic-bezier(.23,1,.32,1)}
+body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + var(--gap))),0,0)}body.voice-open .stage .foot{right:calc(var(--adminw) + var(--gap) * 2)}}
 #voiceBtn[aria-pressed="true"]{color:var(--ink);background:rgba(240,242,245,.12)!important;border-color:rgba(240,242,245,.22)!important}
 #voicePanel.off{visibility:hidden;pointer-events:none;transform:translate3d(calc(100% + 24px),0,0);transition:transform .2s cubic-bezier(.23,1,.32,1),visibility 0s .2s}
-body.voice-snap .stage{transition:none!important}
-@media (prefers-reduced-motion:reduce){#voicePanel,#voicePanel.off{transition:none}}
+@media (prefers-reduced-motion:reduce){#voicePanel,#voicePanel.off,.stage .warn,.stage .foot{transition:none}}
 #voicePanel .vp-h{display:flex;align-items:center;gap:6px;padding:10px 10px 10px 14px;border-bottom:1px solid rgba(255,255,255,.08);font:600 13px Geist,system-ui,sans-serif;color:#F0F2F5}#voicePanel .vp-h span{flex:1}
 #voicePanel .vp-h a,#voicePanel .vp-h button{background:none;border:0;color:#9aa0a6;cursor:pointer;font:500 12px Geist,system-ui,sans-serif;text-decoration:none;padding:5px 8px;border-radius:7px}
 #voicePanel .vp-h a:hover,#voicePanel .vp-h button:hover{color:#fff;background:rgba(255,255,255,.07)}
@@ -3385,24 +3385,11 @@ body.voice-snap .stage{transition:none!important}
     document.body.appendChild(panel); panel.querySelector('iframe').src = url + '?embed=1'; panel.querySelector('[data-hide]').onclick = () => show(false); return panel; };
   setTimeout(() => (window.requestIdleCallback || (f => setTimeout(f, 1)))(build), 2500);
   const toggle = () => { if (!panel) { build(); requestAnimationFrame(() => requestAnimationFrame(() => show(true))); return; } show(panel.classList.contains('off')); };
-  // The map's cards move over to make room. Resizing them every frame (with their heavy glass blur) is what lagged, so only the
-  // warning card slides, by transform, and the cards' real width changes in one step while the panel covers that edge.
-  const B = document.body, EASE = 'transform .2s cubic-bezier(.23,1,.32,1)', phone = matchMedia('(max-width:760px)');
-  let tmr = 0;
-  const show = on => { build(); clearTimeout(tmr); const warn = document.querySelector('.stage .warn'), was = B.classList.contains('voice-open');
-    panel.classList.toggle('off', !on); v.setAttribute('aria-pressed', on);
+  // The map's cards move over with the panel, in the same motion: the warning card by transform, the bottom cards by their right edge.
+  const B = document.body;
+  const show = on => { build(); panel.classList.toggle('off', !on); v.setAttribute('aria-pressed', on);
     if (on && B.classList.contains('admin-open')) document.getElementById('adminToggle')?.click();
-    if (!on && !was && warn && warn.style.transform) { warn.style.transition = EASE; warn.style.transform = '';   // closed again before it finished opening
-      tmr = setTimeout(() => { warn.style.transition = ''; B.classList.remove('voice-snap'); }, 220); return; }
-    if (on === was) return;
-    const shift = -(panel.getBoundingClientRect().width + (parseFloat(getComputedStyle(B).getPropertyValue('--gap')) || 14));
-    if (phone.matches || !warn) { B.classList.toggle('voice-open', on); return; }
-    B.classList.add('voice-snap');
-    if (on) { warn.style.transition = EASE; warn.style.transform = `translate3d(${shift}px,0,0)`;
-      tmr = setTimeout(() => { warn.style.transition = 'none'; warn.style.transform = ''; B.classList.add('voice-open'); requestAnimationFrame(() => B.classList.remove('voice-snap')); }, 210); }
-    else { B.classList.remove('voice-open'); warn.style.transition = 'none'; warn.style.transform = `translate3d(${shift}px,0,0)`; void warn.offsetWidth;
-      warn.style.transition = EASE; warn.style.transform = '';
-      tmr = setTimeout(() => { warn.style.transition = ''; B.classList.remove('voice-snap'); }, 220); } };
+    B.classList.toggle('voice-open', on); };
   // one side panel at a time: opening voice tucks the admin panel away, and opening the admin panel tucks voice away
   document.getElementById('adminToggle')?.addEventListener('click', () => setTimeout(() => { if (panel && !panel.classList.contains('off') && B.classList.contains('admin-open')) show(false); }));
   addEventListener('keydown', e => { if (e.key === 'Escape' && panel && !panel.classList.contains('off')) show(false); });
@@ -4983,106 +4970,6 @@ body.voice-snap .stage{transition:none!important}
   addEventListener('maptheme', e => { const v = e.detail.dim + '-' + e.detail.theme; if (first === null) { first = v; return; } if (v === first) return; first = v;
     clearTimeout(t); t = setTimeout(() => fetch('/api/me/mdt', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ map: v }) }).catch(() => {}), 800); });
  })();
-</script>
-<!-- ─────────── dispatch radio ─────────── -->
-<div class="radio" id="radio" hidden role="region" aria-label="Radio">
-  <div class="rd-h"><b>Radio</b><span id="rdCount"></span><button type="button" class="rd-x" id="rdHide" aria-label="Hide the radio">Hide</button></div>
-  <div class="rd-ch" id="rdCh" role="radiogroup" aria-label="Channel"></div>
-  <div class="rd-air" id="rdAir"><i></i><span>Not on a channel</span></div>
-  <button type="button" class="rd-ptt" id="rdPtt" disabled><span>Hold to talk</span><small>or hold V</small></button>
-  <div class="rd-ear" id="rdEar" hidden></div>
-  <div class="rd-foot"><span class="rd-msg" id="rdMsg"></span><button type="button" class="rd-x" id="rdLeave" hidden>Leave channel</button></div>
-</div>
-<style>
-  .radio{position:fixed;right:18px;bottom:18px;z-index:75;width:280px;padding:14px;border-radius:16px;background:rgba(20,21,24,.97);border:1px solid #2a2c31;box-shadow:0 24px 50px rgba(0,0,0,.55);color:#ECEDEF;font-size:12.5px}.radio[hidden]{display:none}
-  .rd-h{display:flex;align-items:center;gap:8px}.rd-h b{font-size:14px}.rd-h span{flex:1;color:var(--dim)}.rd-x{font:inherit;font-size:11.5px;color:var(--dim);background:none;border:0;cursor:pointer;text-decoration:underline;padding:0}
-  .rd-ch{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:12px 0}.rd-ch button{font:inherit;font-size:11.5px;color:#C9CDD3;background:#1d1e22;border:1px solid #2a2c31;border-radius:8px;padding:7px 0;cursor:pointer}.rd-ch button[aria-checked="true"]{color:#0d0e10;background:#ECEDEF;border-color:#ECEDEF}.rd-ch button:disabled{opacity:.35;cursor:not-allowed}
-  .rd-air{display:flex;align-items:center;gap:8px;min-height:20px;margin-bottom:12px;color:var(--dim)}.rd-air i{flex:none;width:8px;height:8px;border-radius:50%;background:#3a3d44}.rd-air.live i{background:#3FBF8A}.rd-air.talk{color:#ECEDEF}.rd-air.talk i{background:#E0453B;animation:rdPulse 1s ease-in-out infinite}
-  @keyframes rdPulse{50%{opacity:.35}}
-  .rd-ptt{display:grid;place-items:center;gap:2px;width:100%;padding:16px 0;border-radius:14px;border:1px solid #2a2c31;background:#1d1e22;color:#ECEDEF;font:inherit;font-weight:600;font-size:14px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;transition:background-color .15s ease,transform .1s ease}
-  .rd-ptt small{font-weight:400;font-size:11px;color:var(--dim)}.rd-ptt:disabled{opacity:.45;cursor:default}.rd-ptt.on{background:#B3362C;border-color:#B3362C;transform:scale(.98)}.rd-ptt.on small{color:#fff}
-  .rd-ear{margin-top:10px;padding:8px 10px;border-radius:9px;background:#1d1e22;color:#C9CDD3;font-size:11.5px;line-height:1.45}.rd-ear.on{color:#9BE3B8}.rd-ear[hidden]{display:none}
-  .rd-lock{margin-top:10px}.rd-lock p{margin:0;line-height:1.5;color:#C9CDD3}.rd-lock b{color:#ECEDEF}.rd-lock .rd-sub{margin-top:8px;color:var(--dim);font-size:11.5px}
-  .rd-link{display:block;margin-top:12px;padding:10px 0;border-radius:10px;background:#ECEDEF;color:#0d0e10;font-weight:600;text-align:center;text-decoration:none}.rd-link:hover{background:#fff}
-  .rd-foot{display:flex;align-items:center;gap:8px;margin-top:10px;min-height:16px}.rd-msg{flex:1;color:var(--dim);font-size:11.5px}.rd-msg.bad{color:#F0A0A0}
-  #radioBtn.on{color:#3FBF8A}
-  @media (prefers-reduced-motion:reduce){.rd-air.talk i{animation:none}.rd-ptt{transition:none}}
-  @media (max-width:760px){.radio{left:12px;right:12px;bottom:12px;width:auto}}
-</style>
-<script>
-/* ── dispatch radio: push-to-talk channels; connections browser to browser (WebRTC), the server relays setup and keeps the floor ── */
-(() => {
-  const OV = window.OVERSITE, box = document.getElementById('radio'), btn = document.getElementById('radioBtn'); if (!OV || !box || !btn || document.body.classList.contains('off-radio')) return;
-  const $ = id => document.getElementById(id), API = OV.api + '/radio', CH = { pd: 'Police', fd: 'Fire', dot: 'DOT', all: 'All units' };
-  const D = OV.depts || {}; CH.pd = D.pd?.short || CH.pd; CH.fd = D.fd?.short || CH.fd; CH.dot = D.dot?.short || CH.dot;
-  const post = (p, b) => fetch(API + p, { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(b) }).then(async r => { const j = await r.json().catch(() => ({})); return { status: r.status, ...j }; });
-  let ch = '', es = null, me = '', ice = [], ac = null, silent = null, mic = null, talking = false, floor = null, people = new Map(); const peers = new Map();
-  btn.hidden = false;
-  // the radio comes with the Oversite Dispatch bot: without one linked, the panel says so (and where the owner links it)
-  if (!OV.radioBot) { const own = OV.role === 'owner' || OV.role === 'co_owner';
-    box.querySelectorAll('.rd-ch,.rd-air,.rd-ptt,.rd-ear,.rd-foot').forEach(x => x.remove());
-    box.insertAdjacentHTML('beforeend', `<div class="rd-lock"><p>The radio comes with the <b>Oversite Dispatch</b> bot. Once it's linked to this server, every department gets push-to-talk channels here.</p>${own ? `<a class="rd-link" href="/${encodeURIComponent(OV.slug)}/settings#bots">Link it in Settings</a>` : '<p class="rd-sub">Ask the server owner to link it in Settings, under Bots.</p>'}</div>`);
-    $('rdHide').addEventListener('click', () => { box.hidden = true; btn.setAttribute('aria-expanded', 'false'); });
-    btn.addEventListener('click', () => { box.hidden = !box.hidden; btn.setAttribute('aria-expanded', String(!box.hidden)); }); return; }
-  const say = (t, bad) => { const m = $('rdMsg'); m.textContent = t || ''; m.className = 'rd-msg' + (bad ? ' bad' : ''); };
-  const offDept = d => document.body.classList.contains('off-dept_' + d);
-  const drawCh = () => { $('rdCh').innerHTML = Object.entries(CH).map(([k, l]) => `<button type="button" role="radio" data-ch="${k}" aria-checked="${k === ch}"${k !== 'all' && offDept(k) ? ' disabled' : ''}>${l.replace(/[&<>"]/g, '')}</button>`).join(''); };
-  const drawAir = () => { const a = $('rdAir'), n = people.size + (ch ? 1 : 0); $('rdCount').textContent = ch ? `${n} on ${CH[ch]}` : '';
-    a.className = 'rd-air' + (floor ? ' talk' : ch ? ' live' : ''); a.querySelector('span').textContent = !ch ? 'Not on a channel' : floor ? `${floor.uid === me ? 'You are' : floor.name + ' is'} talking` : 'Channel clear';
-    $('rdPtt').disabled = !ch; $('rdLeave').hidden = !ch; btn.classList.toggle('on', !!ch); };
-  // a radio click: a short burst of filtered noise when a transmission starts and ends
-  const chirp = up => { if (!ac) return; const t = ac.currentTime, len = 0.06, b = ac.createBuffer(1, Math.floor(ac.sampleRate * len), ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = b; f.type = 'bandpass'; f.frequency.value = up ? 2200 : 1400; g.gain.value = 0.25; s.connect(f).connect(g).connect(ac.destination); s.start(t); };
-  const audio = () => { if (ac) return; ac = new (window.AudioContext || window.webkitAudioContext)(); const o = ac.createOscillator(), g = ac.createGain(), dst = ac.createMediaStreamDestination(); g.gain.value = 0; o.connect(g).connect(dst); o.start(); silent = dst.stream.getAudioTracks()[0]; };
-  const sig = (to, data) => post('/signal', { ch, to, data });
-  const ensure = uid => { let x = peers.get(uid); if (x) return x; const pc = new RTCPeerConnection({ iceServers: ice }); x = { pc, queue: [] }; peers.set(uid, x);
-    x.sender = pc.addTrack(talking && mic ? mic.getAudioTracks()[0] : silent, new MediaStream([silent]));
-    pc.onicecandidate = ev => { if (ev.candidate) sig(uid, { ice: ev.candidate }); };
-    pc.ontrack = ev => { if (x.src) return; const st = ev.streams[0] || new MediaStream([ev.track]); x.el = new Audio(); x.el.srcObject = st; x.el.muted = true; x.el.play().catch(() => {});   // Chrome plays WebRTC into Web Audio only while an element holds it
-      x.src = ac.createMediaStreamSource(st); const hp = ac.createBiquadFilter(), lp = ac.createBiquadFilter(), g = ac.createGain(); hp.type = 'highpass'; hp.frequency.value = 320; lp.type = 'lowpass'; lp.frequency.value = 3200; g.gain.value = 1.3;   // radio-sounding: telephone band
-      x.src.connect(hp).connect(lp).connect(g).connect(ac.destination); };
-    pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') drop(uid); };
-    if (me < uid) (async () => { await pc.setLocalDescription(await pc.createOffer()); sig(uid, { sdp: pc.localDescription }); })();   // the lower id offers, so both never do at once
-    return x; };
-  const drop = uid => { const x = peers.get(uid); if (!x) return; try { x.pc.close(); } catch (e) {} if (x.el) x.el.srcObject = null; peers.delete(uid); };
-  const onSignal = async ({ from, data }) => { const x = ensure(from), pc = x.pc;
-    try { if (data.sdp) { await pc.setRemoteDescription(data.sdp); if (data.sdp.type === 'offer') { await pc.setLocalDescription(await pc.createAnswer()); sig(from, { sdp: pc.localDescription }); } for (const c of x.queue.splice(0)) await pc.addIceCandidate(c).catch(() => {}); }
-      else if (data.ice) { if (pc.remoteDescription) await pc.addIceCandidate(data.ice).catch(() => {}); else x.queue.push(data.ice); } } catch (e) { console.warn('radio', e); } };
-  const leave = () => { if (talking) release(); if (es) es.close(); es = null; const ex = $('rdEar'); if (ex) ex.hidden = true; for (const k of [...peers.keys()]) drop(k); people.clear(); floor = null; ch = ''; drawCh(); drawAir(); };
-  const unit = () => (window.ME && window.ME.callsign) || OV.me || '';
-  const join = async k => { audio(); if (ac.state === 'suspended') ac.resume(); leave(); say('Joining…');
-    const r = await post('/talk', { ch: k, on: false }); if (r.status === 403 || r.status === 404) { say(r.error || 'You can’t use that channel.', true); return; }   // not joined yet, so this only checks you may
-    ch = k; drawCh(); es = new EventSource(`${API}/join?ch=${k}&unit=${encodeURIComponent(unit())}`);
-    // listeners (people overhearing a radio out loud near them in game) get the audio but aren't counted as on the channel
-    es.addEventListener('hello', e => { const j = JSON.parse(e.data); me = j.you; ice = j.ice; floor = j.floor; for (const p of j.peers) { if (!p.listen) people.set(p.uid, p); ensure(p.uid); } say(''); drawAir(); });
-    es.addEventListener('join', e => { const p = JSON.parse(e.data); if (!p.listen) people.set(p.uid, p); ensure(p.uid); drawAir(); });
-    es.addEventListener('ear', e => { const { ear } = JSON.parse(e.data), x = $('rdEar'); x.hidden = false; x.className = 'rd-ear' + (ear ? ' on' : '');
-      x.textContent = ear ? 'Earpiece on: only you hear your radio.' : 'No earpiece on your avatar: players near you in game hear your radio in proximity chat.'; });
-    es.addEventListener('gone', e => { const { uid } = JSON.parse(e.data); people.delete(uid); drop(uid); drawAir(); });
-    es.addEventListener('signal', e => onSignal(JSON.parse(e.data)));
-    es.addEventListener('talk', e => { const t = JSON.parse(e.data); const was = floor; floor = t.on ? t : (floor && floor.uid === t.uid ? null : floor); if (t.uid !== me) chirp(!!t.on && !was); drawAir(); });
-    es.addEventListener('replaced', () => { leave(); say('Radio opened in another tab.'); });
-    try { localStorage.setItem('ov.radio', k); } catch (e) {} };
-  const press = async () => { if (!ch || talking) return; talking = true; $('rdPtt').classList.add('on');
-    try { if (!mic) mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
-    catch (e) { talking = false; $('rdPtt').classList.remove('on'); say('Allow the microphone to talk on the radio.', true); return; }
-    if (!talking) return; const r = await post('/talk', { ch, on: true });
-    if (r.busy) { talking = false; $('rdPtt').classList.remove('on'); say(`${r.busy} has the channel. Wait for them to finish.`, true); return; }
-    if (!talking) { post('/talk', { ch, on: false }); return; }
-    const t = mic.getAudioTracks()[0]; for (const x of peers.values()) x.sender?.replaceTrack(t).catch(() => {}); chirp(true); say(''); };
-  const release = () => { if (!talking) return; talking = false; $('rdPtt').classList.remove('on'); for (const x of peers.values()) x.sender?.replaceTrack(silent).catch(() => {}); chirp(false); if (ch) post('/talk', { ch, on: false }); };
-  const ptt = $('rdPtt'); ptt.addEventListener('pointerdown', e => { e.preventDefault(); try { ptt.setPointerCapture(e.pointerId); } catch (x) {} press(); });
-  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) ptt.addEventListener(ev, release);
-  const typing = () => document.activeElement && document.activeElement.matches('input,textarea,select,[contenteditable]');
-  addEventListener('keydown', e => { if (e.code === 'KeyV' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && ch && !typing()) { e.preventDefault(); press(); } });
-  addEventListener('keyup', e => { if (e.code === 'KeyV') release(); }); addEventListener('blur', release);
-  $('rdCh').addEventListener('click', e => { const b = e.target.closest('[data-ch]'); if (b && b.dataset.ch !== ch) join(b.dataset.ch); });
-  $('rdLeave').addEventListener('click', () => { leave(); say('Off the radio.'); try { localStorage.removeItem('ov.radio'); } catch (e) {} });
-  $('rdHide').addEventListener('click', () => { box.hidden = true; btn.setAttribute('aria-expanded', 'false'); });
-  btn.addEventListener('click', () => { box.hidden = !box.hidden; btn.setAttribute('aria-expanded', String(!box.hidden)); });
-  addEventListener('pagehide', leave);
-  drawCh(); drawAir();
-})();
 </script>
 <script type="module">
 /* ── map style controller: 2D / 2D Dark / 3D (the county model, map3d.js) ── */
