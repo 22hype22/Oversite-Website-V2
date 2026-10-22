@@ -21,9 +21,10 @@ const SETTING_CARDS = [
   ['Members', 'members', 'members roles staff admin mod co owner promote demote remove people list'],
   ['Premium', 'premium', 'premium subscription pay billing upgrade gold plan price cancel'],
   ['MDT sign-in ranks', 'premium', 'ranks rank supervisor sign in mdt promotions'],
-  ['Proximity voice', 'premium', 'voice proximity chat talk hear microphone range muffle vc']];
+  ['Proximity voice', 'premium', 'voice proximity chat talk hear microphone range muffle vc'],
+  ['Your own ID card, front and back', 'premium', 'id card license drivers licence identification front back upload picture image custom state style design flip', 'pmArt']];
 const settingsIndex = () => [...FEATURES.flatMap(g => g.items.map(i => ({ k: i.key, t: i.name, g: g.title, a: i.about, w: i.words }))),
-  ...SETTING_CARDS.map(([t, p, w]) => ({ c: t, p, t, g: { general: 'General', automations: 'Automations', insights: 'Insights', bounds: 'Boundaries', profile: 'Profile', members: 'Members', premium: 'Premium' }[p], a: '', w }))];
+  ...SETTING_CARDS.map(([t, p, w, id]) => ({ c: t, p, t, g: { general: 'General', automations: 'Automations', insights: 'Insights', bounds: 'Boundaries', profile: 'Profile', members: 'Members', premium: 'Premium' }[p], a: '', w, id }))];   // id: a part of a card to go to
 export const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CSS = `
 :root{color-scheme:dark;--ink:#F0F2F5;--dim:#9A9EA6;--faint:#62666D;--hair:rgba(240,242,245,.08);--hair2:rgba(240,242,245,.14);--panel:rgba(16,16,18,.78);--field:rgba(255,255,255,.04);--acc:#4C8DFF;--ok:#46D07C;--warn:#E9B04C;--bad:#E24B4B}
@@ -1332,7 +1333,7 @@ const ssRank=q=>{const qs=ssToks(q),raw=q.trim().toLowerCase();if(!qs.length)ret
   const go=e=>{list.hidden=true;inp.setAttribute('aria-expanded','false');
     if(e.k){document.querySelector('[data-tab="features"]')?.click();const f=document.getElementById('ftFind');if(f&&f.value){f.value='';f.dispatchEvent(new Event('input'))}
       const x=document.querySelector('[data-ft="'+e.k+'"]'),row=x&&x.closest('.ft');if(row){row.closest('details').open=true;setTimeout(()=>flash(row),60)}}
-    else{document.querySelector('[data-tab="'+e.p+'"]')?.click();const card=[...document.querySelectorAll('.st-pane .card')].find(c=>(c.querySelector('h2')?.firstChild?.textContent||'').trim().startsWith(e.c));setTimeout(()=>flash(card),60)}};
+    else{document.querySelector('[data-tab="'+e.p+'"]')?.click();const card=(e.id&&document.getElementById(e.id))||[...document.querySelectorAll('.st-pane .card')].find(c=>(c.querySelector('h2')?.firstChild?.textContent||'').trim().startsWith(e.c));setTimeout(()=>flash(card),60)}};
   const draw=()=>{const q=inp.value;res=ssRank(q).slice(0,8);sel=0;if(!q.trim()){list.hidden=true;inp.setAttribute('aria-expanded','false');return}
     list.innerHTML=res.length?res.map((e,i)=>{const x=e.k&&document.querySelector('[data-ft="'+e.k+'"]');return '<button type="button" role="option" class="ss-r" data-i="'+i+'" aria-selected="'+(i===sel)+'"><span><b></b><small></small></span>'+(x?'<em class="'+(x.checked?'on':'')+'">'+(x.checked?'On':'Off')+'</em>':'')+'</button>'}).join(''):'<div class="ss-none">Nothing matches. Try other words, like what it does.</div>';
     list.querySelectorAll('.ss-r').forEach((b,i)=>{b.querySelector('b').textContent=res[i].t;b.querySelector('small').textContent=(res[i].k?'Features › '+res[i].g:res[i].g)+(res[i].a?' · '+res[i].a:'')});
