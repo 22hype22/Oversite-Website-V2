@@ -31,6 +31,7 @@ import * as duty from './app/duty.mjs';
 import * as monitors from './app/monitors.mjs';
 import * as weather from './app/weather.mjs';
 import * as texts from './app/texts.mjs';
+import * as court from './app/court.mjs';
 import { POSTALS } from './app/postals.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
@@ -333,7 +334,7 @@ const communityApi = async (req, res, slug, rest) => {
   // the law enforcement MDT: lookups, warrants, BOLOs, citations, warnings, arrests and traffic stops, shared by the whole server
   // the Civilian tab (app/civ.mjs, businesses in app/civbiz.mjs): every member has an account, an ID, bills, a record and businesses
   // sections the server locked to Discord roles (Settings, Discord server): the police MDT and the Civilian tab refuse anyone without one
-  if ((rest.startsWith('pd/') && rest !== 'pd/config') || rest.startsWith('civ/')) { const k = rest.startsWith('pd/') ? 'pd' : 'civ', L = await discordlink.locksFor(c, user, role);
+  if ((rest.startsWith('pd/') && rest !== 'pd/config') || rest.startsWith('civ/') || rest === 'court' || rest.startsWith('court/')) { const k = rest.startsWith('pd/') ? 'pd' : 'civ', L = await discordlink.locksFor(c, user, role);
     if (L[k]) return json(res, { error: `${k === 'pd' ? 'The police MDT' : 'The Civilian tab'} is only for people with ${L[k].length > 1 ? 'one of these Discord roles: ' : 'the Discord role '}${L[k].join(', ')}.`, locked: k }, 403); }
   if (rest.startsWith('civ/')) { const sub = rest.slice(4), st = () => { const s = civ.state(c, user, can(role, 'admin'), spawnedBy(c, user)); return s.off ? s : { ...s, ...civbiz.state(c, user) }; },
       ok = r => json(res, r.error ? r : { ...r, state: st() }, r.error ? 400 : 200);
@@ -456,6 +457,33 @@ const communityApi = async (req, res, slug, rest) => {
     const r = rest === 'monitors/save' ? monitors.saveMonitor(c, by, j) : rest === 'monitors/remove' ? monitors.removeMonitor(c, by, j.id) : { error: 'Not found.' };
     if (!r.error) console.log(`monitors: ${c.slug} ${rest.slice(9)} by ${by}`);
     return json(res, r.error ? r : { ...r, list: monitors.monitors(c) }, r.error ? 400 : 200); }
+  // the Civilian phone's Court (app/court.mjs): civil suits, their threads, judges and lawyers, the law library and the public record
+  if (rest === 'court' || rest.startsWith('court/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    if (!features.on(c, 'court')) return json(res, { error: 'This server has switched the court off.' }, 403);
+    const qs = new URL(req.url, 'http://x').searchParams, admin = can(role, 'admin'), cr = court.roleOf(c, user.id, admin), by = user.roblox_name || user.name;
+    if (rest === 'court' && M === 'GET') return json(res, { role: cr, admin, ...court.list(c, user.id, cr), unread: court.unread(c, user.id, cr), kinds: court.KINDS, lawyers: court.lawyers(c), staff: admin ? court.staff(c) : null, economy: civ.conf(c).on });
+    if (rest === 'court/unread' && M === 'GET') return json(res, { unread: court.unread(c, user.id, cr) });
+    if (rest === 'court/case' && M === 'GET') { const r = court.open(c, user.id, cr, qs.get('id')); return json(res, r, r.error ? 404 : 200); }
+    if (rest === 'court/people' && M === 'GET') return json(res, { people: court.find(c, user.id, qs.get('q')) });
+    if (rest === 'court/laws' && M === 'GET') return json(res, { laws: police.penalOf(c).map(p => ({ code: p[0], title: p[1], fine: p[2], jail: p[3], cls: p[4] })) });
+    // the public record, for lawyers and judges: arrests, citations and warnings with their charges; never BOLOs, warrants, stops or notes
+    if (rest === 'court/record' && M === 'GET') { if (!cr) return json(res, { error: 'Only lawyers and judges can look up records.' }, 403);
+      if (!qs.get('id')) return json(res, { people: (police.search(c.id, qs.get('q')).people || []).slice(0, 15).map(p => ({ rid: p.rid, name: p.name })) });
+      const r = await police.person(c.id, qs.get('id'), licenseOf); if (r.error) return json(res, r, 404);
+      const pub = r.history.filter(x => ['arrest', 'citation', 'warning'].includes(x.kind) && x.status !== 'Pending').map(x => ({ kind: x.kind, at: x.at, status: x.status, by: x.by, reason: x.reason || '',
+        charges: (x.charges || []).map(ch => ({ title: ch.title, count: ch.count || 1, cls: ch.cls || '' })), fine: x.fine || 0, jail: x.jail || 0 }));
+      return json(res, { person: { rid: r.person.rid, name: r.person.name }, records: pub }); }
+    if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req);
+    if (rest === 'court/staff') { if (!admin) return json(res, { error: 'Only admins and up name judges and lawyers.' }, 403); const r = court.setStaff(c, by, j); if (!r.error) console.log(`court: ${c.slug} ${j.role || 'removed'} ${j.id} by ${by}`); return json(res, r, r.error ? 400 : 200); }
+    if (rest === 'court/file') { const r = court.file(c, user.id, j); if (r.error) return json(res, r, 400);
+      civ.note(c.id, r.case.defendant, `${by} sued you: ${r.num}, ${r.case.title}. Open Court on your phone to answer.`); bots.emit(c, 'case.filed', court.caseOf(c, r.id));
+      console.log(`court: ${c.slug} ${r.num} filed by ${by}`); return json(res, { ok: true, id: r.id, num: r.num }); }
+    if (rest === 'court/act') { const r = court.act(c, user.id, cr, j); if (r.error) return json(res, r, 400);
+      for (const [u, text] of r.events || []) civ.note(c.id, u, text);
+      if (r.bill && civ.conf(c).on) civ.courtBill(c, r.bill, +j.id);
+      if (r.update) { bots.emit(c, 'case.updated', { ...court.caseOf(c, j.id), action: r.update, by }); console.log(`court: ${c.slug} case ${j.id} ${r.update} by ${by}`); }
+      return json(res, { ok: true }); }
+    return json(res, { error: 'Not found.' }, 404); }
   // the Civilian phone's Messages (app/texts.mjs): texts between two people in this server
   if (rest === 'texts' || rest.startsWith('texts/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
     const qs = new URL(req.url, 'http://x').searchParams;

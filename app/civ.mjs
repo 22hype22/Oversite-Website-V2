@@ -97,6 +97,7 @@ const settle = (cid, b) => { q("UPDATE civ_bills SET status = 'Paid', paid_at = 
   if (b.kind === 'fine') { const rid = +b.ref.split(':')[1], r = q('SELECT data FROM pd_records WHERE community_id = ? AND id = ?').get(cid, rid);
     if (r) { const d = JSON.parse(r.data || '{}'); d.paid_at = now(); q('UPDATE pd_records SET data = ? WHERE community_id = ? AND id = ?').run(JSON.stringify(d), cid, rid); } }
   if (b.kind === 'reg' || b.kind === 'ins') fixVehicle(cid, b.ref.split(':')[1]);
+  if (b.kind === 'court') { const payee = +b.ref.split(':')[2]; if (acct(cid, payee)) move(cid, payee, b.amount, 'court', `Paid by ${who(b.user_id)}: ${b.label.replace(/: owed to .*/, '')}`); }
   if (b.kind === 'inv') { const z = biz(cid, b.ref.split(':')[1]); if (z) { bizEarn(cid, z.id, b.amount, `Paid: ${b.label}`); hooks.commission(cid, z, +b.ref.split(':')[3] || 0, b.amount); } }
   if (b.kind === 'lic') { const z = biz(cid, b.ref.split(':')[1]); if (z && z.status === 'Suspended' && !q("SELECT 1 FROM civ_bills WHERE community_id = ? AND kind = 'lic' AND ref LIKE ? AND status = 'Overdue'").get(cid, `lic:${z.id}:%`))
     q("UPDATE civ_biz SET status = 'Active' WHERE id = ?").run(z.id); }
@@ -106,6 +107,9 @@ const settle = (cid, b) => { q("UPDATE civ_bills SET status = 'Paid', paid_at = 
 const FINE_SQL = "SELECT id, kind, subject_rid, data, at FROM pd_records WHERE community_id = ? AND kind IN ('citation', 'arrest') AND at >= ? AND subject_rid = ?";
 const billFine = (cid, uid, r, cf) => { const d = JSON.parse(r.data || '{}'); if (!(d.fine > 0) || d.paid_at) return;
   bill(cid, uid, 'fine', `rec:${r.id}`, `${r.kind === 'arrest' ? 'Arrest' : 'Citation'} fine: ${(d.charges || []).map(x => x.title).slice(0, 2).join(', ')}`, d.fine, r.at, r.at + cf.grace * GDAY); };
+// a court judgment or settlement (app/court.mjs): billed to the side that owes it; paying the bill pays the other side
+export const courtBill = (c, b, caseId) => { ensure(c, b.payer); ensure(c, b.payee); const t = now();
+  return bill(c.id, b.payer, 'court', `court:${caseId}:${b.payee}`, `Court ${b.num}: owed to ${who(b.payee)}`, b.amount, t, t + conf(c).grace * GDAY); };
 export const pay = (c, user, id) => { const b = q('SELECT * FROM civ_bills WHERE community_id = ? AND id = ? AND user_id = ?').get(c.id, +id || 0, user.id);
   if (!b) return { error: 'That bill is gone.' }; if (b.status === 'Paid' || b.status === 'Void') return { error: 'That bill is already settled.' };
   ensure(c, user.id); const m = move(c.id, user.id, -b.amount, 'bill', b.label); if (m.error) return m; settle(c.id, b); return { ok: true }; };
