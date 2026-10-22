@@ -2,7 +2,7 @@
 // compressed geometry, WebP textures), shown on Dispatch when someone picks "3D" under the map style button. Nothing loads until
 // then. It sits on the same grid as the 2D map (0..2000 world units across the 5355 px map picture; the model was fitted to that
 // picture), so units, calls and "show on map" land in the same place. To stay smooth it only draws when something changes (the
-// camera, a unit moving), draws trees only near where you're looking and none when zoomed far out, and slows right down behind an MDT.
+// camera, a unit moving), loads trees chunk by chunk near where you're looking and none when zoomed far out, and slows right down behind an MDT.
 // Speed: the county is cut into map tiles, and each tile is drawn at the detail its distance needs: far away, buildings and bridges
 // are plain coloured blocks and the ground is coarse; nearer, the real shapes; close up, mid-size parts; right up close, small parts
 // like railings. Tiles off screen aren't drawn, surfaces use simple lighting, and if frames still run slow while you move around,
@@ -23,11 +23,19 @@
   document.head.appendChild(css);
   const say = (t, sub, pct) => { note.hidden = !t; if (t) note.innerHTML = `<b>${t}</b>${sub || ''}${pct != null ? `<i><span style="width:${Math.round(pct * 100)}%"></span></i>` : ''}`; };
 
-  let S = null, loading = null, active = false, theme = 'light';
+  let S = null, loading = null, active = false, theme = 'light', THREE_ = null;
+  // a much simpler copy of a tree for the chunks further out: about a sixth of its triangles (meshoptimizer's simplifier, run here once)
+  const simplifier = async () => { let M = null; try { ({ MeshoptSimplifier: M } = await import('/vendor/libs/meshopt_simplifier.module.js')); await M.ready; } catch (e) { return g => g; }
+    return g => { try { const p = g.attributes.position, n = p.count, P = new Float32Array(n * 3); for (let i = 0; i < n; i++) { P[i * 3] = p.getX(i); P[i * 3 + 1] = p.getY(i); P[i * 3 + 2] = p.getZ(i); }
+      const I = new Uint32Array(g.index ? g.index.array : [...Array(n).keys()]), want = Math.max(36, Math.floor(I.length / 6 / 3) * 3);
+      let [out] = M.simplify(I, P, 3, want, 0.08); if (out.length > want * 1.5) { const [lo] = M.simplifySloppy(I, P, 3, null, want, 0.3); if (lo.length >= 36 && lo.length < out.length) out = lo; }   // leafy trees only shrink the rough way if (!out.length || out.length >= I.length) return g;
+      const s2 = new THREE_.BufferGeometry(); for (const k in g.attributes) s2.setAttribute(k, g.attributes[k]);
+      if (out.length * 3 < I.length) { g.computeBoundingBox(); const b = g.boundingBox, cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2;   // the rough copy loses leaves: widen it a little so it reads as full
+        for (let i = 0; i < n; i++) { P[i * 3] = cx + (P[i * 3] - cx) * 1.2; P[i * 3 + 1] = b.min.y + (P[i * 3 + 1] - b.min.y) * 1.05; P[i * 3 + 2] = cz + (P[i * 3 + 2] - cz) * 1.2; } s2.setAttribute('position', new THREE_.BufferAttribute(P, 3)); } s2.setIndex(new THREE_.BufferAttribute(n < 65536 ? new Uint16Array(out) : out, 1)); return s2; } catch (e) { return g; } }; };
   const load = () => loading ||= (async () => {
-    say('Loading the 3D map…', 'About 25 MB the first time, then it’s cached.', 0);
+    say('Loading the 3D map…', 'About 30 MB the first time, then it’s cached.', 0);
     const THREE = await import('/vendor/three.module.js'), { GLTFLoader } = await import('/vendor/loaders/GLTFLoader.js'),
-      { OrbitControls } = await import('/vendor/controls/OrbitControls.js'), { MeshoptDecoder } = await import('/vendor/libs/meshopt_decoder.module.js');
+      { OrbitControls } = await import('/vendor/controls/OrbitControls.js'), { MeshoptDecoder } = await import('/vendor/libs/meshopt_decoder.module.js'); THREE_ = THREE;
     const renderer = new THREE.WebGLRenderer({ antialias: devicePixelRatio <= 1, powerPreference: 'high-performance' });
     let pr = Math.min(devicePixelRatio, 1); renderer.setPixelRatio(pr); renderer.outputColorSpace = THREE.SRGBColorSpace; box.insertBefore(renderer.domElement, tags);
     const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1d2a30); scene.fog = new THREE.Fog(0x1d2a30, 2600, 6000);
@@ -63,15 +71,34 @@
     const heightAt = (x, z) => { const ix = Math.min(HN - 1, Math.max(0, Math.floor(x / W * HN))), iz = Math.min(HN - 1, Math.max(0, Math.floor(z / W * HN))), h = hgt[iz * HN + ix]; return h > -1e8 ? h : sea; };
     // open water past the model's own sea, so the island never floats in nothing
     const ocean = new THREE.Mesh(new THREE.PlaneGeometry(12000, 12000), new THREE.MeshBasicMaterial({ color: 0x3E6972 })); ocean.rotation.x = -Math.PI / 2; ocean.position.set(W / 2, sea - 0.3, W / 2); scene.add(ocean);
-    // trees: kept per kind with every position; only the ones near where you're looking are drawn, none when zoomed far out
-    const trees = []; gltf.scene.traverse(o => { if (!o.isInstancedMesh) return; o.frustumCulled = false; const all = o.instanceMatrix.array.slice(), pos = new Float32Array(o.count * 2), m = new THREE.Matrix4();
-      for (let i = 0; i < o.count; i++) { m.fromArray(all, i * 16).premultiply(o.matrixWorld); pos[i * 2] = m.elements[12]; pos[i * 2 + 1] = m.elements[14]; } trees.push({ o, all, pos, n: o.count }); });
-    let treeKey = '';
-    const cullTrees = () => { const t = controls.target, d = camera.position.distanceTo(t), far = d > 950 || !QS[Q].trees, R = Math.min(620, Math.max(220, d * 1.05)) * (QS[Q].trees || 1), R1 = R * 0.55, key = far ? 'far' : `${Math.round(t.x / 40)},${Math.round(t.z / 40)},${Math.round(R / 60)}`;
-      if (key + Q === treeKey) return; treeKey = key + Q;
-      for (const T2 of trees) { if (far) { T2.o.visible = false; continue; } T2.o.visible = true; const a = T2.o.instanceMatrix.array; let k = 0;
-        for (let i = 0; i < T2.n; i++) { const dx = T2.pos[i * 2] - t.x, dz = T2.pos[i * 2 + 1] - t.z, q = dx * dx + dz * dz; if (q > R * R || (q > R1 * R1 && i % 3)) continue; a.set(T2.all.subarray(i * 16, i * 16 + 16), k * 16); k++; }   // all trees near the middle, a third toward the edge
-        T2.o.count = k; T2.o.instanceMatrix.needsUpdate = true; } };
+    // trees: a chunk loader. The county is cut into squares (chunks) 80 m across; each tree kind keeps its trees grouped by chunk,
+    // and only the chunks on screen near where you're looking (or between you and it) are loaded into what's drawn: full trees in the
+    // chunks close to the camera, a much simpler copy of each tree (made here, once) in the rest, only a third of those toward the edge,
+    // none past that or when zoomed far out. What's drawn is only rebuilt when a chunk loads, unloads or changes ring.
+    const CH = 80, CN = Math.ceil(W / CH), NC = CN * CN, cOf = (x, z) => Math.min(CN - 1, Math.max(0, Math.floor(z / CH))) * CN + Math.min(CN - 1, Math.max(0, Math.floor(x / CH)));
+    const cLo = new Float32Array(NC).fill(1e9), cHi = new Float32Array(NC).fill(-1e9), trees = [], simple = await simplifier(), list = []; gltf.scene.traverse(o => { if (o.isInstancedMesh) list.push(o); });
+    for (const o of list) { o.frustumCulled = false; const src = o.instanceMatrix.array.slice(), m = new THREE.Matrix4(), n = o.count, ch = new Int32Array(n);
+      for (let i = 0; i < n; i++) { m.fromArray(src, i * 16).premultiply(o.matrixWorld); const c = ch[i] = cOf(m.elements[12], m.elements[14]), y = m.elements[13]; if (y < cLo[c]) cLo[c] = y; if (y > cHi[c]) cHi[c] = y; }
+      // sorted by chunk, and inside each chunk every third tree first, so "a third of this chunk" is just the start of its block
+      const order = [...Array(n).keys()].sort((i, j) => ch[i] - ch[j] || (i % 3 ? 1 : 0) - (j % 3 ? 1 : 0) || i - j), all = new Float32Array(n * 16), start = new Int32Array(NC), len = new Int32Array(NC), few = new Int32Array(NC);
+      order.forEach((i, k) => { all.set(src.subarray(i * 16, i * 16 + 16), k * 16); const c = ch[i]; if (!len[c]) start[c] = k; len[c]++; if (!(i % 3)) few[c]++; });
+      const f = new THREE.InstancedMesh(simple(o.geometry), o.material, n); f.frustumCulled = false; f.visible = false; f.position.copy(o.position); f.quaternion.copy(o.quaternion); f.scale.copy(o.scale); o.parent.add(f);
+      trees.push({ o, f, all, n, start, len, few }); }
+    root.updateMatrixWorld(true);
+    const boxes = []; for (let c = 0; c < NC; c++) if (cHi[c] > -1e8) boxes[c] = new THREE.Box3(new THREE.Vector3(c % CN * CH - 15, cLo[c] - 5, Math.floor(c / CN) * CH - 15), new THREE.Vector3(c % CN * CH + CH + 15, cHi[c] + 45, Math.floor(c / CN) * CH + CH + 15));
+    const fr = new THREE.Frustum(), FM = new THREE.Matrix4(), state = new Uint8Array(NC); let chunkSig = '', loaded = 0;   // state: 0 not loaded, 1 a third simple, 2 all simple, 3 all full
+    const fill = (mesh, all, pick) => { const a = mesh.instanceMatrix.array; let k = 0;
+      for (let c = 0; c < NC; c++) { const m = pick(c); if (!m) continue; a.set(all.subarray(m[0] * 16, (m[0] + m[1]) * 16), k * 16); k += m[1]; }
+      mesh.visible = k > 0; mesh.count = k; const im = mesh.instanceMatrix; im.clearUpdateRanges(); if (k) { im.addUpdateRange(0, k * 16); im.needsUpdate = true; } };
+    const cullTrees = () => { const t = controls.target, cp = camera.position, d = cp.distanceTo(t), k = QS[Q].trees, far = d > 820 || !k, F = 300 * (k || 1), R = Math.min(520, Math.max(200, d * 0.9)) * (k || 1), R2 = Math.min(760, R * 1.45);   // F: full trees only this close to the camera
+      const sx = t.x - cp.x, sz = t.z - cp.z, sl = sx * sx + sz * sz || 1;   // the stretch of ground from under the camera to where it looks
+      camera.updateMatrixWorld(); fr.setFromProjectionMatrix(FM.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)); let sig = Q + ':'; loaded = 0;
+      for (let c = 0; c < NC; c++) { let st = 0; const bx = boxes[c];
+        if (bx && !far) { const x = (c % CN + 0.5) * CH, z = (Math.floor(c / CN) + 0.5) * CH, u = Math.min(1, Math.max(0, ((x - cp.x) * sx + (z - cp.z) * sz) / sl)), cd = Math.max(0, Math.hypot(x - cp.x - u * sx, z - cp.z - u * sz) - CH * 0.71);
+          if (cd < R2 && fr.intersectsBox(bx)) st = cd >= R ? 1 : bx.distanceToPoint(cp) < F ? 3 : 2; }
+        state[c] = st; if (st) { loaded++; sig += c + 'xabc'[st]; } }
+      if (sig === chunkSig) return; chunkSig = sig;
+      for (const T2 of trees) { fill(T2.o, T2.all, c => state[c] === 3 && [T2.start[c], T2.len[c]]); fill(T2.f, T2.all, c => state[c] === 2 ? [T2.start[c], T2.len[c]] : state[c] === 1 && [T2.start[c], T2.few[c]]); } };
     // units and calls: a pin each, with its label in HTML over the map
     const COL = { pd: 0x4C8DFF, fd: 0xE24B4B, dot: 0xE9C24C }, pinGeo = new THREE.CylinderGeometry(0, 2.2, 7, 12), headGeo = new THREE.SphereGeometry(2.6, 14, 10); pinGeo.translate(0, 3.5, 0); headGeo.translate(0, 8.5, 0);
     const pins = new Map(), label = (key, html, cls) => { let el = tags.querySelector(`[data-k="${key}"]`); if (!el) { el = document.createElement('div'); el.className = 't3' + (cls ? ' ' + cls : ''); el.dataset.k = key; tags.appendChild(el); } if (el._h !== html) { el.innerHTML = html; el._h = html; } return el; };
@@ -111,13 +138,13 @@
     const setTheme = t => { theme = t; const dark = t === 'dark'; scene.background.setHex(dark ? 0x0f1215 : 0x1d2a30); scene.fog.color.setHex(dark ? 0x0f1215 : 0x1d2a30); hemi.intensity = dark ? 0.75 : 1.5; sun.intensity = dark ? 0.5 : 1.6; ocean.material.color.setHex(dark ? 0x1b2f34 : 0x3E6972); ask(); };
     addEventListener('showcall', e => { const c = e.detail; if (active && c && Number.isFinite(c.x)) flyTo(c.x, c.y, 360); });
     // warm-up: send every part and tree to the graphics card now, behind the loading note, so zooming in later doesn't stutter
-    for (const p of parts) p.o.visible = true; for (const T2 of trees) { T2.o.visible = true; T2.o.count = T2.n; T2.o.instanceMatrix.array.set(T2.all); T2.o.instanceMatrix.needsUpdate = true; }
-    resize(); overview(); renderer.render(scene, camera); treeKey = '';
+    for (const p of parts) p.o.visible = true; for (const T2 of trees) for (const mesh of [T2.o, T2.f]) { mesh.visible = true; mesh.count = T2.n; mesh.instanceMatrix.array.set(T2.all); mesh.instanceMatrix.clearUpdateRanges(); mesh.instanceMatrix.needsUpdate = true; }
+    resize(); overview(); renderer.render(scene, camera); chunkSig = '';
     overview(); setTheme(theme); say('');
     // check it can keep up: a weak graphics chip gets told how to go back to 2D
     const t0 = performance.now(); renderer.render(scene, camera); renderer.getContext().finish(); const first = performance.now() - t0;
     if (first > 600) { say('This computer is slow at 3D', 'If the CAD lags, pick 2D under the map style button.'); setTimeout(() => say(''), 7000); }
-    S = { ask, flyTo, overview, dolly, setTheme, resize, first, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, trees: trees.reduce((n, t2) => n + (t2.o.visible ? t2.o.count : 0), 0), first }) };
+    S = { ask, flyTo, overview, dolly, setTheme, resize, first, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, trees: trees.reduce((n, t2) => n + (t2.o.visible ? t2.o.count : 0) + (t2.f.visible ? t2.f.count : 0), 0), chunks: loaded, first }) };
     return S; })().catch(e => { loading = null; say('The 3D map could not load', `${String(e.message || e).slice(0, 120)}<br>Pick 2D under the map style button.`); throw e; });
 
   window.map3d = {
