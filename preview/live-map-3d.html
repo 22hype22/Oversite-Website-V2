@@ -2429,7 +2429,10 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     menuPill.style.left = L + 'px'; menuPill.style.right = R + 'px'; menuPill.style.top = t.offsetTop + 'px'; menuPill.style.height = t.offsetHeight + 'px'; menuPill.style.opacity = 1; pillX = L;
     if (menuPill.classList.contains('instant')) { menuPill.getBoundingClientRect(); menuPill.classList.remove('instant'); } };
   new MutationObserver(() => placePill()).observe(menuEl, { attributes: true, subtree: true, attributeFilter: ['aria-selected'] });
+  // and again whenever the bar or a tab changes size: buttons that appear after load, the server's logo, or the font arriving
+  // late all shift the tabs, and the pill would sit off to one side until the next click
   addEventListener('resize', () => placePill(true)); document.fonts?.ready.then(() => placePill(true)); placePill(true);
+  if (window.ResizeObserver) { let rq = 0; const ro = new ResizeObserver(() => { cancelAnimationFrame(rq); rq = requestAnimationFrame(() => placePill(true)); }); ro.observe(menuEl); tabs.forEach(t => ro.observe(t)); }
   const PAGES = { status: 'pageStatus' };
   const mdt = document.getElementById('mdt'), mdtBtn = document.getElementById('mdtToggle');
   const DEPT_NAME = { pd: window.OVERSITE?.depts?.pd?.name || 'Law Enforcement', fd: window.OVERSITE?.depts?.fd?.name || 'Fire Department', dot: window.OVERSITE?.depts?.dot?.name || 'Department of Transportation' };
