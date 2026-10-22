@@ -1,6 +1,8 @@
 // The Liberty County driver's license on the MDT's card reader, and the ranks you sign in to an MDT with.
 // ER:LC's API has no license data, so the photo, @username and display name come from Roblox and the rest is filled in by the player.
-import { licenses } from './db.mjs';
+import { licenses, licenseArt } from './db.mjs';
+import { imageOf } from './profile.mjs';
+import { checkImage } from './imagecheck.mjs';
 
 // lowest to highest; the number is the collar insignia shown next to it (bugles, bars, stars)
 export const RANKS = {
@@ -50,3 +52,18 @@ export const licenseOf = async (user, prem = false) => { const f = { ...licenses
 export const saveLicense = (user, b, prem = false) => { const o = cleanLicense(b || {}, prem), old = licenses.get(user.id);
   if (!prem) for (const k of ['finish', 'occx', 'sig']) if (old[k]) o[k] = old[k];
   licenses.set(user.id, o); return licenseOf(user, prem); };
+
+// A Premium server's own ID card ("different states have different styles"): a front picture drawn behind the card's text and a back
+// the card flips to. Every picture goes through Oversite's image check first, since every player sees it; one the check refuses, or
+// couldn't look at, is never saved. The browser shrinks it to 968 x 606 (twice ER:LC's 484 x 303 card) before it is sent.
+export const ART_SIDES = ['front', 'back'];
+const ART_MAX = 900000;
+// where the card finds them; ?v= changes with each upload, so a new picture shows at once and an unchanged one stays cached
+export const artOf = c => Object.fromEntries(licenseArt.list(c.id).filter(r => ART_SIDES.includes(r.side)).map(r => [r.side, `/c/${c.slug}/license/${r.side}?v=${r.updated}`]));
+export const saveArt = async (c, side, dataUrl, prem) => { if (!prem) return { error: 'A custom license comes with Premium.' }; if (!ART_SIDES.includes(side)) return { error: 'Pick the front or the back.' };
+  const im = imageOf(dataUrl, ART_MAX); if (im.error) return im;
+  const ok = await checkImage(String(dataUrl), side === 'back' ? 'id-back' : 'id-front', c); if (ok.error) return ok;
+  licenseArt.set(c.id, side, im.mime, im.buf); return { ok: true, art: artOf(c) }; };
+// the owner removes one side; Oversite moderation clears both (side omitted)
+export const clearArt = (c, side) => { if (side && !ART_SIDES.includes(side)) return { error: 'Pick the front or the back.' };
+  if (side) licenseArt.remove(c.id, side); else licenseArt.clear(c.id); return { ok: true, art: artOf(c) }; };

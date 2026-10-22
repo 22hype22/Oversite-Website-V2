@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '2.7', date: '2026-10-22', tag: 'new', title: 'Your own ID card',
+    body: 'Premium servers can upload a front and a back for their ID card in Settings → Premium, and players flip the card over to see the back.', items: [] },
   { v: '2.6', date: '2026-10-16', tag: 'new', title: 'Shared calls and reports, real status',
     body: 'Dispatch, the MDTs and the Status tab now work from the same live data for everyone on your server.',
     items: ['Units sent to a call, and whether they are en route or on scene, show the same on every dispatcher and MDT', 'Fire and DOT incident reports are saved on your server and shared by the department', 'Status & Updates shows your server’s real connection health, problems and these updates'] },

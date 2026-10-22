@@ -1371,7 +1371,7 @@
 <script type="importmap">{"imports":{"three":"/vendor/three.module.js"}}</script>
 <script src="/map3d.js?v=4" defer></script>
 <script src="/dropdown.js?v=1" defer></script>
-<script src="/license-card.js?v=4" defer></script>
+<script src="/license-card.js?v=5" defer></script>
 <script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=5" defer></script><script src="/loa.js?v=2" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=3" defer></script><script src="/premises.js?v=1" defer></script><script src="/civ-phone.js?v=2" defer></script><script src="/civ-apps.js?v=1" defer></script>
 <script src="/court.js?v=1" defer></script>
 <style id="phone">
@@ -2731,7 +2731,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     else if (pend.length) { const c = pend.sort((a, b) => a.pri - b.pri)[0]; const d = Math.hypot(u.x - c.x, u.y - c.y) / 1609 * 1.2; msg = `Unassigned P${c.pri} ${c.code} at ${c.where}, ${d.toFixed(1)} mi away.`; }
     $('fdAssistText').textContent = msg; const b = $('tnavCalls'); b.hidden = !pend.length; b.textContent = pend.length; };
   // ── signing in: the MDT stays locked until you tap your license, pick your rank and type a password (roleplay; never saved or sent) ──
-  const licStyle = () => { const S = window.OVERSITE?.license; return S ? { title: S.title, color: S.color, seal: S.seal === 'icon' && window.OVERSITE.slug ? `/c/${window.OVERSITE.slug}/icon` : '' } : {}; };   // a Premium server's own license card
+  const licStyle = () => { const S = window.OVERSITE?.license; return S ? { title: S.title, color: S.color, seal: S.seal === 'icon' && window.OVERSITE.slug ? `/c/${window.OVERSITE.slug}/icon` : '', front: S.front || '', back: S.back || '' } : {}; };   // a Premium server's own license card, with its front and back pictures
   const OVS = window.OVERSITE, LOCKS = !!(OVS && OVS.ranks), screen = document.querySelector('#mdt .screen'), signed = { ...(OVS?.mdt || {}) };
   const LK = 'oversite.mdtlock.' + (OVS?.slug || ''), locked = new Set(); try { JSON.parse(sessionStorage.getItem(LK) || '[]').forEach(d => locked.add(d)); } catch (e) {}
   const saveLocks = () => { try { sessionStorage.setItem(LK, JSON.stringify([...locked])); } catch (e) {} };
@@ -4461,7 +4461,7 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
   const licVals = f => { const v = fields(f); return { age: (v.age || '').trim(), gndr: v.gndr || '', hair: v.hair || '', eyes: v.eyes || '', ft: v.ft || '', in: v.in || '', wgt: v.wgt || '', addr: (v.address || '').trim().slice(0, 34), iss: v.iss || '', finish: v.finish || '', occx: (v.occupation || '').trim().slice(0, 20), sig: (v.sig || '').trim() }; };
   const drawLic = () => { const w = $('cvLicW'), f = $('cvIdF'); if (!w || !LIC || !window.LicenseCard) return; const v = licVals(f), h = v.ft !== '' && v.in !== '' ? v.ft + "' " + v.in + '"' : '', S = OV.license;
     const nm = rpOn() ? [f.elements.first?.value, f.elements.last?.value].map(x => (x || '').trim()).filter(Boolean).join(' ') : '';
-    w.innerHTML = window.LicenseCard.html({ ...LIC, ...(nm ? { display: nm } : {}), ...(S ? { title: S.title, color: S.color, seal: S.seal === 'icon' ? `/c/${OV.slug}/icon` : '' } : {}), age: v.age, gndr: v.gndr, hair: v.hair, eyes: v.eyes, hgt: h, wgt: v.wgt ? Math.round(v.wgt) + ' lbs' : '', addr: v.addr, iss: v.iss,
+    w.innerHTML = window.LicenseCard.html({ ...LIC, ...(nm ? { display: nm } : {}), ...(S ? { title: S.title, color: S.color, seal: S.seal === 'icon' ? `/c/${OV.slug}/icon` : '', front: S.front || '', back: S.back || '' } : {}), age: v.age, gndr: v.gndr, hair: v.hair, eyes: v.eyes, hgt: h, wgt: v.wgt ? Math.round(v.wgt) + ' lbs' : '', addr: v.addr, iss: v.iss,
       finish: LIC.premium ? v.finish : '', sig: LIC.premium ? v.sig : '', occ: (LIC.premium && v.occx) || 'Civilian' });
     const c = w.querySelector('.lcard'); if (c) c.style.setProperty('--ls', (w.clientWidth / 400).toFixed(4)); };
   const fillLic = j => { LIC = j || {}; const f = $('cvIdF'); if (!f || !f.elements.age) return; const E = f.elements, m = /^(\d)' (\d+)"$/.exec(LIC.hgt || '');

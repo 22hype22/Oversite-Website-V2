@@ -6,8 +6,8 @@ import { createReadStream, statSync, existsSync, readFileSync, renameSync } from
 import { join, extname, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { users, communities, communityPhotos, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, mdtSignin, support, staffGrants, siteSettings, seal, RESERVED, token } from './app/db.mjs';
-import { RANKS, validRank, ranksFor, saveRanks, licenseOf, saveLicense } from './app/license.mjs';
+import { users, communities, communityPhotos, licenseArt, members, invites, roblox, codes, reports, reviews, stats, voteDays, unitMembers, rideWith, mdtSignin, support, staffGrants, siteSettings, seal, RESERVED, token } from './app/db.mjs';
+import { RANKS, validRank, ranksFor, saveRanks, licenseOf, saveLicense, artOf, saveArt, clearArt } from './app/license.mjs';
 import { serverPage } from './app/serverpage.mjs';
 import * as voice from './app/voice.mjs';
 import { voicePage } from './app/voicepage.mjs';
@@ -129,8 +129,10 @@ const spawnedBy = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Da
 // a Premium person's saved map style wins over whatever this browser last used, so every device opens on the same map
 const mapPref = p => { const m = /^(2d)-(light|dark)$/.exec(p?.map || ''); return m ? `try{localStorage.setItem('ov.mapstyle','{"dim":"${m[1]}","theme":"${m[2]}"}')}catch(e){}` : ''; };
 let mapHtml = null, mapMtime = 0;
+// a Premium server's own license card for the CAD: its title, color and seal, and the front and back pictures (either can be set without the other)
+const licenseCfg = c => { const S = c.settings.licenseStyle, art = artOf(c); return S || art.front || art.back ? { ...(S || {}), ...art } : null; };
 const mapPage = (c, user, role, oversight = false, locks = {}) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const prem = premium.isPremium(c), cfg = { currency: c.settings.currency || '$', premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? c.settings.licenseStyle || null : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, radioBot: bots.hasOversite(c, 'dispatch'), roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, locks, discord: !!user.discord_id, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
+  const prem = premium.isPremium(c), cfg = { currency: c.settings.currency || '$', premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? licenseCfg(c) : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, radioBot: bots.hasOversite(c, 'dispatch'), roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, locks, discord: !!user.discord_id, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};${mapPref(cfg.setup)}</script><style>${features.css(c)}</style>`;
   const html = mapHtml.replace(/<head>/i, () => `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, () => `<title>${pages.esc(c.name)} · Oversite</title>`);
   return oversight ? html.replace(/<\/body>/i, () => `${pages.oversightBar(c)}</body>`) : html; };   // functions, so a $' in a name is never read as a replace pattern
@@ -272,6 +274,12 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'track' && M === 'GET') { if (!can(role, 'co_owner')) return json(res, { error: 'Owner only.' }, 403); return json(res, { stats: f.stats(), players: Object.fromEntries([...f.track].map(([k, v]) => [k.split(':')[0], v])) }); }
   // Premium: what this server has, buying it, Explore boosts and the bot key (owner and co-owners)
   if (rest === 'premium' && M === 'GET') return json(res, { ...premium.info(c), plans: premium.PLANS, payments: premium.stripeReady(), canBuy: can(role, 'co_owner') });
+  // the ID card's own front and back pictures (Premium): the picture is checked by Oversite's image check before it's kept, so this waits on it
+  if ((rest === 'premium/license/art' || rest === 'premium/license/art/remove') && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can manage Premium.' }, 403);
+    if (rest.endsWith('/remove')) { const r = clearArt(c, String((await jsonBody(req)).side || '')); return json(res, r, r.error ? 400 : 200); }
+    if (auth.limited(req, 'licart', 8, 60000)) return json(res, { error: 'Too many uploads. Wait a minute.' }, 429);
+    let j = {}; try { j = JSON.parse(await body(req, 1.3e6) || '{}'); } catch (e) {} const r = await saveArt(c, String(j.side || ''), j.data, premium.isPremium(c));
+    if (r.ok) console.log(`license art: ${c.slug} ${j.side} saved by ${user.roblox_name || user.name}`); return json(res, r, r.error ? 400 : 200); }
   if (rest.startsWith('premium/') && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can manage Premium.' }, 403);
     const sub = rest.slice(8), j = await jsonBody(req);
     try { const r = sub === 'checkout' ? await premium.checkout(c, user, String(j.plan || ''), origin(req)) : sub === 'portal' ? await premium.portal(c, origin(req), user, role === 'owner') : sub === 'boost' ? premium.boost(c)
@@ -828,6 +836,7 @@ const globalApi = async (req, res, rest) => {
     else if (act === 'suspend' || act === 'unsuspend') { communities.setFlag(c.id, 'suspended', act === 'suspend'); if (act === 'suspend') { reports.resolveFor(c.id, 'suspended'); feeds.get(c.id)?.kick(); } }
     else if (act === 'reset_icon') profile.clearIcon(c);
     else if (act === 'clear_photos') profile.clearPhotos(c);
+    else if (act === 'clear_license_art') clearArt(c);
     else if (act === 'clear_bio') profile.clearBio(c);
     else return json(res, { error: 'Unknown action.' }, 400);
     console.log(`moderation: ${user.discord_id} ${act} server ${c.id} (${c.slug})`); return json(res, { ok: true, servers: communities.overview(), reports: reports.open() }); }
@@ -939,6 +948,10 @@ const route = async (req, res) => {
     if (!src) { res.writeHead(404, { 'cache-control': 'public, max-age=300' }); return res.end(); }
     if (src.kind === 'custom') { res.writeHead(200, { 'content-type': src.mime, 'cache-control': 'public, max-age=300', 'content-length': src.data.length }); return res.end(src.data); }
     return redirect(res, src.url); }
+  // a server's ID card picture (front or back); the card asks for ?v=<when it was uploaded>, so that address never changes content and is kept a year
+  if ((m0r = path.match(/^\/c\/([a-z0-9-]{3,32})\/license\/(front|back)$/))) { const c = communities.bySlug(m0r[1]), im = c && !c.suspended && licenseArt.get(c.id, m0r[2]);
+    if (!im) { res.writeHead(404, { 'cache-control': 'public, max-age=60' }); return res.end(); }
+    res.writeHead(200, { 'content-type': im.mime, 'cache-control': url.searchParams.get('v') === String(im.updated) ? 'public, max-age=31536000, immutable' : 'public, max-age=300', 'content-length': im.data.length, 'x-content-type-options': 'nosniff' }); return res.end(im.data); }
   // a server's photo; a photo is never changed in place (a new upload gets a new id), so browsers can keep it a while
   if ((m0r = path.match(/^\/c\/([a-z0-9-]{3,32})\/photos\/(\d{1,12})$/))) { const c = communities.bySlug(m0r[1]), ph = c && !c.suspended && communityPhotos.get(c.id, Number(m0r[2]));
     if (!ph) { res.writeHead(404, { 'cache-control': 'public, max-age=60' }); return res.end(); }
@@ -1036,7 +1049,7 @@ const route = async (req, res) => {
     if (sub === '/staff') return can(role, 'mod') ? page(res, watched(staffHub({ logo: LOGO, user, c }), c, oversight)) : msg(res, user, 'Staff only', 'The staff page is for Mods and up.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
     if (sub === '/settings') { if (!can(role, 'co_owner')) return msg(res, user, 'Owners only', 'Only the owner and co-owners can change its settings.', { href: `/${c.slug}`, label: 'Open CAD' }, 403);
       const key = communities.key(c.id), f = feeds.get(c.id), snapName = (() => { try { return f?.snap ? JSON.parse(f.snap.body).Name : ''; } catch (e) { return ''; } })();
-      return page(res, watched(pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c), ranks: ranksFor(c, premium.isPremium(c)), boost: premium.boostInfo(c, user), feats: features.switches(c), autos: automations.rules(c), featVals: { biztax: civ.conf(c).biztax }}), c, oversight)); }
+      return page(res, watched(pages.settings({ logo: LOGO, user, c, role, photos: communityPhotos.ids(c.id), keyStatus: { connected: !!key, name: snapName, authorize: key ? authLink(key) : '' }, invites: invites.list(c.id), members: members.list(c.id), origin: origin(req), isNew: url.searchParams.has('new'), needsDiscord: needsDiscord(c), discordReady: discordlink.ready(), iconKind: profile.iconSource(c)?.kind || null, regions: profile.REGIONS, langs: profile.LANGS, codes: can(role, 'admin') ? { member: codes.show(c.id, 'member') } : null , prem: premium.info(c), payments: premium.stripeReady(), justBought: url.searchParams.has('premium'), bnd: bounds.of(c), ranks: ranksFor(c, premium.isPremium(c)), licenseArt: artOf(c), boost: premium.boostInfo(c, user), feats: features.switches(c), autos: automations.rules(c), featVals: { biztax: civ.conf(c).biztax }}), c, oversight)); }
     return msg(res, user, 'Page not found', 'That page does not exist in this server.', { href: `/${c.slug}`, label: 'Open CAD' }, 404); }
   if (path === '/premium/done') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account');
     let r; try { r = await premium.confirmUser(user, url.searchParams.get('session_id')); } catch (e) { r = { error: 'Payments could not be reached. If you were charged, Premium switches on within a few minutes.' }; }

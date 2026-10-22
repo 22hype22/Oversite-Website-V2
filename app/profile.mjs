@@ -57,8 +57,8 @@ export const setIcon = (c, dataUrl) => { const m = /^data:(image\/(?:png|jpeg|we
   if (!m) return { error: 'Use a PNG, JPG or WebP image.' }; const buf = Buffer.from(m[2], 'base64'); if (buf.length > ICON_MAX) return { error: 'That image is too big. Try a smaller one.' };
   const sig = buf.subarray(0, 12).toString('hex'); if (!(sig.startsWith('89504e47') || sig.startsWith('ffd8ff') || (sig.startsWith('52494646') && buf.subarray(8, 12).toString() === 'WEBP'))) return { error: 'That file is not a valid image.' };
   communityIcons.set(c.id, m[1], buf); return { ok: true }; };
-// a photo arrives already shrunk by the browser (1600 px wide at most); a server keeps up to eight
-const imageOf = (dataUrl, max) => { const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
+// a photo arrives already shrunk by the browser (1600 px wide at most); a server keeps up to eight (the ID card's pictures use this check too)
+export const imageOf = (dataUrl, max) => { const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
   if (!m) return { error: 'Use a PNG, JPG or WebP image.' }; const buf = Buffer.from(m[2], 'base64'); if (buf.length > max) return { error: 'That image is too big. Try a smaller one.' };
   const sig = buf.subarray(0, 12).toString('hex'); if (!(sig.startsWith('89504e47') || sig.startsWith('ffd8ff') || (sig.startsWith('52494646') && buf.subarray(8, 12).toString() === 'WEBP'))) return { error: 'That file is not a valid image.' };
   return { mime: m[1], buf }; };

@@ -174,7 +174,7 @@ export const communities = {
   setVerified: (id, on) => q('UPDATE communities SET verified = ? WHERE id = ?').run(on ? 1 : 0, id).changes,
   // for the verification page: every server with its owner and size
   setFlag: (id, flag, on) => ['hidden', 'suspended'].includes(flag) ? q(`UPDATE communities SET ${flag} = ? WHERE id = ?`).run(on ? 1 : 0, id).changes : 0,
-  overview: () => q('SELECT c.id, c.slug, c.name, c.verified, c.hidden, c.suspended, c.created, max(coalesce(json_extract(c.settings, \'$.premium.until\'), 0), coalesce((SELECT premium_until FROM users WHERE id = json_extract(c.settings, \'$.premium.boost.by\')), 0)) AS prem_until, coalesce(json_extract(c.settings, \'$.profile.unlisted\'), 0) = 0 AS listed, length(coalesce(json_extract(c.settings, \'$.profile.bio\'), \'\')) > 0 AS has_bio, EXISTS (SELECT 1 FROM community_icons i WHERE i.community_id = c.id) AS custom_icon, (SELECT COUNT(*) FROM community_photos ph WHERE ph.community_id = c.id) AS photos, (SELECT COUNT(*) FROM reports r WHERE r.community_id = c.id AND r.resolved IS NULL) AS open_reports, u.roblox_name AS owner_rbx, u.name AS owner_name, (SELECT COUNT(*) FROM members m WHERE m.community_id = c.id) AS members FROM communities c LEFT JOIN users u ON u.id = c.owner_id ORDER BY open_reports DESC, c.verified DESC, c.name').all(),
+  overview: () => q('SELECT c.id, c.slug, c.name, c.verified, c.hidden, c.suspended, c.created, max(coalesce(json_extract(c.settings, \'$.premium.until\'), 0), coalesce((SELECT premium_until FROM users WHERE id = json_extract(c.settings, \'$.premium.boost.by\')), 0)) AS prem_until, coalesce(json_extract(c.settings, \'$.profile.unlisted\'), 0) = 0 AS listed, length(coalesce(json_extract(c.settings, \'$.profile.bio\'), \'\')) > 0 AS has_bio, EXISTS (SELECT 1 FROM community_icons i WHERE i.community_id = c.id) AS custom_icon, (SELECT COUNT(*) FROM community_photos ph WHERE ph.community_id = c.id) AS photos, (SELECT COUNT(*) FROM license_art la WHERE la.community_id = c.id) AS license_art,(SELECT COUNT(*) FROM reports r WHERE r.community_id = c.id AND r.resolved IS NULL) AS open_reports, u.roblox_name AS owner_rbx, u.name AS owner_name, (SELECT COUNT(*) FROM members m WHERE m.community_id = c.id) AS members FROM communities c LEFT JOIN users u ON u.id = c.owner_id ORDER BY open_reports DESC, c.verified DESC, c.name').all(),
 };
 export const members = {
   role: (cid, uid) => q('SELECT role FROM members WHERE community_id = ? AND user_id = ?').get(cid, uid)?.role || null,
@@ -239,6 +239,16 @@ export const communityPhotos = {
   remove: (cid, id) => q('DELETE FROM community_photos WHERE community_id = ? AND id = ?').run(cid, id),
   clear: cid => q('DELETE FROM community_photos WHERE community_id = ?').run(cid),
   order: (cid, ids) => { const up = q('UPDATE community_photos SET pos = ? WHERE community_id = ? AND id = ?'); ids.forEach((id, i) => up.run(i + 1, cid, id)); },
+};
+// a Premium server's own ID card pictures, front and back, uploaded by its owner once Oversite's image check passed them
+db.exec(`CREATE TABLE IF NOT EXISTS license_art (
+  community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, side TEXT NOT NULL, mime TEXT NOT NULL, data BLOB NOT NULL, updated INTEGER NOT NULL, PRIMARY KEY (community_id, side));`);
+export const licenseArt = {
+  list: cid => q('SELECT side, updated FROM license_art WHERE community_id = ?').all(cid),
+  get: (cid, side) => q('SELECT mime, data, updated FROM license_art WHERE community_id = ? AND side = ?').get(cid, side),
+  set: (cid, side, mime, data) => q('INSERT INTO license_art (community_id, side, mime, data, updated) VALUES (?, ?, ?, ?, ?) ON CONFLICT (community_id, side) DO UPDATE SET mime = excluded.mime, data = excluded.data, updated = excluded.updated').run(cid, side, mime, data, now()),
+  remove: (cid, side) => q('DELETE FROM license_art WHERE community_id = ? AND side = ?').run(cid, side),
+  clear: cid => q('DELETE FROM license_art WHERE community_id = ?').run(cid),
 };
 // every command ER:LC has reported for a community, kept for good (ER:LC itself only returns the latest few); nothing deletes from it
 export const commandLog = {
