@@ -2,6 +2,7 @@
 // moderation through the API's command endpoint, with every warning, kick and ban written to the community's records.
 import { erlcHeaders, authLink } from './feed.mjs';
 import { staffRecords, staffSent, commandLog, communities, users, members, staffGrants } from './db.mjs';
+import * as cq from './cmdqueue.mjs';
 
 // who did something, by the account behind it rather than the name saved at the time: once someone links Roblox their past
 // actions show their Roblox name; an account with nothing linked is marked, with its number, so it can still be told apart
@@ -64,7 +65,7 @@ export const view = async (c, key) => {
     modCalls: (v.ModCalls || []).slice(-40).reverse().map(m => ({ caller: split(m.Caller), moderator: m.Moderator ? split(m.Moderator) : null, at: m.Timestamp })),
     commands: attribute(c.id, (v.CommandLogs || []).slice(-60).reverse().map(m => ({ by: split(m.Player), command: m.Command, at: m.Timestamp }))),
     kills: (v.KillLogs || []).slice(-30).reverse().map(m => ({ killer: split(m.Killer), killed: split(m.Killed), at: m.Timestamp })),
-    bans: banList(c.id, s.bans),
+    bans: (E => banList(c.id, s.bans).map(b => ({ ...b, until: E.get(b.id) || E.get('n:' + String(b.name).toLowerCase()) || null })))(cq.banEnds(c)),   // when a temporary ban ends
     staff: v.Staff || null, counts, records: named(staffRecords.recent(c.id, 60)),
   };
 };
@@ -82,14 +83,23 @@ const run = (c, key, command, by) => { const s = of(c.id);
     if (!r.ok) console.log(`ER:LC command refused for community ${c.id}: ${r.status} ${JSON.stringify(j).slice(0, 300)}`);
     if (r.ok) { if (by) staffSent.add(c.id, command, by); return { ok: true, message: j.message || 'Sent' }; }
     if (j.code === 4000 || r.status === 401) { const link = authLink(key); return { ok: false, authorize: link, message: link ? 'ER:LC needs the server owner to allow Oversite to run commands first. The owner can do it in one click from Settings, or here: ' + link : 'ER:LC needs the server owner to allow Oversite to run commands for this server.' }; }
-    return { ok: false, message: r.status === 422 ? 'The server is offline or empty, so the command could not run.' : (j.message || `ER:LC answered ${r.status}`) };
+    return { ok: false, offline: r.status === 422, message: r.status === 422 ? 'The server is offline or empty, so the command could not run.' : (j.message || `ER:LC answered ${r.status}`) };
   });
   s.queue = job.catch(() => {}); return job; };
 
 // a command Oversite sends by itself (boundaries): same queue and spacing as staff commands, credited to "Oversite Boundaries" in the command log
 export const command = (c, key, cmd) => run(c, key, cmd, { id: null, name: 'Oversite Boundaries' }).catch(() => ({ ok: false }));
+export const send = (c, key, cmd, by) => run(c, key, cmd, by).catch(e => ({ ok: false, message: e.message }));   // the command queue (cmdqueue.mjs), credited to who queued it
 export const commandAs = (c, key, cmd, name) => run(c, key, cmd, { id: null, name }).catch(() => ({ ok: false }));   // the same for automations, credited to them
 
+const SHEET_NAME = { ban: 'Ban', unban: 'Unban', announce: 'Announcement' };
+// a command typed in the Server Staff panel (admins): runs now, or waits for players when the server is shut down or empty (or `later`)
+export const custom = async (c, key, by, body) => { const cmd = String(body.command || '').replace(/[\r\n\t]+/g, ' ').trim().slice(0, 200);
+  if (!/^:[a-z]/i.test(cmd)) return { error: 'Commands start with a colon, like :weather rain' }; if (!key) return { error: 'This server has no ER:LC key yet.' };
+  if (body.later) { const qd = cq.add(c, cmd, by, ''); return qd.error ? qd : { ok: true, queued: true, message: 'Saved. It runs as soon as someone is in the server.' }; }
+  const r = await run(c, key, cmd, by); if (r.ok) return { ok: true, message: r.message || 'Sent' };
+  if (r.offline) { const qd = cq.add(c, cmd, by, ''); return qd.error ? qd : { ok: true, queued: true, message: 'The server is empty, so it runs as soon as someone joins.' }; }
+  return { error: r.message }; };
 // a staff action: validate, run it in game if it has a command, and record it either way
 export const act = async (c, key, by, body) => {
   const kind = String(body.kind || ''); if (!KINDS.includes(kind)) return { error: 'Unknown action.' };
@@ -97,10 +107,17 @@ export const act = async (c, key, by, body) => {
   if (kind !== 'announce' && !NAME.test(name)) return { error: 'Pick a player first.' };
   if (kind !== 'announce' && RESERVED_TARGETS.has(name.toLowerCase())) return { error: 'Pick one player by their username.' };   // ER:LC reads these as groups of players
   if (NEEDS_REASON.has(kind) && !reason) return { error: kind === 'pm' || kind === 'announce' ? 'Write the message first.' : 'Give a reason.' };
-  const make = COMMANDS[kind]; let result = { ok: true, message: 'Recorded' };
-  if (make) { if (!key) return { error: 'This server has no ER:LC key yet.' }; result = await run(c, key, make(name, reason, id), by); if (!result.ok && kind !== 'warn') return { error: result.message }; }
-  const rec = kind === 'pm' || kind === 'announce' ? null : staffRecords.add({ community_id: c.id, roblox_id: id || null, name: kind === 'announce' ? 'Server' : name, kind, reason, by_user: by.id, by_name: by.name, result: result.ok ? 'sent' : 'not delivered: ' + result.message });
+  const hours = kind === 'ban' ? Math.max(0, Math.min(24 * 90, Math.round(+body.hours || 0))) : 0, span = hours ? ` (temporary: ${hours % 24 ? hours + ' hour' + (hours === 1 ? '' : 's') : hours / 24 + ' day' + (hours === 24 ? '' : 's')})` : '';
+  const make = COMMANDS[kind]; let result = { ok: true, message: 'Recorded' }, queued = false;
+  if (make) { if (!key) return { error: 'This server has no ER:LC key yet.' }; const cmd = make(name, reason, id); result = await run(c, key, cmd, by);
+    // the server is shut down or empty: bans, unbans and announcements wait and run when someone joins
+    if (!result.ok && result.offline && ['ban', 'unban', 'announce'].includes(kind)) { const qd = cq.add(c, cmd, by, `${SHEET_NAME[kind]}${kind === 'announce' ? '' : ' ' + name}`); if (qd.error) return qd; queued = true; }
+    else if (!result.ok && kind !== 'warn') return { error: result.message }; }
+  const rec = kind === 'pm' || kind === 'announce' ? null : staffRecords.add({ community_id: c.id, roblox_id: id || null, name: kind === 'announce' ? 'Server' : name, kind, reason: reason + span, by_user: by.id, by_name: by.name, result: queued ? 'waiting: runs when someone joins' : result.ok ? 'sent' : 'not delivered: ' + result.message });
+  if (kind === 'ban' && hours) cq.tempBan(c, { id, name }, hours, reason, by);
+  if (kind === 'unban') cq.unbanned(c, { id, name });
   if (kind === 'ban' || kind === 'unban') { const st = of(c.id); st.bansAt = 0; st.bansGen = (st.bansGen || 0) + 1; }   // re-read the ban list next time
+  if (queued) return { ok: true, id: rec, queued: true, delivered: true, message: `The server is empty, so this runs as soon as someone joins.` };
   return { ok: true, id: rec, delivered: result.ok, message: result.ok ? result.message : `Saved, but the in-game message failed: ${result.message}` };
 };
 

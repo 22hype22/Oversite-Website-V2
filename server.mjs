@@ -32,6 +32,7 @@ import * as monitors from './app/monitors.mjs';
 import * as weather from './app/weather.mjs';
 import * as texts from './app/texts.mjs';
 import * as court from './app/court.mjs';
+import * as cmdq from './app/cmdqueue.mjs';
 import { POSTALS } from './app/postals.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
@@ -288,6 +289,11 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'action' && M === 'POST') { const k = features.STAFF_ACT[String((req._body ||= await jsonBody(req)).kind)]; if (k && !features.on(c, k)) return off(k); }
     if (sub === 'action' && M === 'POST' && !can(role, 'admin') && !staff.MOD_KINDS.includes(String((req._body ||= await jsonBody(req)).kind))) return json(res, { error: 'Mods can warn, message, kick and add notes. Bans, unbans and announcements need an admin.' }, 403);
     if (sub === 'action' && M === 'POST') { const r = await staff.act(c, communities.key(c.id), by, req._body || await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
+    // commands typed in the panel, and the ones waiting for someone to join (app/cmdqueue.mjs): admins and up
+    if (sub === 'command' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can run commands.' }, 403); const r = await staff.custom(c, communities.key(c.id), by, await jsonBody(req));
+      if (!r.error) console.log(`staff command: ${c.slug} by ${by.name}${r.queued ? ' (queued)' : ''}`); return json(res, r.error ? r : { ...r, queue: cmdq.list(c) }, r.error ? 400 : 200); }
+    if (sub === 'queue' && M === 'GET') return json(res, { queue: cmdq.list(c) });
+    if (sub === 'queue/cancel' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can cancel commands.' }, 403); const r = cmdq.cancel(c, (await jsonBody(req)).id); return json(res, r.error ? r : { ...r, queue: cmdq.list(c) }, r.error ? 400 : 200); }
     // the Team tab: staff in game and in the CAD; the owner and co-owners give and take roles in both
     if (sub === 'team' && M === 'GET') return json(res, await staff.team(c, communities.key(c.id)));
     if (sub === 'team' && M === 'POST') { const r = await staff.setTeam(c, communities.key(c.id), { uid: user.id, rid: user.roblox_id, name: by.name, role }, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
@@ -1204,7 +1210,8 @@ setInterval(() => { const d = new Date(), day = d.toISOString().slice(0, 10); if
 // a crash: say so before Railway restarts the process; a promise nobody caught: say so and keep going
 process.on('uncaughtException', e => { console.error('uncaught:', e); alerts.send('crash', 'Oversite crashed and is restarting', String(e?.stack || e).slice(0, 1800), 'crit').finally(() => setTimeout(() => process.exit(1), 500)); setTimeout(() => process.exit(1), 4000); });
 process.on('unhandledRejection', e => { console.error('unhandled rejection:', e); alerts.send('rejection', 'Oversite hit an error it didn’t handle', String(e?.stack || e).slice(0, 1800), 'warn'); });
-staff.startHistory(); bounds.start(feedFor, id => communities.key(id)); safezones.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), (cid, body) => { staffhub.observe(cid, body); const cc = communities.byId(cid); if (cc) monitorRead(cc, body); });
+staff.startHistory(); bounds.start(feedFor, id => communities.key(id));
+cmdq.start(staff.send, async c => { const s = await feedFor(c).snapshot(); if (s.status !== 200) return null; try { return (JSON.parse(s.body).Players || []).length; } catch (e) { return null; } }, id => communities.key(id));   // queued commands and temporary bans safezones.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), (cid, body) => { staffhub.observe(cid, body); const cc = communities.byId(cid); if (cc) monitorRead(cc, body); });
 supporter.start(); civ.start();
 // business shifts end when the worker leaves the server or the civilian team; loans take their weekly payment
 setInterval(() => { for (const c of communities.all()) { try { civbiz.sweep(c, uid => { const u = users.byId(uid); return u ? liveSide(c, u) : undefined; }); } catch (e) { console.log('civbiz:', e.message); } } }, 120000); premium.sweepBoosts(); setInterval(() => { const n = premium.sweepBoosts(); if (n) console.log(`premium: ${n} boost${n === 1 ? '' : 's'} ended with the booster's Premium`); }, 10 * 60000); profile.startDirectory(id => feeds.get(id)?.snap);
