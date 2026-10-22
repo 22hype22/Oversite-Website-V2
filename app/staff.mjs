@@ -174,6 +174,16 @@ const namesFor = async ids => { const want = ids.filter(id => id && !rbxNames.ha
 const userByName = async name => { try { const j = await fetch('https://users.roblox.com/v1/usernames/users', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ usernames: [name], excludeBannedUsers: true }) }).then(r => r.json());
   const u = j.data && j.data[0]; return u ? { id: String(u.id), name: u.name } : null; } catch (e) { return null; } };
 
+// who a Roblox ID or username is, for staff who only have one of them: what this server has seen first (the command log, staff
+// records), then Roblox itself. { id, name } or { error }
+export const whois = async (c, q) => { q = String(q || '').trim().replace(/^@/, '');
+  if (/^\d{1,20}$/.test(q)) { const seen = commandLog.byPlayer(c.id, q).find(r => r.player_id === q)?.player || staffRecords.forPlayer(c.id, q, '').find(r => r.roblox_id === q)?.name;
+    const name = seen || (await namesFor([q]))(q); return name ? { id: q, name } : { error: `No Roblox account has the ID ${q}.` }; }
+  if (!NAME.test(q)) return { error: 'Type a Roblox username or ID.' };
+  const id = commandLog.byPlayer(c.id, q).find(r => r.player_id)?.player_id || staffRecords.idFor(c.id, q);
+  if (id) return { id: String(id), name: commandLog.byPlayer(c.id, q)[0]?.player || q };
+  return (await userByName(q)) || { error: `No Roblox account is called ${q}.` }; };
+
 export const team = async (c, key) => {
   const v = key ? await view(c, key) : { error: 'no key' }, raw = of(c.id).view || {}, S = raw.Staff || {}, rows = new Map();
   const row = (rid, name) => { rid = String(rid || ''); if (!rows.has(rid)) rows.set(rid, { rid, name: name || '', game: null, cad: null, pending: null, uid: null }); const r = rows.get(rid); if (name && !r.name) r.name = name; return r; };

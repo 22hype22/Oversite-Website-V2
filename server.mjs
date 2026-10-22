@@ -306,9 +306,12 @@ const communityApi = async (req, res, slug, rest) => {
     // the Team tab: staff in game and in the CAD; the owner and co-owners give and take roles in both
     if (sub === 'team' && M === 'GET') return json(res, await staff.team(c, communities.key(c.id)));
     if (sub === 'team' && M === 'POST') { const r = await staff.setTeam(c, communities.key(c.id), { uid: user.id, rid: user.roblox_id, name: by.name, role }, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
-    if (sub === 'logs' && M === 'GET') return json(res, staff.lookup(c, new URL(req.url, 'http://x').searchParams.get('user')));
+    // a Roblox ID works wherever a username does: the logs, the records search, and opening someone who isn't in the server
+    if (sub === 'whois' && M === 'GET') { const r = await staff.whois(c, new URL(req.url, 'http://x').searchParams.get('q')); return json(res, r, r.error ? 404 : 200); }
+    if (sub === 'logs' && M === 'GET') { let u = new URL(req.url, 'http://x').searchParams.get('user') || ''; if (/^\d{1,20}$/.test(u.trim())) { const w = await staff.whois(c, u); if (w.name) u = w.name; } return json(res, staff.lookup(c, u)); }
     if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner or a co-owner can delete records.' }, 403); staff.removeRecord(c, (await jsonBody(req)).id); return json(res, { ok: true }); }   // records can go; the command log never can
-    if (sub === 'records' && M === 'GET') return json(res, { records: staff.records(c, Object.fromEntries(new URL(req.url, 'http://x').searchParams)) });
+    if (sub === 'records' && M === 'GET') { const p = Object.fromEntries(new URL(req.url, 'http://x').searchParams); if (/^\d{1,20}$/.test(String(p.q || '').trim())) { const w = await staff.whois(c, p.q); if (w.name) return json(res, { records: staff.records(c, { id: w.id, name: w.name }), who: w }); }
+      return json(res, { records: staff.records(c, p) }); }
     return json(res, { error: 'Not found.' }, 404); }
   // proximity voice: the live stream of who is near you, connection setup between two players, mute, and the owner's settings
   if (rest.startsWith('voice/') && !premium.isPremium(c)) return json(res, { error: 'Proximity voice is part of Premium.', premium: true }, 402);
