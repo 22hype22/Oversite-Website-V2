@@ -11,4 +11,5 @@ export const checkImage = async (dataUrl, purpose, c) => { const secret = proces
   if (x.status === 200 && r?.ok === true) return { ok: true };
   // a refusal (or the check's own limit) comes with a reason for the owner; anything else (503, a bad secret, a strange answer) counts as unchecked
   if ([200, 400, 429].includes(x.status) && r?.ok === false && r.reason) { console.log(`image check: ${c.slug} ${purpose} refused`); return { error: String(r.reason).slice(0, 240) }; }
-  console.log(`image check: ${c.slug} ${purpose} not checked (${x.status})`); return { error: UNCHECKED }; };
+  const why = String(r?.error || r?.message || r?.reason || '').replace(/[^\x20-\x7e]/g, '').slice(0, 160);   // the check's own words, so the logs say what's wrong on its side
+  console.log(`image check: ${c.slug} ${purpose} not checked (${x.status}${why ? ': ' + why : ''})`); return { error: UNCHECKED }; };
