@@ -33,6 +33,7 @@ import * as weather from './app/weather.mjs';
 import * as texts from './app/texts.mjs';
 import * as court from './app/court.mjs';
 import * as cmdq from './app/cmdqueue.mjs';
+import * as premises from './app/premises.mjs';
 import { POSTALS } from './app/postals.mjs';
 import * as mdtprefs from './app/mdtprefs.mjs';
 import * as supporter from './app/supporter.mjs';
@@ -463,6 +464,15 @@ const communityApi = async (req, res, slug, rest) => {
     const r = rest === 'monitors/save' ? monitors.saveMonitor(c, by, j) : rest === 'monitors/remove' ? monitors.removeMonitor(c, by, j.id) : { error: 'Not found.' };
     if (!r.error) console.log(`monitors: ${c.slug} ${rest.slice(9)} by ${by}`);
     return json(res, r.error ? r : { ...r, list: monitors.monitors(c) }, r.error ? 400 : 200); }
+  // location notes (app/premises.mjs): fire pre-incident plans and police premise notes, for each department as its team allows
+  if (rest === 'premises' || rest.startsWith('premises/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    if (!features.on(c, 'premises')) return json(res, { error: 'This server has switched off location notes.' }, 403);
+    const side = liveSide(c, user), may = premises.visible(side, can(role, 'mod')); if (!may.length) return json(res, { error: 'Location notes are for departments and dispatch. You’re on the civilian team in game.' }, 403);
+    const out = () => ({ notes: premises.list(c, may), may, kinds: premises.KINDS, points: premises.POINTS, radii: premises.RADII, off: mapOff(c) });
+    if (rest === 'premises' && M === 'GET') return json(res, out());
+    if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req), by = { id: user.id, name: user.roblox_name || user.name };
+    const r = rest === 'premises/save' ? premises.save(c, by, may, j) : rest === 'premises/delete' ? premises.remove(c, may, j.id) : { error: 'Not found.' };
+    if (!r.error) console.log(`premises: ${c.slug} ${rest.slice(9)} ${r.id || j.id} by ${by.name}`); return json(res, r.error ? r : { ...r, ...out() }, r.error ? 400 : 200); }
   // the Civilian phone's Court (app/court.mjs): civil suits, their threads, judges and lawyers, the law library and the public record
   if (rest === 'court' || rest.startsWith('court/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
     if (!features.on(c, 'court')) return json(res, { error: 'This server has switched the court off.' }, 403);

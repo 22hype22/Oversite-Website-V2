@@ -909,7 +909,7 @@
   .pdalerts{position:fixed;left:50%;top:calc(var(--barh,58px) + 10px);transform:translateX(-50%);z-index:69;width:min(620px,calc(100vw - 24px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
   .panicbar:not(:empty)~.pdalerts{top:calc(var(--barh,58px) + 96px)}
   .pda{pointer-events:auto;display:grid;grid-template-columns:4px 1fr auto;gap:0 14px;align-items:center;padding:12px 12px 12px 0;border-radius:12px;background:rgba(18,19,22,.96);border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 40px rgba(0,0,0,.5);backdrop-filter:blur(10px);color:#E9EAEC;overflow:hidden;animation:pdaIn .32s cubic-bezier(.32,.72,0,1)}
-  .pda::before{content:"";align-self:stretch;margin:-12px 0;background:#4C8DFF}.pda.c3::before{background:#E0453B}.pda.bolo::before{background:#F2C14E}.pda.alpr::before{background:#E0453B}.pda.monitor::before{background:#E9C24C}.pda.monitor.out::before{background:#E0453B}.pda.auto::before{background:#9AA0A6}
+  .pda::before{content:"";align-self:stretch;margin:-12px 0;background:#4C8DFF}.pda.c3::before{background:#E0453B}.pda.bolo::before{background:#F2C14E}.pda.alpr::before{background:#E0453B}.pda.monitor::before{background:#E9C24C}.pda.premise::before{background:#5AB8F0}.pda.monitor.out::before{background:#E0453B}.pda.auto::before{background:#9AA0A6}
   .pda b{display:block;font-size:14px}.pda small{display:block;font-size:12.5px;color:#A9ADB5;margin-top:2px}
   .pda .a{display:flex;gap:6px}.pda button{font:600 12.5px inherit;font-family:inherit;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:none;color:#E9EAEC;cursor:pointer}
   .pda button.p{background:#E9EAEC;color:#0C0D0F;border-color:#E9EAEC}.pda button:hover{background:rgba(255,255,255,.08)}.pda button.p:hover{background:#fff}
@@ -1331,7 +1331,7 @@
 </style>
 <script src="/dropdown.js?v=1" defer></script>
 <script src="/license-card.js?v=4" defer></script>
-<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=5" defer></script><script src="/loa.js?v=2" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=3" defer></script><script src="/civ-phone.js?v=2" defer></script><script src="/civ-apps.js?v=1" defer></script>
+<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=5" defer></script><script src="/loa.js?v=2" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=3" defer></script><script src="/premises.js?v=1" defer></script><script src="/civ-phone.js?v=2" defer></script><script src="/civ-apps.js?v=1" defer></script>
 <script src="/court.js?v=1" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
@@ -3268,6 +3268,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   alerts.addEventListener('click', async e => { const b = e.target.closest('button'); if (!b) return; const el = b.closest('.pda'), k = b.dataset.k, id = +el.dataset.id.split(':')[1];
     if (k === 'x') return el._bye();
     if (k === 'monitor') { el._bye(); window.ovMonitors?.(el.dataset.monitor); return; }
+    if (k === 'premise') { el._bye(); window.ovPremises?.(+el.dataset.premise); return; }
     if (k === 'stop') { const plate = el.dataset.plate; el._bye(); if (!document.body.classList.contains('mdt-open')) window.openMdt?.(true, 'pd'); setTimeout(() => openStop(plate), 150); return; }
     if (k === 'respond') { try { await req('records/act', { id, action: 'respond', unit: myUnit()?.name || '' }); window.mdtSetStatus?.('10-76'); toast('Responding. Dispatch and the officer can see you are on the way.'); } catch (x) { toast(x.message); } el._bye(); return; }
     if (k === 'view') { const r = recCache.get(id); el._bye(); if (r) { if (!document.body.classList.contains('mdt-open') && window.openMdtFor) window.openMdt?.(true, 'pd'); openRecord(r, 'bolos'); } } });
@@ -3286,6 +3287,9 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const el = alert('alpr:' + h.plate + ':' + Math.floor(Date.now() / 600000), 'alpr', `${h.camera ? (/camera/i.test(h.camera) ? h.camera : 'Camera ' + h.camera) : 'Plate reader'}: ${h.plate}${h.vehicle ? ', ' + h.vehicle : ''}`, [h.reasons, h.owner ? 'driven by ' + h.owner : '', h.where].filter(Boolean).join(' · '),
       [['stop', 'Start traffic stop', true], ['x', 'Dismiss']], 60000); if (el) el.dataset.plate = h.plate; });
   // someone on an ankle monitor left their area, went into a no-go zone, or came back
+  // a call came in where there's a location note (premises.js): a pre-incident plan or premise note for the units going there
+  addEventListener('ov:premise', e => { const h = e.detail || {}; if (!h.id) return;
+    const el = alert('pre:' + h.id + ':' + h.call, 'premise', `${h.kind}: ${h.title}`, [h.call_type ? 'Call: ' + h.call_type : '', h.address, h.points ? h.points + ' marked on the plan' : ''].filter(Boolean).join(' · '), [['premise', 'Show', true], ['x', 'Dismiss']], 60000, true); if (el) el.dataset.premise = h.id; });   // every department that may see the note
   addEventListener('ov:monitor', e => { const h = e.detail || {}; if (!h.name) return; const bad = h.state === 'out' || h.state === 'nogo';
     const el = alert('mon:' + h.id + ':' + h.at, bad ? 'monitor out' : 'monitor', `Ankle monitor: ${h.name} ${h.state === 'out' ? 'left their area' : h.state === 'nogo' ? 'is in a no-go zone' : 'is back in their area'}`,
       h.where || '', [['monitor', 'Show', true], ['x', 'Dismiss']], bad ? 90000 : 30000); if (el) el.dataset.monitor = h.id; });
@@ -3730,7 +3734,7 @@ body.voice-snap .stage{transition:none!important}
   const learnPostals = players => { if (HOSTED) return; let changed = false; for (const p of players) { const code = String(p.Location?.PostalCode || '').trim(); if (!code || !POSTALS[code] || !p.Location) continue;
       const a = S.auto[code] || { sx: 0, sz: 0, n: 0 }; const n = Math.min(a.n + 1, 20); a.sx += (p.Location.LocationX - a.sx) / n; a.sz += (p.Location.LocationZ - a.sz) / n; a.n = n; S.auto[code] = a; changed = true; }
     if (changed) { save(); fitCal(); renderCal(); } };
-  const toWorld = (sx, sz) => [Math.max(-40, Math.min(2040, cal.a * sx + cal.bx)), Math.max(-40, Math.min(2040, cal.a * cal.zs * sz + cal.bz))];
+  const toWorld = (sx, sz) => [Math.max(-40, Math.min(2040, cal.a * sx + cal.bx)), Math.max(-40, Math.min(2040, cal.a * cal.zs * sz + cal.bz))]; window.ovToWorld = toWorld;   // location notes (premises.js) line up with calls
   // the game also reports the postal each player is in: a unit is never drawn outside that postal area, whatever the transform says
   const POSTAL_LIST = Object.entries(POSTALS);
   const nearestPostal = (x, y) => { let best = null, bd = 1e9; for (const [k, c] of POSTAL_LIST) { const d = Math.hypot(c[0] - x, c[1] - y); if (d < bd) { bd = d; best = k; } } return [best, bd]; };
