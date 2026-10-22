@@ -3,9 +3,10 @@
 // then. It sits on the same grid as the 2D map (0..2000 world units across the 5355 px map picture; the model was fitted to that
 // picture), so units, calls and "show on map" land in the same place. To stay smooth it only draws when something changes (the
 // camera, a unit moving), draws trees only near where you're looking and none when zoomed far out, and slows right down behind an MDT.
-// Speed while moving: buildings and bridges come in three detail levels per map tile (big shapes everywhere, mid-size parts near the
-// camera, small parts like railings only up close), tiles off screen aren't drawn, surfaces use simple lighting, and while the
-// camera moves it draws at a lower resolution, sharpening as soon as it stops.
+// Speed: the county is cut into map tiles, and each tile is drawn at the detail its distance needs: far away, buildings and bridges
+// are plain coloured blocks and the ground is coarse; nearer, the real shapes; close up, mid-size parts; right up close, small parts
+// like railings. Tiles off screen aren't drawn, surfaces use simple lighting, and if frames still run slow while you move around,
+// it steps the detail down by itself (and says so).
 (() => { if ((window.OVERSITE?.features || {}).map3d === false) return;
   const W = 2000, G2M = 2000 / 5355;
   // model studs (x, z) -> map picture px: fitted against the 2D map (rotated 90°, 1.784 px per stud, about 2 px of error)
@@ -28,7 +29,7 @@
     const THREE = await import('/vendor/three.module.js'), { GLTFLoader } = await import('/vendor/loaders/GLTFLoader.js'),
       { OrbitControls } = await import('/vendor/controls/OrbitControls.js'), { MeshoptDecoder } = await import('/vendor/libs/meshopt_decoder.module.js');
     const renderer = new THREE.WebGLRenderer({ antialias: devicePixelRatio <= 1, powerPreference: 'high-performance' });
-    const PR = Math.min(devicePixelRatio, 1.25), PR_MOVING = Math.max(0.5, PR * 0.6); let pr = PR; renderer.setPixelRatio(pr); renderer.outputColorSpace = THREE.SRGBColorSpace; box.insertBefore(renderer.domElement, tags);
+    let pr = Math.min(devicePixelRatio, 1); renderer.setPixelRatio(pr); renderer.outputColorSpace = THREE.SRGBColorSpace; box.insertBefore(renderer.domElement, tags);
     const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1d2a30); scene.fog = new THREE.Fog(0x1d2a30, 2600, 6000);
     const hemi = new THREE.HemisphereLight(0xdfe8f2, 0x56544c, 1.5), sun = new THREE.DirectionalLight(0xfff3e0, 1.6); sun.position.set(-600, 1400, 400); scene.add(hemi, sun);
     const camera = new THREE.PerspectiveCamera(45, 1, 2, 9000), controls = new OrbitControls(camera, renderer.domElement);
@@ -36,20 +37,22 @@
     controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.ROTATE, RIGHT: THREE.MOUSE.ROTATE }; controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
     controls.screenSpacePanning = false; controls.panSpeed = 1.1;
     const gltf = await new Promise((ok, no) => { const L = new GLTFLoader(); L.setMeshoptDecoder(MeshoptDecoder);
-      L.load('/county-3d.glb?v=2', ok, e => { if (e.total) say('Loading the 3D map…', `${Math.round(e.loaded / 1e6)} of ${Math.round(e.total / 1e6)} MB`, e.loaded / e.total); }, no); });
+      L.load('/county-3d.glb?v=3', ok, e => { if (e.total) say('Loading the 3D map…', `${Math.round(e.loaded / 1e6)} of ${Math.round(e.total / 1e6)} MB`, e.loaded / e.total); }, no); });
     say('Building the 3D map…', '', 1);
     // the model on the 2D map's grid
     const s = G2M * Math.hypot(T[0][0], T[1][0]), root = new THREE.Group(); root.matrixAutoUpdate = false;
     root.matrix.set(G2M * T[0][0], 0, G2M * T[0][1], G2M * T[0][2], 0, s, 0, 0, G2M * T[1][0], 0, G2M * T[1][1], G2M * T[1][2], 0, 0, 0, 1);
     root.add(gltf.scene); scene.add(root); root.updateMatrixWorld(true);
     // simple lighting instead of the model's physically based surfaces: looks the same from above, costs far less
-    const mats = new Map(), cheap = m => { if (!m || m.isMeshLambertMaterial) return m; let c = mats.get(m); if (!c) mats.set(m, c = new THREE.MeshLambertMaterial({ map: m.map || null, color: m.color, alphaTest: m.alphaTest, transparent: m.transparent, side: m.side, vertexColors: m.vertexColors })); return c; };
+    const mats = new Map(), cheap = m => { if (!m || m.isMeshLambertMaterial) return m; let c = mats.get(m); const blocks = m.name === 'Far blocks';
+      if (!c) mats.set(m, c = new THREE.MeshLambertMaterial({ map: m.map || null, color: m.color, alphaTest: m.alphaTest, transparent: m.transparent, side: blocks ? THREE.DoubleSide : m.side, vertexColors: m.vertexColors, flatShading: blocks })); return c; };
     gltf.scene.traverse(o => { if (o.isMesh) o.material = Array.isArray(o.material) ? o.material.map(cheap) : cheap(o.material); });
-    // detail levels: "<mesh>|big|mid|small|<tile>" parts; mid and small ones show only when the camera is near their tile
-    const parts = []; gltf.scene.traverse(o => { const m = /\|(big|mid|small)\|/.exec(o.name || ''); if (!m || !o.isMesh) return; o.geometry.computeBoundingSphere(); const c = o.geometry.boundingSphere.center.clone().applyMatrix4(o.matrixWorld);
-      parts.push({ o, level: m[1], c, r: o.geometry.boundingSphere.radius * s }); });
-    const MID = 700, SMALL = 320;
-    const levels = () => { const cp = camera.position; for (const p of parts) { if (p.level === 'big') continue; const d = cp.distanceTo(p.c) - p.r; p.o.visible = d < (p.level === 'mid' ? MID : SMALL); } };
+    // detail levels: "<mesh>|far|big|mid|small|<tile>" parts, chosen by the camera's distance to each; Q is the quality step
+    const parts = [], hasFar = new Set(); gltf.scene.traverse(o => { const m = /^(.*)\|(far|big|mid|small)\|(.*)$/.exec(o.name || ''); if (!m || !o.isMesh) return; o.geometry.computeBoundingSphere(); const c = o.geometry.boundingSphere.center.clone().applyMatrix4(o.matrixWorld);
+      parts.push({ o, level: m[2], key: m[1] + '|' + m[3], c, r: o.geometry.boundingSphere.radius * s }); if (m[2] === 'far') hasFar.add(m[1] + '|' + m[3]); });
+    const QS = [{ far: 950, mid: 650, small: 300, trees: 1 }, { far: 600, mid: 380, small: 160, trees: 0.6 }, { far: 330, mid: 200, small: 0, trees: 0 }]; let Q = 0;
+    const levels = () => { const cp = camera.position, q = QS[Q]; for (const p of parts) { const d = cp.distanceTo(p.c) - p.r;
+      p.o.visible = p.level === 'far' ? d >= q.far : p.level === 'big' ? (!hasFar.has(p.key) || d < q.far) : d < (p.level === 'mid' ? q.mid : q.small); } };
     // heights: the highest ground, road or bridge deck in each cell, so units and calls sit on top of what's there
     const HN = 512, hgt = new Float32Array(HN * HN).fill(-1e9), v = new THREE.Vector3(); let sea = 0;
     gltf.scene.traverse(o => { if (!o.isMesh || o.isInstancedMesh) return; const n = o.name + ' ' + (o.parent?.name || ''); if (/ocean/i.test(n)) { o.geometry.computeBoundingBox(); sea = o.geometry.boundingBox.getCenter(v).applyMatrix4(o.matrixWorld).y; }
@@ -64,8 +67,8 @@
     const trees = []; gltf.scene.traverse(o => { if (!o.isInstancedMesh) return; o.frustumCulled = false; const all = o.instanceMatrix.array.slice(), pos = new Float32Array(o.count * 2), m = new THREE.Matrix4();
       for (let i = 0; i < o.count; i++) { m.fromArray(all, i * 16).premultiply(o.matrixWorld); pos[i * 2] = m.elements[12]; pos[i * 2 + 1] = m.elements[14]; } trees.push({ o, all, pos, n: o.count }); });
     let treeKey = '';
-    const cullTrees = () => { const t = controls.target, d = camera.position.distanceTo(t), far = d > 950, R = Math.min(620, Math.max(220, d * 1.05)), R1 = R * 0.55, key = far ? 'far' : `${Math.round(t.x / 40)},${Math.round(t.z / 40)},${Math.round(R / 60)}`;
-      if (key === treeKey) return; treeKey = key;
+    const cullTrees = () => { const t = controls.target, d = camera.position.distanceTo(t), far = d > 950 || !QS[Q].trees, R = Math.min(620, Math.max(220, d * 1.05)) * (QS[Q].trees || 1), R1 = R * 0.55, key = far ? 'far' : `${Math.round(t.x / 40)},${Math.round(t.z / 40)},${Math.round(R / 60)}`;
+      if (key + Q === treeKey) return; treeKey = key + Q;
       for (const T2 of trees) { if (far) { T2.o.visible = false; continue; } T2.o.visible = true; const a = T2.o.instanceMatrix.array; let k = 0;
         for (let i = 0; i < T2.n; i++) { const dx = T2.pos[i * 2] - t.x, dz = T2.pos[i * 2 + 1] - t.z, q = dx * dx + dz * dz; if (q > R * R || (q > R1 * R1 && i % 3)) continue; a.set(T2.all.subarray(i * 16, i * 16 + 16), k * 16); k++; }   // all trees near the middle, a third toward the edge
         T2.o.count = k; T2.o.instanceMatrix.needsUpdate = true; } };
@@ -82,10 +85,14 @@
       for (const [k, p] of pins) if (!want.has(k)) { scene.remove(p); pins.delete(k); tags.querySelector(`[data-k="${k}"]`)?.remove(); } };
     // drawing: only when something changed; behind an MDT, rarely
     let raf = 0, lastSig = '';
-    let movedAt = 0;
-    const draw = () => { raf = 0; if (!active) return; const moving = controls.update() || dragging, now = performance.now(); if (moving) movedAt = now;
-      const want = now - movedAt < 180 ? PR_MOVING : PR; if (want !== pr) { pr = want; renderer.setPixelRatio(pr); }   // lower resolution while moving, sharp once still
-      levels(); cullTrees(); placeMarks(); renderer.render(scene, camera); if (moving || pr !== PR) ask(); };
+    // automatic quality: while moving, if frames take too long on this computer, step the detail down (once per step, and say so)
+    let lastT = 0, slowN = 0, fastN = 0;
+    const pace = (moving, now) => { const dt = now - lastT; lastT = now; if (!moving || dt > 250) { slowN = fastN = 0; return; }
+      if (dt > 34) slowN++; else { fastN++; if (fastN > 20) slowN = Math.max(0, slowN - 1), fastN = 0; }
+      if (slowN >= 18 && Q < QS.length - 1) { Q++; slowN = 0; if (Q === 2 && pr > 0.75) { pr = 0.75; renderer.setPixelRatio(pr); }
+        say(Q === 1 ? 'Lowered the 3D detail' : 'Lowered the 3D detail again', 'This computer was struggling, so far-off detail and trees are reduced to keep it smooth.'); setTimeout(() => say(''), 5000); } };
+    const draw = () => { raf = 0; if (!active) return; const moving = controls.update() || dragging, now = performance.now(); pace(moving, now);
+      levels(); cullTrees(); placeMarks(); renderer.render(scene, camera); if (moving) ask(); };
     let dragging = false; renderer.domElement.addEventListener('pointerdown', () => { dragging = true; }); addEventListener('pointerup', () => { dragging = false; ask(); });
     const ask = () => { if (!raf && active) raf = requestAnimationFrame(draw); };
     controls.addEventListener('change', ask);
