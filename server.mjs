@@ -61,7 +61,7 @@ const PORT = +(process.env.PORT || 8080);
 const CODE = (process.env.ACCESS_CODE || '').trim();          // private preview lock: digits visitors must enter; empty = site is open
 const CANON = (process.env.CANONICAL_HOST || 'www.oversitescad.com').toLowerCase();
 const LOGO = readFileSync(join(ROOT, 'logo.png')).toString('base64');
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.webp': 'image/webp', '.glb': 'model/gltf-binary', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
 const DATA = existsSync('/data') ? '/data' : join(ROOT, '..');
 const LEGACY_KEY = join(DATA, existsSync('/data') ? 'erlc.key' : '.erlc.key');   // the single-server key from before communities: given to the first community created
 
@@ -1060,7 +1060,7 @@ const serve = (req, res, url) => {
   const file = normalize(join(ROOT, url));
   if (!file.startsWith(ROOT + sep) || /\.(py|md)$/i.test(file) || !existsSync(file) || !statSync(file).isFile()) return msg(res, auth.currentUser(req), 'Page not found', 'That page does not exist, or it has moved. Check the address.', { href: '/', label: 'Home' }, 404);
   const ext = extname(file).toLowerCase();
-  res.writeHead(200, { 'content-type': TYPES[ext] || 'application/octet-stream', 'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=86400' }); createReadStream(file).pipe(res); };
+  res.writeHead(200, { 'content-type': TYPES[ext] || 'application/octet-stream', 'content-length': statSync(file).size, 'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=86400' }); createReadStream(file).pipe(res); };   // the size lets the 3D map show its download progress
 
 // ── private preview lock: a numeric access code, remembered in a cookie for 30 days ──
 const sign = v => createHmac('sha256', 'oversite-preview:' + CODE).update(v).digest('hex');
