@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '2.8', date: '2026-10-22', tag: 'new', title: 'Location notes for a whole area',
+    body: 'A location note can now cover an area you draw: press Draw an area and drag around a place like a whole town. A 911 call anywhere inside it brings the note up for the units.', items: [] },
   { v: '2.7', date: '2026-10-22', tag: 'new', title: 'Your own ID card',
     body: 'Premium servers can upload a front and a back for their ID card in Settings → Premium, and players flip the card over to see the back.', items: [] },
   { v: '2.6', date: '2026-10-16', tag: 'new', title: 'Shared calls and reports, real status',

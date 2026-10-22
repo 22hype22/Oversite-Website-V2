@@ -1,7 +1,8 @@
 // Location notes (app/premises.mjs): notes pinned to places for whoever responds there. Fire pre-incident plans mark exits, hydrants,
 // the sprinkler connection, staging, the key box and shutoffs; police premise notes say what to know before going in. One window,
 // opened from the map controls on Dispatch (and Locations in every MDT): the map with every note you may see, the list, and an editor where you click the map to
-// place the note and its points. When a 911 call comes in inside a note's circle, the units get an alert that opens it.
+// place the note and its points. A note covers a circle around its pin or an area drawn by dragging around it on the map (a whole
+// town). When a 911 call comes in inside it, the units get an alert that opens it.
 (() => { const OV = window.OVERSITE; if (!OV || !OV.api || (OV.features || {}).premises === false) return;
   const API = OV.api + '/premises', SIZE = 5355, G2M = 2000 / 5355, NS = 'http://www.w3.org/2000/svg';
   const DC = { fd: '#E24B4B', pd: '#4C8DFF', all: '#B98CFF' }, DN = { fd: 'Fire', pd: 'Police', all: 'Everyone' };
@@ -50,47 +51,63 @@
   const zoom = (f, at) => { const [cx, cy] = at || [vb[0] + vb[2] / 2, vb[1] + vb[3] / 2], w = Math.min(SIZE, Math.max(160, vb[2] * f)); vb = [cx - (cx - vb[0]) * w / vb[2], cy - (cy - vb[1]) * w / vb[3], w, w]; setVB(); draw(); };
   const fitTo = (x, z, w) => { if (x == null) vb = [0, 0, SIZE, SIZE]; else vb = [x - w / 2, z - w / 2, w, w]; setVB(); draw(); };
 
-  // D: { notes, may, kinds, points, radii }. sel: the note shown. ed: the note being made or changed. placing: 'centre' | a point type | null
+  // D: { notes, may, kinds, points, radii }. sel: the note shown. ed: the note being made or changed. placing: 'centre' | 'area' | a point type | null
   let D = null, sel = 0, ed = null, placing = null, filter = '', q = '', flash = null;
   const say = (t, k = '') => { flash = { t, k }; const m = $('preMsg'); if (m) { m.textContent = t; m.className = 'msg ' + k; } };
   const cur = () => D?.notes.find(n => n.id === sel);
   const shown = () => (D?.notes || []).filter(n => (!filter || n.dept === filter) && (!q || (n.title + ' ' + n.address + ' ' + n.body).toLowerCase().includes(q)));
 
-  // ── the map: every note as a circle and pin; the one open (or being edited) with its points ──
+  // ── the map: every note as its circle or area and a pin; the one open (or being edited) with its points ──
+  const shape = (n, at) => n.area ? el('polygon', { points: n.area.map(a => a.join(',')).join(' '), 'stroke-linejoin': 'round', ...at }, gN) : el('circle', { cx: n.x, cy: n.z, r: n.radius, ...at }, gN);
+  const topOf = n => n.area ? Math.min(...n.area.map(a => a[1])) : n.z - n.radius;   // where its name goes, above it
+  const fitNote = n => { if (!n.area) return fitTo(n.x, n.z, Math.max(500, n.radius * 6)); const xs = n.area.map(a => a[0]), zs = n.area.map(a => a[1]);
+    fitTo((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2, Math.max(500, (Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs))) * 1.5)); };
   const pin = (x, z, color, big, data) => { const r = (big ? 8 : 6) * px(); return el('circle', { cx: x, cy: z, r, fill: color, stroke: '#0d1416', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', ...data }, gN); };
   const label = (x, y, t, parent, size = 12) => { el('text', { x, y, 'text-anchor': 'middle', 'font-size': size * px(), 'font-weight': 600, fill: '#fff', 'paint-order': 'stroke', stroke: '#0d1416', 'stroke-width': 3 * px(), 'pointer-events': 'none' }, parent).textContent = t; };
   const draw = () => { gN.textContent = ''; gP.textContent = ''; if (!D) return; const p = px();
     for (const n of shown()) { if (ed && ed.id === n.id) continue; const c = DC[n.dept], on = n.id === sel && !ed;
-      el('circle', { cx: n.x, cy: n.z, r: n.radius, fill: c, 'fill-opacity': on ? .18 : .1, stroke: c, 'stroke-opacity': .8, 'stroke-width': on ? 2.5 : 1.5, 'stroke-dasharray': on ? '' : '6 4', 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, gN);
-      pin(n.x, n.z, c, on, { 'data-n': n.id, style: 'cursor:pointer' }); label(n.x, n.z - Math.max(n.radius, 9 * p) - 5 * p, n.title, gN); }
+      shape(n, { fill: c, 'fill-opacity': on ? .18 : .1, stroke: c, 'stroke-opacity': .8, 'stroke-width': on ? 2.5 : 1.5, 'stroke-dasharray': on ? '' : '6 4', 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' });
+      pin(n.x, n.z, c, on, { 'data-n': n.id, style: 'cursor:pointer' }); label(n.x, Math.min(topOf(n), n.z - 9 * p) - 5 * p, n.title, gN); }
     const show = ed || (sel && cur()); if (show) { const c = DC[show.dept] || DC.all;
-      if (ed && Number.isFinite(ed.x)) { el('circle', { cx: ed.x, cy: ed.z, r: ed.radius, fill: c, 'fill-opacity': .16, stroke: c, 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, gN); pin(ed.x, ed.z, c, true, { 'data-centre': 1, style: 'cursor:move' }); }
+      if (ed && sketch) el('polyline', { points: sketch.map(a => a.join(',')).join(' '), fill: c, 'fill-opacity': .12, stroke: c, 'stroke-width': 2.5, 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' }, gN);
+      else if (ed && (ed.area || Number.isFinite(ed.x))) shape(ed, { fill: c, 'fill-opacity': .16, stroke: c, 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none' });
+      if (ed && Number.isFinite(ed.x)) pin(ed.x, ed.z, c, true, { 'data-centre': 1, style: 'cursor:move' });
       (show.points || []).forEach((q2, i) => { const [g, col] = PT[q2.type] || PT.note, r = 9 * p;
         el('circle', { cx: q2.x, cy: q2.z, r, fill: col, stroke: '#0d1416', 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke', ...(ed ? { 'data-p': i, style: 'cursor:move' } : {}) }, gP);
         el('text', { x: q2.x, y: q2.z + 3.5 * p, 'text-anchor': 'middle', 'font-size': (g.length > 2 ? 7 : 9.5) * p, 'font-weight': 800, fill: '#0B0B0C', 'pointer-events': 'none' }, gP).textContent = g;
         if (q2.label) label(q2.x, q2.z - 13 * p, q2.label, gP, 11); }); }
     svg.classList.toggle('placing', !!placing);
-    $('preHint').textContent = placing === 'centre' ? 'Click the map where the place is. Esc cancels.' : placing ? `Click the map where the ${(D.points[placing] || 'point').toLowerCase()} is. Esc cancels.` : ed ? 'Drag the pin or a point to move it.' : ''; };
+    $('preHint').textContent = placing === 'area' ? 'Hold down and drag all the way around the area, then let go. Scroll to zoom. Esc cancels.' : placing === 'centre' ? 'Click the map where the place is. Esc cancels.' : placing ? `Click the map where the ${(D.points[placing] || 'point').toLowerCase()} is. Esc cancels.` : ed ? 'Drag the pin or a point to move it.' : ''; };
 
-  // dragging the centre or a point moves it (while editing); anything else pans; a click picks a note or places what's being placed
-  let drag = null;
+  // dragging the centre or a point moves it (while editing); drawing an area, a drag outlines it; anything else pans; a click picks
+  // a note or places what's being placed
+  let drag = null, sketch = null;
   svg.addEventListener('pointerdown', e => { if (e.button !== 0 && e.button !== 1) return; const t = e.target;
+    if (ed && placing === 'area' && e.button === 0) { sketch = [toMap(e)]; drag = { what: 'a' }; svg.setPointerCapture(e.pointerId); draw(); return; }
     drag = ed && t.dataset.centre ? { what: 'c' } : ed && t.dataset.p != null ? { what: 'p', i: +t.dataset.p } : { pan: [e.clientX, e.clientY, vb[0], vb[1]], at: toMap(e), n: t.dataset.n, moved: false };
     svg.setPointerCapture(e.pointerId); });
   svg.addEventListener('pointermove', e => { if (!drag) return; if (drag.pan) { const dx = e.clientX - drag.pan[0], dy = e.clientY - drag.pan[1]; if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
       if (drag.moved) { vb[0] = drag.pan[2] - dx * px(); vb[1] = drag.pan[3] - dy * px(); setVB(); } return; }
-    const m = toMap(e); if (drag.what === 'c') { const dx = m[0] - ed.x, dz = m[1] - ed.z; ed.x = m[0]; ed.z = m[1]; ed.points.forEach(q2 => { q2.x += dx; q2.z += dz; }); } else { ed.points[drag.i].x = m[0]; ed.points[drag.i].z = m[1]; } draw(); });
-  svg.addEventListener('pointerup', () => { const d = drag; drag = null; if (!d || !d.pan || d.moved) return;
+    const m = toMap(e); if (drag.what === 'a') { const l = sketch[sketch.length - 1]; if (Math.hypot(m[0] - l[0], m[1] - l[1]) > 5 * px()) { sketch.push(m); draw(); } return; }
+    if (drag.what === 'c') { const dx = m[0] - ed.x, dz = m[1] - ed.z; ed.x = m[0]; ed.z = m[1]; ed.points.forEach(q2 => { q2.x += dx; q2.z += dz; }); if (ed.area) ed.area = ed.area.map(a => [a[0] + dx, a[1] + dz]); } else { ed.points[drag.i].x = m[0]; ed.points[drag.i].z = m[1]; } draw(); });
+  svg.addEventListener('pointerup', () => { const d = drag; drag = null; if (d?.what === 'a') { endSketch(); return; } if (!d || !d.pan || d.moved) return;
     if (placing && ed) { if (placing === 'centre') { ed.x = d.at[0]; ed.z = d.at[1]; } else ed.points.push({ type: placing, x: d.at[0], z: d.at[1], label: '' }); placing = null; drawSide(); draw(); return; }
     if (d.n) { sel = +d.n; flash = null; drawSide(); draw(); } });
   svg.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY > 0 ? 1.2 : 1 / 1.2, toMap(e)); }, { passive: false });
-  dlg.addEventListener('keydown', e => { if (e.key === 'Escape' && placing) { e.preventDefault(); placing = null; drawSide(); draw(); } });
+  // the outline drawn: thinned to at most 120 corners; too small to be an area and it's dropped. The pin goes in the middle if it has none yet
+  const endSketch = () => { let a = sketch || []; sketch = null; const xs = a.map(v => v[0]), zs = a.map(v => v[1]);
+    if (a.length < 3 || Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)) < 20) { say('Hold down and drag all the way around the area.', 'err'); draw(); return; }
+    if (a.length > 120) a = a.filter((v, i) => i % Math.ceil(a.length / 120) === 0);
+    ed.area = a.map(v => [Math.round(v[0] * 10) / 10, Math.round(v[1] * 10) / 10]); placing = null; flash = null;
+    if (!Number.isFinite(ed.x)) { ed.x = Math.round((Math.min(...xs) + Math.max(...xs)) * 5) / 10; ed.z = Math.round((Math.min(...zs) + Math.max(...zs)) * 5) / 10; }
+    drawSide(); draw(); };
+  dlg.addEventListener('keydown', e => { if (e.key === 'Escape' && placing) { e.preventDefault(); placing = null; sketch = null; drawSide(); draw(); } });
 
   // ── the side panel ──
   const deptOpts = v => D.may.map(d => `<option value="${d}"${d === v ? ' selected' : ''}>${DN[d]}</option>`).join('');
   const row = n => `<button type="button" class="it" data-n="${n.id}"><i style="background:${DC[n.dept]}"></i><div><b>${esc(n.title)}</b><small>${esc([D.kinds[n.kind], n.address, n.points.length ? n.points.length + ' marked' : ''].filter(Boolean).join(' · '))}</small></div><span class="tag">${DN[n.dept]}</span></button>`;
   const overview = () => { const L = shown(), n = cur(), deps = [...new Set(D.notes.map(x => x.dept))];
-    return `<p class="sub">Notes pinned to places, for whoever responds there: fire pre-incident plans (exits, hydrants, staging) and police premise notes. When a 911 call comes in inside a note's circle, the units get it as an alert.</p>
+    return `<p class="sub">Notes pinned to places, for whoever responds there: fire pre-incident plans (exits, hydrants, staging) and police premise notes. When a 911 call comes in inside a note's circle or area, the units get it as an alert.</p>
       <div class="acts"><button type="button" class="go" data-act="new">New note</button><span class="msg" id="preMsg" role="status"></span></div>
       ${n ? `<div style="display:grid;gap:8px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)"><div class="acts"><b style="flex:1;font-size:15px">${esc(n.title)}</b><button type="button" class="wt-x" data-act="unsel" aria-label="Close">&times;</button></div>
         <div class="acts"><span class="tag" style="border-color:${DC[n.dept]};color:#fff">${DN[n.dept]}</span><span class="tag">${esc(D.kinds[n.kind])}</span>${n.address ? `<span style="font-size:12.5px;color:#9A9EA6">${esc(n.address)}</span>` : ''}</div>
@@ -106,8 +123,8 @@
     <div class="two"><label>For<select id="preDept">${deptOpts(ed.dept)}</select></label><label>Type<select id="preKind">${Object.entries(D.kinds).map(([k, t]) => `<option value="${k}"${k === ed.kind ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label></div>
     <label>What to know<textarea id="preBody" maxlength="3000" placeholder="Two floors, vault at the back. Alarm panel by the front door. Sprinklers on both floors.">${esc(ed.body)}</textarea></label>
     <h3>On the map</h3><div class="acts"><button type="button" class="bt" data-act="centre" aria-pressed="${placing === 'centre'}">${Number.isFinite(ed.x) ? 'Move the pin' : 'Place it on the map'}</button></div>
-    <div class="seg" role="group" aria-label="Circle size">${Object.entries(D.radii).map(([k, r]) => `<button type="button" class="bt" data-rad="${r}" aria-pressed="${ed.radius === r}">${k[0].toUpperCase() + k.slice(1)} area</button>`).join('')}</div>
-    <p class="sub">A 911 call inside the circle brings this note up for the units.</p>
+    <div class="seg" role="group" aria-label="What it covers">${Object.entries(D.radii).map(([k, r]) => `<button type="button" class="bt" data-rad="${r}" aria-pressed="${!ed.area && placing !== 'area' && ed.radius === r}">${k[0].toUpperCase() + k.slice(1)} circle</button>`).join('')}<button type="button" class="bt" data-act="area" aria-pressed="${!!ed.area || placing === 'area'}">${ed.area ? 'Redraw the area' : 'Draw an area'}</button></div>
+    <p class="sub">${placing === 'area' ? 'Hold down on the map and drag around the area, like a whole town, then let go.' : ed.area ? 'A 911 call anywhere inside the area you drew brings this note up for the units.' : 'A 911 call inside the circle brings this note up for the units. For a bigger place, draw an area around it.'}</p>
     <h3>Points</h3><div>${ed.points.map((q2, i) => `<div class="pt"><span class="g" style="background:${(PT[q2.type] || PT.note)[1]}">${(PT[q2.type] || PT.note)[0]}</span><input data-plabel="${i}" maxlength="60" placeholder="${esc(D.points[q2.type])}" value="${esc(q2.label)}"><button type="button" class="wt-x" data-prm="${i}" aria-label="Remove">&times;</button></div>`).join('') || '<p class="empty">Exits, hydrants, where to park… Pick one and click the map.</p>'}</div>
     <div class="two"><select id="prePt">${Object.entries(D.points).map(([k, t]) => `<option value="${k}">${esc(t)}</option>`).join('')}</select><button type="button" class="bt" data-act="point" aria-pressed="${!!placing && placing !== 'centre'}"${Number.isFinite(ed.x) ? '' : ' disabled'}>Add on the map</button></div>
     <div class="acts" style="justify-content:flex-end"><span class="msg" id="preMsg" role="status"></span><button type="button" class="bt" data-act="cancel">Cancel</button><button type="button" class="go" data-act="save">Save</button></div>`;
@@ -117,7 +134,7 @@
   const take = j => { D = j; if (Array.isArray(j.off)) { img.setAttribute('x', -j.off[0]); img.setAttribute('y', -j.off[1]); } if (sel && !cur()) sel = 0; watchCalls(); };
   const load = async () => { try { take(await call('')); return true; } catch (x) { side.innerHTML = `<div class="wt-top"><h2>Location notes</h2><button type="button" class="wt-x" data-act="close" aria-label="Close">&times;</button></div><p class="sub">${esc(x.message)}</p>`; return false; } };
   window.ovPremises = async id => { ed = null; placing = null; flash = null; if (!dlg.open) dlg.showModal(); side.innerHTML = '<p class="sub">Loading…</p>'; if (!await load()) return;
-    sel = id && D.notes.some(n => n.id === id) ? id : 0; drawSide(); const n = cur(); n ? fitTo(n.x, n.z, Math.max(500, n.radius * 6)) : fitTo(); };
+    sel = id && D.notes.some(n => n.id === id) ? id : 0; drawSide(); const n = cur(); n ? fitNote(n) : fitTo(); };
   dlg.addEventListener('close', () => { ed = null; placing = null; });
   dlg.addEventListener('input', e => { const t = e.target; if (t.id === 'preQ') { q = t.value.trim().toLowerCase(); const l = $('preList'); if (l) { const L = shown(); l.innerHTML = L.length ? L.map(row).join('') : '<p class="empty">No note matches that.</p>'; } draw(); return; }
     if (!ed) return; if (t.id === 'preTitle') ed.title = t.value; if (t.id === 'preAddr') ed.address = t.value; if (t.id === 'preBody') ed.body = t.value; if (t.id === 'preKind') ed.kind = t.value;
@@ -126,23 +143,26 @@
   dlg.addEventListener('click', async e => { const t = e.target.closest('button'); if (!t) { if (e.target === dlg) dlg.close(); return; } const a = t.dataset.act;
     if (a === 'close') return dlg.close();
     if (t.dataset.z) return t.dataset.z === 'fit' ? fitTo() : zoom(t.dataset.z === 'in' ? 1 / 1.4 : 1.4);
-    if (t.dataset.n) { sel = +t.dataset.n; flash = null; drawSide(); const n = cur(); if (n) fitTo(n.x, n.z, Math.max(500, n.radius * 6)); return; }
+    if (t.dataset.n) { sel = +t.dataset.n; flash = null; drawSide(); const n = cur(); if (n) fitNote(n); return; }
     if (t.dataset.f != null) { filter = t.dataset.f; drawSide(); draw(); return; }
     if (a === 'unsel') { sel = 0; drawSide(); draw(); return; }
-    if (a === 'new') { ed = { dept: D.may.includes('fd') ? 'fd' : D.may[0], kind: 'preplan', title: '', address: '', body: '', x: NaN, z: NaN, radius: D.radii.medium, points: [] }; placing = 'centre'; flash = null; drawSide(); draw(); $('preTitle')?.focus(); return; }
-    if (a === 'edit') { const n = cur(); ed = { ...n, points: n.points.map(q2 => ({ ...q2 })) }; flash = null; drawSide(); draw(); return; }
-    if (a === 'cancel') { ed = null; placing = null; flash = null; drawSide(); draw(); return; }
+    if (a === 'new') { ed = { dept: D.may.includes('fd') ? 'fd' : D.may[0], kind: 'preplan', title: '', address: '', body: '', x: NaN, z: NaN, radius: D.radii.medium, area: null, points: [] }; placing = 'centre'; flash = null; drawSide(); draw(); $('preTitle')?.focus(); return; }
+    if (a === 'edit') { const n = cur(); ed = { ...n, area: n.area && n.area.map(v => [...v]), points: n.points.map(q2 => ({ ...q2 })) }; flash = null; drawSide(); draw(); return; }
+    if (a === 'cancel') { ed = null; placing = null; sketch = null; flash = null; drawSide(); draw(); return; }
     if (a === 'centre') { placing = placing === 'centre' ? null : 'centre'; drawSide(); draw(); return; }
+    if (a === 'area') { placing = placing === 'area' ? null : 'area'; flash = null; drawSide(); draw(); return; }
     if (a === 'point') { placing = placing && placing !== 'centre' ? null : $('prePt').value; drawSide(); draw(); return; }
-    if (t.dataset.rad) { ed.radius = +t.dataset.rad; drawSide(); draw(); return; }
+    if (t.dataset.rad) { ed.radius = +t.dataset.rad; ed.area = null; if (placing === 'area') placing = null; drawSide(); draw(); return; }
     if (t.dataset.prm) { ed.points.splice(+t.dataset.prm, 1); drawSide(); draw(); return; }
-    if (a === 'save') { if (!Number.isFinite(ed.x)) { say('Place it on the map first.', 'err'); return; } t.disabled = true;
+    if (a === 'save') { if (!Number.isFinite(ed.x)) { say('Place it on the map first, or draw its area.', 'err'); return; } t.disabled = true;
       try { const j = await call('/save', ed); take(j); sel = j.id; ed = null; placing = null; say('Saved.', 'ok'); drawSide(); draw(); } catch (x) { say(x.message, 'err'); t.disabled = false; } return; }
     if (a === 'del') { const n = cur(); if (!confirm(`Delete the note for ${n.title}?`)) return; try { take(await call('/delete', { id: n.id })); sel = 0; say('Deleted.', 'ok'); drawSide(); draw(); } catch (x) { say(x.message, 'err'); } } });
 
-  // ── a 911 call inside a note's circle: an alert for the units, opening the note ──
+  // ── a 911 call inside a note's circle or area: an alert for the units, opening the note ──
   const told = new Set(); let watching = false;
-  const near = (n, c) => { const w = window.ovToWorld ? window.ovToWorld(n.x, n.z) : [n.x * G2M, n.z * G2M]; return Math.hypot(w[0] - c.x, w[1] - c.y) <= n.radius * G2M + 4; };
+  const W = (x, z) => window.ovToWorld ? window.ovToWorld(x, z) : [x * G2M, z * G2M];
+  const inside = (poly, x, y) => { let k = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; };
+  const near = (n, c) => { if (n.area) return inside(n.area.map(a => W(a[0], a[1])), c.x, c.y); const w = W(n.x, n.z); return Math.hypot(w[0] - c.x, w[1] - c.y) <= n.radius * G2M + 4; };
   const check = () => { if (!D) return; const now = Date.now();
     for (const c of window.CALLS || []) { if (!c.live || !Number.isFinite(c.x) || now - c.startedAt > 15 * 60000) continue;
       for (const n of D.notes) { const k = n.id + ':' + c.startedAt; if (told.has(k) || !(n.dept === 'all' || n.dept === c.dept) || !near(n, c)) continue; told.add(k);
