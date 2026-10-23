@@ -32,6 +32,7 @@ import * as arrests from './app/arrests.mjs';
 import * as cameras from './app/cameras.mjs';
 import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
+import * as player from './app/player.mjs';
 import * as duty from './app/duty.mjs';
 import * as monitors from './app/monitors.mjs';
 import * as weather from './app/weather.mjs';
@@ -924,6 +925,7 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'roblox/start' && req.method === 'POST') { const r = await auth.robloxStart(user, (await jsonBody(req)).username); return r.error ? json(res, { error: r.error }, 400) : json(res, r); }
   if (rest === 'roblox/verify' && req.method === 'POST') { const r = await auth.robloxVerify(user); if (r.error) return json(res, { error: r.error }, 400); return json(res, r, 200, r.mergedInto ? { 'set-cookie': auth.signIn(req, r.mergedInto) } : {}); }
   if (rest === 'roblox/cancel' && req.method === 'POST') { roblox.clear(user.id); return json(res, { ok: true }); }
+  if (rest === 'account/career-public' && req.method === 'POST') { const r = player.setHidden(user, !(await jsonBody(req)).show); return json(res, r, r.error ? 400 : 200); }
   if (rest === 'roblox/unlink' && req.method === 'POST') { auth.robloxUnlink(user); return json(res, { ok: true }); }
   if (rest === 'leave' && req.method === 'POST') { const c = communities.bySlug(String((await jsonBody(req)).slug || '')), role = c && members.role(c.id, user.id);
     if (!role) return json(res, { error: 'You are not in that server.' }, 400); if (role === 'owner') return json(res, { error: 'Owners cannot leave their own server.' }, 400);
@@ -940,7 +942,7 @@ const erlcAppStatus = async live => { const out = { hasKey: !!appKey(), fromEnv:
     out.ok = r.ok; out.check = r.ok ? 'ER:LC accepts the key.' : j.code === 2003 ? 'ER:LC says this Global API Key is invalid. Copy it again, or regenerate it.' : `ER:LC answered ${r.status}${j.message ? ': ' + j.message : ''}`; out.bucket = r.headers.get('x-ratelimit-bucket') || ''; }
   catch (e) { out.check = 'Could not reach ER:LC right now.'; } return out; };
 const visible = slug => { const c = communities.bySlug(String(slug || '')); return c && !c.settings.profile?.unlisted && !c.hidden && !c.suspended ? c : null; };
-const reviewList = cid => reviews.forServer(cid).map(r => ({ id: r.id, user_id: r.user_id, rating: r.rating, body: r.body, created: r.created, updated: r.updated, reply: r.reply, reply_name: r.reply_name || '', reply_verified: !!r.reply_verified, roblox_name: r.roblox_name, roblox_id: r.roblox_id, verified: !!r.verified }));
+const reviewList = cid => reviews.forServer(cid).map(r => ({ id: r.id, user_id: r.user_id, rating: r.rating, body: r.body, created: r.created, updated: r.updated, reply: r.reply, reply_name: r.reply_name || '', reply_verified: !!r.reply_verified, reply_rid: r.reply_rid || '', roblox_name: r.roblox_name, roblox_id: r.roblox_id, verified: !!r.verified }));
 const runsServer = (cid, uid) => ['owner', 'co_owner'].includes(members.role(cid, uid));
 const SUSPENDED_OK = /^\/(privacy|terms|refunds|health|auth\/logout|liberty-county\.jpg|intro-splash\.js|dropdown\.js|favicon\.ico|icon-[a-z0-9-]+\.(png|svg)|apple-touch-icon(-precomposed)?\.png|manifest\.webmanifest|rbx\/(avatar|bust)\/\d+|support|api\/support)$/;
 // ── routes ──
@@ -996,6 +998,10 @@ const route = async (req, res) => {
     res.writeHead(200, { 'content-type': 'application/gzip', 'content-disposition': `attachment; filename="${b.name}"`, 'cache-control': 'no-store' }); return createReadStream(p).pipe(res); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteMod(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
     return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus(), owner: isSiteAdmin(user), betaNote: siteSettings.get('beta_note'), alertsInfo: alertsInfo() })); }
+  // a player's public page: the servers they run, their reviews, and their career if they're Premium and show it
+  if ((m0r = path.match(/^\/user\/(\d{1,20})\/?$/))) { const user = auth.currentUser(req); if (auth.limited(req, 'player', 60, 60000)) return msg(res, user, 'Slow down', 'Too many pages at once. Try again in a minute.', { href: '/explore', label: 'Explore servers' }, 429);
+    const P = player.view(m0r[1], user); if (!P) return msg(res, user, 'Player not found', 'Nobody with that Roblox account runs a listed server or uses Oversite.', { href: '/explore', label: 'Explore servers' }, 404);
+    return page(res, pages.player({ logo: LOGO, user, P })); }
   if (path === '/account/career') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account/career'); if (!user.roblox_name) return redirect(res, '/dashboard');
     return page(res, pages.career(premium.userInfo(user).on ? { logo: LOGO, user, stats: career.stats(user), prem: true } : { logo: LOGO, user, prem: false, tracked: career.stats(user)?.total || 0, payments: premium.stripeReady() })); }
   if (path === '/account') { const user = auth.currentUser(req); if (!user) return redirect(res, '/?next=/account'); if (!user.roblox_name) return redirect(res, '/dashboard');

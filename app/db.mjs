@@ -304,7 +304,7 @@ export const voteDays = (cid, since) => q('SELECT created FROM server_votes WHER
 // one review per person per server; the owner can answer each one
 export const reviews = {
   forServer: cid => q(`SELECT r.id, r.user_id, r.rating, r.body, r.created, r.updated, r.reply, r.reply_at, u.roblox_name, u.roblox_id, u.verified,
-    coalesce(ru.roblox_name, ru.name) AS reply_name, ru.verified AS reply_verified
+    coalesce(ru.roblox_name, ru.name) AS reply_name, ru.verified AS reply_verified, ru.roblox_id AS reply_rid
     FROM reviews r JOIN users u ON u.id = r.user_id JOIN communities c ON c.id = r.community_id LEFT JOIN users ru ON ru.id = coalesce(r.reply_by, c.owner_id) WHERE r.community_id = ? AND u.suspended = 0 ORDER BY r.created DESC LIMIT 300`).all(cid),
   summary: () => Object.fromEntries(q('SELECT r.community_id, AVG(r.rating) AS avg, COUNT(*) AS n FROM reviews r JOIN users u ON u.id = r.user_id WHERE u.suspended = 0 GROUP BY r.community_id').all().map(r => [r.community_id, { avg: r.avg, n: r.n }])),
   byId: id => q('SELECT * FROM reviews WHERE id = ?').get(id),

@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '3.3', date: '2026-10-23', tag: 'new', title: 'Player pages',
+    body: 'Click an owner, co-owner or reviewer on a server’s page or on Explore to open their player page: the servers they run, the reviews they’ve written and, for Premium players, their career (hours on duty, calls, arrests and time on each server). Premium players can hide their career from it with a switch on their own page.', items: [] },
   { v: '3.2', date: '2026-10-23', tag: 'new', title: 'Your state’s penal code, and an arrest log',
     body: 'Two things owners and staff asked for.', items: ['Settings → Laws: load any US state’s (or DC’s) penal code in one click: 42 common charges with that state’s real statute numbers and offense names. Fines and jail time are roleplay values you can change', 'Server Staff → Arrests: every arrest in game is logged, with the officer who was right next to the suspect, where it happened, their wanted level, when they got out, and the MDT arrest report that goes with it. Search by suspect or officer'] },
   { v: '3.1', date: '2026-10-23', tag: 'new', title: 'Boats',
