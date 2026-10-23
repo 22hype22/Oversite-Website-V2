@@ -246,7 +246,7 @@ const communityApi = async (req, res, slug, rest) => {
     return json(res, { error: 'Not found.' }, 404); }
   // Settings → Bots: the server's own bots, each with its key and permissions, and where its events go
   if (rest === 'bots' || rest.startsWith('bots/')) { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can connect bots.' }, 403);
-    const prem = premium.isPremium(c), info = () => ({ bots: bots.list(c), depts: bots.DUTY_DEPTS.filter(d => features.on(c, 'dept_' + d)).map(d => ({ key: d, name: duty.deptName(c, d) })), max: bots.max(prem), premium: prem, on: features.on(c, 'bots'), logs: Object.fromEntries(Object.entries(bots.LOGS).map(([k, [name, desc]]) => [k, { name, desc }])), base: `${PUBLIC()}/api/bot/v1`, docs: `${PUBLIC()}/developers` });
+    const prem = premium.isPremium(c), info = () => ({ bots: bots.list(c), depts: bots.DUTY_DEPTS.filter(d => features.on(c, 'dept_' + d)).map(d => ({ key: d, name: duty.deptName(c, d) })), max: bots.max(prem), maxOversite: bots.OVERSITE_BOTS, premium: prem, on: features.on(c, 'bots'), logs: Object.fromEntries(Object.entries(bots.LOGS).map(([k, [name, desc]]) => [k, { name, desc }])), base: `${PUBLIC()}/api/bot/v1`, docs: `${PUBLIC()}/developers` });
     if (rest === 'bots' && M === 'GET') return json(res, info());
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req), id = String(j.id || '');
     const r = rest === 'bots/create' ? await bots.create(c, j, prem, user.roblox_name || user.name) : rest === 'bots/update' ? await bots.update(c, id, j) : rest === 'bots/rotate' ? bots.rotate(c, id, j.what)
@@ -682,7 +682,7 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
   let c, bot; const old = premium.serverForBotKey(key);
   if (old) { if (!premium.isPremium(old)) return json(res, { error: 'This server\'s Premium has ended, so its bot key is paused.' }, 402); c = old; bot = { id: 'premium', name: 'Bot', scopes: ['read', 'lookup'] }; }
   else { const a = bots.auth(key); if (!a) return json(res, { error: 'Unknown key. Connect the bot in your server\'s Oversite settings, under Bots.' }, 401); ({ c, bot } = a);
-    if (a.rank >= bots.max(premium.isPremium(c))) return json(res, { error: `This server's Premium has ended, so only its first ${bots.FREE_BOTS} connected bot works.` }, 402); }
+    if (a.rank >= bots.max(premium.isPremium(c))) return json(res, { error: `This server's Premium has ended, so only its first ${bots.FREE_BOTS} of its own bots works. Oversite bots keep working.` }, 402); }
   if (c.suspended) return json(res, { error: 'This server is suspended.' }, 403);
   if (!features.on(c, 'bots')) return json(res, { error: 'This server has switched off connected bots.' }, 403);
   const now = Date.now(), h = (botHits.get(bot.id) || []).filter(t => now - t < 60000);

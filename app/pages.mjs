@@ -1212,7 +1212,7 @@ ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><d
 <p class="note">Link the Discord bots your server uses, like a department, roleplay, economy or moderation bot, so they work with the CAD. Each bot gets its own key and can only do what you tick here. Give the key to whoever runs the bot: the <a href="/developers" target="_blank" rel="noopener">developer guide</a> shows them how to use it.</p>
 <div id="btBody"><p class="note">Loading…</p></div><p class="msg" id="btMsg"></p>
 <script type="application/json" id="btData">${JSON.stringify({ scopes: BOT_SCOPES, events: BOT_EVENTS, presets: BOT_PRESETS }).replace(/</g, '\\u003c')}</script>
-<script src="/bots-editor.js?v=4" defer></script></section></div>
+<script src="/bots-editor.js?v=5" defer></script></section></div>
 <div class="st-pane wide" id="tab-insights" data-pane="insights" role="tabpanel" aria-labelledby="t-insights">
 <section class="card" id="insights"><div class="in-top"><div><h2>Insights</h2><p class="note" style="margin:2px 0 0">What's been happening on your server, from what Oversite already sees.</p></div>
 <div class="in-seg" role="radiogroup" aria-label="Period"><button type="button" role="radio" data-days="7" aria-checked="true">7 days</button><button type="button" role="radio" data-days="30" aria-checked="false">30 days</button></div></div>

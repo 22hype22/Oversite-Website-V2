@@ -37,7 +37,12 @@ export const PRESETS = {
   roleplay: { name: 'Roleplay bot', scopes: ['read', 'people', 'lookup', 'vehicles', 'bank', 'records'], events: ['record.created', 'call.created'] },
   moderation: { name: 'Moderation bot', scopes: ['read', 'people', 'game'], events: ['player.joined', 'player.left', 'rdm.flagged', 'arrest.logged'] },
   readonly: { name: 'Read only', scopes: ['read'], events: [] } };
-export const FREE_BOTS = 1, PREMIUM_BOTS = 10;
+// a server's own bots (made here, with a key): 1 free, 10 with Premium. Oversite bots bought on oversite.shop (roleplay, dispatch,
+// department…) don't count: up to OVERSITE_BOTS of them, free or not
+export const FREE_BOTS = 1, PREMIUM_BOTS = 10, OVERSITE_BOTS = 10;
+const own = L => L.filter(b => !b.oversite);
+// where a bot stands against the limit: Oversite bots always work; a server's own, by the order they were added
+export const rankOf = (L, b) => b.oversite ? 0 : own(L).indexOf(b);
 
 const sha = s => createHash('sha256').update(s).digest('hex');
 const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
@@ -92,7 +97,7 @@ const clean = async (j, old) => { const name = T(j.name, 40); if (!name) return 
     hook = { url: ok.url, events, secret: old?.hook?.secret || seal('whsec_' + randomBytes(24).toString('base64url')) }; }
   return { name, scopes, hook }; };
 
-export const create = async (c, j, prem, by) => { const L = list0(c); if (L.length >= max(prem)) return { error: prem ? `A server can connect up to ${PREMIUM_BOTS} bots.` : `Free servers can connect ${FREE_BOTS} bot. Premium connects up to ${PREMIUM_BOTS}.` };
+export const create = async (c, j, prem, by) => { const L = list0(c); if (own(L).length >= max(prem)) return { error: prem ? `A server can connect up to ${PREMIUM_BOTS} of its own bots. Oversite bots don’t count.` : `Free servers can connect ${FREE_BOTS} of their own bot. Premium connects up to ${PREMIUM_BOTS}. Oversite bots don’t count.` };
   const v = await clean(j); if (v.error) return v; const id = randomBytes(5).toString('hex'), key = `ovb_${id}_${randomBytes(30).toString('base64url')}`;
   const b = { id, ...v, key: sha(key), hint: key.slice(-4), created: Date.now(), by: T(by, 40) }; store(c, [...L, b]);
   return { ok: true, bot: view(b), key, secret: b.hook ? unseal(b.hook.secret) : undefined }; };
@@ -113,7 +118,7 @@ const LINK_URL = process.env.OVERSITE_LINK_URL || 'https://kqhyjxtylvigrezlxzpl.
 const LINK_KIND = { department: 'department', dispatch: 'department', roleplay: 'roleplay', customs: 'roleplay', protection: 'moderation' };
 export const link = async (c, code, prem, by) => { const secret = process.env.CAD_LINK_SECRET || ''; if (!secret) return { error: 'Linking Oversite bots isn’t set up on this site yet.' };
   const clean = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (clean.length !== 8) return { error: 'The code is 8 letters and numbers. Copy it from the bot’s page on oversite.shop.' };
-  const L = list0(c); if (L.length >= max(prem) && !L.some(b => b.oversite)) return { error: prem ? `A server can connect up to ${PREMIUM_BOTS} bots. Disconnect one first.` : `Free servers can connect ${FREE_BOTS} bot. Disconnect it first, or get Premium for up to ${PREMIUM_BOTS}.` };
+  const L = list0(c);
   const id = randomBytes(5).toString('hex'), key = `ovb_${id}_${randomBytes(30).toString('base64url')}`, evSecret = 'whsec_' + randomBytes(24).toString('base64url'); let r;
   try { const x = await fetch(LINK_URL, { method: 'POST', signal: AbortSignal.timeout(10000), headers: { 'content-type': 'application/json', 'x-cad-link-secret': secret },
       body: JSON.stringify({ code: clean, key, events_secret: evSecret, server: { name: c.name, slug: c.slug }, cad_bot_id: id }) });
@@ -123,7 +128,7 @@ export const link = async (c, code, prem, by) => { const secret = process.env.CA
   // linked somewhere before: that link's key is no longer the bot's, so its old entry goes (here or on the other server)
   if (r.previous_slug && r.previous_cad_bot_id && r.previous_slug !== c.slug) { const pc = communities.all().find(x => x.slug === r.previous_slug); if (pc) store(pc, list0(pc).filter(b => b.id !== r.previous_cad_bot_id)); }
   const old = L.findIndex(b => b.oversite === r.bot_id || (r.previous_cad_bot_id && b.id === r.previous_cad_bot_id));
-  if (old < 0 && L.length >= max(prem)) return { error: `This server is at its limit of ${max(prem)} connected bots. Disconnect one, then use a new code.` };
+  if (old < 0 && L.filter(b => b.oversite).length >= OVERSITE_BOTS) return { error: `A server can link up to ${OVERSITE_BOTS} Oversite bots. Disconnect one, then use a new code.` };
   const p = PRESETS[LINK_KIND[String(r.base || '').split(/[^a-z]/)[0]]] || PRESETS.readonly;
   // the bot can take events (LOA requests, calls…) if it says where: signed with the secret sent above, the events its kind of bot gets
   const ev = r.events_url ? await checkUrl(r.events_url) : null, prev = old >= 0 ? L[old] : null;
@@ -167,7 +172,7 @@ export const auth = key => { const m = /^ovb_([0-9a-f]{10})_[A-Za-z0-9_-]{30,60}
   let cid = idx.get(m[1]); if (cid == null) { for (const c of communities.all()) for (const b of list0(c)) idx.set(b.id, c.id); cid = idx.get(m[1]); } if (cid == null) return null;
   const c = communities.byId(cid), L = c ? list0(c) : [], i = L.findIndex(b => b.id === m[1]); if (i < 0) return null; const b = L[i], h = sha(key);
   if (b.key.length !== h.length || !timingSafeEqual(Buffer.from(b.key), Buffer.from(h))) return null;
-  const u = used.get(b.id) || { n: 0 }; u.at = Date.now(); u.n++; used.set(b.id, u); return { c, bot: b, rank: i }; };
+  const u = used.get(b.id) || { n: 0 }; u.at = Date.now(); u.n++; used.set(b.id, u); return { c, bot: b, rank: rankOf(L, b) }; };
 export const can = (b, s) => b.scopes.includes(s);
 
 // sending an event: JSON signed like Stripe's (t=<seconds>,v1=<HMAC-SHA256 of "t.body">), one retry, never following redirects
@@ -185,7 +190,7 @@ export const test = (c, id) => { const b = list0(c).find(x => x.id === id); if (
 // something happened: every bot that asked for this event, and may see it, gets it
 let enabled = () => true; export const gate = fn => { enabled = fn; };
 export const emit = (c, event, data) => { if (!enabled(c)) return; const need = EVENTS[event]?.[1]; const L = list0(c);
-  L.forEach((b, i) => { if (!b.hook?.events.includes(event) || !can(b, need) || !within(c, i)) return; if ((stat.get(b.id)?.fails || 0) >= 50 && Math.random() > 0.05) return;   // a dead link is tried now and then, not every time
+  L.forEach(b => { if (!b.hook?.events.includes(event) || !can(b, need) || !within(c, rankOf(L, b))) return; if ((stat.get(b.id)?.fails || 0) >= 50 && Math.random() > 0.05) return;   // a dead link is tried now and then, not every time
     deliver(c, b, event, data).catch(() => {}); }); };
 let within = () => true; export const limit = fn => { within = fn; };
 

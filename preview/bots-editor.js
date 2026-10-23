@@ -65,13 +65,15 @@
     '<span class="bt-lbl">Code</span><input name="code" maxlength="9" placeholder="ABCD 2345" autocomplete="off" spellcheck="false" style="text-transform:uppercase;letter-spacing:.12em;font-family:ui-monospace,monospace">' +
     '<div class="bt-acts" style="margin-top:16px"><button class="btn pri">Link bot</button></div></form>';
 
-  const draw = () => { document.getElementById('btCount').textContent = S.bots.length ? S.bots.length + ' of ' + S.max : '';
-    const full = S.bots.length >= S.max;
-    const canLink = !full || S.bots.some(b => b.oversite), limit = '<p class="note" style="margin-top:14px">' + (S.premium ? 'This server has connected the most bots it can (' + S.max + ').' : 'Free servers connect ' + S.max + ' bot. <a href="#premium">Premium</a> connects up to 10.') + '</p>';
+  // Oversite bots don't count toward the limit: it's for the server's own bots only
+  const draw = () => { const mine = S.bots.filter(b => !b.oversite).length, ov = S.bots.length - mine;
+    document.getElementById('btCount').textContent = S.bots.length ? (ov ? ov + ' Oversite' + (mine ? ' · ' : '') : '') + (mine ? mine + ' of ' + S.max + ' own' : '') : '';
+    const full = mine >= S.max;
+    const canLink = ov < (S.maxOversite || 10), limit = '<p class="note" style="margin-top:14px">' + (S.premium ? 'This server has connected the most of its own bots it can (' + S.max + '). Oversite bots don’t count.' : 'Free servers connect ' + S.max + ' of their own bot. <a href="#premium">Premium</a> connects up to 10. Oversite bots don’t count, so link as many of those as you have.') + '</p>';
     body.innerHTML = (S.on ? '' : '<p class="msg err">Connected bots are switched off under Features, so bots’ keys don’t work right now.</p>') +
       (canLink ? linkForm() : '') +
       (S.bots.length ? S.bots.map(card).join('') : (editing === 'new' ? '' : '<p class="note">No bots connected yet.</p>')) +
-      (editing === 'new' ? form(null) : full ? (canLink ? '' : limit)
+      (editing === 'new' ? form(null) : full ? limit
         : '<div class="bt-acts" style="margin-top:14px"><button type="button" class="btn" data-act="new">Connect your own bot</button></div>');
     const f = document.getElementById('btF'); if (f) bindForm(f);
     const l = document.getElementById('btL'); if (l) bindLink(l); };
