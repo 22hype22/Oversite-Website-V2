@@ -7,6 +7,7 @@ import { db, now, users, licenses, mdtSignin } from './db.mjs';
 import { statusOf as licenseStatus } from './pdlicense.mjs';
 import * as chars from './chars.mjs';
 import { POSTALS } from './postals.mjs';
+import { STATES } from './penal-states.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS pd_people (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, rid TEXT NOT NULL, name TEXT NOT NULL, team TEXT,
   first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL, PRIMARY KEY (community_id, rid));
@@ -62,7 +63,15 @@ export const PENAL_UK = [
   ['WD-04', 'Possession of a controlled drug', 500, 5, 'Either-way'], ['WD-05', 'Possession with intent to supply', 5000, 30, 'Either-way'],
   ['JU-01', 'Obstructing a police officer', 500, 3, 'Summary'], ['JU-02', 'Resisting arrest', 800, 5, 'Summary'], ['JU-03', 'Wasting police time', 600, 3, 'Summary'],
   ['JU-04', 'Escape from lawful custody', 3000, 20, 'Indictable'], ['JU-05', 'Impersonating a police officer', 1200, 8, 'Summary']];
-export const PENAL_SETS = { us: { name: 'United States (default)', list: PENAL }, uk: { name: 'United Kingdom', list: PENAL_UK } };
+// Each US state's penal code: the default laws, fines and jail times, under that state's own statute numbers (app/penal-states.mjs),
+// so an owner picks their state instead of looking every section up. A code two laws share (three speeding tiers under one
+// section) gets a letter, as codes have to be unique.
+const stateSet = ({ codes }) => { const seen = new Map();
+  return PENAL.map(([id, title, fine, jail, cls]) => { let code = String(codes[id] || id).toUpperCase().replace(/[^A-Z0-9 .,:\-()\/§]/g, '').replace(/\s+/g, ' ').trim().slice(0, 14) || id;
+    const n = seen.get(code) || 0; seen.set(code, n + 1); if (n) code = code.slice(0, 12).trim() + ' ' + 'ABCDEFGHIJ'[n];
+    return [code, title, fine, jail, cls]; }); };
+export const PENAL_SETS = { us: { name: 'United States (default)', list: PENAL }, uk: { name: 'United Kingdom', list: PENAL_UK },
+  ...Object.fromEntries(Object.entries(STATES).map(([k, v]) => ['us_' + k.toLowerCase(), { name: v.name, state: true, list: stateSet(v) }])) };
 // a server's own laws (Settings → Laws), or the default; each entry is [code, title, fine, jail minutes, class]
 export const penalOf = c => (Array.isArray(c?.settings?.penal) && c.settings.penal.length ? c.settings.penal : PENAL);
 export const CLASSES = ['Infraction', 'Misdemeanor', 'Felony', 'Summary', 'Either-way', 'Indictable'];
@@ -70,7 +79,7 @@ export const cleanPenal = list => { if (!Array.isArray(list) || !list.length) re
   const out = [], seen = new Set();
   for (const [i, x] of list.entries()) { const r = Array.isArray(x) ? x : [x?.code, x?.title, x?.fine, x?.jail, x?.cls];
     const code = T(r[0], 14).toUpperCase(), title = T(r[1], 80), fine = Math.round(+r[2] || 0), jail = Math.round(+r[3] || 0), cls = CLASSES.includes(r[4]) ? r[4] : '';
-    if (!code || !title) return { error: `Law ${i + 1} needs a code and a name.` }; if (!/^[A-Z0-9][A-Z0-9 .\-()\/§]*$/.test(code)) return { error: `Law ${i + 1}: use letters, numbers and dashes in the code, like RT-01.` };
+    if (!code || !title) return { error: `Law ${i + 1} needs a code and a name.` }; if (!/^[A-Z0-9][A-Z0-9 .,:\-()\/§]*$/.test(code)) return { error: `Law ${i + 1}: use letters, numbers and dashes in the code, like RT-01.` };
     if (seen.has(code)) return { error: `Two laws use the code ${code}. Each needs its own.` }; seen.add(code);
     if (fine < 0 || fine > 1e7 || jail < 0 || jail > 10000) return { error: `Law ${i + 1}: the fine or jail time is out of range.` }; if (!cls) return { error: `Law ${i + 1} needs a class.` };
     out.push([code, title, fine, jail, cls]); }

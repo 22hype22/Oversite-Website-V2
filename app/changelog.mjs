@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '3.2', date: '2026-10-23', tag: 'new', title: 'Your state’s laws in one click',
+    body: 'Settings → Laws can load any US state’s penal code (or DC’s): the same laws, each under that state’s own statute number, so you no longer look every section up. Check the numbers before your server relies on them.', items: [] },
   { v: '3.1', date: '2026-10-23', tag: 'new', title: 'Boats',
     body: 'A Boats app on the Civilian phone: get a boating license, register your boats and report one stolen. Each boat gets a hull number police can search, and police can suspend or revoke a boating license like a driver’s license.', items: [] },
   { v: '3.0', date: '2026-10-23', tag: 'new', title: 'Transit and Hospital',

@@ -231,7 +231,7 @@ const communityApi = async (req, res, slug, rest) => {
   // Status & Updates: the server's health and updates; owners and co-owners post their own
   // Settings → Laws: the server's own penal code (or the default), a UK starting set, and the money sign fines show in
   if (rest === 'laws' || rest.startsWith('laws/')) { if (M !== 'GET' && !can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change the laws.' }, 403);
-    const info = () => ({ laws: police.penalOf(c), custom: !!(c.settings.penal && c.settings.penal.length), currency: c.settings.currency || '$', classes: police.CLASSES, sets: Object.fromEntries(Object.entries(police.PENAL_SETS).map(([k, v]) => [k, { name: v.name, count: v.list.length }])) });
+    const info = () => ({ laws: police.penalOf(c), custom: !!(c.settings.penal && c.settings.penal.length), currency: c.settings.currency || '$', classes: police.CLASSES, sets: Object.fromEntries(Object.entries(police.PENAL_SETS).map(([k, v]) => [k, { name: v.name, count: v.list.length, state: !!v.state }])) });
     if (rest === 'laws' && M === 'GET') return json(res, info());
     const j = await jsonBody(req), s = communities.byId(c.id).settings;
     if (rest === 'laws' && M === 'POST') { const r = police.cleanPenal(j.laws); if (r.error) return json(res, r, 400);

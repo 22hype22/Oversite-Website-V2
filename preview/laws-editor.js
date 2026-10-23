@@ -1,4 +1,4 @@
-// Settings → Laws: the server's penal code, as the MDT's charge picker uses it. Load a set (the US default or a UK one),
+// Settings → Laws: the server's penal code, as the MDT's charge picker uses it. Load a set (the US default, a UK one, or a US state's),
 // then add, change and remove laws; the money sign chosen here is what fines show in across the CAD.
 (() => {
   const root = document.getElementById('laws'); if (!root) return;
@@ -22,7 +22,12 @@
     list.innerHTML = rows.length ? rows.map(([x, i]) => row(x, i)).join('') : '<p class="note">' + (L.length ? 'No law matches that.' : 'No laws yet. Load a set or add one.') + '</p>'; count(); };
   const curDraw = () => root.querySelectorAll('[data-cur]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.cur === cur)));
   const load = j => { L = j.laws.map(x => [...x]); cur = j.currency || '$'; classes = j.classes;
-    $('lwSets').innerHTML = Object.entries(j.sets).map(([k, v]) => '<button type="button" data-set="' + k + '">Load ' + e(v.name) + ' (' + v.count + ')</button>').join('');
+    const sets = Object.entries(j.sets), states = sets.filter(([, v]) => v.state);
+    // the general sets as buttons; the 50 states and DC in one list, as there are too many to show as buttons
+    $('lwSets').innerHTML = sets.filter(([, v]) => !v.state).map(([k, v]) => '<button type="button" data-set="' + k + '">Load ' + e(v.name) + ' (' + v.count + ')</button>').join('') +
+      (states.length ? '<span class="lw-state"><select id="lwState" aria-label="Your state"><option value="">Your state’s laws…</option>' +
+        states.sort((a, b) => a[1].name.localeCompare(b[1].name)).map(([k, v]) => '<option value="' + k + '">' + e(v.name) + '</option>').join('') +
+        '</select><button type="button" id="lwStateGo" disabled>Load</button></span>' : '');
     curDraw(); draw(); mark(false); };
 
   list.addEventListener('input', ev => { const r = ev.target.closest('.lw-row'), f = ev.target.dataset.f; if (!r || f == null) return; const x = L[+r.dataset.i];
@@ -34,9 +39,14 @@
     L.push([pre + String(Math.max(0, ...used) + 1).padStart(2, '0'), '', 0, 0, L[L.length - 1]?.[4] || classes[0]]); q.value = ''; draw(); mark(true);
     const last = list.querySelector('.lw-row:last-child .t'); if (last) { last.focus(); last.scrollIntoView({ block: 'nearest' }); } });
   root.querySelectorAll('[data-cur]').forEach(b => b.addEventListener('click', () => { cur = b.dataset.cur; curDraw(); mark(true); }));
-  $('lwSets').addEventListener('click', async ev => { const b = ev.target.closest('[data-set]'); if (!b) return;
-    if (!await confirmIt({ title: b.textContent.replace(/^Load /, 'Load ') + '?', text: 'This replaces the laws listed here with that set. Records already written keep their charges.', ok: 'Load' })) return;
-    try { load(await call('/laws/load', { set: b.dataset.set })); say('Loaded. Officers see these laws next time they open a form.', true); } catch (x) { say(x.message); } });
+  const loadSet = async (set, name, note) => {
+    if (!await confirmIt({ title: 'Load ' + name + '?', text: 'This replaces the laws listed here with that set. Records already written keep their charges.' + (note || ''), ok: 'Load' })) return;
+    try { load(await call('/laws/load', { set })); say('Loaded. Officers see these laws next time they open a form.', true); } catch (x) { say(x.message); } };
+  $('lwSets').addEventListener('change', ev => { if (ev.target.id === 'lwState') $('lwStateGo').disabled = !ev.target.value; });
+  $('lwSets').addEventListener('click', ev => { const b = ev.target.closest('[data-set]');
+    if (b) return loadSet(b.dataset.set, b.textContent.replace(/^Load /, ''));
+    if (ev.target.id === 'lwStateGo') { const sel = $('lwState'); if (!sel.value) return;
+      loadSet(sel.value, sel.selectedOptions[0].textContent + '’s laws', ' Each law gets that state’s statute number; the fines and jail times are ours, for gameplay. Check the numbers before your server relies on them.'); } });
   save.addEventListener('click', async () => { save.disabled = true;
     try { load(await call('/laws', { laws: L, currency: cur })); say('Saved. Officers see the new laws next time they open a form.', true); } catch (x) { say(x.message); save.disabled = false; } });
   addEventListener('beforeunload', ev => { if (dirty) { ev.preventDefault(); ev.returnValue = ''; } });
