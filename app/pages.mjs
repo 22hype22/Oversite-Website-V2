@@ -1206,7 +1206,7 @@ ${invites.length ? `<div class="invites">${invites.map(i => `<div class="inv"><d
 <div class="lw-bar"><input id="lwQ" type="search" placeholder="Find a law" aria-label="Find a law" autocomplete="off"><button type="button" class="btn sm" id="lwAdd">Add law</button></div>
 <div class="lw-head"><span>Code</span><span>Law</span><span>Fine</span><span>Jail (min)</span><span>Class</span><span></span></div><div id="lwList" class="lw-list"><p class="note">Loading…</p></div>
 <div class="row" style="margin-top:14px;gap:8px"><button type="button" class="btn pri" id="lwSave" disabled>Save laws</button><span class="msg" id="lwMsg"></span></div>
-<script src="/laws-editor.js?v=1" defer></script></section></div>
+<script src="/laws-editor.js?v=2" defer></script></section></div>
 <div class="st-pane wide" id="tab-bots" data-pane="bots" role="tabpanel" aria-labelledby="t-bots">
 <section class="card" id="bots" data-api="/c/${esc(c.slug)}/api"><h2 class="hrow">Connected bots<span class="tag" id="btCount"></span></h2>
 <p class="note">Link the Discord bots your server uses, like a department, roleplay, economy or moderation bot, so they work with the CAD. Each bot gets its own key and can only do what you tick here. Give the key to whoever runs the bot: the <a href="/developers" target="_blank" rel="noopener">developer guide</a> shows them how to use it.</p>
