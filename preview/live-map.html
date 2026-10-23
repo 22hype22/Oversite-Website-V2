@@ -1082,6 +1082,13 @@
   .st-rec .x{background:none;border:0;color:var(--faint);font:inherit;font-size:10.5px;cursor:pointer;padding:0}
   .st-rec .x:hover{color:#F0A0A0}
   .st-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--hair);font-size:12.5px}
+  .st-rdm{padding:12px 0;border-bottom:1px solid var(--hair);font-size:12.5px;display:grid;gap:8px}.st-rdm.done{opacity:.62}
+  .st-rdmset .dd{display:inline-flex!important;width:auto!important;flex:none!important;margin:0!important}.st-rdmset .dd-btn{padding:4px 8px;border-radius:8px}.st-rdmh{display:flex;align-items:center;gap:10px}.st-rdmh .grow{flex:1;min-width:0}.st-rdmh small{display:block;color:var(--dim);font-size:11.5px;margin-top:2px}.st-rdmh b{font-size:13.5px}
+  .st-rdmw{display:flex;flex-wrap:wrap;gap:5px}.st-rdmw .st-b{font-size:11px;padding:3px 8px}
+  .st-rdmv{color:var(--dim);line-height:1.6}.st-rdmv .lnk{color:var(--ink)}.st-rdma{display:flex;flex-wrap:wrap;gap:6px}.st-rdma .st-btn.bad{color:#F3A0A0;border-color:rgba(226,75,75,.4)}
+  .st-rdmset{display:grid;gap:9px;padding:12px 14px;margin-bottom:12px;border-radius:12px;border:1px solid var(--hair);background:rgba(240,242,245,.03);font-size:12.5px}
+  .st-rdmset label{display:flex;align-items:center;gap:7px;flex-wrap:wrap;color:var(--ink)}.st-rdmset select{width:auto;min-width:0;height:auto;display:inline-block;margin:0;font:inherit;font-size:12.5px;color:var(--ink);background:rgba(240,242,245,.06);border:1px solid var(--hair2);border-radius:8px;padding:4px 6px}
+  .st-rdmset label:has(>input[type=checkbox]){flex-wrap:nowrap;align-items:flex-start}.st-rdmset input[type=checkbox]{flex:none;margin:2px 0 0}.st-rdmset small{color:var(--dim)}.st-rdmset .st-rdmrow{display:flex;gap:8px;align-items:center}.st-rdmset .msg{font-size:12px;color:var(--dim)}
   .st-row:last-child{border-bottom:0}
   .st-row .grow{flex:1;min-width:0}.st-row small{color:var(--faint);font-size:10.5px}
   .st-row code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--ink);word-break:break-all}
@@ -1576,6 +1583,7 @@
           <button role="tab" data-p="records" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg>Records</button>
           <button role="tab" data-p="bans" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></svg>Bans<i class="badge" id="stBansN" hidden>0</i></button>
           <button role="tab" data-p="logs" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Logs</button>
+          <button role="tab" data-p="rdm" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>RDM<i class="badge" id="stRdmN" hidden>0</i></button>
           <button class="ann" id="stAnnounce" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7"/></svg>Announce</button>
           <div class="tmenu" id="stUMenu" role="menu" aria-label="You"></div><button type="button" class="tuser" id="stUserBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="stUMenu" data-umenu="staff"><i id="stMeAv">ST</i><small id="stMe">Staff</small><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
         </nav>
@@ -1595,6 +1603,7 @@
           <section class="tscreen st-pane" data-p="calls"><div class="thead"><div><h2>Mod calls</h2><small>Players calling for staff in game</small></div></div><div id="stCalls"></div></section>
           <section class="tscreen st-pane" data-p="records"><div class="thead"><div><h2>Records</h2><small>Every warning, kick, ban and note</small></div></div><label class="st-search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stRecFind" placeholder="Search records by player or Roblox ID" autocomplete="off" spellcheck="false"></label><div id="stRecords"></div></section>
           <section class="tscreen st-pane" data-p="bans"><div class="thead"><div><h2>Bans</h2><small>Banned from the server</small></div></div><div id="stBans"></div></section>
+          <section class="tscreen st-pane" data-p="rdm"><div class="thead"><div><h2>RDM watch</h2><small>Possible random deathmatch, spotted in the kill log</small></div></div><div id="stRdmSet"></div><div id="stRdm"><div class="st-empty">Loading…</div></div></section>
           <section class="tscreen st-pane" data-p="logs"><div class="thead"><div><h2>Logs</h2><small>In-game commands and kills. Commands are kept for good.</small></div></div><div class="st-cmd" id="stCmd" hidden></div><form class="st-search" id="stLookF" autocomplete="off"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stLookQ" list="stLookL" placeholder="Look up a player or staff member by name or Roblox ID to see every command they used" spellcheck="false"><datalist id="stLookL"></datalist><button class="st-btn">Look up</button></form><div id="stLook" hidden></div><div id="stLogs"></div></section>
         </div>
       </div>
@@ -4247,12 +4256,43 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
     const k = e.target.closest('[data-kind]'); if (k) { lkKind = lkKind === k.dataset.kind ? '' : k.dataset.kind; renderLook(); } });
   const renderRecords = async () => { const r = await fetch(API + '/records?' + new URLSearchParams(recQ ? { q: recQ } : {})).then(x => x.json()).catch(() => ({ records: [] }));
     $('stRecords').innerHTML = (r.who ? `<div class="st-h"><span>Roblox ID ${esc(r.who.id)} is <button class="lnk" data-open="${esc(r.who.id)}" data-name="${esc(r.who.name)}">${esc(r.who.name)}</button></span><button class="st-btn" data-open="${esc(r.who.id)}" data-name="${esc(r.who.name)}">Open their record</button></div>` : '') + (r.records.length ? r.records.map(x => recHTML(x, true)).join('') : `<div class="st-empty">${recQ ? 'No records match that.' : 'No records yet. Warnings, kicks, bans and notes you give show up here.'}</div>`); };
+  // ── RDM watch: flags from the kill log (app/rdm.mjs); warn, kick or ban from a flag, or mark it not RDM ──
+  let RD = null, rdmSeen = null;
+  const loadRdm = async () => { try { const r = await fetch(API + '/rdm'); if (r.ok) RD = await r.json(); } catch (e) {} drawRdm(); };
+  const opt = (v, cur, label) => `<option value="${v}"${String(v) === String(cur) ? ' selected' : ''}>${label}</option>`;
+  const drawRdm = () => { if (!RD) return; const S = RD.settings, F = RD.flags || [];
+    $('stRdmSet').innerHTML = RD.canEdit ? `<form class="st-rdmset" id="stRdmF"><label><input type="checkbox" name="on"${S.on ? ' checked' : ''}> <b>Watch the kill log for RDM</b></label>
+      <label>Kill streak: flag after <select name="kills">${[2, 3, 4, 5, 6, 8, 10].map(n => opt(n, S.kills, n)).join('')}</select> kills within <select name="mins">${[1, 2, 3, 5, 10, 15].map(n => opt(n, S.mins, n + ' min')).join('')}</select></label>
+      <label>Same person: flag after killing them <select name="repeat">${opt(0, S.repeat, 'never')}${[2, 3, 4, 5].map(n => opt(n, S.repeat, n + ' times')).join('')}</select> in 10 min</label>
+      <label><input type="checkbox" name="teams"${S.teams ? ' checked' : ''}> Flag Fire or DOT killing anyone, and officers killing officers</label>
+      <label>When someone is flagged: <select name="action">${opt('flag', S.action, 'only show it here')}${opt('warn', S.action, ':pm the killer a warning')}${opt('kick', S.action, ':pm the killer, and kick them on a kill streak')}</select></label>
+      <label><input type="checkbox" name="pmStaff"${S.pmStaff ? ' checked' : ''}> :pm the staff in the server (mods and admins in game) about each new flag</label>
+      <div class="st-rdmrow"><button class="st-go" style="padding:6px 14px">Save</button><span class="msg" id="stRdmM"></span></div>
+      <small>Killing someone who killed you in the last 5 minutes doesn't count, except in a kill streak.</small></form>`
+      : `<div class="st-rdmset"><small>${S.on ? `Flags ${S.kills} kills within ${S.mins} min${S.repeat ? `, killing the same person ${S.repeat} times in 10 min` : ''}${S.teams ? ', and Fire, DOT or officers killing when they shouldn’t' : ''}. An admin can change this.` : 'RDM watch is off. An admin can turn it on here.'}</small></div>`;
+    const ts = t => new Date(t * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    $('stRdm').innerHTML = F.length ? F.map(f => { const open = f.status === 'open';
+      return `<div class="st-rdm${open ? '' : ' done'}"><div class="st-rdmh">${av(f.killer_id, f.killer, 'width:34px;height:34px')}<div class="grow"><b><button class="lnk" data-open="${esc(f.killer_id)}" data-name="${esc(f.killer)}">${esc(f.killer)}</button></b><small>${esc(f.team || 'Team unknown')} · ${f.victims.length} kill${f.victims.length === 1 ? '' : 's'} · ${esc(ago(f.last_at))}</small></div>${open ? '<span class="st-pill" style="color:#F0A0A0;background:rgba(226,75,75,.14)">Open</span>' : ''}</div>
+        <div class="st-rdmw">${f.reasons.map(r => `<span class="st-b k">${esc(r)}</span>`).join('')}</div>
+        <div class="st-rdmv">Killed ${f.victims.map(v => `<button class="lnk" data-open="${esc(v.id)}" data-name="${esc(v.name)}">${esc(v.name)}</button>${v.team ? ` (${esc(v.team)})` : ''} at ${ts(v.at)}`).join(', ')}${f.auto ? `<br>Oversite ${esc(f.auto)} them.` : ''}</div>
+        ${open ? `<div class="st-rdma"><button class="st-btn" data-rdmdo="warn" data-f="${f.id}">Warn</button><button class="st-btn" data-rdmdo="kick" data-f="${f.id}">Kick</button>${canBan ? `<button class="st-btn bad" data-rdmdo="ban" data-f="${f.id}">Ban</button>` : ''}<button class="st-btn" data-rdmres="handled" data-f="${f.id}">Handled</button><button class="st-btn" data-rdmres="dismissed" data-f="${f.id}">Not RDM</button></div>`
+          : `<div class="st-rdma"><small style="color:var(--dim)">${f.status === 'dismissed' ? 'Marked not RDM' : 'Handled'}${f.done_by ? ' by ' + esc(f.done_by) : ''}${f.done_at ? ' · ' + esc(ago(f.done_at)) : ''}</small><button class="st-btn" data-rdmres="open" data-f="${f.id}">Reopen</button></div>`}</div>`; }).join('')
+      : `<div class="st-empty">${S.on ? 'Nothing flagged. Kills that look like RDM show up here as they happen.' : 'RDM watch is off.'}</div>`; };
+  $('stRdmSet').addEventListener('submit', async e => { e.preventDefault(); const f = e.target, m = $('stRdmM'), v = n => f.elements[n];
+    try { const r = await post('/rdm/settings', { on: v('on').checked, kills: +v('kills').value, mins: +v('mins').value, repeat: +v('repeat').value, teams: v('teams').checked, action: v('action').value, pmStaff: v('pmStaff').checked });
+      RD.settings = r.settings; m.textContent = 'Saved.'; setTimeout(() => { if (m.isConnected) m.textContent = ''; }, 2500); } catch (x) { m.textContent = x.message; } });
+  const rdmResolve = async (id, status) => { try { const r = await post('/rdm/resolve', { id, status }); RD.flags = r.flags; drawRdm(); load(); } catch (x) { toast(x.message); } };
+  $('stRdm').addEventListener('click', e => { const r = e.target.closest('[data-rdmres]'); if (r) { e.stopPropagation(); return rdmResolve(+r.dataset.f, r.dataset.rdmres); }
+    const d = e.target.closest('[data-rdmdo]'); if (!d) return; e.stopPropagation(); const f = (RD.flags || []).find(x => x.id === +d.dataset.f); if (!f) return;
+    sheet(d.dataset.rdmdo, { id: f.killer_id, name: f.killer }); cur.rdm = f.id; $('stDlgR').value = 'RDM: ' + f.reasons.join(', '); });
   let render = () => { if (!D) return; $('stLive').style.background = 'var(--green)'; $('stServer').textContent = `${D.server.name || 'Server'} · ${D.server.players ?? D.players.length}/${D.server.max ?? '?'}`;
-    renderPlayers(); renderCalls(); renderBans(); renderLogs(); if (pane === 'player') renderPlayer(); };
+    renderPlayers(); renderCalls(); renderBans(); renderLogs(); if (pane === 'player') renderPlayer();
+    const rn = D.rdm || 0; $('stRdmN').textContent = rn; $('stRdmN').hidden = !rn;   // open RDM flags; a new one pops up a note
+    if (rdmSeen != null && rn > rdmSeen) { toast('Possible RDM flagged. Open the RDM tab.'); if (pane === 'rdm') loadRdm(); } if (D.rdm != null) rdmSeen = rn; };
 
   // ── navigation ──
   let show = p => { pane = p; document.querySelectorAll('#stTabs [data-p]').forEach(b => b.setAttribute('aria-selected', b.dataset.p === p)); document.querySelectorAll('#staffMdt .st-pane').forEach(x => x.classList.toggle('on', x.dataset.p === p));
-    if (p === 'records') renderRecords(); if (p === 'player') renderPlayer(); };
+    if (p === 'records') renderRecords(); if (p === 'player') renderPlayer(); if (p === 'rdm') loadRdm(); };
   const open = (id, name) => { const live = D && D.players.find(p => p.id === id); sel = live || { id, name, team: '', callsign: '', permission: '' }; show('player'); if (D) renderPlayers(); };
   $('stTabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) show(b.dataset.p); });
   $('stFind').addEventListener('input', () => D && renderPlayers());
@@ -4306,7 +4346,7 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
     m.className = 'msg'; m.textContent = ['note'].includes(cur.kind) ? 'Saving…' : 'Sending in game…';
     const slow = setTimeout(() => { m.textContent = 'Waiting for ER:LC (one command every 5 seconds)…'; }, 1500);
     try { const r = await post('/action', { kind: cur.kind, name: cur.who ? cur.who.name : '', id: cur.who ? cur.who.id : '', reason: $('stDlgR').value, hours: cur.kind === 'ban' ? +$('stDlgDur').value || 0 : 0 });
-      clearTimeout(slow); dlg.close(); toast(r.queued || r.delivered === false ? r.message : `${SHEETS[cur.kind].t} done${cur.who ? ' for ' + cur.who.name : ''}.`); if (r.queued) loadQueue(); load(); if (pane === 'player') { shownFor = null; renderPlayer(); } }
+      clearTimeout(slow); dlg.close(); toast(r.queued || r.delivered === false ? r.message : `${SHEETS[cur.kind].t} done${cur.who ? ' for ' + cur.who.name : ''}.`); if (cur.rdm) rdmResolve(cur.rdm, 'handled'); if (r.queued) loadQueue(); load(); if (pane === 'player') { shownFor = null; renderPlayer(); } }
     catch (x) { clearTimeout(slow); m.className = 'msg err'; m.textContent = x.message; go.disabled = false; } });
   const toast = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2800); };
   // ── Map app: every player on the official map (ER:LC gives positions as pixels of the 5355 px map) ──

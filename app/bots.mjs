@@ -27,13 +27,14 @@ export const EVENTS = {
   'monitor.alert': ['Someone on an ankle monitor leaves their area, enters a no-go zone or comes back', 'lookup'],
   'license.updated': ['Police suspend, revoke or reinstate a driver’s license or firearms permit', 'lookup'],
   'case.filed': ['Someone files a civil suit in Court', 'read'], 'case.updated': ['A judge takes a case, sets a hearing or rules, or a case is settled or withdrawn', 'read'],
+  'rdm.flagged': ['RDM watch flags a possible random deathmatch (or adds a kill to a flag)', 'read'],
   'loa.requested': ['Someone asks for leave (LOA) from a department or the staff team', 'read'], 'loa.decided': ['A leave request is approved or denied', 'read'] };
 // what the "Connect a bot" form ticks for each kind of bot
 export const PRESETS = {
   department: { name: 'Department bot', scopes: ['read', 'people', 'units', 'calls', 'lookup', 'records'], events: ['shift.started', 'shift.ended', 'call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic', 'record.created', 'record.updated', 'loa.requested', 'loa.decided', 'monitor.alert', 'license.updated'] },
   justice: { name: 'Justice (DOJ) bot', scopes: ['read', 'people', 'lookup', 'records'], events: ['record.created', 'record.updated', 'license.updated', 'case.filed', 'case.updated'] },
   roleplay: { name: 'Roleplay bot', scopes: ['read', 'people', 'lookup', 'vehicles', 'bank', 'records'], events: ['record.created', 'call.created'] },
-  moderation: { name: 'Moderation bot', scopes: ['read', 'people', 'game'], events: ['player.joined', 'player.left'] },
+  moderation: { name: 'Moderation bot', scopes: ['read', 'people', 'game'], events: ['player.joined', 'player.left', 'rdm.flagged'] },
   readonly: { name: 'Read only', scopes: ['read'], events: [] } };
 export const FREE_BOTS = 1, PREMIUM_BOTS = 10;
 
@@ -54,7 +55,8 @@ export const LOGS = {
   status: ['Unit status', 'A unit changes their 10-code status', ['unit.status']],
   licenses: ['License changes', 'Police suspend, revoke or reinstate a driver’s license or firearms permit', ['license.updated']],
   monitors: ['Ankle monitor alerts', 'Someone on an ankle monitor leaves their area or enters a no-go zone', ['monitor.alert']],
-  alpr: ['Plate reader hits', 'A plate reader or camera flags a car', ['alpr']] };
+  alpr: ['Plate reader hits', 'A plate reader or camera flags a car', ['alpr']],
+  rdm: ['RDM alerts', 'RDM watch flags someone for a possible random deathmatch', ['rdm.flagged']] };
 const logOf = event => Object.keys(LOGS).find(k => LOGS[k][2].includes(event));
 const LOG_BASES = ['department', 'dispatch', 'roleplay', 'customs'];   // the Oversite bots that post CAD logs
 const logsFor = b => LOG_BASES.includes(b.base) ? Object.keys(LOGS).filter(k => LOGS[k][2].every(ev => can(b, EVENTS[ev][1]))) : [];

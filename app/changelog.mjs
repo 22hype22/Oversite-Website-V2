@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '2.9', date: '2026-10-23', tag: 'new', title: 'RDM watch',
+    body: 'Server Staff has an RDM tab that watches the kill log for random deathmatch: kill streaks, killing the same person again and again, and Fire, DOT or officers killing when they shouldn’t. Admins set the limits, and Oversite can message the killer and the staff in the server.', items: [] },
   { v: '2.8', date: '2026-10-22', tag: 'new', title: 'Location notes for a whole area',
     body: 'A location note can now cover an area you draw: press Draw an area and drag around a place like a whole town. A 911 call anywhere inside it brings the note up for the units.', items: [] },
   { v: '2.7', date: '2026-10-22', tag: 'new', title: 'Your own ID card',

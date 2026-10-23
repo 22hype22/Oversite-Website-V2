@@ -24,6 +24,7 @@ import * as pdlic from './app/pdlicense.mjs';
 import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
 import * as safezones from './app/safezones.mjs';
+import * as rdm from './app/rdm.mjs';
 import * as cameras from './app/cameras.mjs';
 import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
@@ -105,7 +106,7 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
     monitorRead(cc, body);
     if (premium.isPremium(cc) && features.on(cc, 'staff')) try { fireaop.observe(cc, body, fireHands); } catch (e) {}
     if (features.on(cc, 'automations')) automations.observe(cc, body); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
-  f.wantKills = () => safezones.wantsKills(communities.byId(c.id) || c);   // safe zones need the kill log
+  f.wantKills = () => { const cc = communities.byId(c.id) || c; return safezones.wantsKills(cc) || rdm.wantsKills(cc); };   // safe zones and RDM watch need the kill log
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => { res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); res.write(`event: callstates\ndata: ${JSON.stringify(callStates(communities.byId(c.id) || c))}\n\n`); }; } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
@@ -290,7 +291,11 @@ const communityApi = async (req, res, slug, rest) => {
   // staff tools: Staff and up, on Premium servers
   if (rest.startsWith('staff/')) { if (!can(role, 'mod')) return json(res, { error: 'Staff only.' }, 403); if (!features.on(c, 'staff')) return off('staff'); if (!premium.isPremium(c)) return json(res, { error: 'The Server Staff CAD is part of Premium.', premium: true }, 402);
     const sub = rest.slice(6), by = { id: user.id, name: user.roblox_name || user.name };
-    if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); return json(res, v, v.error ? 502 : 200); }
+    if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); if (!v.error && features.on(c, 'st_rdm')) v.rdm = rdm.of(c).on ? rdm.openCount(c) : null; return json(res, v, v.error ? 502 : 200); }
+    // RDM watch (app/rdm.mjs): the flags for every staff member; admins and up set how strict it is and what Oversite does by itself
+    if (sub === 'rdm' && M === 'GET') return json(res, { flags: rdm.list(c), settings: rdm.of(c), canEdit: can(role, 'admin') });
+    if (sub === 'rdm/settings' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can change RDM watch.' }, 403); const r = rdm.save(c, await jsonBody(req)); console.log(`rdm: ${c.slug} settings by ${by.name}`); return json(res, r); }
+    if (sub === 'rdm/resolve' && M === 'POST') { const j = await jsonBody(req), r = rdm.resolve(c, j.id, String(j.status || ''), by); return json(res, r.error ? r : { ok: true, flags: rdm.list(c) }, r.error ? 400 : 200); }
     // Fire AOP: the areas fires may burn in, drawn and switched by staff
     if (sub === 'fires' && M === 'GET') return json(res, { ...fireaop.view(c), off: mapOff(c) });
     if (sub === 'fires' && M === 'POST') { const r = fireaop.save(c, await jsonBody(req)); if (r.ok) console.log(`fire aop: ${c.slug} saved by ${by.name}`); return json(res, r.error ? r : { ...fireaop.view(c), off: mapOff(c) }, r.error ? 400 : 200); }
@@ -1237,6 +1242,7 @@ setInterval(() => { const d = new Date(), day = d.toISOString().slice(0, 10); if
 process.on('uncaughtException', e => { console.error('uncaught:', e); alerts.send('crash', 'Oversite crashed and is restarting', String(e?.stack || e).slice(0, 1800), 'crit').finally(() => setTimeout(() => process.exit(1), 500)); setTimeout(() => process.exit(1), 4000); });
 process.on('unhandledRejection', e => { console.error('unhandled rejection:', e); alerts.send('rejection', 'Oversite hit an error it didn’t handle', String(e?.stack || e).slice(0, 1800), 'warn'); });
 staff.startHistory(); bounds.start(feedFor, id => communities.key(id));
+rdm.onFlag((c, e) => bots.emit(c, 'rdm.flagged', e)); rdm.start(feedFor, id => communities.key(id), c => premium.isPremium(c) && features.on(c, 'staff') && features.on(c, 'st_rdm'));
 cmdq.start(staff.send, async c => { const s = await feedFor(c).snapshot(); if (s.status !== 200) return null; try { return (JSON.parse(s.body).Players || []).length; } catch (e) { return null; } }, id => communities.key(id));   // queued commands and temporary bans safezones.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), (cid, body) => { staffhub.observe(cid, body); const cc = communities.byId(cid); if (cc) monitorRead(cc, body); });
 supporter.start(); civ.start();
 // business shifts end when the worker leaves the server or the civilian team; loans take their weekly payment
