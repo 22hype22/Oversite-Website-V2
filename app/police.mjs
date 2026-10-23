@@ -73,7 +73,7 @@ export const cleanPenal = list => { if (!Array.isArray(list) || !list.length) re
   const out = [], seen = new Set();
   for (const [i, x] of list.entries()) { const r = Array.isArray(x) ? x : [x?.code, x?.title, x?.fine, x?.jail, x?.cls];
     const code = T(r[0], 14).toUpperCase(), title = T(r[1], 80), fine = Math.round(+r[2] || 0), jail = Math.round(+r[3] || 0), cls = CLASSES.includes(r[4]) ? r[4] : '';
-    if (!code || !title) return { error: `Law ${i + 1} needs a code and a name.` }; if (!/^[A-Z0-9][A-Z0-9 .\-()\/§]*$/.test(code)) return { error: `Law ${i + 1}: use letters, numbers and dashes in the code, like RT-01.` };
+    if (!code || !title) return { error: `Law ${i + 1} needs a code and a name.` }; if (!/^[A-Z0-9][A-Z0-9 .:\-()\/§]*$/.test(code)) return { error: `Law ${i + 1}: use letters, numbers and dashes in the code, like RT-01.` };   // colons for states that cite with them (RSA 265:60, 2C:11-3)
     if (seen.has(code)) return { error: `Two laws use the code ${code}. Each needs its own.` }; seen.add(code);
     if (fine < 0 || fine > 1e7 || jail < 0 || jail > 10000) return { error: `Law ${i + 1}: the fine or jail time is out of range.` }; if (!cls) return { error: `Law ${i + 1} needs a class.` };
     out.push([code, title, fine, jail, cls]); }
