@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '3.1', date: '2026-10-23', tag: 'new', title: 'Boats',
+    body: 'A Boats app on the Civilian phone: get a boating license, register your boats and report one stolen. Each boat gets a hull number police can search, and police can suspend or revoke a boating license like a driver’s license.', items: [] },
   { v: '3.0', date: '2026-10-23', tag: 'new', title: 'Transit and Hospital',
     body: 'Two new jobs with their own apps.', items: ['Transit (Civilian phone): bus drivers start a shift with a pre-trip checklist, follow routes your admins draw, charge fares, file incident, crash and lost property reports, message transit police and press panic, which calls 911 at the bus and sends the five nearest officers', 'Buses (Civilian phone): every player can see where the buses are, their routes and their next stop', 'Hospital (Fire Department MDT): EMS pre-alert the hospital with the patient, their vitals, what they need and how to treat them; the hospital sees each ambulance’s live ETA and response code and messages the crew', 'Admins draw bus routes and stops, set the fare, the checklist and what happens when a bus goes off route, and put the hospitals on the map'] },
   { v: '2.9', date: '2026-10-23', tag: 'new', title: 'RDM watch',

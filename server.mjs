@@ -27,6 +27,7 @@ import * as safezones from './app/safezones.mjs';
 import * as rdm from './app/rdm.mjs';
 import * as transit from './app/transit.mjs';
 import * as hospital from './app/hospital.mjs';
+import * as boats from './app/boats.mjs';
 import * as cameras from './app/cameras.mjs';
 import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
@@ -403,10 +404,11 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest.startsWith('pd/')) { const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, by = { uid: user.id, name: user.roblox_name || user.name, supervisor: police.isSupervisor(c.id, user.id, can(role, 'admin'), ranksFor(c, premium.isPremium(c)).pd) };
     const prem = premium.isPremium(c), cut = prem ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5, recent = L => cut ? L.filter(r => r.at >= cut || r.status === 'Active' || r.status === 'Pending') : L;   // free servers see the last 30 days
     if (sub === 'config' && M === 'GET') return json(res, { penal: police.penalOf(c), rank: police.pdRank(c.id, user.id), supervisor: by.supervisor, admin: can(role, 'admin'), me: by.name, premium: prem, recordDays: prem ? 0 : premium.FREE_RECORD_DAYS });
-    if (sub === 'search' && M === 'GET') return json(res, police.search(c.id, qs.get('q')));
+    if (sub === 'search' && M === 'GET') return json(res, { ...police.search(c.id, qs.get('q')), ...(features.on(c, 'boats') ? { boats: boats.search(c.id, qs.get('q')) } : {}) });
     if (sub === 'person' && M === 'GET') { const r = await police.person(c.id, qs.get('id') || qs.get('name'), licenseOf); if (r.history) r.history = recent(r.history);
       const who = r.person?.rid && users.byRoblox(r.person.rid); if (who && features.on(c, 'pd_character')) r.character = civ.charOf(c.id, who.id);   // the character they made in the Civilian tab
-      if (r.person && features.on(c, 'pd_licenses')) { r.licenses = pdlic.of(c.id, r.person.rid, r.person.name); r.licenseHistory = pdlic.history(c.id, r.person.rid, r.person.name); }
+      if (r.person && features.on(c, 'pd_licenses')) { r.licenses = pdlic.of(c.id, r.person.rid, r.person.name).filter(l => l.kind !== 'boat' || features.on(c, 'boats')); r.licenseHistory = pdlic.history(c.id, r.person.rid, r.person.name); }
+      if (r.person && features.on(c, 'boats')) r.boats = boats.forPerson(c.id, r.person.rid, r.person.name);   // their boats and boating license (app/boats.mjs)
       return json(res, r, r.error ? 404 : 200); }
     // suspending, revoking or reinstating a driver's license or firearms permit (app/pdlicense.mjs)
     if (sub === 'license' && M === 'POST') { if (!features.on(c, 'pd_licenses')) return off('pd_licenses'); const j = await jsonBody(req), r = pdlic.set(c.id, by.name, j); if (r.error) return json(res, r, 400);
@@ -504,6 +506,16 @@ const communityApi = async (req, res, slug, rest) => {
       if (r.units.length) { const st = { unit: r.units[0], dept: 'pd', stage: 1, more: r.units.slice(1).map(name => ({ name, dept: 'pd' })), at: Date.now() }, s2 = communities.byId(c.id).settings;   // sent en route, like dispatch would
         s2.callstate = { ...callStates(c, s2), [r.call]: st }; communities.saveSettings(c.id, s2); c.settings.callstate = s2.callstate; f.bcast('callstate', JSON.stringify({ key: r.call, ...st })); }
       return out(r); }
+    return json(res, { error: 'Not found.' }, 404); }
+  // Boats (app/boats.mjs): a boating license and registered boats, in the Civilian phone; admins set the fees
+  if (rest === 'boats' || rest.startsWith('boats/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    if (!features.on(c, 'boats')) return json(res, { error: 'This server has switched off boats.' }, 403); const lk = await lockedOut(c, user, role, 'civ'); if (lk) return json(res, lk, 403);
+    const admin = can(role, 'admin'), out = r => json(res, r.error ? r : { ...r, ...boats.view(c, user, admin) }, r.error ? 400 : 200);
+    if (rest === 'boats' && M === 'GET') return json(res, boats.view(c, user, admin)); if (M !== 'POST') return json(res, { error: 'Not found.' }, 404);
+    const j = await jsonBody(req), sub = rest.slice(6);
+    if (sub === 'settings') { if (!admin) return json(res, { error: 'Only admins and up can change boat fees.' }, 403); return out(boats.saveConf(c, j)); }
+    if (sub === 'license') return out(boats.getLicense(c, user)); if (sub === 'register') return out(boats.register(c, user, j));
+    if (sub === 'stolen') return out(boats.stolen(c, user, j)); if (sub === 'remove') return out(boats.remove(c, user, j));
     return json(res, { error: 'Not found.' }, 404); }
   // Hospital (app/hospital.mjs): EMS pre-alerts, the hospital board with live ETAs, messages both ways. For fire/EMS, dispatch and staff;
   // a change is pushed to every open CAD (event hospital) so the board and the crew see it at once
