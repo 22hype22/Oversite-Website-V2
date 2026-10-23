@@ -66,7 +66,7 @@ const logsFor = b => LOG_BASES.includes(b.base) ? Object.keys(LOGS).filter(k => 
 const logEvents = b => [...new Set(Object.entries(b.logs || {}).filter(([k, ch]) => ch && LOGS[k]).flatMap(([k]) => LOGS[k][2]))];
 
 // what the settings page sees: never the key or the signing secret
-export const view = b => ({ id: b.id, name: b.name, scopes: b.scopes, hint: b.hint, created: b.created, by: b.by, oversite: !!b.oversite, dept: b.dept || '', hook: b.hook ? { url: b.hook.url, events: b.hook.events } : null,
+export const view = b => ({ id: b.id, name: b.name, scopes: b.scopes, hint: b.hint, created: b.created, by: b.by, oversite: !!b.oversite, guild: b.guild || null, hook: b.hook ? { url: b.hook.url, events: b.hook.events } : null,
   ...(b.oversite ? { logs: b.logs || {}, canLog: !!b.hook, logKinds: logsFor(b) } : {}),
   used: used.get(b.id)?.at || b.used || null, uses: used.get(b.id)?.n || 0, delivery: stat.get(b.id) || null });
 export const list = c => list0(c).map(view);
@@ -111,7 +111,7 @@ export const hasOversite = (c, kind) => list0(c).some(b => b.oversite && b.base 
 // changes every minute) and types it here. Oversite checks the code and keeps the bot's key itself, so nobody copies a key.
 const LINK_URL = process.env.OVERSITE_LINK_URL || 'https://kqhyjxtylvigrezlxzpl.supabase.co/functions/v1/cad-link';
 const LINK_KIND = { department: 'department', dispatch: 'department', roleplay: 'roleplay', customs: 'roleplay', protection: 'moderation' };
-export const link = async (c, code, prem, by, dept = '') => { const secret = process.env.CAD_LINK_SECRET || ''; if (!secret) return { error: 'Linking Oversite bots isn’t set up on this site yet.' };
+export const link = async (c, code, prem, by) => { const secret = process.env.CAD_LINK_SECRET || ''; if (!secret) return { error: 'Linking Oversite bots isn’t set up on this site yet.' };
   const clean = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (clean.length !== 8) return { error: 'The code is 8 letters and numbers. Copy it from the bot’s page on oversite.shop.' };
   const L = list0(c); if (L.length >= max(prem) && !L.some(b => b.oversite)) return { error: prem ? `A server can connect up to ${PREMIUM_BOTS} bots. Disconnect one first.` : `Free servers can connect ${FREE_BOTS} bot. Disconnect it first, or get Premium for up to ${PREMIUM_BOTS}.` };
   const id = randomBytes(5).toString('hex'), key = `ovb_${id}_${randomBytes(30).toString('base64url')}`, evSecret = 'whsec_' + randomBytes(24).toString('base64url'); let r;
@@ -128,27 +128,37 @@ export const link = async (c, code, prem, by, dept = '') => { const secret = pro
   // the bot can take events (LOA requests, calls…) if it says where: signed with the secret sent above, the events its kind of bot gets
   const ev = r.events_url ? await checkUrl(r.events_url) : null, prev = old >= 0 ? L[old] : null;
   const hook = ev?.url ? { url: ev.url, events: logEvents({ logs: prev?.logs }), secret: seal(evSecret) } : null;
-  const b = { id, name: T(r.bot_name, 40) || 'Oversite bot', scopes: [...p.scopes], hook, key: sha(key), hint: key.slice(-4), created: Date.now(), by: T(by, 40), oversite: String(r.bot_id), base: T(String(r.base || '').split(/[^a-z]/)[0], 20), dept: DUTY_DEPTS.includes(dept) ? dept : '', logs: prev?.logs || {} };
+  const b = { id, name: T(r.bot_name, 40) || 'Oversite bot', scopes: [...p.scopes], hook, key: sha(key), hint: key.slice(-4), created: Date.now(), by: T(by, 40), oversite: String(r.bot_id), base: T(String(r.base || '').split(/[^a-z]/)[0], 20), logs: prev?.logs || {} };
   store(c, old >= 0 ? L.map((x, i) => (i === old ? b : x)) : [...L, b]);
   return { ok: true, bot: view(b), linked: true }; };
 // the channel each log goes to ('' for off), checked against the channels the bot can post in
 export const setLogs = async (c, id, logs) => { const L = list0(c), b = L.find(x => x.id === id); if (!b?.oversite) return { error: 'Only Oversite bots post logs.' };
   if (!b.hook) return { error: 'Link this bot again with a new code from its page to turn on logs.' };
-  const ch = await channels(c, id); if (ch.error) return ch; const ok = new Set(ch.channels.map(x => x.id)), kinds = logsFor(b), next = {};
+  const ch = await channels(c, id); if (ch.error) return ch; const ok = new Set(ch.channels.filter(x => !b.guild || !x.guild || x.guild === b.guild.id).map(x => x.id)), kinds = logsFor(b), next = {};   // only the picked Discord server's channels
   for (const [k, v] of Object.entries(logs || {})) { const cid = String(v || ''); if (!kinds.includes(k) || !cid) continue; if (!ok.has(cid)) return { error: 'The bot can’t see one of those channels. Refresh and pick again.' }; next[k] = cid; }
   b.logs = next; b.hook.events = logEvents(b); store(c, L); return { ok: true, bot: view(b) }; };
 const chCache = new Map();
 export const channels = async (c, id) => { const b = list0(c).find(x => x.id === id); if (!b?.oversite) return { error: 'Only Oversite bots post logs.' };
   const hit = chCache.get(b.id); if (hit && Date.now() - hit.at < 60000) return hit.r; const secret = process.env.CAD_LINK_SECRET || ''; if (!secret) return { error: 'Linking Oversite bots isn’t set up on this site yet.' };
   let r; try { const x = await fetch(LINK_URL, { method: 'POST', signal: AbortSignal.timeout(10000), headers: { 'content-type': 'application/json', 'x-cad-link-secret': secret },
-      body: JSON.stringify({ action: 'channels', bot_id: b.oversite, server: { slug: c.slug }, cad_bot_id: b.id }) }); r = await x.json().catch(() => ({})); }
+      body: JSON.stringify({ action: 'channels', bot_id: b.oversite, server: { slug: c.slug }, cad_bot_id: b.id, guild_id: b.guild?.id || undefined }) }); r = await x.json().catch(() => ({})); }
   catch (e) { return { error: 'Oversite couldn’t be reached. Try again in a minute.' }; }
   if (!r.ok) return { error: r.error || 'Couldn’t read the bot’s channels.' };
-  const out = { ok: true, channels: (r.channels || []).map(x => ({ id: String(x.id), name: T(x.name, 100), category: T(x.category, 100) })) }; chCache.set(b.id, { at: Date.now(), r: out }); return out; };
-// which department an Oversite bot is for ('' for every department): it counts MDT duty shifts from that one only
+  if (!seenShape.has(b.oversite)) { seenShape.add(b.oversite); console.log(`bot channels: ${c.slug} answer has ${Object.keys(r).join(',')}; a channel has ${Object.keys(r.channels?.[0] || {}).join(',')}`); }   // which fields Oversite sends (no values)
+  // each channel's Discord server, when Oversite says (guild_id / guild_name, or guild: { id, name }); the servers the bot is in
+  const gid = x => T(String(x.guild_id ?? x.guild?.id ?? (typeof x.guild === 'string' ? x.guild : '') ?? ''), 30), gname = x => T(x.guild_name ?? x.guild?.name ?? '', 100);
+  const list = (r.channels || []).map(x => ({ id: String(x.id), name: T(x.name, 100), category: T(x.category, 100), guild: gid(x), guild_name: gname(x) }));
+  const guilds = new Map((Array.isArray(r.guilds) ? r.guilds : []).map(g => [String(g.id), T(g.name, 100) || 'Discord server']));
+  for (const x of list) if (x.guild && !guilds.has(x.guild)) guilds.set(x.guild, x.guild_name || 'Discord server');
+  const out = { ok: true, channels: list, guilds: [...guilds].map(([id, name]) => ({ id, name })) }; chCache.set(b.id, { at: Date.now(), r: out }); return out; };
+const seenShape = new Set();
+// which of the Discord servers the bot is in this CAD's logs and events are for (a bot can be in several); logs elsewhere are dropped
+export const setGuild = async (c, id, guild) => { const L = list0(c), b = L.find(x => x.id === id); if (!b?.oversite) return { error: 'Only Oversite bots post in Discord.' };
+  const ch = await channels(c, id); if (ch.error) return ch; const g = ch.guilds.find(x => x.id === String(guild || ''));
+  if (guild && !g) return { error: 'The bot isn’t in that Discord server any more. Refresh and pick again.' };
+  b.guild = g ? { id: g.id, name: g.name } : null; const keep = new Set(ch.channels.filter(x => !g || x.guild === g.id).map(x => x.id));
+  b.logs = Object.fromEntries(Object.entries(b.logs || {}).filter(([, cid]) => keep.has(cid))); if (b.hook) b.hook.events = logEvents(b); store(c, L); chCache.delete(b.id); return { ok: true, bot: view(b) }; };
 export const DUTY_DEPTS = ['pd', 'fd', 'dot'];
-export const setDept = (c, id, dept) => { const L = list0(c), b = L.find(x => x.id === id); if (!b) return { error: 'That bot isn’t connected any more.' };
-  if (!b.oversite) return { error: 'Only Oversite bots have a department here.' }; b.dept = DUTY_DEPTS.includes(dept) ? dept : ''; store(c, L); return { ok: true, bot: view(b) }; };
 export const remove = (c, id) => { store(c, list0(c).filter(b => b.id !== id)); used.delete(id); stat.delete(id); return { ok: true }; };
 
 // a key to its server and bot; a server over its plan's limit (Premium ended) keeps only its first bot working
@@ -164,7 +174,7 @@ export const can = (b, s) => b.scopes.includes(s);
 const sign = (secret, body) => { const t = Math.floor(Date.now() / 1000); return `t=${t},v1=${createHmac('sha256', secret).update(`${t}.${body}`).digest('hex')}`; };
 const deliver = async (c, b, event, data, test = false, retry = false) => {
   const channel = b.oversite ? b.logs?.[logOf(event)] || undefined : undefined;
-  const body = JSON.stringify({ id: 'evt_' + randomBytes(8).toString('hex'), event, server: { name: c.name, slug: c.slug }, at: new Date().toISOString(), test: test || undefined, channel_id: channel, data });
+  const body = JSON.stringify({ id: 'evt_' + randomBytes(8).toString('hex'), event, server: { name: c.name, slug: c.slug }, at: new Date().toISOString(), test: test || undefined, channel_id: channel, guild_id: b.oversite ? b.guild?.id || undefined : undefined, data });
   let status = 0, error = ''; const ok = await checkUrl(b.hook.url); if (ok.error) error = ok.error;
   else try { const r = await fetch(ok.url, { method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(6000), headers: { 'content-type': 'application/json', 'user-agent': 'Oversite-Events/1', 'x-oversite-event': event, 'x-oversite-signature': sign(unseal(b.hook.secret), body) }, body });
     status = r.status; if (!r.ok) error = `The bot answered ${r.status}`; } catch (e) { error = e.name === 'TimeoutError' ? 'The bot took over 6 seconds to answer' : 'The bot couldn’t be reached'; }

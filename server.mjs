@@ -250,8 +250,8 @@ const communityApi = async (req, res, slug, rest) => {
     if (rest === 'bots' && M === 'GET') return json(res, info());
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req), id = String(j.id || '');
     const r = rest === 'bots/create' ? await bots.create(c, j, prem, user.roblox_name || user.name) : rest === 'bots/update' ? await bots.update(c, id, j) : rest === 'bots/rotate' ? bots.rotate(c, id, j.what)
-      : rest === 'bots/test' ? await bots.test(c, id) : rest === 'bots/delete' ? bots.remove(c, id) : rest === 'bots/link' ? await bots.link(c, j.code, prem, user.roblox_name || user.name, String(j.dept || ''))
-      : rest === 'bots/dept' ? bots.setDept(c, id, String(j.dept || '')) : rest === 'bots/logs' ? await bots.setLogs(c, id, j.logs) : rest === 'bots/channels' ? await bots.channels(c, id) : { error: 'Not found.' };
+      : rest === 'bots/test' ? await bots.test(c, id) : rest === 'bots/delete' ? bots.remove(c, id) : rest === 'bots/link' ? await bots.link(c, j.code, prem, user.roblox_name || user.name)
+      : rest === 'bots/guild' ? await bots.setGuild(c, id, String(j.guild || '')) : rest === 'bots/logs' ? await bots.setLogs(c, id, j.logs) : rest === 'bots/channels' ? await bots.channels(c, id) : { error: 'Not found.' };
     if (!r.error && rest !== 'bots/test') console.log(`bots: ${c.slug} ${rest.slice(5)} ${id || r.bot?.id || ''} by ${user.roblox_name || user.name}`);
     return json(res, { ...info(), ...r }, r.error ? 400 : 200); }
   if (rest === 'srvstatus' && M === 'GET') return json(res, srvStatus.view(c, can(role, 'co_owner')));
@@ -711,7 +711,7 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
   // who is on an ankle monitor, where they were last seen and whether they are inside their area
   if (rest === 'monitors' && M === 'GET') { if (need('lookup') || off('monitors')) return; return ok({ monitors: monitors.monitors(c).map(({ zones, nogo, rid, ...m }) => ({ ...m, roblox_id: rid })) }); }
   // MDT duty shifts changed since a time (ms), deleted ones too; an Oversite bot linked for one department reads only that one
-  if (rest === 'duty-shifts' && M === 'GET') { if (need('read')) return; return ok(duty.forBots(c, bot.dept && duty.DEPTS.includes(bot.dept) ? [bot.dept] : duty.DEPTS, qs.get('since'))); }
+  if (rest === 'duty-shifts' && M === 'GET') { if (need('read')) return; return ok(duty.forBots(c, duty.DEPTS, qs.get('since'))); }   // every department's shifts
   if (rest === 'loa' && M === 'GET') { if (need('read')) return; return ok({ requests: staffhub.leaveForBots(c, qs.get('status')).map(({ dept, dept_name, ...l }) => ({ ...l, department: dept, department_name: dept_name, starts: isoDay(l.starts), ends: isoDay(l.ends) })) }); }
   if (rest === 'people' && M === 'GET') { if (need('people')) return; const u = person(Object.fromEntries(qs)); if (!u) return bad('Nobody with that ID or name has an Oversite account.', 404); return ok({ person: who(u) }); }
   // police lookups

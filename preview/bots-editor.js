@@ -17,7 +17,7 @@
       (b.delivery ? '. Last sent ' + ago(b.delivery.at) + ': ' + (b.delivery.ok ? '<span class="ok">delivered</span>' : '<span class="bad">' + e(b.delivery.error) + '</span>') : '. Nothing sent yet.') + '</div>' : '';
     return '<div class="bt" data-id="' + e(b.id) + '"><div class="bt-h"><b>' + e(b.name) + '</b><small>' + (b.oversite ? 'Oversite bot, linked with a code' : 'Key ending ' + e(b.hint)) + ' · ' + (b.used ? 'last used ' + ago(b.used) : 'not used yet') + '</small><span class="sp"></span></div>' +
       '<div class="bt-perms">' + b.scopes.map(s => '<span>' + e((D.scopes[s] || [s])[0]) + '</span>').join('') + '</div>' + ev +
-      (b.oversite ? '<div style="margin-top:10px">' + deptPick(b.dept, b.id) + '</div>' + logsBox(b) : '') +
+      (b.oversite ? logsBox(b) : '') +
       '<div class="bt-acts"><button type="button" class="btn sm" data-act="edit">Edit</button>' + (b.oversite ? '' : '<button type="button" class="btn sm" data-act="key">New key</button>') +
       (b.hook ? '<button type="button" class="btn sm" data-act="test">Send a test event</button><button type="button" class="btn sm" data-act="secret">New signing secret</button>' : '') +
       '<button type="button" class="btn sm danger" data-act="del">Disconnect</button></div>' + (reveal && reveal.id === b.id ? keyBox(b) : '') + (editing === b.id ? form(b) : '') + '</div>'; };
@@ -44,25 +44,25 @@
   const logsBox = b => { if (!b.canLog) return '<p class="note" style="margin-top:10px">To post logs in your Discord, link this bot again with a new code from its page.</p>';
     const ch = CH[b.id]; if (!ch) { loadChannels(b.id); return '<div class="bt-logs"><span class="bt-lbl">Logs in your Discord</span><p class="note">Loading the bot’s channels…</p></div>'; }
     if (ch.error) return '<div class="bt-logs"><span class="bt-lbl">Logs in your Discord</span><p class="msg err">' + e(ch.error) + '</p></div>';
+    // a bot in several Discord servers: pick which one this CAD's logs go to; the channels are that server's
+    const G = ch.guilds || [], g = b.guild && G.find(x => x.id === b.guild.id), many = G.length > 1, pickG = many && !g, here = ch.list.filter(c => !g || !c.guild || c.guild === g.id);
+    const gPick = many || (b.guild && !g) ? '<label style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,45%);gap:12px;align-items:center;padding:4px 0 10px"><span><b>Discord server</b><small class="note" style="display:block">The bot is in ' + (many ? G.length + ' servers' : 'more than one server') + '. Logs and events from this CAD go to the one you pick.</small></span><select data-guild="' + e(b.id) + '"><option value="">' + (g ? 'Any server' : 'Pick a server') + '</option>' + G.map(x => '<option value="' + e(x.id) + '"' + (g && g.id === x.id ? ' selected' : '') + '>' + e(x.name) + '</option>').join('') + '</select></label>' : '';
     const opts = v => { let cat = null, h = '<option value="">Off</option>';
-      for (const c of ch.list) { if (c.category !== cat) { if (cat !== null) h += '</optgroup>'; cat = c.category; h += '<optgroup label="' + e(cat || 'No category') + '">'; }
+      for (const c of here) { if (c.category !== cat) { if (cat !== null) h += '</optgroup>'; cat = c.category; h += '<optgroup label="' + e(cat || 'No category') + '">'; }
         h += '<option value="' + e(c.id) + '"' + (c.id === v ? ' selected' : '') + '>#' + e(c.name) + '</option>'; }
       return h + (cat !== null ? '</optgroup>' : ''); };
-    return '<div class="bt-logs" style="margin-top:12px"><span class="bt-lbl">Logs in your Discord</span><p class="note" style="margin:0 0 8px">Pick a channel for each log you want. The bot posts it there the moment it happens in the CAD.</p>' +
-      (b.logKinds.length ? b.logKinds.map(k => '<label style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,45%);gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line,rgba(255,255,255,.08))"><span><b>' + e(S.logs[k].name) + '</b><br><small class="note">' + e(S.logs[k].desc) + '</small></span>' +
+    return '<div class="bt-logs" style="margin-top:12px"><span class="bt-lbl">Logs in your Discord</span><p class="note" style="margin:0 0 8px">Pick a channel for each log you want. The bot posts it there the moment it happens in the CAD.</p>' + gPick +
+      (pickG ? '<p class="note">Pick the Discord server first, then its channels show here.</p>' : b.logKinds.length ? b.logKinds.map(k => '<label style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,45%);gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line,rgba(255,255,255,.08))"><span><b>' + e(S.logs[k].name) + '</b><br><small class="note">' + e(S.logs[k].desc) + '</small></span>' +
         '<select data-log="' + e(k) + '" data-bot="' + e(b.id) + '">' + opts(b.logs[k] || '') + '</select></label>').join('')
         : '<p class="note">This kind of bot doesn’t post CAD logs.</p>') + (ch.list.length ? '' : '<p class="note">No channels yet. Make sure the bot is in your Discord, open its page on oversite.shop once so its channels load, then come back.</p>') + '</div>'; };
-  const loadChannels = id => { if (CH[id]) return; CH[id] = null; call('/bots/channels', { id }).then(r => { CH[id] = { list: r.channels || [] }; draw(); }).catch(x => { CH[id] = { error: x.message }; draw(); }); };
+  const loadChannels = id => { if (CH[id]) return; CH[id] = null; call('/bots/channels', { id }).then(r => { CH[id] = { list: r.channels || [], guilds: r.guilds || [] }; draw(); }).catch(x => { CH[id] = { error: x.message }; draw(); }); };
 
   // which department an Oversite bot is for: it counts MDT shifts from that department only (or all of them)
-  const deptPick = (v, id) => (S.depts && S.depts.length ? '<span class="bt-lbl">Department</span><select name="dept"' + (id ? ' data-dept="' + e(id) + '"' : '') + '><option value="">Every department</option>' +
-    S.depts.map(d => '<option value="' + e(d.key) + '"' + (d.key === v ? ' selected' : '') + '>' + e(d.name) + '</option>').join('') + '</select><small class="note" style="display:block;margin-top:4px">Shifts people start on this department’s MDT count on the bot too.</small>' : '');
   // an Oversite bot: its owner types the code from the bot's page on oversite.shop; Oversite keeps the key. It sits open at the
   // top of the page, since that is what most servers come here to do
   const linkForm = () => '<form class="bt-f" id="btL" style="margin:0 0 18px"><h3>Link an Oversite bot</h3>' +
     '<p class="note" style="margin:0 0 10px">For bots bought on oversite.shop. Open the bot’s page there and find <b>Link to your CAD</b>. Type the code it shows. It changes every minute, so use it right away. Only the bot’s owner can see it.</p>' +
     '<span class="bt-lbl">Code</span><input name="code" maxlength="9" placeholder="ABCD 2345" autocomplete="off" spellcheck="false" style="text-transform:uppercase;letter-spacing:.12em;font-family:ui-monospace,monospace">' +
-    deptPick('') +
     '<div class="bt-acts" style="margin-top:16px"><button class="btn pri">Link bot</button></div></form>';
 
   const draw = () => { document.getElementById('btCount').textContent = S.bots.length ? S.bots.length + ' of ' + S.max : '';
@@ -78,7 +78,7 @@
 
   const bindLink = f => { const inp = f.querySelector('[name=code]');
     f.addEventListener('submit', async ev => { ev.preventDefault(); const btn = f.querySelector('button.pri'); btn.disabled = true;
-      try { const r = await call('/bots/link', { code: inp.value, dept: f.querySelector('[name=dept]')?.value || '' }); S = r; editing = null; reveal = null; draw(); say('Linked ' + r.bot.name + '. Oversite keeps its key, so there is nothing to copy.', true); }
+      try { const r = await call('/bots/link', { code: inp.value }); S = r; editing = null; reveal = null; draw(); say('Linked ' + r.bot.name + '. Oversite keeps its key, so there is nothing to copy.', true); }
       catch (x) { say(x.message); btn.disabled = false; } }); };
 
   const bindForm = f => { const nm = f.querySelector('[name=name]'), ur = f.querySelector('[name=url]'); const need = () => { const on = new Set([...f.querySelectorAll('[name=scope]:checked')].map(i => i.value));
@@ -116,8 +116,8 @@
     try { const r = await call('/bots/logs', { id: b.id, logs: { ...b.logs, [lg.dataset.log]: lg.value } }); S = r; draw();
       say(lg.value ? S.logs[lg.dataset.log].name + ' go to #' + lg.selectedOptions[0].textContent.replace(/^#/, '') + '.' : S.logs[lg.dataset.log].name + ' are off.', true); }
     catch (x) { say(x.message); lg.disabled = false; } });
-  body.addEventListener('change', async ev => { const t = ev.target.closest('[data-dept]'); if (!t) return; t.disabled = true;
-    try { S = await call('/bots/dept', { id: t.dataset.dept, dept: t.value }); draw(); say('Saved. The bot counts shifts from ' + (t.value ? t.selectedOptions[0].textContent : 'every department') + '.', true); }
+  body.addEventListener('change', async ev => { const t = ev.target.closest('[data-guild]'); if (!t) return; t.disabled = true;
+    try { S = await call('/bots/guild', { id: t.dataset.guild, guild: t.value }); delete CH[t.dataset.guild]; draw(); say(t.value ? 'Logs and events go to ' + t.selectedOptions[0].textContent + ' now. Pick the channels there.' : 'The bot can post in any of its servers.', true); }
     catch (x) { say(x.message); t.disabled = false; } });
 
   call('/bots').then(r => { S = r; draw(); }).catch(x => { body.innerHTML = '<p class="msg err">' + e(x.message) + '</p>'; });
