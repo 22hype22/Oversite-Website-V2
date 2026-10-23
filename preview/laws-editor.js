@@ -22,7 +22,9 @@
     list.innerHTML = rows.length ? rows.map(([x, i]) => row(x, i)).join('') : '<p class="note">' + (L.length ? 'No law matches that.' : 'No laws yet. Load a set or add one.') + '</p>'; count(); };
   const curDraw = () => root.querySelectorAll('[data-cur]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.cur === cur)));
   const load = j => { L = j.laws.map(x => [...x]); cur = j.currency || '$'; classes = j.classes;
-    $('lwSets').innerHTML = Object.entries(j.sets).map(([k, v]) => '<button type="button" data-set="' + k + '">Load ' + e(v.name) + ' (' + v.count + ')</button>').join('');
+    $('lwSets').innerHTML = Object.entries(j.sets).map(([k, v]) => '<button type="button" data-set="' + k + '">Load ' + e(v.name) + ' (' + v.count + ')</button>').join('')
+      + (j.states && j.states.length ? '<span class="lw-state"><select id="lwState" aria-label="Your state"><option value="">Load a state’s penal code…</option>' + j.states.map(s => '<option value="' + e(s.key) + '"' + (s.key === j.state ? ' selected' : '') + '>' + e(s.name) + '</option>').join('') + '</select><button type="button" id="lwStateGo" disabled>Load</button></span>' : '');
+    const st = $('lwState'); if (st) { st.addEventListener('change', () => { $('lwStateGo').disabled = !st.value; }); $('lwStateGo').disabled = !st.value || st.value === j.state; }
     curDraw(); draw(); mark(false); };
 
   list.addEventListener('input', ev => { const r = ev.target.closest('.lw-row'), f = ev.target.dataset.f; if (!r || f == null) return; const x = L[+r.dataset.i];
@@ -34,9 +36,12 @@
     L.push([pre + String(Math.max(0, ...used) + 1).padStart(2, '0'), '', 0, 0, L[L.length - 1]?.[4] || classes[0]]); q.value = ''; draw(); mark(true);
     const last = list.querySelector('.lw-row:last-child .t'); if (last) { last.focus(); last.scrollIntoView({ block: 'nearest' }); } });
   root.querySelectorAll('[data-cur]').forEach(b => b.addEventListener('click', () => { cur = b.dataset.cur; curDraw(); mark(true); }));
-  $('lwSets').addEventListener('click', async ev => { const b = ev.target.closest('[data-set]'); if (!b) return;
-    if (!await confirmIt({ title: b.textContent.replace(/^Load /, 'Load ') + '?', text: 'This replaces the laws listed here with that set. Records already written keep their charges.', ok: 'Load' })) return;
-    try { load(await call('/laws/load', { set: b.dataset.set })); say('Loaded. Officers see these laws next time they open a form.', true); } catch (x) { say(x.message); } });
+  // a set, or a state's penal code (its real statute numbers and offense names; fines and jail are roleplay values to change)
+  $('lwSets').addEventListener('click', async ev => { const b = ev.target.closest('[data-set],#lwStateGo'); if (!b) return;
+    const st = b.id === 'lwStateGo' ? $('lwState') : null, set = st ? st.value : b.dataset.set, name = st ? st.selectedOptions[0].textContent : b.textContent.replace(/^Load /, '').replace(/ \(\d+\)$/, '');
+    if (!set) return;
+    if (!await confirmIt({ title: 'Load ' + name + (st ? '’s penal code' : '') + '?', text: st ? 'This replaces the laws listed here with ' + name + '’s statutes for the common charges: the real section numbers and names. Fines and jail time are roleplay values you can change. Records already written keep their charges.' : 'This replaces the laws listed here with that set. Records already written keep their charges.', ok: 'Load' })) return;
+    try { load(await call('/laws/load', { set })); say('Loaded ' + name + (st ? '’s penal code' : '') + '. Officers see these laws next time they open a form.', true); } catch (x) { say(x.message); } });
   save.addEventListener('click', async () => { save.disabled = true;
     try { load(await call('/laws', { laws: L, currency: cur })); say('Saved. Officers see the new laws next time they open a form.', true); } catch (x) { say(x.message); save.disabled = false; } });
   addEventListener('beforeunload', ev => { if (dirty) { ev.preventDefault(); ev.returnValue = ''; } });

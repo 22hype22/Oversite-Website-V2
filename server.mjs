@@ -231,13 +231,14 @@ const communityApi = async (req, res, slug, rest) => {
   // Status & Updates: the server's health and updates; owners and co-owners post their own
   // Settings → Laws: the server's own penal code (or the default), a UK starting set, and the money sign fines show in
   if (rest === 'laws' || rest.startsWith('laws/')) { if (M !== 'GET' && !can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can change the laws.' }, 403);
-    const info = () => ({ laws: police.penalOf(c), custom: !!(c.settings.penal && c.settings.penal.length), currency: c.settings.currency || '$', classes: police.CLASSES, sets: Object.fromEntries(Object.entries(police.PENAL_SETS).map(([k, v]) => [k, { name: v.name, count: v.list.length }])) });
+    const info = () => ({ laws: police.penalOf(c), custom: !!(c.settings.penal && c.settings.penal.length), currency: c.settings.currency || '$', classes: police.CLASSES, sets: Object.fromEntries(Object.entries(police.PENAL_SETS).filter(([, v]) => !v.state).map(([k, v]) => [k, { name: v.name, count: v.list.length }])),
+      states: Object.entries(police.PENAL_SETS).filter(([, v]) => v.state).map(([k, v]) => ({ key: k, name: v.name, count: v.list.length })), state: c.settings.penalSet || '' });
     if (rest === 'laws' && M === 'GET') return json(res, info());
     const j = await jsonBody(req), s = communities.byId(c.id).settings;
     if (rest === 'laws' && M === 'POST') { const r = police.cleanPenal(j.laws); if (r.error) return json(res, r, 400);
       s.penal = r.list; if (['$', '£', '€'].includes(j.currency)) s.currency = j.currency; communities.saveSettings(c.id, s); c.settings = s; return json(res, { ok: true, ...info() }); }
     if (rest === 'laws/load' && M === 'POST') { const set = police.PENAL_SETS[j.set]; if (!set) return json(res, { error: 'Unknown set.' }, 400);
-      s.penal = j.set === 'us' ? null : set.list.map(x => [...x]); if (j.set === 'uk' && !s.currency) s.currency = '£'; communities.saveSettings(c.id, s); c.settings = s; return json(res, { ok: true, ...info() }); }
+      s.penal = j.set === 'us' ? null : set.list.map(x => [...x]); s.penalSet = j.set; if (j.set === 'uk' && !s.currency) s.currency = '£'; if (set.state) s.currency = '$'; communities.saveSettings(c.id, s); c.settings = s; return json(res, { ok: true, ...info() }); }   // a state's laws are in dollars
     return json(res, { error: 'Not found.' }, 404); }
   // Settings → Bots: the server's own bots, each with its key and permissions, and where its events go
   if (rest === 'bots' || rest.startsWith('bots/')) { if (!can(role, 'co_owner')) return json(res, { error: 'Only the owner and co-owners can connect bots.' }, 403);

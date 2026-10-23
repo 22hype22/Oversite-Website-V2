@@ -7,6 +7,7 @@ import { db, now, users, licenses, mdtSignin } from './db.mjs';
 import { statusOf as licenseStatus } from './pdlicense.mjs';
 import * as chars from './chars.mjs';
 import { POSTALS } from './postals.mjs';
+import { STATES } from './penal-states.mjs';
 
 db.exec(`CREATE TABLE IF NOT EXISTS pd_people (community_id INTEGER NOT NULL REFERENCES communities(id) ON DELETE CASCADE, rid TEXT NOT NULL, name TEXT NOT NULL, team TEXT,
   first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL, PRIMARY KEY (community_id, rid));
@@ -62,7 +63,9 @@ export const PENAL_UK = [
   ['WD-04', 'Possession of a controlled drug', 500, 5, 'Either-way'], ['WD-05', 'Possession with intent to supply', 5000, 30, 'Either-way'],
   ['JU-01', 'Obstructing a police officer', 500, 3, 'Summary'], ['JU-02', 'Resisting arrest', 800, 5, 'Summary'], ['JU-03', 'Wasting police time', 600, 3, 'Summary'],
   ['JU-04', 'Escape from lawful custody', 3000, 20, 'Indictable'], ['JU-05', 'Impersonating a police officer', 1200, 8, 'Summary']];
-export const PENAL_SETS = { us: { name: 'United States (default)', list: PENAL }, uk: { name: 'United Kingdom', list: PENAL_UK } };
+// the sets a server can load in Settings → Laws: the default, the UK one, and each US state's (app/penal-states.mjs, keyed us-fl and so on)
+export const PENAL_SETS = { us: { name: 'United States (default)', list: PENAL }, uk: { name: 'United Kingdom', list: PENAL_UK },
+  ...Object.fromEntries(Object.entries(STATES).map(([k, v]) => ['us-' + k, { name: v.name, list: v.list, state: true }])) };
 // a server's own laws (Settings → Laws), or the default; each entry is [code, title, fine, jail minutes, class]
 export const penalOf = c => (Array.isArray(c?.settings?.penal) && c.settings.penal.length ? c.settings.penal : PENAL);
 export const CLASSES = ['Infraction', 'Misdemeanor', 'Felony', 'Summary', 'Either-way', 'Indictable'];
