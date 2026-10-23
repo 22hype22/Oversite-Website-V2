@@ -40,6 +40,7 @@ export const GROUPS = [
 
   { title: 'Every department MDT', items: [
     F('mdtsignin', 'MDT sign-in', 'Signing in to the MDT with a license card, rank and password.'),
+    F('hospital', 'Hospital', 'A Hospital app in the Fire Department MDT: EMS send the hospital a pre-alert (the patient, what they need, how to treat them, the response code), the hospital sees each ambulance’s live ETA and both sides message each other.', { parent: 'dept_fd', hide: ['#mdt .tside [data-pane="hospital"]'] }),
     F('premises', 'Location notes', 'Notes pinned to places on the map: fire pre-incident plans (exits, hydrants, parking) and police premise notes. A 911 call near one brings it up for the units.', { hide: ['.pre-open', '.pda.premise'] }),
     F('unitpick', 'Unit picker', 'Picking your unit, like Engine 1 or Patrol, on the MDT home.', { hide: ['#fdMyUnit'] }),
     F('ridewith', 'Riding together', 'Riding in a teammate’s unit.', { hide: ['#fdRide'] }),
@@ -112,6 +113,8 @@ export const GROUPS = [
     F('reviews', 'Reviews', 'Customers rating the businesses they bought from.', { parent: 'biz', tag: 'Premium', hide: ['.cv-g-rev', '#civMdt [data-review]'] }),
     F('biz_brand', 'Colours and taglines', 'A business’s own colour, tagline and extra locations.', { parent: 'biz', tag: 'Premium', hide: ['.cv-g-brand'] }),
     F('biz_insights', 'Insights', 'Takings, sales and best sellers.', { parent: 'biz', tag: 'Premium', hide: ['.cv-g-ins'] }),
+    F('transit', 'Transit', 'A Transit app in the Civilian tab for bus drivers: the server’s routes and stops, a pre-trip checklist, fares, reports, transit police and a panic button. Admins draw the routes and set what happens when a bus goes off its route.', { parent: 'civ', hide: ['#cvTabs [data-p="transit"]'] }),
+    F('transit_tracker', 'Bus tracker', 'A phone app that shows every player where the buses are, their routes and their next stop.', { parent: 'transit' }),
     F('court', 'Court', 'A Court app on the phone: players sue each other, both sides and their lawyers argue it out in the case, judges hold hearings and rule, and judgments are billed. Admins name the judges and lawyers in the app.', { parent: 'civ', hide: ['#civMdt [data-p="court"]'] }),
     F('guncheck', 'Gun store background checks', 'Gun stores refuse anyone with a felony or warrant.', { parent: 'biz' })] },
 
@@ -224,7 +227,7 @@ export const WORDS = {
   biz_bonus: 'bonus pay staff extra money', biz_requests: 'requests orders service requests viewings', invoices: 'invoice bill customers charge', biz_loans: 'business loan borrow bank debt',
   ads: 'ads advertising advertisement promote', reviews: 'reviews ratings stars feedback', biz_brand: 'colour color tagline branding locations', biz_insights: 'insights analytics sales stats takings',
   guncheck: 'gun store background check firearm felony', shops: 'shops buy purchase store market', work: 'work jobs clock in shifts employment', tasks: 'tasks jobs missions quests deliveries showings',
-  minigames: 'mini games minigames puzzles games in jobs tasks fun challenges', st_map: 'staff map players map', st_rdm: 'rdm random deathmatch random killing kill streak mass rdm vdm kill log detection anti rdm', st_modcalls: 'mod calls call a mod help requests', st_records: 'staff records history punishments', st_logs: 'logs command logs kill logs audit',
+  minigames: 'mini games minigames puzzles games in jobs tasks fun challenges', st_map: 'staff map players map', transit: 'transit bus buses bus driver routes stops fares tickets public transport metro', transit_tracker: 'bus tracker bus times where is the bus', hospital: 'hospital doctors nurses ems ambulance patient pre alert eta er emergency room medical', st_rdm: 'rdm random deathmatch random killing kill streak mass rdm vdm kill log detection anti rdm', st_modcalls: 'mod calls call a mod help requests', st_records: 'staff records history punishments', st_logs: 'logs command logs kill logs audit',
   st_warn: 'warn warning', st_pm: 'message pm dm private message', st_kick: 'kick remove player', st_ban: 'ban unban bans', st_note: 'notes staff notes', st_announce: 'announce announcement broadcast message everyone',
   voice: 'voice chat proximity talk hear microphone vc', bounds: 'boundaries areas zones kick outside play area map limits restricted mapping', safezones: 'safe zones safezone no crime spawn hospital rdm kill protected area mapping', roads: 'roads fix gps roads road editor', serverlogo: 'logo icon branding image',
   goldchecks: 'gold check verified badge supporters', explore: 'explore listing public discover find server directory' };

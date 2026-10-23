@@ -802,6 +802,7 @@
   .view::after{content:"";position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:5;transition:opacity .2s ease}
   /* ───────── law enforcement MDT: lookup, warrants, BOLOs, records, traffic stops ───────── */
   .mdt-dock:not([data-dept="pd"]) .tside [data-only="pd"],.mdt-dock:not([data-dept="pd"]) .pdonly{display:none!important}
+  .mdt-dock:not([data-dept="fd"]) .tside [data-only="fd"]{display:none!important}
   .mdt-dock[data-dept="pd"] .tside [data-pane="reports"]{display:none}
   .mdt-dock[data-dept="pd"] .tside{gap:1px}.mdt-dock[data-dept="pd"] .tside button{padding:8px 12px}.mdt-dock[data-dept="pd"] .crest{padding-bottom:8px}
   .mdt-dock[data-dept="pd"] .statgrid{grid-template-columns:repeat(4,1fr)}.mdt-dock[data-dept="pd"] .statgrid button{padding:10px 4px 8px;font-size:14px}
@@ -1340,7 +1341,7 @@
 <script src="/map3d.js?v=4" defer></script>
 <script src="/dropdown.js?v=1" defer></script>
 <script src="/license-card.js?v=5" defer></script>
-<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=5" defer></script><script src="/loa.js?v=2" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=3" defer></script><script src="/premises.js?v=2" defer></script><script src="/civ-phone.js?v=2" defer></script><script src="/civ-apps.js?v=1" defer></script>
+<script src="/mdt-setup.js?v=2" defer></script><script src="/mapping.js?v=5" defer></script><script src="/loa.js?v=2" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=3" defer></script><script src="/premises.js?v=2" defer></script><script src="/minimap.js?v=1" defer></script><script src="/hospital.js?v=1" defer></script><script src="/transit.js?v=1" defer></script><script src="/civ-phone.js?v=2" defer></script><script src="/civ-apps.js?v=1" defer></script>
 <script src="/court.js?v=1" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
@@ -1633,6 +1634,7 @@
           <button role="tab" data-p="biz" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10h18M10 20v-5h4v5"/></svg>Business<i class="badge" id="cvBizN" hidden>0</i></button>
           <button role="tab" data-p="id" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.8 16a3.4 3.4 0 0 1 6.4 0M14.5 10h4M14.5 13.5h3"/></svg>My ID</button>
           <button role="tab" data-p="record" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/></svg>Record</button>
+          <button role="tab" data-p="transit" aria-selected="false" style="--app:linear-gradient(180deg,#FFC94A,#E8930C)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14M8 21v-3M16 21v-3"/><circle cx="8.5" cy="14.5" r=".9" fill="currentColor"/><circle cx="15.5" cy="14.5" r=".9" fill="currentColor"/></svg>Transit</button>
           <button role="tab" data-p="server" aria-selected="false" id="cvServerTab" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Server</button>
           <div class="tmenu" id="cvUMenu" role="menu" aria-label="You"></div><button type="button" class="tuser" id="cvUserBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="cvUMenu" data-umenu="civ"><i id="cvMeAv">CV</i><small id="cvMe">Civilian</small><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
         </nav>
@@ -1646,6 +1648,7 @@
           <section class="tscreen cv-pane" data-p="biz"><div class="thead"><div><h2>Business</h2><small>Run your own: staff, jobs, a menu and customers.</small></div></div><div id="cvBiz"></div></section>
           <section class="tscreen cv-pane" data-p="id"><div class="thead"><div><h2>My ID</h2><small>Your character and license. Police see this when they run your name.</small></div><button class="btn" type="submit" form="cvIdF">Save</button></div><div id="cvChars"></div><form class="cv-form" id="cvIdF" autocomplete="off"></form></section>
           <section class="tscreen cv-pane" data-p="record"><div class="thead"><div><h2>Record</h2><small>Citations, warnings and arrests written against you</small></div></div><div id="cvRecord"></div></section>
+          <section class="tscreen cv-pane" data-p="transit"><div class="thead"><div><h2>Transit</h2><small id="trSub">Drive the server’s bus routes: charge fares, file reports, call transit police</small></div></div><div id="trBody"><div class="st-empty">Loading…</div></div></section>
           <section class="tscreen cv-pane" data-p="server"><div class="thead"><div><h2>Server economy</h2><small>Money and bills for everyone in this server</small></div></div><div id="cvServer"></div></section>
         </div>
       </div>
@@ -1679,6 +1682,7 @@
           <button role="tab" data-pane="warrants" data-only="pd" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/><path d="m9.5 12 1.8 1.8L15 10" stroke-linecap="round"/></svg><span>Warrants</span><i class="badge" id="tnavWar" hidden></i></button>
           <button role="tab" data-pane="bolos" data-only="pd" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>BOLOs</span><i class="badge" id="tnavBolo" hidden></i></button>
           <button role="tab" data-pane="pdrecs" data-only="pd" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg><span>Records</span></button>
+          <button role="tab" data-pane="hospital" data-only="fd" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg><span>Hospital</span></button>
           <button role="tab" data-pane="reports" aria-selected="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>Reports</span></button>
           <button type="button" class="tpanic" id="tPanic" aria-label="Panic button: press and hold to send"><span>Panic</span></button>
           <div class="tmenu" id="tMenu" role="menu" aria-label="Your MDT"></div>
@@ -1772,6 +1776,10 @@
             <header class="thead"><div><h2>Warrants</h2><p id="pdWarSub">Arrest and search warrants for this server</p></div><button class="btn" type="button" data-new="warrant">New warrant</button></header>
             <div class="pd-seg wide" id="pdWarSeg" role="group" aria-label="Show"><button type="button" data-k="Active" aria-pressed="true">Active</button><button type="button" data-k="Pending" aria-pressed="false">Waiting approval</button><button type="button" data-k="closed" aria-pressed="false">Closed</button></div>
             <div id="pdWarList" class="pd-list"></div>
+          </section>
+          <section class="tscreen" data-pane="hospital">
+            <header class="thead"><div><h2>Hospital</h2><p>Pre-alerts from crews on the way, with live ETAs, and a line between the crew and the hospital</p></div></header>
+            <div id="hoBody"><div class="pd-empty">Loading…</div></div>
           </section>
           <section class="tscreen" data-pane="bolos">
             <header class="thead"><div><h2>BOLOs</h2><p>Be on the lookout. Every officer and dispatch gets new ones right away.</p></div><button class="btn" type="button" data-new="bolo">New BOLO</button></header>
@@ -4001,7 +4009,8 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
     for (const c of calls) { const k = String(`${c.CallNumber ?? c.Description ?? ''}@${c.StartedAt ?? ''}`).replace(/[^\w .:@#-]/g, '').slice(0, 120); now.add(k); if (seenCalls.has(k)) continue; seenCalls.add(k);
       const [x, y] = Array.isArray(c.Position) && c.Position.length >= 2 ? toWorld(c.Position[0], c.Position[1]) : [1000, 1000];
       const dept = S.teams[c.Team] || 'pd';
-      const call = { pri: 2, code: '911', type: c.Description || 'Emergency call', where: c.PositionDescriptor || 'Unknown location', unit: '', dept, stage: 0, startedAt: (c.StartedAt || Date.now() / 1000) * 1000, x, y, live: true };
+      const call = { pri: /\bPANIC\b/.test(c.Description || '') ? 1 : 2, code: '911', type: c.Description || 'Emergency call',   // a panic (a bus driver's, say) is priority 1
+        where: c.PositionDescriptor || 'Unknown location', unit: '', dept, stage: 0, startedAt: (c.StartedAt || Date.now() / 1000) * 1000, x, y, live: true };
       gameCalls.set(k, { call, gone: 0 }); window.addCall?.(call); }
     for (const [k, g] of gameCalls) { if (now.has(k)) { g.gone = 0; continue; } if (++g.gone < 2) continue;
       gameCalls.delete(k); if (window.removeCall?.(g.call)) console.log(`911 call ${k} cleared in game: removed from dispatch`); } };
@@ -4065,7 +4074,7 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
     es.addEventListener('panics', e => { try { for (const p of JSON.parse(e.data) || []) dispatchEvent(new CustomEvent('panic', { detail: p })); } catch (x) {} });
     es.addEventListener('panicclear', e => { try { dispatchEvent(new CustomEvent('panicclear', { detail: JSON.parse(e.data) })); } catch (x) {} });   // suspended (you or this server): reload straight into the notice
     // the law enforcement MDT: 10-codes, and records (warrants, BOLOs, stops and backup calls) as officers write them
-    for (const ev of ['unitstatus', 'unitstatuses', 'pdrec', 'deptreports', 'alpr', 'autoalert', 'monitor']) es.addEventListener(ev, e => { try { dispatchEvent(new CustomEvent('ov:' + ev, { detail: JSON.parse(e.data) })); } catch (x) {} });
+    for (const ev of ['unitstatus', 'unitstatuses', 'pdrec', 'deptreports', 'alpr', 'autoalert', 'monitor', 'hospital']) es.addEventListener(ev, e => { try { dispatchEvent(new CustomEvent('ov:' + ev, { detail: JSON.parse(e.data) })); } catch (x) {} });
     es.addEventListener('roads', e => { try { window.ROADNET?.setOv(JSON.parse(e.data).ov); } catch (x) {} });   // an owner fixed a road: re-route now
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }

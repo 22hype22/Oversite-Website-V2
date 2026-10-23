@@ -25,6 +25,8 @@ import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
 import * as safezones from './app/safezones.mjs';
 import * as rdm from './app/rdm.mjs';
+import * as transit from './app/transit.mjs';
+import * as hospital from './app/hospital.mjs';
 import * as cameras from './app/cameras.mjs';
 import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
@@ -105,6 +107,8 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
     try { bots.observe(cc, f.withExtra(body), callKey); } catch (e) {}
     monitorRead(cc, body);
     if (premium.isPremium(cc) && features.on(cc, 'staff')) try { fireaop.observe(cc, body, fireHands); } catch (e) {}
+    if (features.on(cc, 'transit')) try { transit.observe(cc, communities.key(c.id), body); } catch (e) { console.log('transit observe:', e.message); }
+    if (features.on(cc, 'hospital')) try { hospital.observe(cc, body); } catch (e) {}
     if (features.on(cc, 'automations')) automations.observe(cc, body); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
   f.wantKills = () => { const cc = communities.byId(c.id) || c; return safezones.wantsKills(cc) || rdm.wantsKills(cc); };   // safe zones and RDM watch need the kill log
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
@@ -170,7 +174,7 @@ const nextAfterCreate = slug => discordlink.ready() ? `/c/${slug}/discord/connec
 const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
 // a section the server locked to Discord roles (discordlink.locksFor): the refusal for someone without one, or null
 const lockedOut = async (c, user, role, k) => { if (!discordlink.SECTIONS.includes(k)) return null; const L = (await discordlink.locksFor(c, user, role))[k]; if (!L) return null;
-  const what = k === 'civ' ? 'The Civilian tab' : k === 'dispatch' ? 'Dispatch' : 'The ' + (c.settings.depts?.[k]?.name || { pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' }[k]) + ' MDT';
+  const what = k === 'civ' ? 'The Civilian tab' : k === 'dispatch' ? 'Dispatch' : k === 'transit' ? 'Transit' : k === 'hospital' ? 'The Hospital app' : 'The ' + (c.settings.depts?.[k]?.name || { pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' }[k]) + ' MDT';
   return `${what} is only for people with ${L.length > 1 ? 'one of these Discord roles: ' : 'the Discord role '}${L.join(', ')}.`; };
 
 const communityApi = async (req, res, slug, rest) => {
@@ -480,6 +484,42 @@ const communityApi = async (req, res, slug, rest) => {
     const r = rest === 'monitors/save' ? monitors.saveMonitor(c, by, j) : rest === 'monitors/remove' ? monitors.removeMonitor(c, by, j.id) : { error: 'Not found.' };
     if (!r.error) console.log(`monitors: ${c.slug} ${rest.slice(9)} by ${by}`);
     return json(res, r.error ? r : { ...r, list: monitors.monitors(c) }, r.error ? 400 : 200); }
+  // Transit (app/transit.mjs): bus drivers' shifts, fares, reports, transit police and panic; admins draw routes and set the rules. The Bus
+  // tracker (transit/tracker) is for every member
+  if (rest === 'transit' || rest.startsWith('transit/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    if (!features.on(c, 'transit')) return json(res, { error: 'This server has switched off Transit.' }, 403);
+    if (rest === 'transit/tracker' && M === 'GET') return features.on(c, 'transit_tracker') ? json(res, { ...transit.tracker(c), off: mapOff(c) }) : json(res, { error: 'This server has switched off the bus tracker.' }, 403);
+    const lk = await lockedOut(c, user, role, 'transit'); if (lk) return json(res, lk, 403);
+    const admin = can(role, 'admin'), view = () => ({ ...transit.view(c, user, admin), off: mapOff(c) }), out = r => json(res, r.error ? r : { ...r, ...view() }, r.error ? 400 : 200);
+    if (rest === 'transit' && M === 'GET') return json(res, view());
+    if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req), sub = rest.slice(8);
+    if (['routes/save', 'routes/delete', 'settings'].includes(sub)) { if (!admin) return json(res, { error: 'Only admins and up can change Transit.' }, 403);
+      const r = sub === 'settings' ? transit.saveConf(c, j) : sub === 'routes/save' ? transit.saveRoute(c, j) : transit.dropRoute(c, j.id); if (!r.error) console.log(`transit: ${c.slug} ${sub} by ${user.roblox_name || user.name}`); return out(r); }
+    if (sub === 'start') return out(transit.start(c, user, j)); if (sub === 'update') return out(transit.update(c, user, j)); if (sub === 'end') return out(transit.end(c, user));
+    if (sub === 'fare') return out(transit.fare(c, communities.key(c.id), user, j));
+    if (sub === 'report') return out(transit.report(c, user, j));
+    if (sub === 'report/close') { if (!can(role, 'mod') && !transit.mine(c, user)) return json(res, { error: 'Only drivers on shift and staff can close reports.' }, 403); return out(transit.closeReport(c, user.roblox_name || user.name, j.id, !!j.reopen)); }
+    if (sub === 'police') { if (!transit.conf(c).police) return json(res, { error: 'This server has no transit police.' }, 403); const r = transit.police(c, user, j); if (r.alert) f.bcast('autoalert', JSON.stringify(r.alert)); return out(r); }
+    if (sub === 'panic') { const r = transit.panic(c, user); if (r.error) return out(r); f.bcast('autoalert', JSON.stringify(r.alert)); console.log(`transit: ${c.slug} panic by ${user.roblox_name} (${r.units.length} officers)`);
+      if (r.units.length) { const st = { unit: r.units[0], dept: 'pd', stage: 1, more: r.units.slice(1).map(name => ({ name, dept: 'pd' })), at: Date.now() }, s2 = communities.byId(c.id).settings;   // sent en route, like dispatch would
+        s2.callstate = { ...callStates(c, s2), [r.call]: st }; communities.saveSettings(c.id, s2); c.settings.callstate = s2.callstate; f.bcast('callstate', JSON.stringify({ key: r.call, ...st })); }
+      return out(r); }
+    return json(res, { error: 'Not found.' }, 404); }
+  // Hospital (app/hospital.mjs): EMS pre-alerts, the hospital board with live ETAs, messages both ways. For fire/EMS, dispatch and staff;
+  // a change is pushed to every open CAD (event hospital) so the board and the crew see it at once
+  if (rest === 'hospital' || rest.startsWith('hospital/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
+    if (!features.on(c, 'hospital')) return json(res, { error: 'This server has switched off the Hospital app.' }, 403);
+    const side = liveSide(c, user); if (side && side !== 'fd' && !can(role, 'mod')) return json(res, { error: 'The Hospital app is for the fire department and EMS.' }, 403);
+    const lk = await lockedOut(c, user, role, 'hospital'); if (lk) return json(res, lk, 403);
+    const admin = can(role, 'admin'), view = () => ({ ...hospital.view(c, user, admin), off: mapOff(c) }), push = (kind, id) => f.bcast('hospital', JSON.stringify({ kind, id }));
+    if (rest === 'hospital' && M === 'GET') return json(res, view());
+    if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req), sub = rest.slice(9); let r;
+    if (sub === 'places') { if (!admin) return json(res, { error: 'Only admins and up can place hospitals.' }, 403); r = hospital.saveHospitals(c, j); }
+    else if (sub === 'send') { r = hospital.send(c, user, j); if (r.ok) { push(r.fresh ? 'new' : 'update', r.id); console.log(`hospital: ${c.slug} pre-alert ${r.id} by ${user.roblox_name}`); } }
+    else if (sub === 'msg') { r = hospital.say(c, user, j, j.side === 'ems' ? 'ems' : 'hospital'); if (r.ok) push('msg', r.row.id); }
+    else if (sub === 'act') { r = hospital.act(c, user, j); if (r.ok) push(String(j.action), r.row.id); }
+    else return json(res, { error: 'Not found.' }, 404);
+    return json(res, r.error ? r : { ok: true, id: r.id, ...view() }, r.error ? 400 : 200); }
   // location notes (app/premises.mjs): fire pre-incident plans and police premise notes, for each department as its team allows
   if (rest === 'premises' || rest.startsWith('premises/')) { if (!members.role(c.id, user.id)) return json(res, { error: 'Join this server first.' }, 403);
     if (!features.on(c, 'premises')) return json(res, { error: 'This server has switched off location notes.' }, 403);

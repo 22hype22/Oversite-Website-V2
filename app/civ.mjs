@@ -173,14 +173,18 @@ export const call911 = (c, user, j) => { const k = `${c.id}:${user.id}`; if (now
   q('INSERT INTO civ_calls (community_id, user_id, name, dept, location, details, at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(c.id, user.id, T(name, 60), dept, location, details, now());
   callGap.set(k, now()); return { ok: true }; };
 // a call an automation puts on the board, alongside 911 calls from the Civilian tab
-export const autoCall = (c, dept, location, details) => q('INSERT INTO civ_calls (community_id, user_id, name, dept, location, details, at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-  .run(c.id, 0, 'Oversite', DEPT_TEAM[dept] ? dept : 'pd', T(location, 80) || 'Unknown location', T(details, 300), now());
+// pos: where it is on the map ([x, z] map pixels, like ER:LC's own calls), when known
+export const autoCall = (c, dept, location, details, pos = null) => { if (!civCallsXZ) { civCallsXZ = true; if (!q('PRAGMA table_info(civ_calls)').all().some(x => x.name === 'x')) db.exec('ALTER TABLE civ_calls ADD COLUMN x REAL; ALTER TABLE civ_calls ADD COLUMN z REAL'); }
+  const xz = Array.isArray(pos) && pos.every(Number.isFinite) ? pos : [null, null];
+  return q('INSERT INTO civ_calls (community_id, user_id, name, dept, location, details, at, x, z) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(c.id, 0, 'Oversite', DEPT_TEAM[dept] ? dept : 'pd', T(location, 80) || 'Unknown location', T(details, 300), now(), xz[0], xz[1]); };
+let civCallsXZ = false;
 // the calls still open (the last hour, not cleared on the board) added to the snapshot every CAD reads, as ER:LC lists its own
 export const withCalls = (cid, body, cleared) => { const open = q('SELECT * FROM civ_calls WHERE community_id = ? AND at >= ?').all(cid, now() - 3600000)
     .filter(r => !cleared[`CIV${r.id}@${Math.floor(r.at / 1000)}`]); if (!open.length) return body;
   let j; try { j = JSON.parse(body); } catch (e) { return body; }
   j.EmergencyCalls = [...(Array.isArray(j.EmergencyCalls) ? j.EmergencyCalls : []), ...open.map(r => ({ CallNumber: `CIV${r.id}`, Team: DEPT_TEAM[r.dept] || 'Police',
-    Description: `${r.details} (caller ${r.name})`, PositionDescriptor: r.location, StartedAt: Math.floor(r.at / 1000) }))];
+    Description: `${r.details} (caller ${r.name})`, PositionDescriptor: r.location, StartedAt: Math.floor(r.at / 1000), ...(Number.isFinite(r.x) && Number.isFinite(r.z) ? { Position: [r.x, r.z] } : {}) }))];
   return JSON.stringify(j); };
 
 // ── housing ──

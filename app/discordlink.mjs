@@ -54,7 +54,7 @@ export const levelFor = async (c, discordId) => { const d = c.settings && c.sett
 // section locks: the owner can lock Dispatch, each department's MDT and the Civilian tab to Discord roles, so only people holding one
 // of a section's roles open it (settings.discord.locks = { pd: [{ id, name }], … }; no roles means open to everyone). Admins and up
 // open everything. Someone without Discord on their account can't open a locked section; when Discord doesn't answer, nothing is locked.
-export const SECTIONS = ['dispatch', 'pd', 'fd', 'dot', 'civ'];
+export const SECTIONS = ['dispatch', 'pd', 'fd', 'dot', 'civ', 'transit', 'hospital'];
 export const locksFor = async (c, user, role) => { const d = c.settings && c.settings.discord, L = d && d.locks; if (!L || !d.guild_id || !ready() || (RANK[role] || 0) >= RANK.admin) return {};
   const set = SECTIONS.filter(k => Array.isArray(L[k]) && L[k].length); if (!set.length) return {};
   const mine = user?.discord_id ? await memberRoles(d.guild_id, user.discord_id) : null; if (mine === undefined) return {};

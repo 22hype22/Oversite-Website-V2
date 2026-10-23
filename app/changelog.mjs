@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '3.0', date: '2026-10-23', tag: 'new', title: 'Transit and Hospital',
+    body: 'Two new jobs with their own apps.', items: ['Transit (Civilian phone): bus drivers start a shift with a pre-trip checklist, follow routes your admins draw, charge fares, file incident, crash and lost property reports, message transit police and press panic, which calls 911 at the bus and sends the five nearest officers', 'Buses (Civilian phone): every player can see where the buses are, their routes and their next stop', 'Hospital (Fire Department MDT): EMS pre-alert the hospital with the patient, their vitals, what they need and how to treat them; the hospital sees each ambulance’s live ETA and response code and messages the crew', 'Admins draw bus routes and stops, set the fare, the checklist and what happens when a bus goes off route, and put the hospitals on the map'] },
   { v: '2.9', date: '2026-10-23', tag: 'new', title: 'RDM watch',
     body: 'Server Staff has an RDM tab that watches the kill log for random deathmatch: kill streaks, killing the same person again and again, and Fire, DOT or officers killing when they shouldn’t. Admins set the limits, and Oversite can message the killer and the staff in the server.', items: [] },
   { v: '2.8', date: '2026-10-22', tag: 'new', title: 'Location notes for a whole area',
