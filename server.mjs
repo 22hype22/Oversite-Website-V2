@@ -28,6 +28,7 @@ import * as rdm from './app/rdm.mjs';
 import * as transit from './app/transit.mjs';
 import * as hospital from './app/hospital.mjs';
 import * as boats from './app/boats.mjs';
+import * as arrests from './app/arrests.mjs';
 import * as cameras from './app/cameras.mjs';
 import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
@@ -98,6 +99,8 @@ const monitorRead = (c, body) => { if (!features.on(c, 'monitors')) return;
 const feeds = new Map();
 const clearedCalls = (c, s = c.settings) => (s.cleared && typeof s.cleared === 'object' ? s.cleared : {});
 // who is on each open call and how far they've got (0 assigned, 1 en route, 2 on scene), shared by every dispatcher and MDT; kept 12 hours
+// the arrest log is part of Server Staff (Premium)
+const logsArrests = c => premium.isPremium(c) && features.on(c, 'staff') && features.on(c, 'st_arrests');
 const callStates = (c, s = c.settings) => (s.callstate && typeof s.callstate === 'object' ? s.callstate : {});
 const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () => communities.key(c.id), () => isSiteAdmin(users.byId(communities.byId(c.id)?.owner_id))); feeds.set(c.id, f);
   f.onSnap = body => { const cc = communities.byId(c.id) || c, read = police.observe(c.id, body, cc.settings.teams) || [];
@@ -110,6 +113,7 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
     if (premium.isPremium(cc) && features.on(cc, 'staff')) try { fireaop.observe(cc, body, fireHands); } catch (e) {}
     if (features.on(cc, 'transit')) try { transit.observe(cc, communities.key(c.id), body); } catch (e) { console.log('transit observe:', e.message); }
     if (features.on(cc, 'hospital')) try { hospital.observe(cc, body); } catch (e) {}
+    if (logsArrests(cc)) try { arrests.observe(cc, body); } catch (e) { console.log('arrests observe:', e.message); }
     if (features.on(cc, 'automations')) automations.observe(cc, body); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
   f.wantKills = () => { const cc = communities.byId(c.id) || c; return safezones.wantsKills(cc) || rdm.wantsKills(cc); };   // safe zones and RDM watch need the kill log
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
@@ -299,6 +303,8 @@ const communityApi = async (req, res, slug, rest) => {
     const sub = rest.slice(6), by = { id: user.id, name: user.roblox_name || user.name };
     if (sub === 'state' && M === 'GET') { const v = await staff.view(c, communities.key(c.id)); if (!v.error && features.on(c, 'st_rdm')) v.rdm = rdm.of(c).on ? rdm.openCount(c) : null; return json(res, v, v.error ? 502 : 200); }
     // RDM watch (app/rdm.mjs): the flags for every staff member; admins and up set how strict it is and what Oversite does by itself
+    // the arrest log (app/arrests.mjs): every arrest in game, searchable by suspect or officer, name or Roblox ID
+    if (sub === 'arrests' && M === 'GET') return json(res, { arrests: arrests.list(c, { q: new URL(req.url, 'http://x').searchParams.get('q') || '' }) });
     if (sub === 'rdm' && M === 'GET') return json(res, { flags: rdm.list(c), settings: rdm.of(c), canEdit: can(role, 'admin') });
     if (sub === 'rdm/settings' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can change RDM watch.' }, 403); const r = rdm.save(c, await jsonBody(req)); console.log(`rdm: ${c.slug} settings by ${by.name}`); return json(res, r); }
     if (sub === 'rdm/resolve' && M === 'POST') { const j = await jsonBody(req), r = rdm.resolve(c, j.id, String(j.status || ''), by); return json(res, r.error ? r : { ok: true, flags: rdm.list(c) }, r.error ? 400 : 200); }
@@ -1295,6 +1301,7 @@ setInterval(() => { const d = new Date(), day = d.toISOString().slice(0, 10); if
 process.on('uncaughtException', e => { console.error('uncaught:', e); alerts.send('crash', 'Oversite crashed and is restarting', String(e?.stack || e).slice(0, 1800), 'crit').finally(() => setTimeout(() => process.exit(1), 500)); setTimeout(() => process.exit(1), 4000); });
 process.on('unhandledRejection', e => { console.error('unhandled rejection:', e); alerts.send('rejection', 'Oversite hit an error it didn’t handle', String(e?.stack || e).slice(0, 1800), 'warn'); });
 staff.startHistory(); bounds.start(feedFor, id => communities.key(id));
+arrests.onArrest((c, e) => bots.emit(c, 'arrest.logged', e)); arrests.start(feedFor, id => communities.key(id), logsArrests);
 rdm.onFlag((c, e) => bots.emit(c, 'rdm.flagged', e)); rdm.start(feedFor, id => communities.key(id), c => premium.isPremium(c) && features.on(c, 'staff') && features.on(c, 'st_rdm'));
 cmdq.start(staff.send, async c => { const s = await feedFor(c).snapshot(); if (s.status !== 200) return null; try { return (JSON.parse(s.body).Players || []).length; } catch (e) { return null; } }, id => communities.key(id));   // queued commands and temporary bans safezones.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), (cid, body) => { staffhub.observe(cid, body); const cc = communities.byId(cid); if (cc) monitorRead(cc, body); });
 supporter.start(); civ.start();
