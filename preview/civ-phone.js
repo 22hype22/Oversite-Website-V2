@@ -23,10 +23,15 @@
 
   const css = document.createElement('style'); css.textContent = `
 #civMdt.phone{width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * .485))}
-#civMdt.phone .tablet{aspect-ratio:9/18.6;width:100%;height:auto;max-height:100%;border-radius:56px;padding:10px;background:linear-gradient(145deg,#3A3C42,#18191C 40%,#2B2D33);
-  box-shadow:0 30px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.12) inset,0 0 0 4px #050506 inset}
-#civMdt.phone .tablet .screen{border-radius:47px;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",system-ui,sans-serif;background:#05070D}
-#civMdt.phone .tablet .cam{top:19px;width:100px;height:30px;margin-left:-50px;border-radius:16px;background:#000;box-shadow:none;z-index:9}
+/* the frame: squared-off gunmetal with a bright steel rim, a groove, a black bezel round the glass, side buttons, and a cool sheen across the metal */
+#civMdt.phone .tablet{aspect-ratio:9/18.6;width:100%;height:auto;max-height:100%;border-radius:24px;padding:14px;
+  background:linear-gradient(118deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 18%,rgba(255,255,255,0) 76%,rgba(120,210,255,.18) 100%),linear-gradient(90deg,#33373E 0%,#6A707A 1.6%,#3E434B 3.4%,#2C3036 50%,#3E434B 96.6%,#6A707A 98.4%,#33373E 100%);
+  box-shadow:0 40px 90px rgba(0,0,0,.65),0 0 44px rgba(80,170,255,.07),0 0 0 1px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.3) inset,0 0 0 2px #0D0F13 inset,0 0 0 3px rgba(190,204,222,.32) inset,0 0 0 4px rgba(0,0,0,.35) inset,0 0 0 5px rgba(160,176,196,.12) inset}
+#civMdt.phone .tablet::before,#civMdt.phone .tablet::after{content:"";position:absolute;width:3px;border-radius:2px 0 0 2px;background:linear-gradient(90deg,#6E7580,#2E3239);pointer-events:none}
+#civMdt.phone .tablet::before{left:-3px;top:22%;height:44px;box-shadow:0 58px 0 #3B4048}
+#civMdt.phone .tablet::after{right:-3px;top:28%;height:74px;border-radius:0 2px 2px 0;background:linear-gradient(270deg,#6E7580,#2E3239)}
+#civMdt.phone .tablet .screen{border-radius:12px;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",system-ui,sans-serif;background:#05070D;box-shadow:0 0 0 4px #050608,0 0 0 5px rgba(0,0,0,.6),0 0 0 6px rgba(255,255,255,.1)}
+#civMdt.phone .tablet .cam{top:24px;width:92px;height:26px;margin-left:-46px;border-radius:14px;background:#000;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);z-index:9}
 #civMdt.phone .sbar{position:relative;z-index:6;padding:17px 28px 6px 34px;min-height:52px;font-size:15px;font-weight:600;color:#fff;letter-spacing:-.01em}
 #civMdt.phone .sbar .sb-mid,#civMdt.phone .sbar #cvTopBal{display:none}
 #civMdt.phone .sb-ic{display:flex;align-items:center;gap:6px}#civMdt.phone .sb-ic svg{display:block}
@@ -111,13 +116,13 @@
 #civMdt.phone .cv-form .grid3{grid-template-columns:1fr 1fr}
 #civMdt.phone .cv-car .cv-pills{order:3;flex-basis:100%;padding-left:0}
 @media (max-width:760px){#civMdt.phone{width:100vw}#civMdt.phone .tablet{aspect-ratio:auto;height:100%;border-radius:0;padding:0;box-shadow:none;background:#05070D}
-  #civMdt.phone .tablet .screen{border-radius:0}#civMdt.phone .tablet .cam{display:none}#civMdt.phone .sbar{padding:10px 20px 6px;min-height:0}
+  #civMdt.phone .tablet .screen{border-radius:0;box-shadow:none}#civMdt.phone .tablet .cam{display:none}#civMdt.phone .tablet::before,#civMdt.phone .tablet::after{display:none}#civMdt.phone .sbar{padding:10px 20px 6px;min-height:0}
   #civMdt.phone .tside button[data-p] svg{width:56px;height:56px;padding:14px}#civMdt.phone .ph-dock{margin-bottom:30px}}
 @media (prefers-reduced-motion:reduce){#civMdt.phone .tside,#civMdt.phone.home .tside{transition:none;transform:none}}
 /* the tablet, above phone width: the same home screen and apps on an iPad, landscape, a thin bezel with a camera dot in it (on a phone it stays the phone) */
 @media (min-width:761px){#civMdt.phone.pad{width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * 1.36))}
-#civMdt.phone.pad .tablet{aspect-ratio:4/3;border-radius:34px;padding:12px}
-#civMdt.phone.pad .tablet .screen{border-radius:23px}
+#civMdt.phone.pad .tablet{aspect-ratio:4/3;border-radius:28px;padding:12px}
+#civMdt.phone.pad .tablet .screen{border-radius:17px}#civMdt.phone.pad .tablet::before,#civMdt.phone.pad .tablet::after{display:none}
 #civMdt.phone.pad .tablet .cam{top:4px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#14161B;box-shadow:0 0 0 1px rgba(255,255,255,.06)}
 #civMdt.phone.pad .sbar{padding:9px 26px 4px;min-height:32px;font-size:13.5px}#civMdt.phone.pad .sb-ic{gap:5px}
 #civMdt.phone.pad .tside{padding:22px max(56px,8%) 0}
