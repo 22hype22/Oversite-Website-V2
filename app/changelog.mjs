@@ -2,7 +2,7 @@
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
   { v: '3.5', date: '2026-10-25', tag: 'new', title: 'Your own alert sounds',
-    body: 'Premium players can upload their own sound for the call alert and the panic alarm under Your MDT on the account page. It plays in every server’s CAD, at your alert volume, and only you hear it.', items: ['An mp3, wav, ogg or m4a of up to 1 MB', 'Remove it any time to go back to the built-in sounds'] },
+    body: 'Premium players can upload their own sound for the call alert and the panic alarm under Your MDT on the account page. It plays in every server’s CAD, at your alert volume, and only you hear it.', items: ['An mp3, wav, ogg or m4a of up to 1 MB', 'Remove it any time to go back to the built-in sounds', 'In the CAD, open the menu under your name and pick Alert sounds and look'] },
   { v: '3.4', date: '2026-10-24', tag: 'new', title: 'Arrange your phone',
     body: 'The Civilian phone works like an iPhone home screen now.', items: ['Press and hold an app to move it: drag it anywhere, onto another page, or onto or off the dock', 'Apps spread over pages you swipe between, with dots at the bottom', 'Pull down on the home screen to search your apps (or press /)', 'Settings → Home Screen puts everything back where it started'] },
   { v: '3.3', date: '2026-10-23', tag: 'new', title: 'Player pages',

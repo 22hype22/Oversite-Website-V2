@@ -1821,7 +1821,7 @@
   </div>
 
   <section class="warn" id="warn" aria-label="Warning" aria-live="polite">
-    <div class="hdr"><h3>Warning</h3><button type="button" class="snd" id="warnSound" aria-pressed="true" aria-label="Call sound" title="Call sound"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path class="w" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg></button></div>
+    <div class="hdr"><h3>Warning</h3><button type="button" class="snd" id="warnSound" aria-pressed="true" aria-label="Call sound" title="Call sound on or off. Pick your own sound under Alert sounds in your name menu"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path class="w" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg></button></div>
     <div class="wsec">
       <div class="h"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 12h6"/></svg>New Calls <span id="warnNew">(0 calls)</span><span class="chev"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></span></div>
       <div id="warnList"></div>
@@ -2799,7 +2799,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const closeMenu = () => { menu.classList.remove('open'); ubtn.setAttribute('aria-expanded', 'false'); };
   const openMenu = () => { const d = DEPT(), u = me();
     menu.innerHTML = `<div class="tm-h"><i>${$('tuserAv').innerHTML}</i><div><b>${esc(OVS?.me || $('tuserName').textContent)}</b><small>${esc([signed[d], u && u.name].filter(Boolean).join(' · ') || DEPT_NAME[d])}</small></div></div>
-      ${OVS ? `<button type="button" role="menuitem" data-m="duty">${esc(window.ovDutyLabel?.() || 'Your shifts')}</button>` : ''}${OVS ? `<button type="button" role="menuitem" data-m="loa">Request leave (LOA)</button><a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}">Account settings</a>` : ''}
+      ${OVS ? `<button type="button" role="menuitem" data-m="duty">${esc(window.ovDutyLabel?.() || 'Your shifts')}</button>` : ''}${OVS ? `<button type="button" role="menuitem" data-m="loa">Request leave (LOA)</button><a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}#mdtset">Alert sounds and look</a><a role="menuitem" href="/account?from=${encodeURIComponent('/' + OVS.slug)}">Account settings</a>` : ''}
       ${LOCKS ? '<hr><button type="button" role="menuitem" class="tm-out" data-m="out">Sign out</button>' : ''}`;
     menu.classList.add('open'); ubtn.setAttribute('aria-expanded', 'true'); menu.querySelector('[role="menuitem"]')?.focus({ preventScroll: true }); };
   ubtn.addEventListener('click', () => menu.classList.contains('open') ? closeMenu() : openMenu());
