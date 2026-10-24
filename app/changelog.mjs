@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '3.4', date: '2026-10-24', tag: 'new', title: 'Arrange your phone',
+    body: 'The Civilian phone works like an iPhone home screen now.', items: ['Press and hold an app to move it: drag it anywhere, onto another page, or onto or off the dock', 'Apps spread over pages you swipe between, with dots at the bottom', 'Pull down on the home screen to search your apps (or press /)', 'Settings → Home Screen puts everything back where it started'] },
   { v: '3.3', date: '2026-10-23', tag: 'new', title: 'Player pages',
     body: 'Click an owner, co-owner or reviewer on a server’s page or on Explore to open their player page: the servers they run, the reviews they’ve written and, for Premium players, their career (hours on duty, calls, arrests and time on each server). Premium players can hide their career from it with a switch on their own page.', items: [] },
   { v: '3.2', date: '2026-10-23', tag: 'new', title: 'Your state’s penal code, and an arrest log',

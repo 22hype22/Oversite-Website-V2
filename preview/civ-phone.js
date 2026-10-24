@@ -1,8 +1,9 @@
 // The Civilian tab as a phone that looks like an iPhone: a wallpaper, the status bar with the Dynamic Island, widgets (the
-// weather where the server is, the wallet balance, today's date), the apps as rounded icons with red badges, a Search pill that
-// narrows the apps, and the dock. Tapping an app opens it full screen; "Apps" at the top, the bar at the bottom (or Esc) goes back
+// weather where the server is, the wallet balance, today's date), the apps as rounded icons with red badges on pages you swipe
+// between (the dots under them), and the dock. Press and hold an app to move it: onto another page, or onto or off the dock. Pull
+// down on the home screen to search. Tapping an app opens it full screen; "Apps" at the top, the bar at the bottom (or Esc) goes back
 // home. The Settings app picks the wallpaper, which widgets show and the device: this phone, or a tablet like an iPad (wider, more
-// apps to a row, the widgets side by side, the dock centred); all kept on this device. More apps (Messages, Maps, News) plug in
+// apps to a row, the widgets side by side, the dock centred); all kept on this device, the layout included. More apps (Messages, Maps, News) plug in
 // with window.ovPhone.addApp (civ-apps.js). On a phone it fills the screen, whichever device is picked.
 (() => { const page = document.getElementById('civMdt'), tabs = document.getElementById('cvTabs'), OV = window.OVERSITE || {}; if (!page || !tabs) return;
   const $ = id => document.getElementById(id), API = OV.api || '';
@@ -17,8 +18,13 @@
     graphite: ['Graphite', 'radial-gradient(120% 60% at 50% 0%,rgba(255,255,255,.12),transparent 60%),linear-gradient(170deg,#2A2C31,#0E0F12)'],
     forest: ['Forest', 'radial-gradient(120% 60% at 0% 0%,rgba(120,200,110,.45),transparent 60%),radial-gradient(100% 60% at 100% 100%,rgba(30,120,90,.6),transparent 60%),linear-gradient(170deg,#0D1C14,#050C08)'],
     rose: ['Rose', 'radial-gradient(120% 60% at 100% 0%,rgba(255,150,190,.6),transparent 60%),radial-gradient(100% 60% at 0% 100%,rgba(160,90,255,.5),transparent 60%),linear-gradient(170deg,#2A1426,#120A16)'] };
-  let prefs = { wall: 'blue', widgets: ['weather', 'wallet'], device: 'phone' };
-  try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) prefs = { wall: WALLS[p.wall] ? p.wall : 'blue', widgets: (p.widgets || []).filter(w => WIDGETS.includes(w)), device: p.device === 'tablet' ? 'tablet' : 'phone' }; } catch (e) {}
+  let prefs = { wall: 'blue', widgets: ['weather', 'wallet'], device: 'phone', layout: null };
+  const ids = v => Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 200) : null;
+  try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) prefs = { wall: WALLS[p.wall] ? p.wall : 'blue', widgets: (p.widgets || []).filter(w => WIDGETS.includes(w)), device: p.device === 'tablet' ? 'tablet' : 'phone',
+    layout: ids(p.layout?.order) && ids(p.layout?.dock) ? { order: ids(p.layout.order), dock: ids(p.layout.dock) } : null }; } catch (e) {}
+  // the home screen is laid out again when something it depends on changes (the device, the widgets, the size)
+  let layoutFn = null, layoutQueued = false;
+  const queueLayout = () => { if (!layoutFn || layoutQueued) return; layoutQueued = true; requestAnimationFrame(() => { layoutQueued = false; layoutFn(); }); };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (e) {} };
 
   const css = document.createElement('style'); css.textContent = `
@@ -81,11 +87,46 @@
 #civMdt.phone .tside [data-p="biz"]{--app:linear-gradient(180deg,#3AD6DA,#0FA3B0)}#civMdt.phone .tside [data-p="id"]{--app:linear-gradient(180deg,#B9C0CC,#7D8594)}
 #civMdt.phone .tside [data-p="record"]{--app:linear-gradient(180deg,#FF5A50,#E0241A)}#civMdt.phone .tside [data-p="server"]{--app:linear-gradient(180deg,#5D6BF2,#3A3FC4)}
 #civMdt.phone .tside [data-p="phset"]{--app:linear-gradient(180deg,#A3A8B1,#6E737C)}
-#civMdt.phone .ph-search{align-self:center;display:flex;align-items:center;gap:6px;margin:auto 0 12px;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.14);
-  -webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);color:rgba(255,255,255,.9);font-size:14px;font-weight:500;flex:none}
-#civMdt.phone .ph-search input{width:62px;background:none;border:0;outline:0;color:#fff;font:inherit;padding:0;transition:width .2s ease}
-#civMdt.phone .ph-search input:focus,#civMdt.phone .ph-search input:not(:placeholder-shown){width:150px}#civMdt.phone .ph-search input::placeholder{color:rgba(255,255,255,.85)}
-#civMdt.phone .tside button[data-p].ph-miss{display:none}
+#civMdt.phone.home .tside{overflow:hidden;touch-action:pan-x}
+#civMdt.phone .tside button[data-p]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#civMdt.phone .tside button[data-p][hidden]{display:none}
+/* the pages of apps, swiped sideways, with a dot for each under them */
+#civMdt.phone .ph-pages{flex:1 1 0;min-height:0;align-self:stretch;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+#civMdt.phone .ph-pages::-webkit-scrollbar{display:none}
+#civMdt.phone .ph-page{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;overflow:hidden}
+#civMdt.phone .ph-dots{flex:none;align-self:center;display:flex;gap:9px;height:8px;margin:10px 0 14px}
+#civMdt.phone .ph-dots button{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:background .2s}
+#civMdt.phone .ph-dots button[aria-selected="true"]{background:#fff}
+/* moving apps: they wiggle, the one being moved follows the pointer and leaves a faint copy where it will land */
+@keyframes ph-jig{from{transform:rotate(-2.2deg)}to{transform:rotate(2.2deg)}}
+#civMdt.phone.ph-edit .tside button[data-p] svg{animation:ph-jig .26s ease-in-out infinite alternate}
+#civMdt.phone.ph-edit .tside button[data-p]:nth-child(2n) svg{animation-duration:.3s;animation-delay:-.15s}
+#civMdt.phone.ph-edit .tside button[data-p]{touch-action:none;cursor:grab}
+#civMdt.phone .tside button[data-p].ph-lift{opacity:.25}
+#civMdt.phone .ph-ghost svg.ai,#civMdt.phone .ph-spot-app svg.ai{padding:0;background:none}
+#civMdt.phone .ph-ghost{position:absolute;left:0;top:0;z-index:20;pointer-events:none;will-change:transform}
+#civMdt.phone .ph-ghost svg{display:block;width:60px;height:60px;padding:15px;border-radius:22.5%;color:#fff;background:var(--app,#3A3D45);stroke-width:2;transform:scale(1.12);
+  box-shadow:0 16px 32px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.25)}
+#civMdt.phone .ph-done{display:none;margin-left:auto;padding:5px 14px;border-radius:999px;border:0;background:rgba(255,255,255,.24);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+  color:#fff;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer}
+#civMdt.phone.home.ph-edit .ph-done{display:block}#civMdt.phone.home.ph-edit .sbar .sb-ic{display:none}
+/* search, pulled down from the home screen */
+#civMdt.phone .ph-spot{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;padding:62px 18px 20px;background:rgba(8,10,16,.5);
+  -webkit-backdrop-filter:blur(28px) saturate(1.3);backdrop-filter:blur(28px) saturate(1.3);opacity:0;transition:opacity .2s ease}
+#civMdt.phone .ph-spot[hidden]{display:none}#civMdt.phone .ph-spot.open{opacity:1}#civMdt.phone .ph-spot.pulling{opacity:var(--pull,0);transition:none}
+#civMdt.phone .ph-spot-top{display:flex;align-items:center;gap:12px;transform:translateY(calc((var(--pull,1) - 1) * 18px))}#civMdt.phone .ph-spot.open .ph-spot-top{transform:none;transition:transform .2s ease}
+#civMdt.phone .ph-spot-in{flex:1;min-width:0;display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.16);color:rgba(255,255,255,.75)}
+#civMdt.phone .ph-spot-in input{flex:1;min-width:0;background:none;border:0;outline:0;padding:0;color:#fff;font-family:inherit;font-size:17px}
+#civMdt.phone .ph-spot-in input::placeholder{color:rgba(255,255,255,.65)}#civMdt.phone .ph-spot-in input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+#civMdt.phone .ph-spot-x{background:none;border:0;padding:0;color:#fff;font-family:inherit;font-size:17px;cursor:pointer}
+#civMdt.phone .ph-spot-res{margin-top:22px;overflow-y:auto;scrollbar-width:none}
+#civMdt.phone .ph-spot-res h4{margin:0 2px 12px;font-size:13px;font-weight:600;color:rgba(255,255,255,.7)}
+#civMdt.phone .ph-spot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 0}
+#civMdt.phone .ph-spot-app{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;background:none;border:0;padding:0;color:#fff;font-family:inherit;font-size:12px;font-weight:500;line-height:1.15;cursor:pointer}
+#civMdt.phone .ph-spot-app svg{width:56px;height:56px;padding:14px;border-radius:22.5%;background:var(--app,#3A3D45);color:#fff;stroke-width:2;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+#civMdt.phone .ph-spot-app:focus-visible{outline:none}#civMdt.phone .ph-spot-app:focus-visible svg{outline:2px solid #fff;outline-offset:2px}
+#civMdt.phone .ph-spot-none{margin-top:30px;text-align:center;font-size:15px;color:rgba(255,255,255,.7)}
+@media (prefers-reduced-motion:reduce){#civMdt.phone.ph-edit .tside button[data-p] svg{animation:none}#civMdt.phone .ph-spot,#civMdt.phone .ph-spot.open .ph-spot-top{transition:none}}
 #civMdt.phone .ph-dock{flex:none;align-self:stretch;position:sticky;bottom:34px;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);margin:0 -8px 34px;padding:14px 8px;border-radius:34px;background:rgba(255,255,255,.12);
   -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
 #civMdt.phone .ph-dock button[data-p]{font-size:0!important;gap:0!important}#civMdt.phone .ph-dock button[data-p] .badge{font-size:13px}
@@ -118,7 +159,7 @@
 #civMdt.phone .cv-car .cv-pills{order:3;flex-basis:100%;padding-left:0}
 @media (max-width:760px){#civMdt.phone{width:100vw}#civMdt.phone .tablet{aspect-ratio:auto;height:100%;border-radius:0;padding:0;box-shadow:none;background:#05070D}
   #civMdt.phone .tablet .screen{border-radius:0;box-shadow:none}#civMdt.phone .tablet .cam{display:none}#civMdt.phone .tablet::before,#civMdt.phone .tablet::after{display:none}#civMdt.phone .sbar{padding:10px 20px 6px;min-height:0}
-  #civMdt.phone .tside button[data-p] svg{width:56px;height:56px;padding:14px}#civMdt.phone .ph-dock{margin-bottom:30px}}
+  #civMdt.phone .tside button[data-p] svg,#civMdt.phone .ph-ghost svg{width:56px;height:56px;padding:14px}#civMdt.phone .ph-dock{margin-bottom:30px}}
 @media (prefers-reduced-motion:reduce){#civMdt.phone .tside,#civMdt.phone.home .tside{transition:none;transform:none}}
 /* the tablet, above phone width: the same home screen and apps on an iPad, landscape, a thin bezel with a camera dot in it (on a phone it stays the phone) */
 @media (min-width:761px){#civMdt.phone.pad{width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * 1.36))}
@@ -136,7 +177,9 @@
 #civMdt.phone.pad .ph-apps{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:26px 8px;margin-top:28px;max-width:960px;width:100%;align-self:center}
 #civMdt.phone.pad .tside button[data-p] svg{width:68px;height:68px;padding:17px}#civMdt.phone.pad .tside button[data-p] svg.ai{padding:0}#civMdt.phone.pad .tside button[data-p]{font-size:12.5px}
 #civMdt.phone.pad .tside button[data-p] .badge{left:calc(50% + 21px)}
-#civMdt.phone.pad .ph-search{margin:auto 0 14px}
+#civMdt.phone.pad .ph-ghost svg{width:68px;height:68px;padding:17px}
+#civMdt.phone.pad .ph-spot{padding:46px max(56px,8%) 24px}#civMdt.phone.pad .ph-spot-top,#civMdt.phone.pad .ph-spot-res{width:100%;max-width:680px;align-self:center}
+#civMdt.phone.pad .ph-spot-grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
 #civMdt.phone.pad .ph-dock{align-self:center;display:flex;gap:20px;margin:0 0 24px;padding:12px 18px;border-radius:30px;bottom:24px}
 #civMdt.phone.pad .ph-bar::before{width:160px}#civMdt.phone.pad .ph-bar:hover::before{width:170px}
 #civMdt.phone.pad .ph-back{margin-left:22px}
@@ -151,7 +194,7 @@
   page.classList.add('phone', 'home');
   const screen = page.querySelector('.screen'), screens = page.querySelector('.tscreens'), sbar = page.querySelector('.sbar');
   const applyWall = () => { for (const k of Object.keys(WALLS)) page.classList.toggle('wall-' + k, k === prefs.wall); page.style.setProperty('--wall', WALLS[prefs.wall][1]); };
-  const applyDevice = () => { page.classList.toggle('pad', prefs.device === 'tablet'); dispatchEvent(new CustomEvent('ovphonedevice', { detail: { device: prefs.device } })); };
+  const applyDevice = () => { page.classList.toggle('pad', prefs.device === 'tablet'); dispatchEvent(new CustomEvent('ovphonedevice', { detail: { device: prefs.device } })); queueLayout(); };
   applyWall(); applyDevice();
 
   // status bar: signal, Wi-Fi and battery on the right, like the real thing
@@ -161,18 +204,62 @@
     + '<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23" height="12" rx="3.8" stroke="rgba(255,255,255,.45)"/><rect x="2" y="2" width="17" height="9" rx="2.4" fill="#fff"/><path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2Z" fill="rgba(255,255,255,.45)"/></svg>';
   sbar.appendChild(ic);
 
-  // home screen: widgets, the apps, search, the dock
+  // home screen: widgets and apps on pages, the dots, the dock
   const wid = document.createElement('div'); wid.className = 'ph-wid';
-  const apps = document.createElement('div'); apps.className = 'ph-apps';
+  const pager = document.createElement('div'); pager.className = 'ph-pages';
+  const dots = document.createElement('div'); dots.className = 'ph-dots'; dots.setAttribute('role', 'tablist'); dots.setAttribute('aria-label', 'Home screen pages');
   const dock = document.createElement('div'); dock.className = 'ph-dock';
-  const search = document.createElement('label'); search.className = 'ph-search';
-  search.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search" aria-label="Search apps" autocomplete="off">';
   const DOCK = ['msgs', 'home', 'maps', 'bills'];
-  for (const b of [...tabs.querySelectorAll('button[data-p]')]) apps.appendChild(b);
-  tabs.prepend(wid); wid.after(apps); apps.after(search); search.after(dock);
-  const placeDock = () => { for (const p of DOCK) { const b = tabs.querySelector(`button[data-p="${p}"]`); if (b && b.parentNode !== dock) dock.appendChild(b); }
-    for (const b of [...dock.querySelectorAll('button[data-p]')].sort((a, b) => DOCK.indexOf(a.dataset.p) - DOCK.indexOf(b.dataset.p))) dock.appendChild(b); };
-  placeDock();
+  tabs.prepend(pager); pager.after(dots); dots.after(dock);
+  const btns = () => [...tabs.querySelectorAll('button[data-p]')];
+  const btn = id => tabs.querySelector(`button[data-p="${CSS.escape(id)}"]`);
+  const shown = b => !!b && !b.hidden && getComputedStyle(b).display !== 'none';
+  const appName = b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
+  // The layout: the apps in order (the pages are that list cut to fit each page) and the dock. Until something is moved, an app
+  // takes its usual place: the dock if it starts there, else after the others.
+  const lay = prefs.layout ? { order: [...prefs.layout.order], dock: [...prefs.layout.dock] } : { order: [], dock: [] };
+  const dockMax = () => page.classList.contains('pad') && innerWidth > 760 ? 6 : 4;
+  const learn = (before = {}) => { for (const b of btns()) { const id = b.dataset.p; if (lay.order.includes(id) || lay.dock.includes(id)) continue;
+    if (!prefs.layout && DOCK.includes(id)) { lay.dock.push(id); lay.dock.sort((x, y) => DOCK.indexOf(x) - DOCK.indexOf(y)); continue; }
+    const at = before[id] ? lay.order.indexOf(before[id]) : -1; at >= 0 ? lay.order.splice(at, 0, id) : lay.order.push(id); } };
+  const keep = () => { prefs.layout = lay; save(); };
+  let cur = 0, pagesN = 1, plan = '';
+  const newPage = () => { const pg = document.createElement('div'); pg.className = 'ph-page'; const g = document.createElement('div'); g.className = 'ph-apps'; pg.appendChild(g); pager.appendChild(pg); return pg; };
+  // how many apps fit on the first page (under the widgets) and on the others
+  const measure = () => { const pg = pager.firstElementChild, g = pg.querySelector('.ph-apps'), H = pg.clientHeight, cs = getComputedStyle(g);
+    const b = [...g.children].find(shown) || [...dock.children].find(shown), gap = parseFloat(cs.rowGap) || 0, rowH = (b?.offsetHeight || 0) + gap;
+    const cols = cs.gridTemplateColumns.split(' ').filter(Boolean).length || 4;
+    if (!H || rowH < 30) return { first: Infinity, rest: Infinity };
+    const top = g.getBoundingClientRect().top - pg.getBoundingClientRect().top, mt = parseFloat(cs.marginTop) || 0;
+    const rows = avail => Math.max(0, Math.floor((avail + gap + 0.5) / rowH));
+    return { first: rows(H - top) * cols, rest: Math.max(1, rows(H - mt)) * cols }; };
+  const layout = () => {
+    learn();
+    const here = new Set(btns().map(b => b.dataset.p)), max = dockMax();
+    const inDock = lay.dock.filter(id => here.has(id)), dockIds = inDock.slice(0, max);
+    // a dock too full for this device (a tablet layout on a phone) puts the rest first on the home screen
+    const list = [...inDock.slice(max), ...lay.order.filter(id => here.has(id) && !dockIds.includes(id))];
+    const fit = measure(), pages = [[]];
+    let n = 0, cap = fit.first;
+    for (const id of list) { if (shown(btn(id))) { if (n >= cap) { pages.push([]); cap = fit.rest; n = 0; } n++; } pages[pages.length - 1].push(id); }
+    const sig = JSON.stringify([pages, dockIds]); if (sig === plan && pager.children.length === pages.length) return; plan = sig;
+    while (pager.children.length < pages.length) newPage();
+    pages.forEach((ids, i) => { const g = pager.children[i].querySelector('.ph-apps'); ids.forEach((id, k) => { const b = btn(id); if (g.children[k] !== b) g.insertBefore(b, g.children[k] || null); }); });
+    dockIds.forEach((id, k) => { const b = btn(id); if (dock.children[k] !== b) dock.insertBefore(b, dock.children[k] || null); });
+    while (pager.children.length > pages.length) pager.lastElementChild.remove();
+    pagesN = pages.length; cur = Math.min(cur, pagesN - 1); drawDots(); pager.scrollLeft = cur * pager.clientWidth; };
+  const drawDots = () => { dots.innerHTML = pagesN > 1 ? Array.from({ length: pagesN }, (_, i) => `<button type="button" role="tab" aria-label="Page ${i + 1} of ${pagesN}" aria-selected="${i === cur}"></button>`).join('') : ''; };
+  const markDots = () => [...dots.children].forEach((d, i) => d.setAttribute('aria-selected', i === cur));
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  const go = (i, smooth = true) => { cur = Math.max(0, Math.min(pagesN - 1, i)); pager.scrollTo({ left: cur * pager.clientWidth, behavior: smooth && !still.matches ? 'smooth' : 'auto' }); markDots(); };
+  let swiping = false;
+  pager.addEventListener('scroll', () => { const i = Math.round(pager.scrollLeft / (pager.clientWidth || 1)); if (i !== cur && !swiping) { cur = i; markDots(); } }, { passive: true });
+  dots.addEventListener('click', e => { const d = e.target.closest('button'); if (d) go([...dots.children].indexOf(d)); });
+  newPage().prepend(wid); learn();   // the apps already here, in the order they come
+  layoutFn = layout; new ResizeObserver(queueLayout).observe(pager);
+  // an app shown or hidden later (the Server app once the page knows you run it, a feature switched off) changes what fits
+  new MutationObserver(queueLayout).observe(tabs, { attributes: true, attributeFilter: ['hidden', 'style'], subtree: true });
+  new MutationObserver(queueLayout).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
   // ── app icons: each app drawn as a real icon (its own background, solid shaded artwork), in place of the line glyph ──
   // ai(): the shared parts: the background gradient, a white-to-silver fill ({W}), a soft drop shadow ({S}), a gold fill ({G}) and a light rim
@@ -244,9 +331,10 @@
   const addApp = ({ id, name, icon, color, render, onOpen, before }) => {
     const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.p = id; b.setAttribute('aria-selected', 'false');
     b.style.setProperty('--app', color); b.innerHTML = `${icon}${esc(name)}<i class="badge" id="phBadge-${id}" hidden>0</i>`; paint(b);
-    const at = before && apps.querySelector(`button[data-p="${before}"]`); at ? apps.insertBefore(b, at) : apps.appendChild(b);
+    // straight onto a page, so it never sits under the dock taking room while the pages are measured
+    pager.lastElementChild.querySelector('.ph-apps').appendChild(b); learn(before ? { [id]: before } : {}); layout();
     const sec = document.createElement('section'); sec.className = 'tscreen cv-pane'; sec.dataset.p = id; screens.appendChild(sec);
-    added.set(id, { render, onOpen, sec, done: false }); placeDock(); return { button: b, section: sec, badge: n => { const el = $('phBadge-' + id); el.textContent = n; el.hidden = !n; } }; };
+    added.set(id, { render, onOpen, sec, done: false }); return { button: b, section: sec, badge: n => { const el = $('phBadge-' + id); el.textContent = n; el.hidden = !n; } }; };
   const opened = id => { const a = added.get(id); if (!a) return; if (!a.done) { a.done = true; a.render?.(a.sec); } a.onOpen?.(a.sec); };
 
   // ── widgets ──
@@ -264,7 +352,8 @@
     wid.innerHTML = prefs.widgets.map(w => w === 'weather' ? `<button type="button" class="ph-w" data-open="phset"><div class="ph-wx${wx && !wx.error ? (wx.code >= 3 && wx.day ? ' grey' : wx.day ? '' : ' night') : ''}">${wx && !wx.error
         ? `<small>${esc(wx.place)} ${arrow}</small><b>${esc(wx.temp)}°</b><i>${wxIcon(wx)}<br>${esc(wx.text)}<br>H:${esc(wx.hi)}° L:${esc(wx.lo)}°</i>` : `<small>Weather</small><i>${esc(wx?.error || 'Loading…')}</i>`}</div><span>Weather</span></button>`
       : w === 'wallet' ? `<button type="button" class="ph-w" data-open="home"><div class="ph-bal"><small>Balance</small><b>${esc($('cvTopBal')?.textContent || '—')}</b><em>${esc($('cvSub')?.textContent || '')}</em></div><span>Wallet</span></button>`
-      : `<button type="button" class="ph-w" data-open="bills"><div class="ph-cal"><small>${esc(now.toLocaleDateString([], { weekday: 'long' }))}</small><b>${now.getDate()}</b><em>${n ? `${n} bill${n > 1 ? 's' : ''} due` : 'No bills due'}</em></div><span>Calendar</span></button>`).join(''); };
+      : `<button type="button" class="ph-w" data-open="bills"><div class="ph-cal"><small>${esc(now.toLocaleDateString([], { weekday: 'long' }))}</small><b>${now.getDate()}</b><em>${n ? `${n} bill${n > 1 ? 's' : ''} due` : 'No bills due'}</em></div><span>Calendar</span></button>`).join('');
+    queueLayout(); };
   for (const id of ['cvTopBal', 'cvSub', 'cvBillsN']) { const el = $(id); if (el) new MutationObserver(() => drawWidgets()).observe(el, { childList: true, characterData: true, subtree: true, attributes: true }); }
 
   // ── Settings: wallpaper, widgets, and (for the owner) where the server is, for the weather ──
@@ -277,6 +366,8 @@
         ['tablet', 'Tablet', '#2F3136', '<svg width="18" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="M11 17h2"/></svg>']].map(([k, n, bg, svg]) =>
         `<button type="button" class="ps-r" data-dev="${k}" aria-pressed="${prefs.device === k}"><i class="ps-ic" style="background:${bg}">${svg}</i><span>${n}</span><svg class="ps-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button>`).join('')}</div>
       <h3>Wallpaper</h3><div class="ps-g"><div class="ps-walls">${Object.entries(WALLS).map(([k, [n, bg]]) => `<button type="button" data-wall="${k}" style="--w:${bg}" aria-pressed="${prefs.wall === k}" aria-label="${n}"><span>${n}</span></button>`).join('')}</div></div>
+      <h3>Home Screen</h3><div class="ps-g"><button type="button" class="ps-r" data-relayout><i class="ps-ic" style="background:#5E5CE6"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></i><span>Reset Home Screen Layout<small>Puts every app back where it started.</small></span></button></div>
+      <p class="ps-note">Press and hold an app to move it: onto another page, or onto or off the dock. Pull down on the home screen to search.</p>
       <h3>Widgets</h3><div class="ps-g">${WIDGETS.map(w => `<label class="ps-r"><i class="ps-ic" style="background:${SW[w][1]}">${SW[w][2]}</i><span>${SW[w][0]}</span><span class="ps-sw"><input type="checkbox" data-wid="${w}"${prefs.widgets.includes(w) ? ' checked' : ''}><i></i></span></label>`).join('')}</div>
       <h3>Weather</h3><div class="ps-g"><div class="ps-r"><i class="ps-ic" style="background:#2A84F0">${WX.sun}</i><span>${wx && !wx.error ? esc(wx.full) : 'Not found yet'}<small>${wx && !wx.error ? (wx.set ? 'Where this server is' : 'Guessed from the server’s name') : esc(wx?.error || '')}</small></span></div>
         ${wx?.canSet ? `<form class="ps-in" id="psPlace"><input id="psPlaceIn" name="q" placeholder="City, like Miami or Atlanta, Georgia" maxlength="80"><button>Set</button></form>` : ''}</div>
@@ -284,7 +375,8 @@
     if (keep && $(keep)) $(keep).focus(); };
   const settings = addApp({ id: 'phset', name: 'Settings', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
     color: 'linear-gradient(180deg,#A3A8B1,#6E737C)', render: sec => { setSec = sec; drawSettings(); }, onOpen: () => loadWx(true) });
-  settings.section.addEventListener('click', e => { const d = e.target.closest('[data-dev]'); if (d) { prefs.device = d.dataset.dev; save(); applyDevice(); drawSettings(); fit(); return; }
+  settings.section.addEventListener('click', e => { if (e.target.closest('[data-relayout]')) { prefs.layout = null; lay.order.length = 0; lay.dock.length = 0; save(); plan = ''; layout(); return; }
+    const d = e.target.closest('[data-dev]'); if (d) { prefs.device = d.dataset.dev; save(); applyDevice(); drawSettings(); fit(); return; }
     const w = e.target.closest('[data-wall]'); if (!w) return; prefs.wall = w.dataset.wall; save(); applyWall(); drawSettings(); });
   settings.section.addEventListener('change', e => { const t = e.target; if (!t.dataset.wid) return;
     prefs.widgets = WIDGETS.filter(w => w === t.dataset.wid ? t.checked : prefs.widgets.includes(w)); save(); drawWidgets(); });
@@ -292,9 +384,105 @@
     try { wx = await call('/weather/place', { q }); wxAt = Date.now(); placeMsg = { t: `Set. Everyone in this server now sees the weather in ${wx.full}.` }; } catch (x) { placeMsg = { t: x.message, err: true }; }
     drawSettings(); drawWidgets(); });
 
-  // search: only the apps whose name matches
-  const q = search.querySelector('input');
-  q.addEventListener('input', () => { const v = q.value.trim().toLowerCase(); for (const b of apps.querySelectorAll('button[data-p]')) b.classList.toggle('ph-miss', !!v && !b.textContent.toLowerCase().includes(v)); });
+  // ── search, pulled down from the home screen (or / and Ctrl+K) ──
+  const spot = document.createElement('div'); spot.className = 'ph-spot'; spot.hidden = true;
+  spot.innerHTML = '<div class="ph-spot-top"><label class="ph-spot-in"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>'
+    + '<input type="search" placeholder="Search" aria-label="Search apps" autocomplete="off" enterkeyhint="go"></label><button type="button" class="ph-spot-x">Cancel</button></div><div class="ph-spot-res" aria-live="polite"></div>';
+  screen.appendChild(spot);
+  const sq = spot.querySelector('input'), res = spot.querySelector('.ph-spot-res');
+  const hits = () => { const v = sq.value.trim().toLowerCase(), all = [...lay.dock, ...lay.order].map(btn).filter(shown);
+    return v ? all.filter(b => appName(b).toLowerCase().includes(v)) : all.slice(0, 8); };
+  const drawSpot = () => { const list = hits(), v = sq.value.trim();
+    res.innerHTML = list.length ? `<h4>${v ? 'Apps' : 'Suggestions'}</h4><div class="ph-spot-grid">${list.map(b => `<button type="button" class="ph-spot-app" data-go="${esc(b.dataset.p)}" style="--app:${esc(getComputedStyle(b).getPropertyValue('--app').trim())}">${b.querySelector('svg')?.outerHTML || ''}<span>${esc(appName(b))}</span></button>`).join('')}</div>`
+      : `<p class="ph-spot-none">No apps match “${esc(v)}”.</p>`; };
+  const spotOpen = () => !spot.hidden && spot.classList.contains('open');
+  const openSpot = () => { leaveEdit(); spot.hidden = false; spot.classList.remove('pulling'); spot.style.removeProperty('--pull'); void spot.offsetWidth; spot.classList.add('open'); drawSpot(); sq.focus(); };
+  const closeSpot = () => { if (spot.hidden) return; spot.classList.remove('open', 'pulling'); sq.value = ''; sq.blur();
+    setTimeout(() => { if (!spot.classList.contains('open') && !spot.classList.contains('pulling')) spot.hidden = true; }, still.matches ? 0 : 200); };
+  sq.addEventListener('input', drawSpot);
+  sq.addEventListener('keydown', e => { if (e.key === 'Enter') { const b = hits()[0]; if (b) { e.preventDefault(); closeSpot(); b.click(); } } });
+  spot.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g) { closeSpot(); btn(g.dataset.go)?.click(); return; }
+    if (e.target.closest('.ph-spot-x') || e.target === spot || e.target === res) closeSpot(); });
+
+  // ── moving apps: press and hold one (or anything in the edit mode it starts), drag it, let go; Done finishes ──
+  const done = document.createElement('button'); done.type = 'button'; done.className = 'ph-done'; done.textContent = 'Done'; sbar.appendChild(done);
+  const editing = () => page.classList.contains('ph-edit');
+  const enterEdit = () => { if (!editing()) page.classList.add('ph-edit'); };
+  const leaveEdit = () => { page.classList.remove('ph-edit'); };
+  done.addEventListener('click', leaveEdit);
+  const listOf = id => lay.dock.includes(id) ? lay.dock : lay.order;
+  const dockCount = () => lay.dock.filter(id => shown(btn(id))).length;
+  const changed = before => { if (JSON.stringify(lay) === before) return false; prefs.layout = lay; layout(); return true; };
+  // the moved app takes the place of the one it is over: after it when moving forward, before it when moving back. Onto a full dock it
+  // swaps with the app it is over, which goes where the moved one was picked up from.
+  const place = (id, tid, left) => { const was = JSON.stringify(lay), from = listOf(id), to = listOf(tid), at = from.indexOf(id);
+    if (from === to) { const ti = to.indexOf(tid); from.splice(at, 1); const ni = to.indexOf(tid); to.splice(at <= ti ? ni + 1 : ni, 0, id); }
+    else if (to === lay.dock) { from.splice(at, 1); if (dockCount() >= dockMax()) { const ti = lay.dock.indexOf(tid); lay.dock.splice(ti, 1, id); lay.order.splice(drag?.home ?? at, 0, tid); }
+      else lay.dock.splice(lay.dock.indexOf(tid) + (left ? 0 : 1), 0, id); }
+    else { from.splice(at, 1); const ti = lay.order.indexOf(tid); lay.order.splice(left ? ti : ti + 1, 0, id); }
+    return changed(was); };
+  const toDock = id => { if (lay.dock.includes(id) || dockCount() >= dockMax()) return; const was = JSON.stringify(lay); lay.order.splice(lay.order.indexOf(id), 1); lay.dock.push(id); changed(was); };
+  // over the empty end of a page: the moved app goes after that page's last app
+  const toPageEnd = (id, x, y) => { const g = pager.children[cur]?.querySelector('.ph-apps'); if (!g) return;
+    const last = [...g.children].filter(b => shown(b) && b.dataset.p !== id).pop(); if (!last) return;
+    const r = last.getBoundingClientRect(); if (!(y > r.bottom || (y > r.top && x > r.right))) return;
+    const was = JSON.stringify(lay), from = listOf(id); from.splice(from.indexOf(id), 1); lay.order.splice(lay.order.indexOf(last.dataset.p) + 1, 0, id); changed(was); };
+  let press = null, drag = null, mute = 0;
+  const startDrag = e => { const b = press.b, icon = b.querySelector('svg'), ir = icon.getBoundingClientRect(), sr = screen.getBoundingClientRect();
+    press.mode = 'drag'; enterEdit();
+    const g = document.createElement('div'); g.className = 'ph-ghost'; g.style.setProperty('--app', getComputedStyle(b).getPropertyValue('--app')); g.appendChild(icon.cloneNode(true));
+    // the screen may be drawn scaled; positions are worked out in its own pixels
+    const k = screen.offsetWidth ? sr.width / screen.offsetWidth : 1;
+    const home = lay.order.indexOf(b.dataset.p);
+    drag = { id: b.dataset.p, g, ox: press.x - ir.left, oy: press.y - ir.top, sr, k, flipT: 0, flipDir: 0, home: home >= 0 ? home : undefined };
+    screen.appendChild(g); b.classList.add('ph-lift'); moveDrag(e); };
+  const flip = dir => { if (!drag) return; drag.flipDir = 0;
+    if (cur + dir < 0) return;
+    if (cur + dir >= pagesN) { const was = JSON.stringify(lay), from = listOf(drag.id); from.splice(from.indexOf(drag.id), 1); lay.order.push(drag.id); changed(was); }
+    go(cur + dir); };
+  const moveDrag = e => { const d = drag; d.g.style.transform = `translate(${(e.clientX - d.ox - d.sr.left) / d.k}px,${(e.clientY - d.oy - d.sr.top) / d.k}px)`;
+    // held against the left or right edge: the next page
+    const r = pager.getBoundingClientRect(), dir = e.clientX < r.left + 24 ? -1 : e.clientX > r.right - 24 ? 1 : 0;
+    if (dir !== d.flipDir) { clearTimeout(d.flipT); d.flipDir = dir; if (dir) d.flipT = setTimeout(() => flip(dir), 600); }
+    const el = document.elementFromPoint(e.clientX, e.clientY); if (!el || !tabs.contains(el)) return;
+    const t = el.closest('button[data-p]');
+    if (t && t.dataset.p !== d.id) place(d.id, t.dataset.p, e.clientX < t.getBoundingClientRect().left + t.getBoundingClientRect().width / 2);
+    else if (!t && el.closest('.ph-dock')) toDock(d.id);
+    else if (!t && el.closest('.ph-pages')) toPageEnd(d.id, e.clientX, e.clientY); };
+  const dropDrag = () => { clearTimeout(drag.flipT); drag.g.remove(); btn(drag.id)?.classList.remove('ph-lift'); drag = null; keep(); };
+  tabs.addEventListener('pointerdown', e => { if (!page.classList.contains('home') || e.button > 0 || press || e.target.closest('.ph-dots')) return;
+    const b = e.target.closest('button[data-p]');
+    press = { b, id: e.pointerId, x: e.clientX, y: e.clientY, left: pager.scrollLeft, from: cur, mouse: e.pointerType === 'mouse', mode: null, held: !!(b && editing()) };
+    if (b && !editing()) press.t = setTimeout(() => { if (press && !press.mode) { press.held = true; enterEdit(); } }, 450); });
+  addEventListener('pointermove', e => { const p = press; if (!p || e.pointerId !== p.id) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y, far = Math.hypot(dx, dy);
+    if (!p.mode) {
+      if (p.held && p.b && far > 5) startDrag(e);
+      else if (!p.held && far > 8) { clearTimeout(p.t);
+        if (dy > 0 && dy > Math.abs(dx) * 1.2 && !editing()) { p.mode = 'pull'; spot.hidden = false; spot.classList.add('pulling'); }
+        else if (p.mouse && Math.abs(dx) > Math.abs(dy)) { p.mode = 'swipe'; swiping = true; pager.style.scrollSnapType = 'none'; }
+        else p.mode = 'none'; } }
+    if (p.mode === 'drag') moveDrag(e);
+    else if (p.mode === 'swipe') pager.scrollLeft = p.left - dx;
+    else if (p.mode === 'pull') spot.style.setProperty('--pull', Math.max(0, Math.min(1, (dy - 8) / 90)).toFixed(3)); });
+  const end = e => { const p = press; if (!p || e.pointerId !== p.id) return; press = null; clearTimeout(p.t);
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    if (p.mode === 'drag') dropDrag();
+    else if (p.mode === 'swipe') { pager.style.scrollSnapType = ''; swiping = false; go(p.from + (Math.abs(dx) > 40 ? (dx < 0 ? 1 : -1) : 0)); }
+    else if (p.mode === 'pull') { if (e.type === 'pointerup' && dy > 60) openSpot(); else closeSpot(); }
+    if (p.held || p.mode) mute = Date.now() + 350; };
+  addEventListener('pointerup', end); addEventListener('pointercancel', end);
+  // while an app is held or the search is being pulled, the finger moves it rather than the page
+  tabs.addEventListener('touchmove', e => { if (press && (press.held || press.mode === 'pull' || press.mode === 'drag')) e.preventDefault(); }, { passive: false });
+  tabs.addEventListener('contextmenu', e => { if (e.target.closest('button[data-p]')) e.preventDefault(); });
+  // in edit mode nothing opens; a tap on an empty spot ends it. Right after a hold or a drag, the click it ends with is not a tap.
+  tabs.addEventListener('click', e => { const onApp = e.target.closest('button[data-p],[data-open]');
+    if (Date.now() < mute || (editing() && onApp)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (editing() && !onApp && !e.target.closest('.ph-dots')) leaveEdit(); }, true);
+  // with the keyboard: in edit mode the arrow keys move the focused app
+  tabs.addEventListener('keydown', e => { const b = e.target.closest('button[data-p]'); if (!editing() || !b || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    e.preventDefault(); const id = b.dataset.p, list = listOf(id), i = list.indexOf(id), j = i + (e.key === 'ArrowLeft' ? -1 : 1);
+    if (j < 0 || j >= list.length) return; const was = JSON.stringify(lay); [list[i], list[j]] = [list[j], list[i]]; if (changed(was)) { keep(); b.focus(); } });
 
   const bar = document.createElement('button'); bar.type = 'button'; bar.className = 'ph-bar'; bar.setAttribute('aria-label', 'Home screen'); screen.appendChild(bar);
   const back = document.createElement('button'); back.type = 'button'; back.className = 'ph-back';
@@ -302,14 +490,19 @@
   screens.parentNode.insertBefore(back, screens);
   // the back link sits above the open app, so the app starts a little lower
   const fit = () => { screens.style.top = page.classList.contains('home') ? '' : (back.offsetHeight + 2) + 'px'; };
-  const home = v => { page.classList.toggle('home', v); fit(); if (v) { q.value = ''; q.dispatchEvent(new Event('input')); drawWidgets(); loadWx(); } dispatchEvent(new CustomEvent('ovphone', { detail: { home: v } })); };
+  const home = v => { page.classList.toggle('home', v); fit(); leaveEdit(); closeSpot(); if (v) { drawWidgets(); loadWx(); } dispatchEvent(new CustomEvent('ovphone', { detail: { home: v } })); };
   tabs.addEventListener('click', e => { const w = e.target.closest('[data-open]'); if (w) { tabs.querySelector(`button[data-p="${w.dataset.open}"]`)?.click(); return; }
     const b = e.target.closest('button[data-p]'); if (b) { home(false); opened(b.dataset.p); } });
   bar.addEventListener('click', () => home(true)); back.addEventListener('click', () => home(true));
-  page.addEventListener('keydown', e => { if (e.key === 'Escape' && !page.classList.contains('home') && !e.target.closest('input,textarea,select,dialog')) { e.stopPropagation(); home(true); } });
+  page.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && spotOpen()) { e.stopPropagation(); closeSpot(); return; }
+    if (e.key === 'Escape' && editing()) { e.stopPropagation(); leaveEdit(); return; }
+    if (e.key === 'Escape' && !page.classList.contains('home') && !e.target.closest('input,textarea,select,dialog')) { e.stopPropagation(); home(true); return; }
+    const typing = e.target.closest('input,textarea,select,[contenteditable]');
+    if (page.classList.contains('home') && !typing && (e.key === '/' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'))) { e.preventDefault(); openSpot(); } });
   // opening the Civilian tab starts on the home screen
   document.querySelector('.menu [data-view="civ"]')?.addEventListener('click', () => home(true));
   window.ovPhone = { addApp, call, esc, home, open: id => tabs.querySelector(`button[data-p="${id}"]`)?.click(), isOpen: id => !page.classList.contains('home') && !!added.get(id)?.sec.classList.contains('on') };
-  drawWidgets(); loadWx(); fit();
+  drawWidgets(); loadWx(); fit(); layout();
   dispatchEvent(new CustomEvent('ovphoneready'));
 })();
