@@ -68,7 +68,7 @@
 #civMdt.phone .ph-wx{background:linear-gradient(180deg,#3E86D9,#2A62B8);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}#civMdt.phone .ph-wx.night{background:linear-gradient(180deg,#26304F,#121A33)}
 #civMdt.phone .ph-wx.grey{background:linear-gradient(180deg,#6D7B8F,#4A5568)}
 #civMdt.phone .ph-wx small{font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#civMdt.phone .ph-wx b{font-size:40px;font-weight:300;line-height:1.05;letter-spacing:-.02em}#civMdt.phone .ph-wx i{margin-top:auto;font-style:normal;font-size:12px;font-weight:600;line-height:1.35}
+#civMdt.phone .ph-wx>*{flex:none}#civMdt.phone .ph-wx b{font-size:36px;font-weight:300;line-height:1.05;letter-spacing:-.02em}#civMdt.phone .ph-wx i{margin-top:auto;font-style:normal;font-size:12px;font-weight:600;line-height:1.35}
 #civMdt.phone .ph-bal{background:linear-gradient(165deg,#1F8F63,#0F4F38);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
 #civMdt.phone .ph-bal small{font-size:12.5px;font-weight:600;opacity:.9}#civMdt.phone .ph-bal b{font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:4px;line-height:1.05;word-break:break-all}
 #civMdt.phone .ph-bal em{margin-top:auto;font-style:normal;font-size:12px;font-weight:500;opacity:.85}
