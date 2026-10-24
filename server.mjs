@@ -799,6 +799,19 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'me/beta' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
     if (!premium.userInfo(user).on) return json(res, { error: 'Early access comes with Premium.' }, 403); premium.setBeta(user.id, !!(await jsonBody(req)).on); return json(res, { ok: true, on: premium.betaOn(user.id) }); }
   if (rest === 'me/mdt' && req.method === 'GET') return json(res, { premium: premium.userInfo(user).on, setup: mdtprefs.get(user.id), defaults: mdtprefs.DEFAULTS });
+  // their own sound file for the call alert or the panic alarm (Premium, like the rest of the setup); it plays only for them
+  if ((rest === 'me/mdt/sound' || rest === 'me/mdt/sound/remove') && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
+    if (!premium.userInfo(user).on) return json(res, { error: 'Your own sounds come with Premium.' }, 403);
+    if (rest.endsWith('/remove')) { const r = mdtprefs.removeSound(user.id, String((await jsonBody(req)).kind || '')); return json(res, r, r.error ? 400 : 200); }
+    if (auth.limited(req, 'mdtsound', 10, 60000)) return json(res, { error: 'Too many uploads. Wait a minute.' }, 429);
+    let j = {}; try { j = JSON.parse(await body(req, 1.5e6) || '{}'); } catch (e) {}
+    if (!j.data) return json(res, { error: 'That sound is over 1 MB. Use a shorter clip.' }, 400);
+    const r = mdtprefs.saveSound(user.id, String(j.kind || ''), j.data, j.name); return json(res, r, r.error ? 400 : 200); }
+  const soundKind = /^me\/sound\/(call|panic)$/.exec(rest)?.[1];
+  if (soundKind && req.method === 'GET') { const f = mdtprefs.sound(user.id, soundKind), v = new URL(req.url, 'http://x').searchParams.get('v');
+    if (!f) { res.writeHead(404, { 'cache-control': 'no-store' }); return res.end(); }
+    res.writeHead(200, { 'content-type': f.mime, 'content-length': f.data.length, 'x-content-type-options': 'nosniff',
+      'cache-control': v === String(f.updated) ? 'private, max-age=31536000, immutable' : 'private, no-cache' }); return res.end(f.data); }
   if (rest === 'me/mdt' && req.method === 'POST') { if (req.headers['x-oversite'] !== '1' || !sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400);
     if (!premium.userInfo(user).on) return json(res, { error: 'Your own MDT setup comes with Premium.' }, 403); return json(res, { ok: true, setup: mdtprefs.save(user.id, await jsonBody(req)) }); }
   if (rest === 'me/license' && req.method === 'GET') return json(res, await licenseOf(user, premium.userInfo(user).on));

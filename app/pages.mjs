@@ -812,8 +812,8 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 <section class="card" id="mdtset"><h2 class="hrow">Your MDT<span class="ms-pb">${pbadge(14)} Premium</span></h2><p class="note">How the MDT looks and sounds for you, on every server and every device you sign in on.</p>
 <div class="ms-body"><div class="ms-prev" aria-hidden="true"><div class="ms-tab" id="msTab"><div class="ms-scr" id="msScr"><div class="ms-side"><i class="on"></i><i></i><i></i><i></i><b>Panic</b></div><div class="ms-main"><h4>FD 4120</h4><p></p><p class="s"></p><div class="ms-st"><em class="on">10-8</em><em>10-76</em><em>10-23</em><em>10-19</em></div></div></div></div></div>
 <form id="msf" class="licf" autocomplete="off"><fieldset class="wide ms-fs" id="msFs">
-<label class="wide">Call alert<span class="ms-pl"><select id="msCall"></select><button type="button" class="btn sm ms-play" data-play="call" aria-label="Play the call alert"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></button></span></label>
-<label class="wide">Panic alarm<span class="ms-pl"><select id="msPanic"></select><button type="button" class="btn sm ms-play" data-play="panic" aria-label="Play the panic alarm"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></button></span></label>
+<label class="wide">Call alert<span class="ms-pl"><select id="msCall"></select><button type="button" class="btn sm ms-play" data-play="call" aria-label="Play the call alert"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></button></span><span class="ms-up"><button type="button" class="btn sm" data-up="call">Upload your own</button><span class="ms-fn" id="msFn-call"></span><button type="button" class="btn sm" data-rm="call" hidden>Remove</button></span></label>
+<label class="wide">Panic alarm<span class="ms-pl"><select id="msPanic"></select><button type="button" class="btn sm ms-play" data-play="panic" aria-label="Play the panic alarm"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></button></span><span class="ms-up"><button type="button" class="btn sm" data-up="panic">Upload your own</button><span class="ms-fn" id="msFn-panic"></span><button type="button" class="btn sm" data-rm="panic" hidden>Remove</button></span></label><input type="file" id="msFile" accept="audio/*,.mp3,.wav,.ogg,.m4a,.webm" hidden><p class="hint wide ms-uh">Your own sound: an mp3, wav, ogg or m4a of up to 1 MB. A call alert plays up to 8 seconds, a panic alarm up to 4, and only you hear it.</p>
 <label class="wide">Alert volume<span class="ms-vol"><input type="range" id="msVol" min="0" max="100" step="5"><output id="msVolO">90%</output></span></label>
 <div class="wide ms-g"><span>Accent</span><div class="ms-sw" id="msAcc" role="radiogroup" aria-label="Accent"></div></div>
 <div class="wide ms-g"><span>Wallpaper</span><div class="ms-sw ms-wl" id="msWall" role="radiogroup" aria-label="Wallpaper"></div></div>
@@ -822,12 +822,14 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 </fieldset><p class="hint wide" id="msNote"></p>
 <div class="row wide"><button class="btn pri" id="msSave">Save MDT</button><button type="button" class="btn" id="msReset">Defaults</button><span class="msg" id="msMsg"></span></div></form></div></section>
 <section class="card"><h2>Sign out</h2><p class="note">Signs you out on this device. You'll need your sign-in again to get back in.</p><form method="post" action="/auth/logout" style="margin:0"><button class="btn danger">Sign out</button></form></section>
-</div></div></main><script src="/mdt-setup.js?v=2"></script>
+</div></div></main><script src="/mdt-setup.js?v=3"></script>
 <style>.licw{position:relative;width:100%;max-width:400px;aspect-ratio:400/250;margin:6px 0 14px}.licw .lcard{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(var(--ls,1))}
 .licf{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.licf label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim);min-width:0}.licf .wide{grid-column:1/-1}
 .ap-pk{display:grid;gap:12px}.ap-pk b{font-size:13px;font-weight:600}.ap-pk .note{margin:2px 0 0}.ap-b{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--hair)}.ap-b:first-of-type{border-top:0}.ap-b b{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ap-b span{font-size:12px;color:var(--faint)}.licf input,.licf select{width:100%;min-width:0}.lprem{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin:4px 0 0;padding:12px 12px 4px;border:1px solid rgba(232,179,58,.25);border-radius:12px}.lprem legend{display:flex;align-items:center;gap:6px;padding:0 6px;font-size:12px;font-weight:600;color:#E8B33A}.lprem legend .vb{margin:0}.lprem .hint{margin:0 0 6px}.lprem.off{opacity:.55}.licf .lh{display:grid;grid-template-columns:1fr 1fr;gap:6px}.licf .row{align-items:center;gap:12px}
 .ms-pb{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#E8B33A}.ms-pb .vb{margin:0}
-.ms-fs{display:contents;border:0;margin:0;padding:0}.ms-fs[disabled] ~ .row .btn{opacity:.5}
+.ms-fs{display:contents;border:0;margin:0;padding:0}
+.ms-up{display:flex;align-items:center;gap:8px;margin-top:2px;min-width:0}.ms-up [hidden]{display:none}.ms-fn{flex:1;min-width:0;font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-body .licf .ms-fs>.ms-uh{grid-column:1/-1;margin:-2px 0 2px}.ms-fs[disabled] ~ .row .btn{opacity:.5}
 .ms-pl,.ms-vol{display:flex;gap:6px;align-items:center}.ms-pl select{flex:1}.ms-play{flex:none;width:40px;padding:0;justify-content:center;align-self:stretch}
 .ms-vol input{flex:1;accent-color:#E8B33A}.ms-vol output{width:40px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
 .ms-g{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--dim)}.ms-sw{display:flex;flex-wrap:wrap;gap:8px}
@@ -863,18 +865,29 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
   pm.addEventListener('click',e=>{const b=e.target.closest('[data-boost],[data-unboost]');if(!b)return;const slug=b.dataset.boost||b.dataset.unboost;go('/c/'+slug+'/api/premium/'+(b.dataset.boost?'boost-server':'unboost-server'),{},b)})}}
 /* your own MDT setup (Premium): pick, preview, play and save */
 (()=>{const box=document.getElementById('mdtset');if(!box||!window.MdtLook||!window.MdtSounds)return;const $=id=>document.getElementById(id),K=MdtLook.NAMES;let S={},D={},prem=false;
-const opts=(el,o)=>{el.innerHTML=Object.entries(o).map(([v,n])=>'<option value="'+v+'">'+n+'</option>').join('')};opts($('msCall'),MdtSounds.CALL);opts($('msPanic'),MdtSounds.PANIC);
+const opts=(el,o)=>{el.innerHTML=Object.entries(o).map(([v,n])=>'<option value="'+v+'">'+n+'</option>').join('')};opts($('msCall'),{...MdtSounds.CALL,custom:MdtSounds.CUSTOM});opts($('msPanic'),{...MdtSounds.PANIC,custom:MdtSounds.CUSTOM});let F={},upKind='';
+const showFiles=()=>{MdtSounds.useFiles(F);for(const k of ['call','panic']){$('msFn-'+k).textContent=F[k]?F[k].name:'';$('msFn-'+k).title=F[k]?F[k].name:'';box.querySelector('[data-rm="'+k+'"]').hidden=!F[k]||!prem}};
 const sw=(el,key,bg)=>{el.innerHTML=Object.entries(K[key]).map(([v,n])=>'<button type="button" role="radio" data-k="'+key+'" data-v="'+v+'" style="--c:'+bg(v)+'"><i></i>'+n+'</button>').join('')};
 sw($('msAcc'),'accent',v=>MdtLook.ACC[v]||'conic-gradient(#F2F3F5 0 33%,#E0453B 0 66%,#E9C24C 0)');sw($('msWall'),'wall',v=>MdtLook.WALL[v]||'#0C0D0F');
 sw($('msFrame'),'frame',v=>({graphite:'#2A2B2F'})[v]||(MdtLook.FRAME[v]||[])[0]);
 let st=document.createElement('style');document.head.appendChild(st);
 const draw=()=>{st.textContent=MdtLook.css(S,'#msScr','#msTab');$('msWall').style.setProperty('--fd',MdtLook.ACC[S.accent]||'#E0453B');box.querySelectorAll('.ms-sw button').forEach(b=>{const on=S[b.dataset.k]===b.dataset.v;b.setAttribute('aria-checked',on);b.tabIndex=on?0:-1});$('msVolO').textContent=S.vol+'%'};
-const fill=j=>{prem=j.premium;D=j.defaults||D;S={...j.setup};$('msCall').value=S.call;$('msPanic').value=S.panic;$('msVol').value=S.vol;$('msMap').value=S.map||'';$('msFs').disabled=!prem;$('msSave').disabled=!prem;$('msReset').disabled=!prem;box.classList.toggle('off',!prem);box.querySelectorAll('.ms-sw button').forEach(b=>b.disabled=!prem);
+const fill=j=>{prem=j.premium;D=j.defaults||D;S={...j.setup};F=S.files||{};delete S.files;showFiles();$('msCall').value=S.call;$('msPanic').value=S.panic;$('msVol').value=S.vol;$('msMap').value=S.map||'';$('msFs').disabled=!prem;$('msSave').disabled=!prem;$('msReset').disabled=!prem;box.classList.toggle('off',!prem);box.querySelectorAll('.ms-sw button,[data-up],[data-rm]').forEach(b=>b.disabled=!prem);
   $('msNote').innerHTML=prem?'Saved to your account. The MDT picks it up next time you open a CAD. Switching the map in the CAD saves it here too.':'Your own alert sounds, MDT colours and map style come with <a href="/account#premium">Premium</a>.';draw()};
 box.addEventListener('click',e=>{const b=e.target.closest('.ms-sw button');if(b&&prem){S[b.dataset.k]=b.dataset.v;draw()}const p=e.target.closest('[data-play]');if(p){const v=+$('msVol').value;p.dataset.play==='call'?MdtSounds.call($('msCall').value,2,v):MdtSounds.panic($('msPanic').value,v)}});
 box.addEventListener('keydown',e=>{const b=e.target.closest('.ms-sw button');if(!b||!/^Arrow(Left|Right|Up|Down)$/.test(e.key))return;e.preventDefault();const all=[...b.parentElement.children],i=all.indexOf(b),n=all[(i+(/Right|Down/.test(e.key)?1:all.length-1))%all.length];n.focus();n.click()});
 $('msf').addEventListener('input',e=>{if(e.target.id==='msVol'){S.vol=+e.target.value;draw()}});
-$('msf').addEventListener('change',e=>{S.call=$('msCall').value;S.panic=$('msPanic').value;S.map=$('msMap').value;draw()});
+$('msf').addEventListener('change',e=>{if(e.target.id==='msFile')return;
+  // "Your own sound" with nothing uploaded yet: pick the file first
+  for(const [k,id] of [['call','msCall'],['panic','msPanic']])if(e.target.id===id&&e.target.value==='custom'&&!F[k]){e.target.value=S[k];upKind=k;$('msFile').click();return}
+  S.call=$('msCall').value;S.panic=$('msPanic').value;S.map=$('msMap').value;draw()});
+box.addEventListener('click',e=>{const u=e.target.closest('[data-up]');if(u&&prem){upKind=u.dataset.up;$('msFile').value='';$('msFile').click()}
+  const r=e.target.closest('[data-rm]');if(r&&prem){const k=r.dataset.rm,m=$('msMsg');api('/api/me/mdt/sound/remove',{kind:k}).then(j=>{F=j.setup.files||{};S[k]=j.setup[k];$(k==='call'?'msCall':'msPanic').value=S[k];showFiles();say(m,'Removed.',true)},x=>say(m,x.message))}});
+$('msFile').addEventListener('change',()=>{const f=$('msFile').files[0],k=upKind,m=$('msMsg');if(!f||!k)return;
+  if(f.size>1000000){say(m,'That sound is over 1 MB. Use a shorter clip.');return}
+  const rd=new FileReader();rd.onload=async()=>{say(m,'Uploading…',true);try{const j=await api('/api/me/mdt/sound',{kind:k,name:f.name,data:rd.result});
+    F=j.setup.files||{};S[k]='custom';$(k==='call'?'msCall':'msPanic').value='custom';showFiles();say(m,'Uploaded. It plays in every CAD from now on.',true)}catch(x){say(m,x.message)}};
+  rd.onerror=()=>say(m,'That file couldn’t be read.');rd.readAsDataURL(f)});
 $('msReset').onclick=()=>{fill({premium:prem,defaults:D,setup:{...D}})};
 $('msf').addEventListener('submit',async e=>{e.preventDefault();const m=$('msMsg');try{fill({premium:true,defaults:D,...await api('/api/me/mdt',S)});say(m,'Saved.',true)}catch(x){say(m,x.message)}});
 fetch('/api/me/mdt',{cache:'no-store'}).then(r=>r.json()).then(fill).catch(()=>{});
