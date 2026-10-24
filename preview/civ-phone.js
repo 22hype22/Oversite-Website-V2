@@ -71,6 +71,7 @@
 #civMdt.phone .tside button[data-p]:focus-visible{outline:none}#civMdt.phone .tside button[data-p]:focus-visible svg{outline:2px solid #fff;outline-offset:2px}
 #civMdt.phone .tside button[data-p] svg{flex:none;width:60px;height:60px;padding:15px;border-radius:22.5%;color:#fff;background:var(--app,#3A3D45);
   box-shadow:0 4px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.25),inset 0 -1px 0 rgba(0,0,0,.15);stroke-width:2;transition:transform .12s ease,filter .12s ease}
+#civMdt.phone .tside button[data-p] svg.ai{padding:0;background:none;box-shadow:0 4px 12px rgba(0,0,0,.35)}
 #civMdt.phone .tside button[data-p]:hover svg{filter:brightness(1.08)}#civMdt.phone .tside button[data-p]:active svg{transform:scale(.92);filter:brightness(.85)}
 #civMdt.phone .tside button[data-p] .badge{position:absolute;top:-7px;left:calc(50% + 17px);right:auto;margin:0;min-width:24px;height:24px;padding:0 7px;border-radius:12px;
   background:#FF3B30;color:#fff;font:600 13px/24px -apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;text-shadow:none;box-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -133,7 +134,7 @@
 #civMdt.phone.pad .ph-wid>.ph-w:nth-child(3)>div b{font-size:44px;margin:2px 0 0;order:0}#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3)>div>:last-child{margin-left:0;margin-top:auto!important}
 #civMdt.phone.pad .ph-wid>.ph-w:nth-child(3) .ph-wx svg{display:inline}#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3) .ph-wx b{font-size:40px}
 #civMdt.phone.pad .ph-apps{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:26px 8px;margin-top:28px;max-width:960px;width:100%;align-self:center}
-#civMdt.phone.pad .tside button[data-p] svg{width:68px;height:68px;padding:17px}#civMdt.phone.pad .tside button[data-p]{font-size:12.5px}
+#civMdt.phone.pad .tside button[data-p] svg{width:68px;height:68px;padding:17px}#civMdt.phone.pad .tside button[data-p] svg.ai{padding:0}#civMdt.phone.pad .tside button[data-p]{font-size:12.5px}
 #civMdt.phone.pad .tside button[data-p] .badge{left:calc(50% + 21px)}
 #civMdt.phone.pad .ph-search{margin:auto 0 14px}
 #civMdt.phone.pad .ph-dock{align-self:center;display:flex;gap:20px;margin:0 0 24px;padding:12px 18px;border-radius:30px;bottom:24px}
@@ -173,11 +174,76 @@
     for (const b of [...dock.querySelectorAll('button[data-p]')].sort((a, b) => DOCK.indexOf(a.dataset.p) - DOCK.indexOf(b.dataset.p))) dock.appendChild(b); };
   placeDock();
 
+  // ── app icons: each app drawn as a real icon (its own background, solid shaded artwork), in place of the line glyph ──
+  // ai(): the shared parts: the background gradient, a white-to-silver fill ({W}), a soft drop shadow ({S}), a gold fill ({G}) and a light rim
+  const ai = (id, top, bot, body) => { const k = 'ai-' + id;
+    return `<svg class="ai" viewBox="0 0 60 60" width="60" height="60" aria-hidden="true"><defs><linearGradient id="${k}-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bot}"/></linearGradient>`
+      + `<linearGradient id="${k}-w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#E3E7EE"/></linearGradient><linearGradient id="${k}-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE7A0"/><stop offset="1" stop-color="#E2A42A"/></linearGradient>`
+      + `<linearGradient id="${k}-r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>`
+      + `<filter id="${k}-s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1.4" stdDeviation="1.3" flood-color="#000" flood-opacity=".26"/></filter></defs>`
+      + `<rect width="60" height="60" rx="13.5" fill="url(#${k}-b)"/>${body.replace(/\{W\}/g, `url(#${k}-w)`).replace(/\{G\}/g, `url(#${k}-g)`).replace(/\{S\}/g, `filter="url(#${k}-s)"`)}`
+      + `<rect x=".5" y=".5" width="59" height="59" rx="13" fill="none" stroke="url(#${k}-r)"/></svg>`; };
+  // a gear's outline: n teeth between radius r1 (root) and r2 (tip)
+  const gear = (cx, cy, r1, r2, n) => { let d = ''; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, w = Math.PI / n;
+      for (const [r, t] of [[r1, a - w * .62], [r2, a - w * .36], [r2, a + w * .36], [r1, a + w * .62]]) d += (d ? 'L' : 'M') + (cx + r * Math.cos(t)).toFixed(2) + ' ' + (cy + r * Math.sin(t)).toFixed(2); }
+    return d + 'Z'; };
+  const ART = {
+    msgs: ai('msgs', '#6CF286', '#0DBE2D', '<path {S} fill="{W}" d="M30 13c-10.5 0-19 6.9-19 15.5 0 4.8 2.7 9.1 6.9 11.9-.4 2.6-1.7 5-3.6 6.9 3.6-.2 7-1.6 9.6-3.9 1.9.4 4 .6 6.1.6 10.5 0 19-6.9 19-15.5S40.5 13 30 13Z"/>'),
+    home: ai('home', '#2C2C30', '#050506', '<g {S}><rect x="11" y="12" width="38" height="15" rx="3.5" fill="#3D9BFF"/><rect x="11" y="17" width="38" height="15" rx="3.5" fill="#34C759"/><rect x="11" y="22" width="38" height="15" rx="3.5" fill="#FFB320"/>'
+      + '<rect x="11" y="27" width="38" height="15" rx="3.5" fill="#FF5A4E"/><path fill="{W}" d="M9 32h12.6c1.2 0 2.2.8 2.6 1.9a6.2 6.2 0 0 0 11.6 0c.4-1.1 1.4-1.9 2.6-1.9H51v12a4 4 0 0 1-4 4H13a4 4 0 0 1-4-4Z"/></g>'),
+    bills: ai('bills', '#FFC24D', '#FF7A00', '<path {S} fill="{W}" d="M17 11h26a2 2 0 0 1 2 2v34l-3-2.5-3 2.5-3-2.5-3 2.5-3-2.5-3 2.5-3-2.5-3 2.5-3-2.5-3 2.5V13a2 2 0 0 1 2-2Z"/>'
+      + '<rect x="20" y="16" width="13" height="3.2" rx="1.6" fill="#FF8A00"/><g fill="#CDD2DA"><rect x="20" y="23" width="12" height="2.4" rx="1.2"/><rect x="20" y="28" width="10" height="2.4" rx="1.2"/><rect x="20" y="33" width="12" height="2.4" rx="1.2"/></g>'
+      + '<g fill="#8E949E"><rect x="35" y="23" width="5" height="2.4" rx="1.2"/><rect x="35" y="28" width="5" height="2.4" rx="1.2"/><rect x="35" y="33" width="5" height="2.4" rx="1.2"/></g><rect x="20" y="38.5" width="20" height="2.6" rx="1.3" fill="#2B2F36"/>'),
+    cars: ai('cars', '#4AAEFF', '#0A60EE', '<g {S}><rect x="15" y="41" width="6.5" height="6" rx="1.8" fill="#1B2330"/><rect x="38.5" y="41" width="6.5" height="6" rx="1.8" fill="#1B2330"/>'
+      + '<path fill="{W}" d="M18.3 30.5l3.2-8.6a3 3 0 0 1 2.8-1.9h11.4a3 3 0 0 1 2.8 1.9l3.2 8.6Z"/><path fill="{W}" d="M13 34.5a4.5 4.5 0 0 1 4.5-4.5h25a4.5 4.5 0 0 1 4.5 4.5V42a2 2 0 0 1-2 2H15a2 2 0 0 1-2-2Z"/></g>'
+      + '<path fill="#6FB9FF" d="M21.4 29.5l2.4-6.3a1.5 1.5 0 0 1 1.4-1h9.6a1.5 1.5 0 0 1 1.4 1l2.4 6.3Z"/><circle cx="19.5" cy="36" r="2.7" fill="#FFD43B"/><circle cx="40.5" cy="36" r="2.7" fill="#FFD43B"/><rect x="25" y="35" width="10" height="3" rx="1.5" fill="#B5C0D0"/>'),
+    home2: ai('home2', '#FFE36B', '#F4A300', '<g {S}><rect x="37" y="14" width="4.6" height="10" rx="1" fill="#B83A28"/><path fill="{W}" d="M15 31 30 18.5 45 31v15a2.5 2.5 0 0 1-2.5 2.5h-25A2.5 2.5 0 0 1 15 46Z"/>'
+      + '<path fill="#E8513A" d="M30 11.5 8.8 29.3a1.6 1.6 0 0 0 2 2.5L30 15.6l19.2 16.2a1.6 1.6 0 0 0 2-2.5Z"/></g><rect x="25.5" y="35" width="9" height="13.5" rx="1.6" fill="#9A6234"/><circle cx="32.4" cy="42" r=".9" fill="#FFD27A"/>'
+      + '<rect x="18" y="32" width="5.5" height="5.5" rx="1" fill="#74BFFF"/><rect x="36.5" y="32" width="5.5" height="5.5" rx="1" fill="#74BFFF"/>'),
+    shops: ai('shops', '#FF80B2', '#E62468', '<path d="M23.5 26v-7a6.5 6.5 0 0 1 13 0v7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path {S} fill="{W}" d="M15.5 22h29l-1.7 23.4a3 3 0 0 1-3 2.8H20.2a3 3 0 0 1-3-2.8Z"/>'
+      + '<path d="M23.5 23v4M36.5 23v4" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="23.5" cy="27" r="1.8" fill="#C81E5C"/><circle cx="36.5" cy="27" r="1.8" fill="#C81E5C"/>'
+      + '<path fill="#FF4B8B" d="M30 43s-6.4-3.9-6.4-8a3.5 3.5 0 0 1 6.4-2 3.5 3.5 0 0 1 6.4 2c0 4.1-6.4 8-6.4 8Z"/>'),
+    jobs: ai('jobs', '#B596FF', '#5A36E6', '<path d="M24 21v-3.5a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3V21" fill="none" stroke="#fff" stroke-width="3.2"/><rect {S} x="10.5" y="20" width="39" height="27" rx="5" fill="{W}"/>'
+      + '<path d="M10.5 32.5h39" stroke="#CFC6EE" stroke-width="2"/><rect x="25.5" y="29" width="9" height="7" rx="1.8" fill="#7552FF"/><rect x="28.3" y="31.2" width="3.4" height="2.6" rx=".8" fill="#C9BCFF"/>'),
+    biz: ai('biz', '#48E1E4', '#0A92A6', '<g {S}><rect x="13.5" y="26" width="33" height="21.5" rx="1.8" fill="{W}"/><rect x="11" y="15" width="38" height="9" rx="2.2" fill="#FF5A4E"/>'
+      + '<g fill="#fff"><rect x="17.3" y="15" width="6.3" height="9"/><rect x="29.9" y="15" width="6.3" height="9"/><rect x="42.5" y="15" width="4" height="9"/></g>'
+      + '<g fill="#FF5A4E"><circle cx="14.2" cy="24" r="3.2"/><circle cx="26.8" cy="24" r="3.2"/><circle cx="39.4" cy="24" r="3.2"/></g><g fill="#fff"><circle cx="20.5" cy="24" r="3.2"/><circle cx="33.1" cy="24" r="3.2"/><circle cx="45.7" cy="24" r="3.2"/></g></g>'
+      + '<rect x="17.5" y="32" width="12" height="8.5" rx="1.2" fill="#8FE3EE"/><rect x="33.5" y="32" width="9" height="15.5" rx="1.2" fill="#0B8FA2"/><circle cx="40.5" cy="40" r=".9" fill="#BFF4FA"/>'),
+    id: ai('id', '#7487A3', '#3B475B', '<g {S}><rect x="8.5" y="15" width="43" height="30" rx="4.2" fill="{W}"/></g><path fill="#2F7BEA" d="M12.7 15h34.6a4.2 4.2 0 0 1 4.2 4.2V23h-43v-3.8a4.2 4.2 0 0 1 4.2-4.2Z"/>'
+      + '<rect x="12.5" y="18" width="12" height="2" rx="1" fill="#BFD7FF"/><rect x="12.5" y="26.5" width="11.5" height="14" rx="2" fill="#CCD5E3"/><circle cx="18.25" cy="31.4" r="2.9" fill="#71809A"/><path fill="#71809A" d="M13.6 40.5c.5-3 2.3-4.6 4.65-4.6s4.15 1.6 4.65 4.6Z"/>'
+      + '<rect x="27.5" y="27.5" width="19" height="2.6" rx="1.3" fill="#2B3445"/><rect x="27.5" y="32.5" width="15" height="2.2" rx="1.1" fill="#B4BDCB"/><rect x="27.5" y="36.8" width="17" height="2.2" rx="1.1" fill="#B4BDCB"/>'),
+    record: ai('record', '#FF6D61', '#D22219', '<rect {S} x="15.5" y="14" width="29" height="35" rx="3.2" fill="{W}"/><rect x="23" y="10.5" width="14" height="7.5" rx="2.6" fill="#9BA4B4"/><rect x="27" y="12.4" width="6" height="2" rx="1" fill="#5E6676"/>'
+      + '<g fill="#CDD2DA"><rect x="20.5" y="23" width="19" height="2.4" rx="1.2"/><rect x="20.5" y="28" width="14" height="2.4" rx="1.2"/><rect x="20.5" y="33" width="16" height="2.4" rx="1.2"/></g>'
+      + '<circle cx="36" cy="41.5" r="5.6" fill="none" stroke="#E0241A" stroke-width="2"/><path d="M33.5 41.6l1.7 1.7 3.4-3.6" fill="none" stroke="#E0241A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'),
+    transit: ai('transit', '#FFD35E', '#EE8600', '<g {S}><rect x="18" y="42" width="6" height="6" rx="1.6" fill="#1B2330"/><rect x="36" y="42" width="6" height="6" rx="1.6" fill="#1B2330"/><rect x="11.5" y="19" width="3" height="7" rx="1.2" fill="{W}"/><rect x="45.5" y="19" width="3" height="7" rx="1.2" fill="{W}"/>'
+      + '<rect x="15" y="10.5" width="30" height="35" rx="6" fill="{W}"/></g><rect x="20.5" y="13.2" width="19" height="3" rx="1.5" fill="#1D2531"/><rect x="22" y="13.9" width="9" height="1.6" rx=".8" fill="#FFB020"/>'
+      + '<rect x="18.5" y="19" width="23" height="13.5" rx="2.2" fill="#4A90F0"/><path d="M18.5 27 41.5 21v-.4a1.6 1.6 0 0 0-1.6-1.6H30Z" fill="#fff" opacity=".18"/><circle cx="21.5" cy="38.5" r="2.4" fill="#FFD43B"/><circle cx="38.5" cy="38.5" r="2.4" fill="#FFD43B"/><rect x="26" y="37.5" width="8" height="2.2" rx="1.1" fill="#BBC4D2"/>'),
+    buses: ai('buses', '#68DD96', '#13914C', '<path {S} fill="{W}" d="M30 9.5c-8.6 0-15.5 6.7-15.5 15.1C14.5 35.8 30 50.5 30 50.5s15.5-14.7 15.5-25.9C45.5 16.2 38.6 9.5 30 9.5Z"/><circle cx="30" cy="24.5" r="9.6" fill="#17A055"/>'
+      + '<rect x="24.6" y="18.4" width="10.8" height="11.4" rx="2.2" fill="#fff"/><rect x="26" y="20" width="8" height="4.4" rx=".9" fill="#17A055"/><circle cx="27.1" cy="27.4" r="1" fill="#17A055"/><circle cx="32.9" cy="27.4" r="1" fill="#17A055"/>'),
+    boats: ai('boats', '#52C9FA', '#0C5FC0', '<g {S}><rect x="29.2" y="10.5" width="1.8" height="27" rx=".9" fill="#E9EDF3"/><path fill="{W}" d="M28 13.5 15.5 35.5H28Z"/><path fill="#FFD84D" d="M32.5 17v18.5h11.5Z"/>'
+      + '<path fill="#E8513A" d="M11.5 37.5h37l-4.6 7.2a3 3 0 0 1-2.5 1.4H18.6a3 3 0 0 1-2.5-1.4Z"/></g><path d="M6 51c3 0 3-2.2 6-2.2s3 2.2 6 2.2 3-2.2 6-2.2 3 2.2 6 2.2 3-2.2 6-2.2 3 2.2 6 2.2 3-2.2 6-2.2 3 2.2 6 2.2" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="2.2" stroke-linecap="round"/>'),
+    server: ai('server', '#7280FF', '#3131C4', '<g {S} fill="{W}"><rect x="13.5" y="12.5" width="33" height="10" rx="2.8"/><rect x="13.5" y="25" width="33" height="10" rx="2.8"/><rect x="13.5" y="37.5" width="33" height="10" rx="2.8"/></g>'
+      + '<circle cx="19.5" cy="17.5" r="1.8" fill="#34C759"/><circle cx="19.5" cy="30" r="1.8" fill="#34C759"/><circle cx="19.5" cy="42.5" r="1.8" fill="#FFB320"/><g fill="#C7CCF4"><rect x="31" y="16.3" width="11" height="2.4" rx="1.2"/><rect x="31" y="28.8" width="11" height="2.4" rx="1.2"/><rect x="31" y="41.3" width="11" height="2.4" rx="1.2"/></g>'),
+    phset: ai('phset', '#B9BEC6', '#6A6F78', `<path {S} fill="{W}" d="${gear(30, 30, 15.2, 18.4, 14)}"/><circle cx="30" cy="30" r="10.6" fill="#4C5159"/><path fill="#C9CDD4" d="${gear(30, 30, 6.2, 8, 8)}"/>`
+      + '<g stroke="#C9CDD4" stroke-width="1.6"><path d="M30 20.2v5M30 34.8v5M20.2 30h5M34.8 30h5M23.1 23.1l3.5 3.5M33.4 33.4l3.5 3.5M36.9 23.1l-3.5 3.5M26.6 33.4l-3.5 3.5"/></g><circle cx="30" cy="30" r="2.8" fill="#4C5159"/>'),
+    news: ai('news', '#FF6182', '#DE1C49', '<rect {S} x="11.5" y="13.5" width="37" height="33" rx="3.2" fill="{W}"/><rect x="15.5" y="17.5" width="29" height="4.4" rx="1.2" fill="#1F2229"/><rect x="15.5" y="25" width="12.5" height="10.5" rx="1.6" fill="#FF4A6E"/>'
+      + '<g fill="#C8CDD5"><rect x="31" y="25" width="13.5" height="2.2" rx="1.1"/><rect x="31" y="29.2" width="13.5" height="2.2" rx="1.1"/><rect x="31" y="33.3" width="9.5" height="2.2" rx="1.1"/><rect x="15.5" y="38.5" width="29" height="2.2" rx="1.1"/><rect x="15.5" y="42.3" width="20" height="2.2" rx="1.1"/></g>'),
+    court: ai('court', '#3D4E73', '#18213A', '<g {S} fill="{G}"><circle cx="30" cy="13.2" r="2.6"/><rect x="28.7" y="14" width="2.6" height="29.5" rx="1"/><rect x="21" y="43" width="18" height="3.6" rx="1.8"/><rect x="13" y="17.4" width="34" height="2.6" rx="1.3"/>'
+      + '<path d="M9.5 31.5h13a6.5 6.5 0 0 1-13 0Z"/><path d="M37.5 31.5h13a6.5 6.5 0 0 1-13 0Z"/></g><g stroke="#E8B54A" stroke-width="1.1"><path d="M16 19.5 11 31.5M16 19.5l5 12M44 19.5l-5 12M44 19.5l5 12"/></g>'),
+    maps: ai('maps', '#D9F3CF', '#B2E1A6', '<path fill="#78C6F6" d="M36 0h24v25c-5.6 1.6-11.2-.6-14.2-5.4C42.8 14.8 40 7 36 0Z"/><path fill="#9AD68C" d="M0 40c6-1.5 10.5 1.5 12.5 6S15 56 13 60H0Z"/>'
+      + '<path d="M-2 41 62 17" stroke="#fff" stroke-width="6"/><path d="M19 -2 31 62" stroke="#fff" stroke-width="5"/><path d="M-2 53c16-6 33-5 64-18" stroke="#F2B21B" stroke-width="6.5" fill="none"/><path d="M-2 53c16-6 33-5 64-18" stroke="#FFD24A" stroke-width="4" fill="none"/>'
+      + '<path {S} fill="#FF3B30" d="M27 13.5c-5.2 0-9.4 4-9.4 9.1 0 6.6 9.4 15.6 9.4 15.6s9.4-9 9.4-15.6c0-5.1-4.2-9.1-9.4-9.1Z"/><circle cx="27" cy="22.6" r="3.6" fill="#fff"/>'),
+  };
+
+  // an app with its own icon art gets it in place of the line glyph
+  const paint = b => { const art = ART[b.dataset.p], g = b.querySelector('svg'); if (art && g && !g.classList.contains('ai')) g.outerHTML = art; };
+  tabs.querySelectorAll('button[data-p]').forEach(paint);
+
   // adding an app: an icon on the home screen and its own screen, which `render` fills the first time it opens
   const added = new Map();
   const addApp = ({ id, name, icon, color, render, onOpen, before }) => {
     const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.p = id; b.setAttribute('aria-selected', 'false');
-    b.style.setProperty('--app', color); b.innerHTML = `${icon}${esc(name)}<i class="badge" id="phBadge-${id}" hidden>0</i>`;
+    b.style.setProperty('--app', color); b.innerHTML = `${icon}${esc(name)}<i class="badge" id="phBadge-${id}" hidden>0</i>`; paint(b);
     const at = before && apps.querySelector(`button[data-p="${before}"]`); at ? apps.insertBefore(b, at) : apps.appendChild(b);
     const sec = document.createElement('section'); sec.className = 'tscreen cv-pane'; sec.dataset.p = id; screens.appendChild(sec);
     added.set(id, { render, onOpen, sec, done: false }); placeDock(); return { button: b, section: sec, badge: n => { const el = $('phBadge-' + id); el.textContent = n; el.hidden = !n; } }; };
