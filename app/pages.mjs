@@ -841,7 +841,7 @@ ${user.discord_id ? '<span class="tag ok">Connected</span>' : discord ? `<a clas
 .ms-up{display:flex;align-items:center;gap:8px;margin-top:2px;min-width:0}.ms-up [hidden]{display:none}.ms-fn{flex:1;min-width:0;font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ms-body .licf .ms-fs>.ms-uh{grid-column:1/-1;margin:-2px 0 2px}.ms-fs[disabled] ~ .row .btn{opacity:.5}
 .ms-pl,.ms-vol{display:flex;gap:6px;align-items:center}.ms-pl select{flex:1}.ms-play{flex:none;width:40px;padding:0;justify-content:center;align-self:stretch}
-.ms-vol input{flex:1;accent-color:#E8B33A}.ms-vol output{width:40px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.ms-vol input{flex:1;accent-color:#E8B33A}.ms-vol output{width:44px;text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
 .ms-g{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--dim)}.ms-sw{display:flex;flex-wrap:wrap;gap:8px}
 .ms-sw button{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:0;border:0;background:none;color:var(--dim);font:inherit;font-size:11.5px;cursor:pointer}
 .ms-sw button i{display:block;width:30px;height:30px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1px rgba(255,255,255,.14) inset;transition:box-shadow .15s}
