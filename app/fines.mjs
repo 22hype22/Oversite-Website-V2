@@ -16,9 +16,11 @@ const shape = (cid, r) => { const d = JSON.parse(r.data || '{}'), b = q("SELECT 
     paid: !!d.paid_at, paid_at: d.paid_at || null, paid_by: d.paid_by || null, note: d.paid_note || null }; };
 const FINES = "community_id = ? AND kind IN ('citation', 'arrest') AND json_extract(data, '$.fine') > 0";
 export const get = (cid, id) => { const r = q(`SELECT * FROM pd_records WHERE ${FINES} AND id = ?`).get(cid, +id || 0); return r ? shape(cid, r) : null; };
-// someone's fines by Roblox ID (or a character's key) or name, unpaid first; status: unpaid, paid or all
-export const list = (cid, { rid, name, status = 'unpaid', limit = 50 } = {}) => {
+// someone's fines by Roblox ID (or a character's key) or name, or everyone's whose name has `q` in it (the MDT's Fines screen),
+// newest first; status: unpaid, paid or all
+export const list = (cid, { rid, name, q: like, status = 'unpaid', limit = 50 } = {}) => {
   const w = [FINES], a = [cid]; if (rid) { w.push('subject_rid = ?'); a.push(String(rid)); } else if (name) { w.push('lower(subject) = lower(?)'); a.push(T(name, 40)); }
+  else if (like) { w.push("(lower(subject) LIKE ? ESCAPE '\\' OR subject_rid = ?)"); a.push('%' + T(like, 40).toLowerCase().replace(/[%_\\]/g, m => '\\' + m) + '%', T(like, 40)); }
   if (status === 'unpaid') w.push("json_extract(data, '$.paid_at') IS NULL"); else if (status === 'paid') w.push("json_extract(data, '$.paid_at') IS NOT NULL");
   const L = q(`SELECT * FROM pd_records WHERE ${w.join(' AND ')} ORDER BY at DESC LIMIT ?`).all(...a, Math.max(1, Math.min(200, +limit || 50))).map(r => shape(cid, r));
   return { fines: L, owed: L.filter(f => !f.paid).reduce((s, f) => s + f.amount, 0) }; };

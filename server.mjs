@@ -449,6 +449,12 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'records/act' && M === 'POST') { const j = req._body ||= await jsonBody(req), a = String(j.action || ''), k = ['backup', 'respond'].includes(a) ? 'pd_backup' : features.RECORD[police.record(c.id, j.id)?.kind]; if (k && !features.on(c, k)) return off(k); }
     if (sub === 'records' && M === 'GET') return json(res, { records: recent(police.list(c.id, { kind: qs.get('kind') || '', status: qs.get('status') || '', mine: qs.get('mine') === '1' }, user.id)) });
     if (sub === 'records' && M === 'POST') { const r = police.create(c.id, by, req._body, police.penalOf(c)); if (r.ok) { f.bcast('pdrec', JSON.stringify(r.record)); if (!(r.record.kind === 'warrant' && r.record.status === 'Pending')) recordEvent(c, r.record); } return json(res, r, r.error ? 400 : 200); }
+    // the Fines screen (app/fines.mjs): who owes what, by name; a Sergeant or above marks them paid, one or all of someone's at once
+    if (sub === 'fines' && M === 'GET') { const st = ['unpaid', 'paid', 'all'].includes(qs.get('status')) ? qs.get('status') : 'unpaid'; return json(res, { ...fines.list(c.id, { q: qs.get('q') || '', status: st, limit: 100 }), supervisor: by.supervisor }); }
+    if (sub === 'fines/pay-all' && M === 'POST') { if (!by.supervisor) return json(res, { error: 'Only a Sergeant or above can mark fines paid.' }, 403); const j = await jsonBody(req), rid = String(j.rid || '').trim(), name = String(j.name || '').trim();
+      if (!rid && !name) return json(res, { error: 'Whose fines?' }, 400); const L = fines.list(c.id, { rid, name: rid ? '' : name, status: 'unpaid', limit: 200 }).fines;
+      const done = L.map(x => fines.setPaid(c, x.id, true, by.name, j.note)).filter(r => r.ok); for (const r of done) f.bcast('pdrec', JSON.stringify({ ...police.record(c.id, r.fine.id), _act: 'paid', _by: by.name }));
+      return json(res, { ok: true, paid: done.length, total: done.reduce((s, r) => s + r.fine.amount, 0) }); }
     // marking a fine paid by hand (paid in person, or in an economy Oversite doesn't run): a Sergeant or above (app/fines.mjs)
     if (sub === 'records/act' && M === 'POST' && ['paid', 'unpaid'].includes(req._body.action)) { const j = req._body; if (!by.supervisor) return json(res, { error: 'Only a Sergeant or above can mark a fine paid.' }, 403);
       const r = fines.setPaid(c, j.id, j.action === 'paid', by.name, j.note); if (r.error) return json(res, { error: r.error }, r.status || 400); const rec = police.record(c.id, j.id);
