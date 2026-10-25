@@ -58,13 +58,13 @@
 #civMdt.phone.ph-silent #cvClock::after{content:"";display:inline-block;width:.86em;height:.86em;margin-left:.25em;vertical-align:-.1em;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3Cmask id='m'%3E%3Crect width='24' height='24' fill='white'/%3E%3Cpath d='M2.5 2.5 21.5 21.5' stroke='black' stroke-width='4.6'/%3E%3C/mask%3E%3C/defs%3E%3Cpath mask='url(%23m)' fill='white' d='M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6V11a7 7 0 0 0-5.5-6.8V3.5a1.5 1.5 0 0 0-3 0v.7A7 7 0 0 0 5 11v5l-2 2v1h18v-1Z'/%3E%3Cpath d='M3.2 3.2 20.8 20.8' stroke='white' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat}
 /* Silent mode, in the Dynamic Island as it stretches out */
 #civMdt.phone .ph-isl{position:absolute;z-index:43;top:calc(var(--sw,344px) * .032);left:50%;width:32%;height:calc(var(--sw,344px) * .093);transform:translateX(-50%);border-radius:999px;background:#000;color:#fff;display:flex;align-items:center;justify-content:space-between;
-  gap:8px;padding:0 14px;box-sizing:border-box;font:600 13px/1 -apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;opacity:0;pointer-events:none;overflow:hidden;white-space:nowrap;transition:width .4s cubic-bezier(.32,.72,0,1),opacity .2s ease}
-#civMdt.phone .ph-isl.on{width:41%;opacity:1}#civMdt.phone .ph-isl svg{flex:none}#civMdt.phone .ph-isl b{color:#FF453A;font-weight:600}#civMdt.phone .ph-isl b.ring{color:#fff}
+  gap:8px;padding:0 14px;box-sizing:border-box;font:500 13px/1 -apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;opacity:0;pointer-events:none;overflow:hidden;white-space:nowrap;transition:width .4s cubic-bezier(.32,.72,0,1),opacity .2s ease}
+#civMdt.phone .ph-isl.on{width:41%;opacity:1}#civMdt.phone .ph-isl svg{flex:none}#civMdt.phone .ph-isl b{color:#FF453A;font-weight:500}#civMdt.phone .ph-isl b.ring{color:#fff}
 /* asleep: the screen dark; the Lock Screen: the date and a big time over the wallpaper, swiped up to open */
 #civMdt.phone .ph-off{position:absolute;inset:0;z-index:40;background:#000;cursor:pointer;animation:ph-fade .25s ease}#civMdt.phone .ph-off[hidden],#civMdt.phone .ph-lock[hidden]{display:none}
 #civMdt.phone .ph-lock{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;background:var(--wall);color:#fff;touch-action:none;cursor:grab;user-select:none;transition:transform .28s cubic-bezier(.32,.72,0,1),opacity .28s ease;animation:ph-fade .3s ease}
-#civMdt.phone .ph-lock-top{margin-top:58px;opacity:.9}#civMdt.phone .ph-lock-t{text-align:center;margin-top:6px}#civMdt.phone .ph-lock-t small{display:block;font-size:17px;font-weight:600;opacity:.9}
-#civMdt.phone .ph-lock-t b{display:block;font-size:84px;font-weight:600;letter-spacing:-.02em;line-height:1;margin-top:2px;font-variant-numeric:tabular-nums}
+#civMdt.phone .ph-lock-top{margin-top:58px;opacity:.9}#civMdt.phone .ph-lock-t{text-align:center;margin-top:6px}#civMdt.phone .ph-lock-t small{display:block;font-size:17px;font-weight:500;opacity:.9}
+#civMdt.phone .ph-lock-t b{display:block;font-size:84px;font-weight:500;letter-spacing:-.02em;line-height:1;margin-top:2px;font-variant-numeric:tabular-nums}
 #civMdt.phone .ph-lock-b{margin-top:auto;width:100%;display:flex;justify-content:space-between;padding:0 44px;box-sizing:border-box}
 #civMdt.phone .ph-lock-b span{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 #civMdt.phone .ph-lock-h{margin:22px 0 34px;padding:6px 10px;border:0;background:none;color:#fff;font:500 13px/1 inherit;opacity:.85;cursor:pointer}
@@ -84,7 +84,7 @@
 #civMdt.phone .ph-rm{display:none;position:absolute;top:-6px;left:calc(50% - 36px);width:21px;height:21px;border-radius:50%;background:rgba(90,90,96,.92);z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 #civMdt.phone .ph-rm::after{content:"";position:absolute;left:5.5px;right:5.5px;top:9.5px;height:2px;border-radius:1px;background:#fff}
 #civMdt.phone.ph-edit .ph-rm{display:block;cursor:pointer}#civMdt.phone .tside button[data-p].ph-gone{display:none}
-#civMdt.phone .ph-editb{display:none;padding:5px 14px;border-radius:999px;border:0;background:rgba(255,255,255,.24);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:#fff;font:600 13px/1.2 inherit;cursor:pointer}
+#civMdt.phone .ph-editb{display:none;padding:5px 14px;border-radius:999px;border:0;background:rgba(255,255,255,.24);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:#fff;font:500 13px/1.2 inherit;cursor:pointer}
 #civMdt.phone.home.ph-edit .ph-editb{display:block}#civMdt.phone.home.ph-edit #cvClock,#civMdt.phone.home.ph-edit .sbar .sb-ic{display:none}#civMdt.phone.home.ph-edit .ph-editb,#civMdt.phone.home.ph-edit .ph-done{margin:0 calc(var(--sw,344px) * .07)}#civMdt.phone .tside:focus{outline:none}
 /* Control Center, pulled down from the top right: dark glass over the blurred screen, controls on a four-column grid */
 #civMdt.phone .ph-cc{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;padding:calc(var(--sw,344px) * .07) calc(var(--sw,344px) * .085) 20px;box-sizing:border-box;
@@ -95,7 +95,7 @@
 #civMdt.phone .ph-cc.anim>*{transition:opacity .28s ease,transform .38s cubic-bezier(.32,.72,0,1)}#civMdt.phone .ph-cc.anim{transition:background .28s ease,backdrop-filter .28s ease}
 #civMdt.phone .cc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:calc(var(--sw,344px) * .05)}
 #civMdt.phone .cc-top button{background:none;border:0;color:#fff;padding:4px;cursor:pointer;line-height:0}
-#civMdt.phone .cc-stat{display:flex;justify-content:space-between;align-items:center;font-size:calc(var(--sw,344px) * .043);font-weight:600;margin:0 4px calc(var(--sw,344px) * .04)}
+#civMdt.phone .cc-stat{display:flex;justify-content:space-between;align-items:center;font-size:calc(var(--sw,344px) * .043);font-weight:500;margin:0 4px calc(var(--sw,344px) * .04)}
 #civMdt.phone .cc-stat span{display:flex;align-items:center;gap:6px}#civMdt.phone .cc-stat svg{display:block}
 #civMdt.phone .cc-g{--cell:calc((var(--sw,344px) * .83 - 3 * var(--sw,344px) * .045) / 4);display:grid;grid-template-columns:repeat(4,var(--cell));grid-auto-rows:var(--cell);gap:calc(var(--sw,344px) * .045);justify-content:center}
 #civMdt.phone .cc-t{position:relative;display:grid;place-items:center;border:0;padding:0;border-radius:50%;background:rgba(120,120,128,.32);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.18);color:#fff;cursor:pointer;
@@ -108,15 +108,15 @@
 #civMdt.phone .cc-mini{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--cell) * .08);width:calc(var(--cell) * .88)}#civMdt.phone .cc-mini .cc-t{width:calc(var(--cell) * .4);height:calc(var(--cell) * .4)}
 #civMdt.phone .cc-music{display:flex;flex-direction:column;padding:calc(var(--cell) * .2)}#civMdt.phone .cc-art{width:calc(var(--cell) * .62);height:calc(var(--cell) * .62);border-radius:12px;background:rgba(255,255,255,.12)}
 #civMdt.phone .cc-air{position:absolute;right:calc(var(--cell) * .18);top:calc(var(--cell) * .18);width:calc(var(--cell) * .5);height:calc(var(--cell) * .5)}
-#civMdt.phone .cc-music b{margin-top:auto;font-size:calc(var(--sw,344px) * .043);font-weight:600;opacity:.85}#civMdt.phone .cc-ctl{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+#civMdt.phone .cc-music b{margin-top:auto;font-size:calc(var(--sw,344px) * .043);font-weight:500;opacity:.85}#civMdt.phone .cc-ctl{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
 #civMdt.phone .cc-ctl button{background:none;border:0;color:#fff;padding:2px;cursor:pointer;line-height:0}#civMdt.phone .cc-ctl button:disabled{opacity:.4;cursor:default}
 #civMdt.phone .cc-sl{grid-row:span 2;position:relative;overflow:hidden;border-radius:calc(var(--cell) * .5);background:rgba(120,120,128,.32);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);cursor:ns-resize;touch-action:none}
 #civMdt.phone .cc-sl i{position:absolute;left:0;right:0;bottom:0;height:calc(var(--v,.5) * 100%);background:rgba(255,255,255,.94)}
 #civMdt.phone .cc-sl svg{position:absolute;left:50%;bottom:calc(var(--cell) * .3);transform:translateX(-50%)}#civMdt.phone .cc-sl:focus-visible{outline:2px solid #0A84FF;outline-offset:2px}
-#civMdt.phone .cc-focus{grid-column:span 2;border-radius:999px;display:flex;align-items:center;gap:12px;padding:0 calc(var(--cell) * .14);justify-content:flex-start;font-size:calc(var(--sw,344px) * .04);font-weight:600;white-space:nowrap;overflow:hidden}
+#civMdt.phone .cc-focus{grid-column:span 2;border-radius:999px;display:flex;align-items:center;gap:12px;padding:0 calc(var(--cell) * .14);justify-content:flex-start;font-size:calc(var(--sw,344px) * .04);font-weight:500;white-space:nowrap;overflow:hidden}
 #civMdt.phone .cc-focus i{display:grid;place-items:center;width:calc(var(--cell) * .66);height:calc(var(--cell) * .66);border-radius:50%;background:rgba(255,255,255,.16)}
 #civMdt.phone .cc-focus.on{background:linear-gradient(110deg,#5E5CE6,#8A5CF6);color:#fff}#civMdt.phone .cc-focus.on i{background:#fff;color:#5E5CE6}
-#civMdt.phone .cc-t small{position:absolute;bottom:calc(var(--cell) * .12);font-size:10px;font-weight:600;font-variant-numeric:tabular-nums}
+#civMdt.phone .cc-t small{position:absolute;bottom:calc(var(--cell) * .12);font-size:10px;font-weight:500;font-variant-numeric:tabular-nums}
 #civMdt.phone .cc-tm{grid-column:1/-1;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}#civMdt.phone .cc-tm[hidden]{display:none}
 #civMdt.phone .cc-tm button{border:0;border-radius:999px;padding:8px 14px;background:rgba(120,120,128,.4);color:#fff;font:600 13px/1 inherit;cursor:pointer}#civMdt.phone .cc-tm button.dz{background:#FF453A}
 #civMdt.phone .ph-dim{position:absolute;inset:0;z-index:29;background:#000;opacity:calc((1 - var(--br,1)) * .78);pointer-events:none}
@@ -131,20 +131,20 @@
 #civMdt.phone .calc-k button{aspect-ratio:1;border:0;border-radius:999px;background:#333;color:#fff;font:400 28px/1 -apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;cursor:pointer}
 #civMdt.phone .calc-k button.f{background:#A5A5A5;color:#000}#civMdt.phone .calc-k button.o{background:#FF9F0A}#civMdt.phone .calc-k button.o.on{background:#fff;color:#FF9F0A}
 #civMdt.phone .calc-k button.z{grid-column:span 2;aspect-ratio:auto;text-align:left;padding-left:30px}#civMdt.phone .calc-k button:active{filter:brightness(1.3)}
-#civMdt.phone .tablet .screen{border-radius:12.6%/5.9%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",system-ui,sans-serif;background:#05070D;
+#civMdt.phone .tablet .screen{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;border-radius:12.6%/5.9%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",system-ui,sans-serif;background:#05070D;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
 #civMdt.phone .tablet .cam{top:calc(3.4% + 11px);width:31%;height:auto;aspect-ratio:3.4/1;margin-left:-15.5%;border-radius:999px;background:#000;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);z-index:9}
 #civMdt.phone .tablet .cam::after{content:"";position:absolute;right:16%;top:50%;width:13%;aspect-ratio:1;transform:translateY(-50%);border-radius:50%;
   background:radial-gradient(circle at 35% 35%,#2B3A55,#0B1220 60%,#05080F)}
-#civMdt.phone .sbar{position:relative;z-index:6;display:flex;align-items:center;justify-content:space-between;padding:calc(var(--sw,344px) * .032) 0 0;height:calc(var(--sw,344px) * .125);margin-bottom:calc(var(--sw,344px) * .025);min-height:0;box-sizing:border-box;font-size:15px;font-weight:600;color:#fff;letter-spacing:-.01em}
+#civMdt.phone .sbar{position:relative;z-index:6;display:flex;align-items:center;justify-content:space-between;padding:calc(var(--sw,344px) * .032) 0 0;height:calc(var(--sw,344px) * .125);margin-bottom:calc(var(--sw,344px) * .025);min-height:0;box-sizing:border-box;font-size:15px;font-weight:500;color:#fff;letter-spacing:-.01em}
 /* as on an iPhone: the time centred in the space left of the Dynamic Island, signal, Wi-Fi and battery in the space right of it */
 #civMdt.phone #cvClock{flex:none;width:34%;text-align:center;font-size:calc(var(--sw,344px) * .046);font-variant-numeric:tabular-nums}
 #civMdt.phone .sb-ic{width:34%;justify-content:center}
 /* no camera cutout on the glass (nor a camera dot on the tablet): it does nothing here */
 #civMdt.phone .tablet .cam{display:none}
 #civMdt.phone .sbar .sb-mid,#civMdt.phone .sbar #cvTopBal{display:none}
-#civMdt.phone .sb-ic{display:flex;align-items:center;gap:calc(var(--sw,344px) * .015)}#civMdt.phone .sb-ic svg{display:block;height:calc(var(--sw,344px) * .035);width:auto}#civMdt.phone .sb-ic svg:last-child{height:calc(var(--sw,344px) * .038)}#civMdt.phone .sb-ic .off{opacity:.35}
+#civMdt.phone .sb-ic{display:flex;align-items:center;gap:calc(var(--sw,344px) * .015)}#civMdt.phone .sb-ic svg{display:block;height:calc(var(--sw,344px) * .031);width:auto}#civMdt.phone .sb-ic svg:last-child{height:calc(var(--sw,344px) * .035)}#civMdt.phone .sb-ic .off{opacity:.35}
 #civMdt.phone.home .screen{background:var(--wall)}
 #civMdt.phone.home.wall-blue .screen::before{content:"";position:absolute;left:-30%;top:34%;width:150%;height:62%;border-radius:50%;border-top:2px solid rgba(110,160,255,.35);
   box-shadow:0 -14px 40px rgba(60,120,255,.18);transform:rotate(-24deg);pointer-events:none}
@@ -162,13 +162,13 @@
 #civMdt.phone .ph-w>span{font-size:12px;font-weight:500;text-shadow:0 1px 3px rgba(0,0,0,.5)}
 #civMdt.phone .ph-wx{background:linear-gradient(180deg,#3E86D9,#2A62B8);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}#civMdt.phone .ph-wx.night{background:linear-gradient(180deg,#26304F,#121A33)}
 #civMdt.phone .ph-wx.grey{background:linear-gradient(180deg,#6D7B8F,#4A5568)}
-#civMdt.phone .ph-wx small{font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#civMdt.phone .ph-wx>*{flex:none}#civMdt.phone .ph-wx b{font-size:36px;font-weight:300;line-height:1.05;letter-spacing:-.02em}#civMdt.phone .ph-wx i{margin-top:auto;font-style:normal;font-size:12px;font-weight:600;line-height:1.35}
+#civMdt.phone .ph-wx small{font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#civMdt.phone .ph-wx>*{flex:none}#civMdt.phone .ph-wx b{font-size:36px;font-weight:300;line-height:1.05;letter-spacing:-.02em}#civMdt.phone .ph-wx i{margin-top:auto;font-style:normal;font-size:12px;font-weight:500;line-height:1.35}
 #civMdt.phone .ph-bal{background:linear-gradient(165deg,#1F8F63,#0F4F38);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
-#civMdt.phone .ph-bal small{font-size:12.5px;font-weight:600;opacity:.9}#civMdt.phone .ph-bal b{font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:4px;line-height:1.05;word-break:break-all}
+#civMdt.phone .ph-bal small{font-size:12.5px;font-weight:500;opacity:.9}#civMdt.phone .ph-bal b{font-size:26px;font-weight:500;letter-spacing:-.02em;margin-top:4px;line-height:1.05;word-break:break-all}
 #civMdt.phone .ph-bal em{margin-top:auto;font-style:normal;font-size:12px;font-weight:500;opacity:.85}
 #civMdt.phone .ph-cal{background:rgba(250,250,252,.96);color:#111;box-shadow:0 6px 18px rgba(0,0,0,.3)}
-#civMdt.phone .ph-cal small{font-size:12.5px;font-weight:700;color:#FF3B30;text-transform:uppercase}#civMdt.phone .ph-cal b{font-size:44px;font-weight:300;line-height:1;margin-top:2px;letter-spacing:-.03em}
+#civMdt.phone .ph-cal small{font-size:12.5px;font-weight:600;color:#FF3B30;text-transform:uppercase}#civMdt.phone .ph-cal b{font-size:44px;font-weight:300;line-height:1;margin-top:2px;letter-spacing:-.03em}
 #civMdt.phone .ph-cal em{margin-top:auto;font-style:normal;font-size:12px;color:#6B6E75;font-weight:500}
 /* a third widget lies across the row as a short strip, so the home screen still fits */
 #civMdt.phone .ph-wid>.ph-w:nth-child(3){grid-column:1/-1;flex-direction:row-reverse;justify-content:flex-end;gap:0}#civMdt.phone .ph-wid>.ph-w:nth-child(3)>span{display:none}
@@ -176,8 +176,8 @@
 #civMdt.phone .ph-wid>.ph-w:nth-child(3)>div b{font-size:30px;margin:0;order:-1}#civMdt.phone .ph-wid>.ph-w:nth-child(3)>div>*{margin-top:0!important}
 #civMdt.phone .ph-wid>.ph-w:nth-child(3)>div>:last-child{margin-left:auto}#civMdt.phone .ph-wid>.ph-w:nth-child(3) .ph-wx svg{display:none}
 #civMdt.phone .ph-apps{align-self:stretch;display:grid;grid-template-columns:repeat(4,1fr);gap:16px 0;margin-top:16px;align-content:start}
-#civMdt.phone .tside button[data-p]{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0;background:none!important;color:#fff;font-size:12px;font-weight:500;text-align:center;line-height:1.15;
-  text-shadow:0 1px 3px rgba(0,0,0,.55);letter-spacing:-.005em;-webkit-tap-highlight-color:transparent;border:0;cursor:pointer;font-family:inherit;min-width:0}
+#civMdt.phone .tside button[data-p]{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0;background:none!important;color:#fff;font-size:12px;font-weight:400;text-align:center;line-height:1.15;
+  text-shadow:0 1px 2px rgba(0,0,0,.35);letter-spacing:-.005em;-webkit-tap-highlight-color:transparent;border:0;cursor:pointer;font-family:inherit;min-width:0}
 #civMdt.phone .tside button[data-p]:focus-visible{outline:none}#civMdt.phone .tside button[data-p]:focus-visible svg{outline:2px solid #fff;outline-offset:2px}
 #civMdt.phone .tside button[data-p] svg{flex:none;width:60px;height:60px;padding:15px;border-radius:22.5%;color:#fff;background:var(--app,#3A3D45);
   box-shadow:0 4px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.25),inset 0 -1px 0 rgba(0,0,0,.15);stroke-width:2;transition:transform .12s ease,filter .12s ease}
@@ -224,7 +224,7 @@
 #civMdt.phone .ph-spot-in input::placeholder{color:rgba(255,255,255,.65)}#civMdt.phone .ph-spot-in input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
 #civMdt.phone .ph-spot-x{background:none;border:0;padding:0;color:#fff;font-family:inherit;font-size:17px;cursor:pointer}
 #civMdt.phone .ph-spot-res{margin-top:22px;overflow-y:auto;scrollbar-width:none}
-#civMdt.phone .ph-spot-res h4{margin:0 2px 12px;font-size:13px;font-weight:600;color:rgba(255,255,255,.7)}
+#civMdt.phone .ph-spot-res h4{margin:0 2px 12px;font-size:13px;font-weight:500;color:rgba(255,255,255,.7)}
 #civMdt.phone .ph-spot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 0}
 #civMdt.phone .ph-spot-app{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;background:none;border:0;padding:0;color:#fff;font-family:inherit;font-size:12px;font-weight:500;line-height:1.15;cursor:pointer}
 #civMdt.phone .ph-spot-app svg{width:56px;height:56px;padding:14px;border-radius:22.5%;background:var(--app,#3A3D45);color:#fff;stroke-width:2;box-shadow:0 4px 12px rgba(0,0,0,.3)}
@@ -316,8 +316,8 @@
 
   // status bar: signal, Wi-Fi and battery on the right, like the real thing
   const ic = document.createElement('span'); ic.className = 'sb-ic'; ic.setAttribute('aria-hidden', 'true');
-  const SIG = '<svg width="17" height="12" viewBox="0 0 17 12" fill="#fff"><rect x="0" y="7.6" width="3.1" height="4.4" rx="1.2"/><rect x="4.6" y="5.3" width="3.1" height="6.7" rx="1.2"/><rect x="9.2" y="2.8" width="3.1" height="9.2" rx="1.2"/><rect x="13.8" y="0" width="3.1" height="12" rx="1.2"/></svg>';
-  const WIFI = on => `<svg width="16" height="12" viewBox="0 0 16 12"${on ? '' : ' class="off"'}><g fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"><path d="M1.2 4.4a9.6 9.6 0 0 1 13.6 0"/><path d="M3.8 7a5.9 5.9 0 0 1 8.4 0"/></g><path d="M8 11.4 5.3 8.7a3.8 3.8 0 0 1 5.4 0Z" fill="#fff" stroke="#fff" stroke-width=".9" stroke-linejoin="round"/></svg>`;
+  const SIG = '<svg width="17" height="12" viewBox="0 0 17 12" fill="#fff"><rect x=".2" y="7.6" width="2.7" height="4.4" rx="1"/><rect x="4.8" y="5.3" width="2.7" height="6.7" rx="1"/><rect x="9.4" y="2.8" width="2.7" height="9.2" rx="1"/><rect x="14" y="0" width="2.7" height="12" rx="1"/></svg>';
+  const WIFI = on => `<svg width="16" height="12" viewBox="0 0 16 12"${on ? '' : ' class="off"'}><g fill="none" stroke="#fff" stroke-width="1.75" stroke-linecap="round"><path d="M1.2 4.4a9.6 9.6 0 0 1 13.6 0"/><path d="M3.8 7a5.9 5.9 0 0 1 8.4 0"/></g><path d="M8 11.3 5.5 8.8a3.5 3.5 0 0 1 5 0Z" fill="#fff" stroke="#fff" stroke-width=".5" stroke-linejoin="round"/></svg>`;
   // the battery: this device's own charge when the browser tells it (green while charging, red when low), full otherwise
   const BAT = (lvl = 1, chg = false, low = false) => { const w = Math.max(1.5, 19.6 * lvl), c = low ? '#FFD60A' : chg ? '#34C759' : lvl <= .2 ? '#FF3B30' : '#fff';   // yellow in Low Power Mode
     return `<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23.5" height="12" rx="3.8" stroke="rgba(255,255,255,.4)"/><rect x="2.2" y="2.2" width="${w.toFixed(1)}" height="8.6" rx="2.2" fill="${c}"/>`
