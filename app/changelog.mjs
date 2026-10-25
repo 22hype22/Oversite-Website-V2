@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '3.9', date: '2026-10-25', tag: 'new', title: 'View as a role',
+    body: 'Admins can see the CAD the way someone with a Discord role sees it. Press the eye button at the top right, pick a Discord role and a team in game, and the CAD opens with that role’s tabs, locks and staff tools, with a banner to change or exit. While you look you only have that role’s access; anything you do is still recorded as you.', items: [] },
   { v: '3.8', date: '2026-10-25', tag: 'change', title: 'Each department is its own CAD',
     body: 'Departments you add in Settings → Departments now get their own tab and MDT beside the built-in ones, so a Sheriff’s Office and the police are two separate CADs, and so are EMS and the fire department.', items: ['Each MDT shows only its own units, and opens only for its own members (and its own Discord roles)', 'A Sheriff’s Office gets the same calls as the police', 'With an EMS that takes medical calls only, EMS gets the medical calls and the fire department only the fire calls', 'When the tabs don’t all fit, they show the departments’ short names'] },
   { v: '3.7', date: '2026-10-25', tag: 'new', title: 'Control Center',

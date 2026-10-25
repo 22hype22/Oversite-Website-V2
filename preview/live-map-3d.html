@@ -3080,6 +3080,40 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     a.textContent = (O.me || O.user || '?').slice(0, 1).toUpperCase();
     if (/^\d+$/.test(O.rid || '')) { const im = new Image(); im.alt = ''; im.onload = () => { a.textContent = ''; a.appendChild(im); }; im.src = '/rbx/avatar/' + O.rid; }
     avEl.replaceWith(a); }
+  // View as (admins): the CAD as someone holding one Discord role would see it, on a team in game if picked. A banner shows it's a preview.
+  const VA = O.viewAs, icons = document.querySelector('header .icons');
+  if (icons && O.api && (VA || ['admin', 'co_owner', 'owner'].includes(O.role))) {
+    const e = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const css = document.createElement('style'); css.textContent = `.va-pop{position:fixed;z-index:60;width:300px;padding:14px;border-radius:14px;background:rgba(22,23,26,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 18px 50px rgba(0,0,0,.5);color:#E9EAEC;font-size:13px;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.va-pop[hidden]{display:none}.va-pop h4{margin:0 0 4px;font-size:14px}.va-pop p{margin:0 0 12px;color:#9A9EA6;font-size:12.5px;line-height:1.45}.va-pop label{display:grid;gap:5px;margin-bottom:10px;color:#9A9EA6;font-size:12px}
+.va-pop select{font:inherit;font-size:13px;color:#E9EAEC;background:#1C1D20;border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:8px 10px;color-scheme:dark}
+.va-pop .va-go{width:100%;padding:9px 12px;border:0;border-radius:999px;background:#ECEDEF;color:#0B0B0C;font:600 13px/1 inherit;cursor:pointer}.va-pop .va-go:disabled{opacity:.5}
+.va-bar{position:fixed;z-index:59;left:50%;top:64px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;max-width:calc(100vw - 24px);padding:7px 8px 7px 14px;border-radius:999px;background:rgba(88,101,242,.92);color:#fff;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.va-bar i{width:9px;height:9px;border-radius:50%;flex:none;background:var(--rc,#fff);box-shadow:0 0 0 2px rgba(255,255,255,.5)}.va-bar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.va-bar small{opacity:.8}
+.va-bar button,.va-bar a{flex:none;padding:5px 11px;border:0;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font:500 12.5px/1 inherit;text-decoration:none;cursor:pointer}.va-bar a{background:#fff;color:#3B45C4}
+@media (max-width:640px){.va-bar small{display:none}.va-bar{top:auto;bottom:12px}}`; document.head.appendChild(css);
+    const eye = document.createElement('button'); eye.type = 'button'; eye.id = 'viewAsBtn'; eye.setAttribute('aria-label', 'View as a role'); eye.title = 'View the CAD as a role'; eye.setAttribute('aria-expanded', 'false');
+    eye.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
+    icons.insertBefore(eye, document.getElementById('adminToggle') || icons.lastElementChild);
+    const pop = document.createElement('div'); pop.className = 'va-pop'; pop.hidden = true; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'View as a role'); document.body.appendChild(pop);
+    const go = (rid, team) => { location.href = `/${O.slug}?viewas=${encodeURIComponent(rid)}${team ? '&team=' + encodeURIComponent(team) : ''}`; };
+    const openPop = async () => { const r = eye.getBoundingClientRect(); pop.style.top = (r.bottom + 8) + 'px'; pop.style.left = Math.max(8, Math.min(innerWidth - 308, r.right - 300)) + 'px'; pop.hidden = false; eye.setAttribute('aria-expanded', 'true');
+      pop.innerHTML = '<h4>View as a role</h4><p>Loading roles…</p>';
+      try { const j = await (await fetch(O.api + '/viewas', { headers: { 'x-oversite': '1' } })).json(); if (j.error) throw new Error(j.error);
+        pop.innerHTML = `<h4>View as a role</h4><p>See the CAD the way someone with a Discord role sees it: their tabs, locks and staff tools. While you look, you can only do what they can, and anything you do is still recorded as you.</p>
+          <label>Discord role<select id="vaRole"><option value="">A member with no roles</option>${(j.roles || []).map(x => `<option value="${e(x.id)}"${VA?.role?.id === x.id ? ' selected' : ''}>@${e(x.name)}</option>`).join('')}</select></label>
+          ${j.linked ? '' : '<p style="margin-top:-4px">Link your Discord server in Settings to pick its roles.</p>'}
+          <label>In game<select id="vaTeam"><option value="">Not in game</option>${(j.teams || []).map(t => `<option${VA?.team === t ? ' selected' : ''}>${e(t)}</option>`).join('')}</select></label>
+          <button type="button" class="va-go">View</button>`;
+        pop.querySelector('.va-go').addEventListener('click', () => go(pop.querySelector('#vaRole').value, pop.querySelector('#vaTeam').value)); pop.querySelector('select')?.focus(); }
+      catch (x) { pop.innerHTML = `<h4>View as a role</h4><p>${e(x.message || 'Could not load the roles.')}</p>`; } };
+    const closePop = () => { pop.hidden = true; eye.setAttribute('aria-expanded', 'false'); };
+    eye.addEventListener('click', () => pop.hidden ? openPop() : closePop());
+    document.addEventListener('pointerdown', ev => { if (!pop.hidden && !ev.target.closest('.va-pop,#viewAsBtn')) closePop(); });
+    pop.addEventListener('keydown', ev => { if (ev.key === 'Escape') { ev.stopPropagation(); closePop(); eye.focus(); } });
+    if (VA) { const bar = document.createElement('div'); bar.className = 'va-bar'; bar.setAttribute('role', 'status'); if (VA.role?.color) bar.style.setProperty('--rc', VA.role.color);
+      bar.innerHTML = `<i aria-hidden="true"></i><span>Viewing as <b>${VA.role ? '@' + e(VA.role.name) : 'a member with no roles'}</b>${VA.team ? ' on the ' + e(VA.team) + ' team' : ', not in game'} <small>· with their access, recorded as you</small></span><button type="button">Change</button><a href="/${e(O.slug)}">Exit</a>`;
+      document.body.appendChild(bar); bar.querySelector('button').addEventListener('click', openPop); eye.classList.add('on'); } }
   const mark = document.querySelector('.bar .mark') || document.querySelector('.mark'); if (mark) { mark.style.cursor = 'pointer'; mark.title = O.name + ' · your account'; mark.addEventListener('click', () => { location.href = '/account'; }); }
   dispatchEvent(new Event('resize')); })();
 </script>
@@ -3892,8 +3926,10 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
 
   // ── who am I: the player whose username is in the admin panel, with the department their team maps to ──
   const updateMe = players => { const me = (S.me || '').toLowerCase(); const p = me && (players || []).find(x => x.Player.split(':')[0].toLowerCase() === me);
-    const dv = p && window.divOf ? window.divOf(p.Team, p.Player.split(':')[1]) : null;
-    const next = p ? { name: p.Player.split(':')[0], team: p.Team, dept: S.teams[p.Team] || null, div: dv ? dv.id : '', callsign: p.Callsign || '' } : null;
+    const VA = OV && OV.viewAs, dv = VA ? (VA.team && window.divOf ? window.divOf(VA.team, '') : null) : p && window.divOf ? window.divOf(p.Team, p.Player.split(':')[1]) : null;
+    // View as: on the team the admin picked (or not in game), whatever team they're really on
+    const next = VA ? (VA.team ? { name: p ? p.Player.split(':')[0] : S.me || 'You', team: VA.team, dept: S.teams[VA.team] || null, div: dv ? dv.id : '', callsign: p?.Callsign || '' } : null)
+      : p ? { name: p.Player.split(':')[0], team: p.Team, dept: S.teams[p.Team] || null, div: dv ? dv.id : '', callsign: p.Callsign || '' } : null;
     if (next?.dept && (!window.ME?.dept || window.ME.team !== next.team)) flyMe = true;   // just joined a team (or the page just opened): show them
     const same = JSON.stringify(next) === JSON.stringify(window.ME || null); window.ME = next; if (!same) dispatchEvent(new CustomEvent('me', { detail: next })); };
   let flyMe = false;

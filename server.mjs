@@ -143,9 +143,11 @@ const mapPref = p => { const m = /^(2d)-(light|dark)$/.exec(p?.map || ''); retur
 let mapHtml = null, mapMtime = 0;
 // a Premium server's own license card for the CAD: its title, color and seal, and the front and back pictures (either can be set without the other)
 const licenseCfg = c => { const S = c.settings.licenseStyle, art = artOf(c); return S || art.front || art.back ? { ...(S || {}), ...art } : null; };
-const mapPage = (c, user, role, oversight = false, locks = {}) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const prem = premium.isPremium(c), cfg = { currency: c.settings.currency || '$', premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? licenseCfg(c) : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, divs: divisions.list(c), teamDiv: divisions.teamDiv(c), unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, radioBot: bots.hasOversite(c, 'dispatch'), roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, locks, discord: !!user.discord_id, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
-  const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};${mapPref(cfg.setup)}</script><style>${features.css(c)}</style>`;
+// View as: while an admin previews the CAD as a Discord role, the page's own API requests say so, and get that role's answers
+const VIEWAS_FETCH = `(()=>{const f=window.fetch,v=(OVERSITE.viewAs.role&&OVERSITE.viewAs.role.id)||'';window.fetch=(u,o={})=>{try{const x=new URL(typeof u==='string'?u:u.url,location.href);if(x.origin===location.origin&&x.pathname.includes('/api/')){o={...o,headers:new Headers(o.headers||{})};o.headers.set('x-ov-viewas',v)}}catch(e){}return f(u,o)}})();`;
+const mapPage = (c, user, role, oversight = false, locks = {}, viewAs = null) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
+  const prem = premium.isPremium(c), cfg = { currency: c.settings.currency || '$', premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? licenseCfg(c) : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, divs: divisions.list(c), teamDiv: divisions.teamDiv(c), unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, radioBot: bots.hasOversite(c, 'dispatch'), roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, locks, discord: !!user.discord_id, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner, viewAs };
+  const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};${mapPref(cfg.setup)}${viewAs ? VIEWAS_FETCH : ''}</script><style>${features.css(c)}</style>`;
   const html = mapHtml.replace(/<head>/i, () => `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, () => `<title>${pages.esc(c.name)} · Oversite</title>`);
   return oversight ? html.replace(/<\/body>/i, () => `${pages.oversightBar(c)}</body>`) : html; };   // functions, so a $' in a name is never read as a replace pattern
 
@@ -188,8 +190,11 @@ const lockedOut = async (c, user, role, k) => { if (!discordlink.sectionsFor(c).
   return `${what} is only for people with ${L.length > 1 ? 'one of these Discord roles: ' : 'the Discord role '}${L.join(', ')}.`; };
 
 const communityApi = async (req, res, slug, rest) => {
-  const { c, user, role, oversight } = await access(req, slug);
+  let { c, user, role, oversight } = await access(req, slug);
   if (!c) return json(res, { error: 'No such community.' }, 404);
+  // View as: an admin's preview asks as the Discord role it shows (never with more than their own access)
+  if (req.headers['x-ov-viewas'] != null && role && can(role, 'admin') && rest !== 'viewas') { const rid = String(req.headers['x-ov-viewas']).replace(/\D/g, '').slice(0, 20), p = discordlink.previewAs(c, rid ? [rid] : []);
+    if (ROLE_RANK[p.role] < ROLE_RANK[role]) role = p.role; }
   if (oversight && (req.method !== 'GET' || rest.startsWith('radio/'))) return json(res, { error: 'You’re viewing this server as Oversite moderation, so nothing can be changed.' }, 403);
   if (c.suspended && !isSiteAdmin(user) && !oversight) return json(res, { error: 'This server is suspended.' }, 403);
   if (!user) return json(res, { error: 'Sign in first.' }, 401);
@@ -356,6 +361,10 @@ const communityApi = async (req, res, slug, rest) => {
       if (k.startsWith('t_')) { ov[k] = { t: 1 }; continue; }   // a tunnel the owner added between two road ends
       if ([1, -1, 0].includes(v.o)) o.o = v.o; if (v.b) o.b = 1; if (v.x) o.x = 1; if (v.l === 0 || v.l === 1) o.l = v.l; if (Object.keys(o).length) ov[k] = o; }
     const s = communities.byId(c.id).settings; s.roads = { ov, at: Date.now() }; communities.saveSettings(c.id, s); c.settings.roads = s.roads; f.bcast('roads', JSON.stringify(s.roads)); return json(res, s.roads); }
+  // View as: the Discord roles and in-game teams an admin can preview the CAD as
+  if (rest === 'viewas' && M === 'GET') { if (!can(role, 'admin')) return json(res, { error: 'Only admins can view the CAD as a role.' }, 403);
+    const gid = c.settings.discord?.guild_id, list = gid ? await discordlink.roles(gid).catch(() => null) : null;
+    return json(res, { linked: !!gid, roles: (list || []).map(r => ({ id: r.id, name: r.name, color: r.color })), teams: Object.keys(c.settings.teams || {}) }); }
   if (rest === 'units' && M === 'GET') return json(res, { of: unitMembers.all(c.id), ride: rideWith.all(c.id), units: Object.fromEntries(['pd', 'fd', 'dot'].map(d => [d, c.settings.depts?.[d]?.units || []])), divs: divisions.list(c).map(d => ({ id: d.id, units: d.units })) });
   if (rest === 'units/me' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
     const unit = String((await jsonBody(req)).unit || '').trim(), all = [...['pd', 'fd', 'dot'].flatMap(d => c.settings.depts?.[d]?.units || []), ...divisions.list(c).flatMap(d => d.units)];
@@ -1136,6 +1145,14 @@ const route = async (req, res) => {
     if (!user.roblox_name && !oversight) { turned('no Roblox linked'); return redirect(res, `/dashboard?link=${encodeURIComponent(url.pathname + url.search)}`); }   // no CAD without a linked Roblox account
     if (needsDiscord(c) && sub === '/' && !oversight && !can(role, 'co_owner')) turned('server not set up (no Discord linked)');
     if (needsDiscord(c) && sub === '/' && !oversight) return can(role, 'co_owner') ? redirect(res, `/${c.slug}/settings#discord`) : msg(res, user, `${c.name} is still being set up`, 'The owner needs to connect the server\'s Discord before the CAD opens. Check back soon.', { href: '/account', label: 'Your servers' }, 403);
+    // View as: an admin sees the CAD as someone holding one Discord role (and on a team in game, if picked) would: their rank, their locks,
+    // their tabs. It's only a preview; what they do in it still happens as themselves.
+    if (sub === '/' && url.searchParams.has('viewas') && !oversight && can(role, 'admin')) { const rid = String(url.searchParams.get('viewas') || '').replace(/\D/g, '').slice(0, 20), team = String(url.searchParams.get('team') || '').slice(0, 30);
+      const gid = c.settings.discord?.guild_id, list = gid && rid ? await discordlink.roles(gid).catch(() => null) : null, r = rid ? (list || []).find(x => x.id === rid) : null;
+      if (rid && !r) return redirect(res, `/${c.slug}`);
+      const p = discordlink.previewAs(c, rid ? [rid] : []), vr = ROLE_RANK[p.role] > ROLE_RANK[role] ? role : p.role;   // never more than your own
+      console.log(`cad: ${user.roblox_name || user.name} views ${c.slug} as ${r ? '@' + r.name : 'a member with no roles'}${team ? ' on ' + team : ''}`);
+      return html(res, mapPage(c, user, vr, false, p.locks, { role: r ? { id: r.id, name: r.name, color: r.color } : null, rank: vr, team: team in (c.settings.teams || {}) ? team : '' })); }
     if (sub === '/') return html(res, mapPage(c, user, role, oversight, oversight ? {} : await discordlink.locksFor(c, user, role)));
     if (sub === '/voice' && !req.prox) return redirect(res, `/${c.slug}/prox${url.search}`);   // the old address
     if (sub === '/voice' && !premium.isPremium(c)) return msg(res, user, 'Proximity chat is part of Premium', can(role, 'co_owner') ? 'Get Premium for this server to let players hear each other by distance in game.' : 'Ask your server owner to get Premium for proximity chat.', can(role, 'co_owner') ? { href: `/${c.slug}/settings#premium`, label: 'Get Premium' } : { href: `/${c.slug}`, label: 'Back to the CAD' });

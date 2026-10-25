@@ -46,7 +46,8 @@ export const forget = gid => { for (const k of cache.keys()) if (k.startsWith(gi
 
 // the access a Discord account's roles give in this community, or null
 export const levelFor = async (c, discordId) => { const d = c.settings && c.settings.discord; if (!ready() || !d || !d.guild_id || !discordId) return null;
-  const mine = await memberRoles(d.guild_id, discordId); if (!mine) return null; let best = null;
+  const mine = await memberRoles(d.guild_id, discordId); if (!mine) return null; return levelOf(d, mine); };
+const levelOf = (d, mine) => { let best = null;
   const picks = { ...(d.roles || {}) }; if (picks.staff && !picks.admin) picks.admin = picks.staff;   // older links picked one 'staff' list: those are admins now
   for (const lvl of LEVELS) if ((picks[lvl] || []).some(id => mine.includes(id))) best = higher(best, lvl);
   return best; };
@@ -58,11 +59,16 @@ export const SECTIONS = ['dispatch', 'pd', 'fd', 'dot', 'civ', 'transit', 'hospi
 // and each department the server added (app/divisions.mjs), by its id: a Sheriff's Office can want a different role from the police
 export const sectionsFor = c => [...SECTIONS, ...(Array.isArray(c?.settings?.divs) ? c.settings.divs.map(d => d.id) : [])];
 export const locksFor = async (c, user, role) => { const d = c.settings && c.settings.discord, L0 = d && d.locks; if (!L0 || !d.guild_id || !ready() || (RANK[role] || 0) >= RANK.admin) return {};
+  if (!sectionsFor(c).some(k => Array.isArray(L0[k]) && L0[k].length)) return {};
+  const mine = user?.discord_id ? await memberRoles(d.guild_id, user.discord_id) : null; if (mine === undefined) return {};
+  return locksOf(c, mine || []); };
+// the sections someone holding these Discord roles can't open, with the roles each needs
+const locksOf = (c, mine) => { const L0 = c.settings.discord?.locks || {};
   // an added department without roles of its own follows the built-in one it works like
   const L = { ...L0 }; for (const v of Array.isArray(c.settings.divs) ? c.settings.divs : []) if (!(Array.isArray(L[v.id]) && L[v.id].length) && Array.isArray(L0[v.kind]) && L0[v.kind].length) L[v.id] = L0[v.kind];
-  const set = sectionsFor(c).filter(k => Array.isArray(L[k]) && L[k].length); if (!set.length) return {};
-  const mine = user?.discord_id ? await memberRoles(d.guild_id, user.discord_id) : null; if (mine === undefined) return {};
-  const out = {}; for (const k of set) if (!L[k].some(r => (mine || []).includes(r.id))) out[k] = L[k].map(r => r.name); return out; };
+  const out = {}; for (const k of sectionsFor(c).filter(k => Array.isArray(L[k]) && L[k].length)) if (!L[k].some(r => mine.includes(r.id))) out[k] = L[k].map(r => r.name); return out; };
+// View as a role (an admin previewing the CAD): the rank and locks someone holding just these Discord roles gets
+export const previewAs = (c, roleIds) => { const d = c.settings.discord || {}, role = levelOf(d, roleIds) || 'member'; return { role, locks: RANK[role] >= RANK.admin ? {} : locksOf(c, roleIds) }; };
 
 // after a Discord sign-in: join every community whose Discord server makes this person staff
 export const autoJoin = async user => { if (!ready() || !user?.discord_id) return 0; let n = 0;
