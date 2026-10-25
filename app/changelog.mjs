@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '3.5', date: '2026-10-25', tag: 'new', title: 'Swipe home, and a real iPad',
+    body: 'On the Civilian phone, drag the bar at the bottom up to go back to the home screen, like on an iPhone: the app shrinks away as you swipe and the home screen shows behind it. Picking the tablet in Settings now shows an iPad Air, with its sky-blue edge, black border, camera and buttons.', items: [] },
   { v: '3.4', date: '2026-10-25', tag: 'new', title: 'Add your own departments',
     body: 'Settings → Departments can add up to four more departments, like a Sheriff’s Office or EMS. Each works like Law enforcement, Fire and EMS or Transportation, with its own name, short name, units, MDT and Discord roles.', items: ['Give an added department an in-game team (Sheriff → Sheriff’s Office), or let its players pick one of its units in the MDT (EMS players on the Fire team pick an EMS unit)', 'An EMS department can take medical calls only, so EMS answers EMS calls', 'A Sheriff’s Office gets the same calls as the police, on its own MDT', 'Bots: unit status codes can be written "10 8" or "ten-eight", and the answer says what the code means'] },
   { v: '3.5', date: '2026-10-25', tag: 'new', title: 'Your own alert sounds',

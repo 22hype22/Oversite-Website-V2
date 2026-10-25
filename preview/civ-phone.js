@@ -139,9 +139,10 @@
 #civMdt.phone .ph-dock{flex:none;align-self:stretch;position:sticky;bottom:34px;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);margin:0 -8px 34px;padding:14px 8px;border-radius:34px;background:rgba(255,255,255,.12);
   -webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
 #civMdt.phone .ph-dock button[data-p]{font-size:0!important;gap:0!important}#civMdt.phone .ph-dock button[data-p] .badge{font-size:13px}
-#civMdt.phone .ph-bar{position:absolute;left:0;right:0;bottom:0;height:26px;display:flex;align-items:center;justify-content:center;z-index:7;background:none;border:0;cursor:pointer}
+#civMdt.phone .ph-bar{position:absolute;left:0;right:0;bottom:0;height:30px;display:flex;align-items:center;justify-content:center;z-index:7;background:none;border:0;cursor:pointer;touch-action:none}
 #civMdt.phone .ph-bar::before{content:"";width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.75);transition:background .15s,width .2s}
 #civMdt.phone .ph-bar:hover::before{background:#fff;width:144px}#civMdt.phone.home .ph-bar{pointer-events:none;bottom:4px}
+#civMdt.phone.peek .screen{background:var(--wall)}#civMdt.phone.peek .tside{visibility:visible;transition:none}#civMdt.phone.peek .tscreens{z-index:4;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.1),0 24px 60px rgba(0,0,0,.6)}
 #civMdt.phone .ph-back{display:inline-flex;align-items:center;gap:2px;margin:0 0 -6px 12px;padding:4px 8px 0;font-size:16px;font-weight:400;color:#0A84FF;background:none;border:0;cursor:pointer;font-family:inherit}
 #civMdt.phone.home .ph-back{visibility:hidden}
 /* Settings, iOS style */
@@ -172,13 +173,21 @@
 @media (prefers-reduced-motion:reduce){#civMdt.phone .tside,#civMdt.phone.home .tside{transition:none;transform:none}}
 /* the tablet, above phone width: the same home screen and apps on an iPad, landscape, a thin bezel with a camera dot in it (on a phone it stays the phone) */
 @media (min-width:761px){#civMdt.phone.pad{width:min(calc(100vw - 2*var(--gap)),calc((100vh - var(--barh) - 2*var(--gap)) * 1.36))}
-#civMdt.phone.pad .tablet{aspect-ratio:4/3;border-radius:28px;padding:12px}
-#civMdt.phone.pad .tablet .screen{border-radius:17px}#civMdt.phone.pad .tablet::before,#civMdt.phone.pad .tablet::after,#civMdt.phone.pad .tablet .ph-vol{display:none}
-#civMdt.phone.pad .tablet .cam{top:4px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#14161B;box-shadow:0 0 0 1px rgba(255,255,255,.06)}
+/* the tablet: an iPad Air, held landscape. A thin sky-blue aluminium edge, an even black border round the screen with the camera in
+   the middle of the top one, the top button and volume buttons standing up from the top edge */
+#civMdt.phone.pad .tablet{aspect-ratio:4/3;border-radius:30px;padding:18px;border:3px solid transparent;
+  background:linear-gradient(#050608,#050608) padding-box,linear-gradient(135deg,#E2F1F8 0%,#A9CCDC 16%,#86AFC3 38%,#C9E3EE 54%,#8AB3C7 74%,#D6EBF3 100%) border-box;
+  box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.07)}
+#civMdt.phone.pad .tablet .screen{border-radius:14px}
+#civMdt.phone.pad .tablet::before,#civMdt.phone.pad .tablet .ph-vol{left:auto;top:-6.5px;width:7%;height:3.5px;border-radius:2px 2px 0 0;background:linear-gradient(180deg,#D3E8F1,#8CB2C4)}
+#civMdt.phone.pad .tablet::before{right:8%}#civMdt.phone.pad .tablet::after{display:none}
+#civMdt.phone.pad .tablet .ph-vol.up{right:19%;top:-6.5px;height:3.5px;width:5.5%}#civMdt.phone.pad .tablet .ph-vol.down{right:25.5%;top:-6.5px;height:3.5px;width:5.5%}
+#civMdt.phone.pad .tablet .cam{top:-12px;width:6px;height:6px;aspect-ratio:auto;margin-left:-3px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2B3A55,#0B1220 60%,#05080F);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
+#civMdt.phone.pad .tablet .cam::after{display:none}
 #civMdt.phone.pad .sbar{padding:9px 26px 4px;min-height:32px;font-size:13.5px}#civMdt.phone.pad .sb-ic{gap:5px}
 #civMdt.phone.pad .tside{padding:22px max(56px,8%) 0}
 #civMdt.phone.pad .ph-wid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 24px;max-width:860px;width:100%;align-self:center;margin:4px 0 0}
-#civMdt.phone.pad .ph-w>div{aspect-ratio:2.1/1;border-radius:24px;padding:15px 18px}
+#civMdt.phone.pad .ph-wx b{font-size:32px}#civMdt.phone.pad .ph-w>div{aspect-ratio:1.75/1;border-radius:24px;padding:15px 18px}
 #civMdt.phone.pad .ph-wid>.ph-w:nth-child(3){grid-column:auto;flex-direction:column;justify-content:normal;gap:6px}#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3)>span{display:block}
 #civMdt.phone.pad .ph-wid>.ph-w:nth-child(3)>div{aspect-ratio:2.1/1;height:auto;flex-direction:column;align-items:stretch;gap:0;padding:15px 18px;border-radius:24px}
 #civMdt.phone.pad .ph-wid>.ph-w:nth-child(3)>div b{font-size:44px;margin:2px 0 0;order:0}#civMdt.phone.pad .ph-wid>.ph-w:nth-child(3)>div>:last-child{margin-left:0;margin-top:auto!important}
@@ -504,7 +513,17 @@
   const home = v => { page.classList.toggle('home', v); fit(); leaveEdit(); closeSpot(); if (v) { drawWidgets(); loadWx(); } dispatchEvent(new CustomEvent('ovphone', { detail: { home: v } })); };
   tabs.addEventListener('click', e => { const w = e.target.closest('[data-open]'); if (w) { tabs.querySelector(`button[data-p="${w.dataset.open}"]`)?.click(); return; }
     const b = e.target.closest('button[data-p]'); if (b) { home(false); opened(b.dataset.p); } });
-  bar.addEventListener('click', () => home(true)); back.addEventListener('click', () => home(true));
+  // swipe up from the home bar to go home, as on an iPhone: the app follows your finger, shrinking as it rises, and goes home once
+  // it's swiped far enough or flicked; short of that it springs back. A tap still goes home.
+  let swipe = null, swiped = false;
+  bar.addEventListener('pointerdown', e => { if (page.classList.contains('home') || e.button) return; swipe = { y: e.clientY, t: performance.now(), dy: 0, v: 0 }; swiped = false; bar.setPointerCapture(e.pointerId); screens.style.transition = 'none'; });
+  bar.addEventListener('pointermove', e => { if (!swipe) return; const dy = Math.max(0, swipe.y - e.clientY), t = performance.now(); swipe.v = (dy - swipe.dy) / Math.max(1, t - swipe.t); swipe.t = t; swipe.dy = dy; if (dy > 6) swiped = true;
+    if (still.matches) return; const k = Math.min(1, dy / (screen.clientHeight * .55)); screens.style.transform = `translateY(${(-dy * .75).toFixed(1)}px) scale(${(1 - k * .3).toFixed(3)})`; screens.style.borderRadius = Math.round(k * 34) + 'px';
+    page.classList.toggle('peek', dy > 6); tabs.style.opacity = Math.min(1, k * 1.6).toFixed(2); tabs.style.transform = `scale(${(1.06 - k * .06).toFixed(3)})`; });
+  const endSwipe = () => { if (!swipe) return; const d = swipe; swipe = null; screens.style.transition = ''; screens.style.borderRadius = ''; screens.style.transform = ''; page.classList.remove('peek'); tabs.style.opacity = ''; tabs.style.transform = '';   // from where it is: home, or back into place
+    if (swiped && (d.dy > Math.min(110, screen.clientHeight * .16) || d.v > .55)) home(true); };
+  bar.addEventListener('pointerup', endSwipe); bar.addEventListener('pointercancel', endSwipe);
+  bar.addEventListener('click', () => { if (swiped) { swiped = false; return; } home(true); }); back.addEventListener('click', () => home(true));
   page.addEventListener('keydown', e => {
     if (e.key === 'Escape' && spotOpen()) { e.stopPropagation(); closeSpot(); return; }
     if (e.key === 'Escape' && editing()) { e.stopPropagation(); leaveEdit(); return; }
