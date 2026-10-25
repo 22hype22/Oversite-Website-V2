@@ -323,7 +323,7 @@
   // the battery (white on green, with a little bolt, while charging). Yellow in Low Power Mode, red when low.
   const BOLT = 'M14.3.4 8.2 7.3h3.9l-1.6 5.3 6.2-7h-4Z', NUB = '<path d="M25.6 4.6v3.8c.8-.3 1.3-1.1 1.3-1.9s-.5-1.6-1.3-1.9Z" fill="rgba(255,255,255,.45)"/>';
   const BAT = (lvl = 1, chg = false, low = false, pct = false) => { const c = low ? '#FFD60A' : chg ? '#34C759' : lvl <= .2 ? '#FF3B30' : '#fff';
-    if (pct) { const n = Math.round(lvl * 100), fs = n === 100 ? 8 : 9, F = 'font-family="-apple-system,BlinkMacSystemFont,Inter,system-ui,sans-serif" font-weight="700" text-anchor="middle"';
+    if (pct) { const n = Math.round(lvl * 100), fs = n === 100 ? 7.4 : 8.4, F = 'font-family="-apple-system,BlinkMacSystemFont,Inter,system-ui,sans-serif" font-weight="500" text-anchor="middle"';
       const body = `<rect x=".5" y=".5" width="23.5" height="12" rx="3.8" fill="rgba(255,255,255,.35)"/><rect x=".5" y=".5" width="${Math.max(2, 23.5 * lvl).toFixed(1)}" height="12" fill="${c}" clip-path="url(#ovbc)"/>`;
       return `<svg width="27" height="13" viewBox="0 0 27 13"><defs><clipPath id="ovbc"><rect x=".5" y=".5" width="23.5" height="12" rx="3.8"/></clipPath>`
         + (chg ? `</defs>${body}<text x="10.6" y="9.7" font-size="${fs}" ${F} fill="#fff">${n}</text><path d="M20.6 2.6 17.6 6.8h2l-.8 3.6 3-4.2h-2Z" fill="#fff"/>`
