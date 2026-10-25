@@ -86,10 +86,8 @@
 /* as on an iPhone: the time centred in the space left of the Dynamic Island, signal, Wi-Fi and battery in the space right of it */
 #civMdt.phone #cvClock{flex:none;width:34%;text-align:center;font-size:calc(var(--sw,344px) * .046);font-variant-numeric:tabular-nums}
 #civMdt.phone .sb-ic{width:34%;justify-content:center}
-/* the Dynamic Island, hanging near the top of the glass with the front camera in it */
-#civMdt.phone .ph-di{position:absolute;z-index:42;top:calc(var(--sw,344px) * .032);left:50%;width:calc(var(--sw,344px) * .32);height:calc(var(--sw,344px) * .093);transform:translateX(-50%);border-radius:999px;background:#000;pointer-events:none}
-#civMdt.phone .ph-di::after{content:"";position:absolute;right:16%;top:50%;width:26%;aspect-ratio:1;max-width:13px;transform:translateY(-50%);border-radius:50%;background:radial-gradient(circle at 35% 35%,#2B3A55,#0B1220 60%,#05080F)}
-#civMdt.phone:not(.pad) .tablet .cam{display:none}#civMdt.phone.pad .ph-di{display:none}
+/* no camera cutout on the glass (nor a camera dot on the tablet): it does nothing here */
+#civMdt.phone .tablet .cam{display:none}
 #civMdt.phone .sbar .sb-mid,#civMdt.phone .sbar #cvTopBal{display:none}
 #civMdt.phone .sb-ic{display:flex;align-items:center;gap:calc(var(--sw,344px) * .015)}#civMdt.phone .sb-ic svg{display:block;height:calc(var(--sw,344px) * .035);width:auto}#civMdt.phone .sb-ic svg:last-child{height:calc(var(--sw,344px) * .038)}#civMdt.phone .sb-ic .off{opacity:.35}
 #civMdt.phone.home .screen{background:var(--wall)}
@@ -210,7 +208,7 @@
 #civMdt.phone .cv-form .grid3{grid-template-columns:1fr 1fr}
 #civMdt.phone .cv-car .cv-pills{order:3;flex-basis:100%;padding-left:0}
 @media (max-width:760px){#civMdt.phone{width:100vw}#civMdt.phone .tablet{aspect-ratio:auto;height:100%;border-radius:0;padding:0;box-shadow:none;background:#05070D}
-  #civMdt.phone .tablet .screen{border-radius:0;box-shadow:none}#civMdt.phone .tablet .cam{display:none}#civMdt.phone .tablet::before,#civMdt.phone .tablet::after,#civMdt.phone .ph-key,#civMdt.phone .ph-hud,#civMdt.phone .ph-isl,#civMdt.phone .ph-di{display:none}#civMdt.phone .tablet{border:0}#civMdt.phone .sbar{padding:10px 20px 6px;min-height:0;height:auto;margin-bottom:0}
+  #civMdt.phone .tablet .screen{border-radius:0;box-shadow:none}#civMdt.phone .tablet .cam{display:none}#civMdt.phone .tablet::before,#civMdt.phone .tablet::after,#civMdt.phone .ph-key,#civMdt.phone .ph-hud,#civMdt.phone .ph-isl{display:none}#civMdt.phone .tablet{border:0}#civMdt.phone .sbar{padding:10px 20px 6px;min-height:0;height:auto;margin-bottom:0}
   #civMdt.phone .tside button[data-p] svg,#civMdt.phone .ph-ghost svg{width:56px;height:56px;padding:14px}#civMdt.phone .ph-dock{margin-bottom:30px}}
 @media (prefers-reduced-motion:reduce){#civMdt.phone .tside,#civMdt.phone.home .tside{transition:none;transform:none}}
 /* the tablet, above phone width: the same home screen and apps on an iPad, landscape, a thin bezel with a camera dot in it (on a phone it stays the phone) */
@@ -271,8 +269,7 @@
   let bat = [1, false]; const drawIc = () => { ic.innerHTML = SIG + WIFI(navigator.onLine !== false) + BAT(...bat); };
   drawIc(); addEventListener('online', drawIc); addEventListener('offline', drawIc);
   navigator.getBattery?.().then(B => { const up = () => { bat = [B.level, B.charging]; drawIc(); }; up(); B.addEventListener('levelchange', up); B.addEventListener('chargingchange', up); }).catch(() => {});
-  // the island, inside the glass; its size and the status bar follow the screen's width (--sw)
-  const di = document.createElement('div'); di.className = 'ph-di'; di.setAttribute('aria-hidden', 'true'); page.querySelector('.screen').appendChild(di);
+  // the status bar follows the screen's width (--sw)
   new ResizeObserver(() => { const w = page.querySelector('.screen').clientWidth; if (w) page.style.setProperty('--sw', w + 'px'); }).observe(page.querySelector('.screen'));
   sbar.appendChild(ic);
 
@@ -643,8 +640,7 @@
   const off = document.createElement('div'); off.className = 'ph-off'; off.hidden = true; off.setAttribute('aria-label', 'Screen off. Tap to wake'); screen.appendChild(off);
   const lock = document.createElement('div'); lock.className = 'ph-lock'; lock.hidden = true;
   lock.innerHTML = '<div class="ph-lock-top"><svg width="16" height="20" viewBox="0 0 16 20" fill="#fff"><path d="M3 8V5.5a5 5 0 0 1 10 0V8h.5A1.5 1.5 0 0 1 15 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 17.5v-8A1.5 1.5 0 0 1 2.5 8Zm2 0h6V5.5a3 3 0 0 0-6 0Z"/></svg></div>'
-    + '<div class="ph-lock-t"><small></small><b></b></div><div class="ph-lock-b"><span><svg width="18" height="22" viewBox="0 0 18 24" fill="#fff"><path d="M3 1h12l-1.6 6.5H4.6Zm1.6 8h8.8v12a2 2 0 0 1-2 2H6.6a2 2 0 0 1-2-2Z"/></svg></span>'
-    + '<span><svg width="22" height="18" viewBox="0 0 24 20" fill="#fff"><path d="M8.5 1h7l1.6 2.5H21a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2h3.9Zm3.5 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg></span></div>'
+    + '<div class="ph-lock-t"><small></small><b></b></div><div class="ph-lock-b"></div>'
     + '<button type="button" class="ph-lock-h">Swipe up to open</button>';
   screen.appendChild(lock);
   let lockState = 'on', clockT = 0;
