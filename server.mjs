@@ -33,6 +33,7 @@ import * as cameras from './app/cameras.mjs';
 import { on as onEvent } from './app/events.mjs';
 import * as career from './app/career.mjs';
 import * as player from './app/player.mjs';
+import * as divisions from './app/divisions.mjs';
 import * as duty from './app/duty.mjs';
 import * as monitors from './app/monitors.mjs';
 import * as weather from './app/weather.mjs';
@@ -143,7 +144,7 @@ let mapHtml = null, mapMtime = 0;
 // a Premium server's own license card for the CAD: its title, color and seal, and the front and back pictures (either can be set without the other)
 const licenseCfg = c => { const S = c.settings.licenseStyle, art = artOf(c); return S || art.front || art.back ? { ...(S || {}), ...art } : null; };
 const mapPage = (c, user, role, oversight = false, locks = {}) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const prem = premium.isPremium(c), cfg = { currency: c.settings.currency || '$', premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? licenseCfg(c) : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, radioBot: bots.hasOversite(c, 'dispatch'), roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, locks, discord: !!user.discord_id, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
+  const prem = premium.isPremium(c), cfg = { currency: c.settings.currency || '$', premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? licenseCfg(c) : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, divs: divisions.list(c), teamDiv: divisions.teamDiv(c), unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, radioBot: bots.hasOversite(c, 'dispatch'), roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, locks, discord: !!user.discord_id, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};${mapPref(cfg.setup)}</script><style>${features.css(c)}</style>`;
   const html = mapHtml.replace(/<head>/i, () => `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, () => `<title>${pages.esc(c.name)} · Oversite</title>`);
   return oversight ? html.replace(/<\/body>/i, () => `${pages.oversightBar(c)}</body>`) : html; };   // functions, so a $' in a name is never read as a replace pattern
@@ -179,8 +180,11 @@ const withSetup = list => list.map(x => ({ ...x, setup: needsDiscord(communities
 const nextAfterCreate = slug => discordlink.ready() ? `/c/${slug}/discord/connect?new=1` : `/${slug}/settings?new=1`;
 const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
 // a section the server locked to Discord roles (discordlink.locksFor): the refusal for someone without one, or null
-const lockedOut = async (c, user, role, k) => { if (!discordlink.SECTIONS.includes(k)) return null; const L = (await discordlink.locksFor(c, user, role))[k]; if (!L) return null;
-  const what = k === 'civ' ? 'The Civilian tab' : k === 'dispatch' ? 'Dispatch' : k === 'transit' ? 'Transit' : k === 'hospital' ? 'The Hospital app' : 'The ' + (c.settings.depts?.[k]?.name || { pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' }[k]) + ' MDT';
+// a built-in department or any added department that works like it: a Sheriff's Office member logs Law enforcement shifts with the Sheriff role
+const lockedOutAll = async (c, user, role, k) => { const no = await lockedOut(c, user, role, k); if (!no) return null;
+  for (const d of divisions.list(c).filter(d => d.kind === k)) if (!await lockedOut(c, user, role, d.id)) return null; return no; };
+const lockedOut = async (c, user, role, k) => { if (!discordlink.sectionsFor(c).includes(k)) return null; const L = (await discordlink.locksFor(c, user, role))[k]; if (!L) return null;
+  const what = k === 'civ' ? 'The Civilian tab' : k === 'dispatch' ? 'Dispatch' : k === 'transit' ? 'Transit' : k === 'hospital' ? 'The Hospital app' : 'The ' + (divisions.list(c).find(d => d.id === k)?.name || c.settings.depts?.[k]?.name || { pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' }[k]) + ' MDT';
   return `${what} is only for people with ${L.length > 1 ? 'one of these Discord roles: ' : 'the Discord role '}${L.join(', ')}.`; };
 
 const communityApi = async (req, res, slug, rest) => {
@@ -352,9 +356,9 @@ const communityApi = async (req, res, slug, rest) => {
       if (k.startsWith('t_')) { ov[k] = { t: 1 }; continue; }   // a tunnel the owner added between two road ends
       if ([1, -1, 0].includes(v.o)) o.o = v.o; if (v.b) o.b = 1; if (v.x) o.x = 1; if (v.l === 0 || v.l === 1) o.l = v.l; if (Object.keys(o).length) ov[k] = o; }
     const s = communities.byId(c.id).settings; s.roads = { ov, at: Date.now() }; communities.saveSettings(c.id, s); c.settings.roads = s.roads; f.bcast('roads', JSON.stringify(s.roads)); return json(res, s.roads); }
-  if (rest === 'units' && M === 'GET') return json(res, { of: unitMembers.all(c.id), ride: rideWith.all(c.id), units: Object.fromEntries(['pd', 'fd', 'dot'].map(d => [d, c.settings.depts?.[d]?.units || []])) });
+  if (rest === 'units' && M === 'GET') return json(res, { of: unitMembers.all(c.id), ride: rideWith.all(c.id), units: Object.fromEntries(['pd', 'fd', 'dot'].map(d => [d, c.settings.depts?.[d]?.units || []])), divs: divisions.list(c).map(d => ({ id: d.id, units: d.units })) });
   if (rest === 'units/me' && M === 'POST') { if (!user.roblox_id) return json(res, { error: 'Link your Roblox account first.' }, 403);
-    const unit = String((await jsonBody(req)).unit || '').trim(), all = ['pd', 'fd', 'dot'].flatMap(d => c.settings.depts?.[d]?.units || []);
+    const unit = String((await jsonBody(req)).unit || '').trim(), all = [...['pd', 'fd', 'dot'].flatMap(d => c.settings.depts?.[d]?.units || []), ...divisions.list(c).flatMap(d => d.units)];
     if (unit && !all.includes(unit)) return json(res, { error: 'That unit no longer exists. Pick another one.' }, 400);
     unitMembers.set(c.id, String(user.roblox_id), unit); const out = { of: unitMembers.all(c.id), ride: rideWith.all(c.id) }; f.bcast('unitsof', JSON.stringify(out)); return json(res, { ok: true, ...out }); }
   // the panic button in a unit's MDT: every open CAD on this server gets it at once, until someone clears it
@@ -371,7 +375,7 @@ const communityApi = async (req, res, slug, rest) => {
   // the Civilian tab (app/civ.mjs, businesses in app/civbiz.mjs): every member has an account, an ID, bills, a record and businesses
   // sections the server locked to Discord roles (Settings, Discord server): the police MDT and the Civilian tab refuse anyone without one
   if ((rest.startsWith('pd/') && rest !== 'pd/config') || rest.startsWith('civ/') || rest === 'court' || rest.startsWith('court/')) { const k = rest.startsWith('pd/') ? 'pd' : 'civ', L = await discordlink.locksFor(c, user, role);
-    if (L[k]) return json(res, { error: `${k === 'pd' ? 'The police MDT' : 'The Civilian tab'} is only for people with ${L[k].length > 1 ? 'one of these Discord roles: ' : 'the Discord role '}${L[k].join(', ')}.`, locked: k }, 403); }
+    if (L[k] && (k !== 'pd' || divisions.list(c).filter(d => d.kind === 'pd').every(d => L[d.id]))) return json(res, { error: `${k === 'pd' ? 'The police MDT' : 'The Civilian tab'} is only for people with ${L[k].length > 1 ? 'one of these Discord roles: ' : 'the Discord role '}${L[k].join(', ')}.`, locked: k }, 403); }
   if (rest.startsWith('civ/')) { const sub = rest.slice(4), st = () => { const s = civ.state(c, user, can(role, 'admin'), spawnedBy(c, user)); return s.off ? s : { ...s, ...civbiz.state(c, user) }; },
       ok = r => json(res, r.error ? r : { ...r, state: st() }, r.error ? 400 : 200);
     // players on a police, fire or DOT team in game don't use the Civilian tab (server staff, mod and up, excepted)
@@ -461,7 +465,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'app/decide') return ok(staffhub.decideApp(c, user, role, j.id, !!j.accept, j.note, !!j.mod));
     return json(res, { error: 'Not found.' }, 404); }
   // signing in to a department's MDT with your license and rank; it stays until you sign out
-  if (rest === 'mdt/signin' && M === 'POST') { const j = await jsonBody(req), no = await lockedOut(c, user, role, j.dept); if (no) return json(res, { error: no, locked: j.dept }, 403); if (!validRank(j.dept, j.rank, ranksFor(c, premium.isPremium(c)))) return json(res, { error: 'Pick your rank.' }, 400);
+  if (rest === 'mdt/signin' && M === 'POST') { const j = await jsonBody(req), lk = j.div && divisions.list(c).some(d => d.id === j.div && d.kind === j.dept) ? j.div : j.dept, no = await lockedOut(c, user, role, lk); if (no) return json(res, { error: no, locked: lk }, 403); if (!validRank(j.dept, j.rank, ranksFor(c, premium.isPremium(c)))) return json(res, { error: 'Pick your rank.' }, 400);
     mdtSignin.set(c.id, user.id, j.dept, j.rank); return json(res, { ok: true, mdt: mdtSignin.mine(c.id, user.id) }); }
   if (rest === 'mdt/signout' && M === 'POST') { const j = await jsonBody(req); if (!RANKS[j.dept]) return json(res, { error: 'Bad request.' }, 400); mdtSignin.out(c.id, user.id, j.dept); return json(res, { ok: true, mdt: mdtSignin.mine(c.id, user.id) }); }
   // ride with a teammate: you join their unit on the map and in dispatch (empty to ride alone again)
@@ -479,7 +483,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (rest === 'duty/changes' && M === 'GET') return sup.length ? json(res, { changes: duty.changes(c, sup) }) : json(res, { error: 'Only supervisors see shift changes.' }, 403);
     if (M !== 'POST') return json(res, { error: 'Not found.' }, 404); const j = await jsonBody(req);
     if ((rest === 'duty/start' || rest === 'duty/add') && !D.includes(j.dept)) return json(res, { error: 'That department is switched off.' }, 400);
-    if (rest === 'duty/start' || rest === 'duty/add') { const no = await lockedOut(c, user, role, j.dept); if (no) return json(res, { error: no, locked: j.dept }, 403); }
+    if (rest === 'duty/start' || rest === 'duty/add') { const no = await lockedOutAll(c, user, role, j.dept); if (no) return json(res, { error: no, locked: j.dept }, 403); }
     const r = rest === 'duty/start' ? duty.start(c, user, j.dept) : rest === 'duty/end' ? duty.end(c, user) : rest === 'duty/edit' ? duty.edit(c, user, j.id, j)
       : rest === 'duty/add' ? duty.add(c, user, j) : rest === 'duty/delete' ? duty.remove(c, user, j.id) : { error: 'Not found.' };
     return json(res, r.error ? r : { ...r, ...state() }, r.error ? 400 : 200); }
@@ -636,7 +640,11 @@ const communityApi = async (req, res, slug, rest) => {
       const raw = j.depts?.[d]?.units, units = [...new Set((Array.isArray(raw) ? raw : String(raw || '').split(',')).map(x => String(x).replace(/\s+/g, ' ').trim()).filter(Boolean))].slice(0, 20);
       if (units.some(x => x.length > 24)) return json(res, { error: 'Keep each unit name to 24 characters.' }, 400); if (units.some(x => rude(x))) return json(res, { error: RUDE_MSG }, 400);
       s.depts[d] = { name: n, short: sh, units }; }
-    for (const [t, d] of Object.entries(j.teams || {})) if (t in s.teams && ['pd', 'fd', 'dot', ''].includes(d)) s.teams[t] = d;
+    const dv = divisions.clean(c, j.divs, rude); if (dv.rude) return json(res, { error: RUDE_MSG }, 400); if (dv.error) return json(res, { error: dv.error }, 400);
+    // a team goes to a built-in department (pd, fd, dot), to none (''), or to an added one, sent as its place in the list (div:0) since new ones have no id yet
+    const td = {}; for (const [t, d] of Object.entries(j.teams || {})) { if (!(t in s.teams)) continue; const m = /^div:(\d)$/.exec(d || ''), x = m && dv.divs[+m[1]];
+      if (x) { s.teams[t] = x.kind; td[t] = x.id; } else if (['pd', 'fd', 'dot', ''].includes(d)) s.teams[t] = d; }
+    s.divs = dv.divs; s.teamDiv = td;
     communities.rename(c.id, name); communities.saveSettings(c.id, s); return json(res, { ok: true }); }
   if (rest === 'codes' && M === 'POST') { const j = await jsonBody(req);
     if (j.role !== 'member') return json(res, { error: 'Servers only have an invite code now.' }, 400);
@@ -651,7 +659,7 @@ const communityApi = async (req, res, slug, rest) => {
       const j = await jsonBody(req), known = new Set(((await discordlink.roles(d.guild_id).catch(() => [])) || []).map(r => r.id)), out = {};
       for (const lvl of discordlink.LEVELS) out[lvl] = [...new Set((Array.isArray(j.roles?.[lvl]) ? j.roles[lvl] : []).map(String).filter(id => known.has(id)))].slice(0, 25);
       const names = new Map(((await discordlink.roles(d.guild_id).catch(() => [])) || []).map(r => [r.id, r.name])), locks = j.locks ? {} : d.locks;   // section locks (discordlink.locksFor)
-      if (j.locks) for (const k of discordlink.SECTIONS) { const ids = [...new Set((Array.isArray(j.locks[k]) ? j.locks[k] : []).map(String).filter(id => names.has(id)))].slice(0, 10); if (ids.length) locks[k] = ids.map(id => ({ id, name: names.get(id) })); }
+      if (j.locks) for (const k of discordlink.sectionsFor(c)) { const ids = [...new Set((Array.isArray(j.locks[k]) ? j.locks[k] : []).map(String).filter(id => names.has(id)))].slice(0, 10); if (ids.length) locks[k] = ids.map(id => ({ id, name: names.get(id) })); }
       c.settings.discord = { ...d, roles: out, locks }; communities.saveSettings(c.id, c.settings); discordlink.forget(d.guild_id);
       if (j.locks) console.log(`discord locks: ${c.slug} ${Object.entries(locks).map(([k, v]) => k + '=' + v.length).join(' ') || 'none'} by ${user.roblox_name || user.name}`); return json(res, { ok: true, roles: out, locks }); }
     if (rest === 'discord/commands' && M === 'POST') { if (!d) return json(res, { error: 'Connect a Discord server first.' }, 400); if (!discordbot.connected()) return json(res, { error: 'Discord commands aren’t switched on for Oversite yet.' }, 400);
@@ -1267,7 +1275,7 @@ const clearCall = (c, k, by) => { if (!/^[\w .:@#-]{1,120}$/.test(k)) return { e
     const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
     if (s.callstate) delete s.callstate[k];
     communities.saveSettings(c.id, s); c.settings.cleared = s.cleared; feedFor(c).bcast('callclear', JSON.stringify({ key: k, by })); bots.emit(c, 'call.cleared', { key: k, by }); return { ok: true }; };
-const setUnitStatus = (c, unit, st, by) => { const r = police.setStatus(c.id, unit, st, by); if (r.ok) { feedFor(c).bcast('unitstatus', JSON.stringify({ unit: r.unit, st: r.st })); bots.emit(c, 'unit.status', { unit: r.unit, status: r.st, by }); } return r; };
+const setUnitStatus = (c, unit, st, by) => { const r = police.setStatus(c.id, unit, st, by); if (r.ok) { feedFor(c).bcast('unitstatus', JSON.stringify({ unit: r.unit, st: r.st })); bots.emit(c, 'unit.status', { unit: r.unit, status: r.st, label: r.label, by }); } return r; };
 bots.gate(c => features.on(c, 'bots')); bots.limit((c, i) => i < bots.max(premium.isPremium(c)));
 career.hooks.shift = (cid, kind, d) => { const c = communities.byId(cid); if (c) bots.emit(c, kind, d); };
 discordbot.wire({ community: gid => communities.withDiscord().find(c => String(c.settings.discord?.guild_id) === gid) || null, on: c => features.on(c, 'discordcmds'), link: c => `${PUBLIC()}/${c.slug}`,

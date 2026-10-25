@@ -1865,8 +1865,19 @@ window.tagHTML = u => { if (!u) return ''; const e = t => String(t ?? '').replac
   const ST = { '10-8': 'Available', '10-76': 'En route', '10-23': 'On scene', '10-19': 'Returning', '10-7': 'Out of service', '10-6': 'Busy', '10-11': 'Traffic stop', '10-80': 'Pursuit', '10-15': 'Prisoner in custody', '10-97': 'On scene', '10-99': 'Panic' };
   const label = st && ST[st] ? ST[st] + (call && st !== '10-8' ? ' · ' + e(call.code) : '') : call ? 'On call · ' + e(call.code) : 'Available', busy = st ? st !== '10-8' : !!call;
   return `<div class="k">${e(u.name)}</div><div class="s">${e((u.crew || []).join(', '))}</div><div class="v un${unit ? '' : ' none'}">${e(unit || dn)}</div><div class="av${busy ? ' busy' : ''}">${label}</div>`; };
+// added departments (Settings → Departments): a Sheriff's Office beside the police, EMS beside the fire service. Each works like a
+// built-in one (kind). A player is in one when their in-game team is given to it, or, on a team it shares with its built-in department,
+// when they picked one of its units in the MDT (an EMS unit, for EMS on the Fire team)
+window.DIVS = (window.OVERSITE && window.OVERSITE.divs) || [];
+window.divOf = (team, pid) => { const O = window.OVERSITE || {}, base = (O.teams || {})[team], tied = O.teamDiv || {}; if (!base || !window.DIVS.length) return null;
+  if (tied[team]) return window.DIVS.find(d => d.id === tied[team]) || null;
+  const u = (window.UNIT_OF || {})[String(pid || '')]; return u ? window.DIVS.find(d => d.kind === base && !Object.values(tied).includes(d.id) && d.units.includes(u)) || null : null; };
+window.divById = id => id ? window.DIVS.find(d => d.id === id) || null : null;
+// a medical call (for an EMS department that takes medical calls only): what the caller said sounds like someone hurt or ill, or asks for EMS
+window.isMedical = c => /\b(ems|medic\w*|ambulance|paramedics?|injur\w*|hurt|bleed\w*|blood|unconscious|unresponsive|breath\w*|overdos\w*|od|heart|cardiac|chest pain|seizure|stroke|shot|gunshot|stabb?\w*|wound\w*|fell|fall(en)?|collaps\w*|sick|ill|pregnan\w*|labou?r|hospital|cpr|chok\w*|broken|fractur\w*|allerg\w*|diabet\w*|faint\w*|dying|dead|crash\w*|accident|collision|mva|hit by)\b/i.test(`${c.type || ''} ${c.code || ''}`);
 if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(window.OVERSITE.api + '/units', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; window.UNIT_OF = j.of || {}; window.RIDE_WITH = j.ride || {};
-    for (const d of ['pd', 'fd', 'dot']) if (window.OVERSITE.depts && window.OVERSITE.depts[d]) window.OVERSITE.depts[d].units = (j.units || {})[d] || []; dispatchEvent(new CustomEvent('unitassign')); }).catch(() => {});
+    for (const d of ['pd', 'fd', 'dot']) if (window.OVERSITE.depts && window.OVERSITE.depts[d]) window.OVERSITE.depts[d].units = (j.units || {})[d] || [];
+    for (const x of j.divs || []) { const d = window.divById(x.id); if (d) d.units = x.units || []; } dispatchEvent(new CustomEvent('unitassign')); }).catch(() => {});
   setInterval(pullUnits, 30000); }
 /* ── shared unit simulation: positions for cards, 2D pins and the 3D scene ── */
 (() => {
@@ -2404,6 +2415,9 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const mdt = document.getElementById('mdt'), mdtBtn = document.getElementById('mdtToggle');
   const DEPT_NAME = { pd: window.OVERSITE?.depts?.pd?.name || 'Law Enforcement', fd: window.OVERSITE?.depts?.fd?.name || 'Fire Department', dot: window.OVERSITE?.depts?.dot?.name || 'Department of Transportation' };
   const myDept = () => (window.ME && window.ME.dept) || null;                 // from the live roster (admin panel username); null = not identified
+  // in an added department (a Sheriff's Office, EMS), your department's MDT tab carries its name
+  addEventListener('me', () => { const m = window.ME, dv = m && m.div ? window.divById(m.div) : null;
+    document.querySelectorAll('.menu [data-view="mdt"][data-dept]').forEach(t => { if (!t.dataset.base) t.dataset.base = t.textContent; const want = dv && t.dataset.dept === m.dept ? dv.name : t.dataset.base; if (t.textContent !== want) t.textContent = want; }); });
   const STAFF = ['mod', 'staff', 'admin', 'co_owner', 'owner'].includes(window.OVERSITE?.role);   // server staff open every tab and MDT, whatever their team
   const gated = () => !!window.HOSTED && !STAFF;                                        // the hosted site gates each MDT to its own team; the demo page lets you look at all of them
   const toastMsg = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 4200); };
@@ -2412,7 +2426,9 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     tabs.forEach(t => { if (t.dataset.view === 'mdt') t.setAttribute('aria-selected', on && t.dataset.dept === window.mdtDept); if (t.dataset.view === 'dispatch') t.setAttribute('aria-selected', !on && document.body.dataset.view === 'dispatch'); });
     dispatchEvent(new CustomEvent('mdt', { detail: on })); };
   window.openMdt = openMdt;
-  const canOpen = dept => { if (!gated() || window.OVERSITE?.locks?.[dept]) return true; const mine = myDept();
+  // the Discord lock that applies: your added department's, on your own department's MDT
+  const lockKey = d => { const m = window.ME; return m && m.dept === d && m.div ? m.div : d; };
+  const canOpen = dept => { if (!gated() || window.OVERSITE?.locks?.[lockKey(dept)]) return true; const mine = myDept();
     if (!mine) { toastMsg(`You're not on the ${DEPT_NAME[dept]} team in game right now. Join it in ER:LC and its MDT opens here.`); return false; }
     if (mine !== dept) { toastMsg(`You're on the ${DEPT_NAME[mine] || mine} team in game. The ${DEPT_NAME[dept]} MDT is only for its members.`); return false; } return true; };
   const setView = (v, dept) => { if (v === 'mdt' && OFF['dept_' + dept]) v = 'dispatch';   // a department the server switched off has no MDT
@@ -2423,16 +2439,16 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.view === v && (v !== 'mdt' || t.dataset.dept === dept)));
     if (real !== 'dispatch') openMdt(false); else openMdt(v === 'mdt', dept);
     dispatchEvent(new CustomEvent('viewchange', { detail: real })); };
-  const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const rl = window.OVERSITE?.locks?.[t.dataset.dept], ok = !rl && (!gated() || myDept() === t.dataset.dept); t.classList.toggle('locked', !ok);
+  const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const rl = window.OVERSITE?.locks?.[lockKey(t.dataset.dept)], ok = !rl && (!gated() || myDept() === t.dataset.dept); t.classList.toggle('locked', !ok);
     t.title = rl ? 'Locked to Discord roles: ' + rl.join(', ') : ok ? '' : 'For players on the ' + DEPT_NAME[t.dataset.dept] + ' team in game'; }); };
   updateLocks(); addEventListener('me', updateLocks);
   // sections locked to Discord roles for this person (the server works it out: OVERSITE.locks = { pd: ['Law Enforcement'], … })
   const RLOCK = window.OVERSITE?.locks || {}, SEC_NAME = { dispatch: 'Dispatch', civ: 'Civilian', ...DEPT_NAME };
   const secLock = document.createElement('div'); secLock.className = 'sec-lock'; secLock.hidden = true; secLock.setAttribute('role', 'status'); document.body.appendChild(secLock);
-  const showLock = () => { const v = document.body.dataset.view, k = v === 'dispatch' ? (document.body.classList.contains('mdt-open') ? window.mdtDept : 'dispatch') : v === 'civ' ? 'civ' : null, need = k && RLOCK[k];
+  const showLock = () => { const v = document.body.dataset.view, k = v === 'dispatch' ? (document.body.classList.contains('mdt-open') ? lockKey(window.mdtDept) : 'dispatch') : v === 'civ' ? 'civ' : null, need = k && RLOCK[k];
     document.body.classList.toggle('sec-locked', !!need); secLock.hidden = !need; if (!need) return;
     secLock.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-      <h2>${esc(SEC_NAME[k] || 'This section')} is locked</h2><p>${window.OVERSITE?.discord ? `It’s only for people with ${need.length > 1 ? 'one of these roles' : 'this role'} in ${esc(window.OVERSITE?.name || 'the server')}’s Discord. Ask staff if you should have it.` : `It’s only for people with ${need.length > 1 ? 'one of these roles' : 'this role'} in the server’s Discord. Link Discord to your Oversite account so we can see your roles.`}</p>
+      <h2>${esc(SEC_NAME[k] || window.divById(k)?.name || 'This section')} is locked</h2><p>${window.OVERSITE?.discord ? `It’s only for people with ${need.length > 1 ? 'one of these roles' : 'this role'} in ${esc(window.OVERSITE?.name || 'the server')}’s Discord. Ask staff if you should have it.` : `It’s only for people with ${need.length > 1 ? 'one of these roles' : 'this role'} in the server’s Discord. Link Discord to your Oversite account so we can see your roles.`}</p>
       <div class="roles">${need.map(n => `<span>@${esc(n)}</span>`).join('')}</div>${window.OVERSITE?.discord ? '' : `<a href="/account?from=${encodeURIComponent('/' + (window.OVERSITE?.slug || ''))}">Link Discord</a>`}`; };
   addEventListener('viewchange', showLock); addEventListener('mdt', showLock);
   tabs.forEach(t => { const k = t.dataset.view === 'mdt' ? t.dataset.dept : t.dataset.view; if (RLOCK[k]) { t.classList.add('locked'); t.title = 'Locked to Discord roles: ' + RLOCK[k].join(', '); } });
@@ -2515,8 +2531,12 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const me = () => { const d = DEPT(), n = myName(); return UN().find(u => u.dept === d && n && u.crew.some(c => c.toLowerCase() === n)) || UN().find(u => u.dept === d) || UN()[0]; };
   const STAGES = ['Dispatched', 'En route', 'On scene'];
   const CODES = { fd: new Set(['10-70', '10-50', '10-52', '10-45']), pd: new Set(['10-31', '10-32', '10-80', '10-38', '10-66', '10-91', '10-50']), dot: new Set(['10-53', '10-46']) };
-  const fdCall = c => c.dept === DEPT() || (!c.unit && CODES[DEPT()].has(c.code));
-  const applyDept = () => { const d = DEPT(); const sb = document.querySelector('#mdt .sb-mid'); if (sb) sb.textContent = DEPT_NAME[d];
+  // the added department this MDT is for: yours, when it's your own department's MDT
+  const divNow = () => { const m = window.ME; return m && m.dept === DEPT() && m.div ? window.divById(m.div) : null; };
+  const onDiv = (c, dv) => [c.unit, ...(c.more || []).map(x => x.name)].some(n => n && UN().some(u => u.name === n && u.div === dv.id));
+  const fdCall = c => { const dv = divNow(); if (dv && dv.calls === 'medical') return onDiv(c, dv) || (c.dept === DEPT() && !c.unit && window.isMedical(c));   // EMS: medical calls, and the ones it's on
+    return c.dept === DEPT() || (!c.unit && CODES[DEPT()].has(c.code)); };
+  const applyDept = () => { const d = DEPT(); const sb = document.querySelector('#mdt .sb-mid'); if (sb) sb.textContent = divNow()?.name || DEPT_NAME[d];
     $('fdAppLbl').textContent = d === 'fd' ? 'Apparatus' : 'Vehicle'; $('fdAppH').textContent = d === 'fd' ? 'Apparatus' : 'Units';   // fire has apparatus; police and DOT have vehicles   // the department's own name from Settings, e.g. New York Fire Department
     const u = me(); const id = u ? u.id : ''; for (const el of document.querySelectorAll('#mdt [data-unit]')) el.dataset.unit = id; dispatchEvent(new CustomEvent('rebind'));
     const set = d === 'pd' ? 'pd' : 'fd', g = $('fdStatus'); if (g.dataset.set !== set) { g.dataset.set = set; g.innerHTML = STATUS_SETS[set].map(([c, l]) => `<button data-st="${c}">${c}<small>${l}</small></button>`).join(''); }
@@ -2548,7 +2568,9 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   let lastAssigned = null;
   let renderUnit = () => { const u = me(); if (!u) return;
     $('fdUnitName').textContent = u.name; $('fdUnitCrew').textContent = u.crew.join(', ');
-    { const sel = $('fdMyUnit'), list = (window.OVERSITE && window.OVERSITE.depts && window.OVERSITE.depts[u.dept] && window.OVERSITE.depts[u.dept].units) || [], cur = (window.UNIT_OF || {})[String((window.OVERSITE && window.OVERSITE.rid) || '')] || '', k = list.join('|') + '#' + cur;
+    { const O = window.OVERSITE || {}, tied = Object.values(O.teamDiv || {}), dv = divNow(), base = (O.depts && O.depts[u.dept] && O.depts[u.dept].units) || [];
+      // a team given to an added department picks from its units; otherwise the department's own, then those of added ones that share its team (EMS units for Fire)
+      const sel = $('fdMyUnit'), list = dv && tied.includes(dv.id) ? dv.units : [...base, ...window.DIVS.filter(x => x.kind === u.dept && !tied.includes(x.id)).flatMap(x => x.units)], cur = (window.UNIT_OF || {})[String((window.OVERSITE && window.OVERSITE.rid) || '')] || '', k = list.join('|') + '#' + cur;
       if (sel && sel.dataset.k !== k) { sel.dataset.k = k; sel.innerHTML = '<option value="">' + (list.length ? 'No unit' : 'None set up yet') + '</option>' + list.map(n => `<option${n === cur ? ' selected' : ''}>${esc(n)}</option>`).join(''); sel.disabled = !list.length || !(window.OVERSITE && window.OVERSITE.api); } }
     // ride with a teammate: anyone on duty in your department; you then show as one unit with them and get their calls
     { const sel = $('fdRide'), O = window.OVERSITE || {}, myRid = String(O.rid || ''), mates = [];
@@ -2769,7 +2791,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   $('tlRanks').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (!b) return; pick = b.dataset.r;
     for (const x of $('tlRanks').children) x.setAttribute('aria-pressed', x === b); $('tlS2').className = 'tl-step done'; occTo(pick); if (skipNow) finishSkip(); else autoPw(); });
   $('tlForm').addEventListener('submit', async e => { e.preventDefault(); if ($('tlGo').disabled) return; const d = DEPT(), st = $('tlSt'); $('tlGo').disabled = true; st.className = 'tl-st'; st.textContent = 'Checking password…';
-    try { const r = await fetch(OVS.api + '/mdt/signin', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d, rank: pick }) }), j = await r.json();
+    try { const r = await fetch(OVS.api + '/mdt/signin', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d, div: window.ME && window.ME.dept === d ? window.ME.div || '' : '', rank: pick }) }), j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Could not sign in.');
       const u = me(); st.textContent = `Linking ${u ? u.name : 'your unit'}…`; await new Promise(res => setTimeout(res, 500));
       const was = locked.has(d) && signed[d] === pick; signed[d] = pick; locked.delete(d); saveLocks(); try { localStorage.setItem('oversite.rank.' + d, pick); } catch (x) {}
@@ -3793,7 +3815,8 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
 
   // ── who am I: the player whose username is in the admin panel, with the department their team maps to ──
   const updateMe = players => { const me = (S.me || '').toLowerCase(); const p = me && (players || []).find(x => x.Player.split(':')[0].toLowerCase() === me);
-    const next = p ? { name: p.Player.split(':')[0], team: p.Team, dept: S.teams[p.Team] || null, callsign: p.Callsign || '' } : null;
+    const dv = p && window.divOf ? window.divOf(p.Team, p.Player.split(':')[1]) : null;
+    const next = p ? { name: p.Player.split(':')[0], team: p.Team, dept: S.teams[p.Team] || null, div: dv ? dv.id : '', callsign: p.Callsign || '' } : null;
     if (next?.dept && (!window.ME?.dept || window.ME.team !== next.team)) flyMe = true;   // just joined a team (or the page just opened): show them
     const same = JSON.stringify(next) === JSON.stringify(window.ME || null); window.ME = next; if (!same) dispatchEvent(new CustomEvent('me', { detail: next })); };
   let flyMe = false;
@@ -3960,7 +3983,7 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
     const list = players.map(p => { const dept = S.teams[p.Team] ?? '', pid = p.Player.split(':')[1]; return { p, dept, pid, lead: dept ? leaderOf(pid, dept) : pid }; }).sort((a, b) => (a.lead !== a.pid) - (b.lead !== b.pid));
     for (const { p, dept, pid, lead } of list) { if (!dept) continue; const cs = (p.Callsign || '').trim(); if (!cs && S.callsignOnly && lead === pid) continue;
       const name = p.Player.split(':')[0]; let id = lead !== pid && own.get(lead); if (!id) id = `${dept}-${slug(cs || name)}`; own.set(pid, id);
-      if (!groups.has(id)) groups.set(id, { id, dept, cs, members: [], loc: p.Location, pid });
+      if (!groups.has(id)) groups.set(id, { id, dept, cs, members: [], loc: p.Location, pid, team: p.Team });
       groups.get(id).members.push({ name, pid, perm: p.Permission, join: joinAt[p.Player], since: duty && duty[p.Player] }); }
     for (const g of groups.values()) { ids.add(g.id); let u = units.get(g.id);
       // ER:LC lists spawned vehicles by who spawned them, not who is inside. Take the crew's own vehicle (names match whatever the
@@ -3971,7 +3994,8 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
       if (!u) { u = { id: g.id, live: true, dept: g.dept, kind: KIND[g.dept], route: 'B', t: 0, dir: 1, speed: 0, x: wx, y: wy, tx: wx, ty: wy, heading: 0, th: 0, mph: 0, sx: g.loc?.LocationX, sz: g.loc?.LocationZ, seen: now,
           startedAt: starts.get(g.id) || Math.min(...g.members.map(m => m.join || now)) }; units.set(g.id, u); motionReset(u, wx, wy, tFix); }
       else if (g.loc) { if (motionFix(u, wx, wy, tFix)) { fixAt = now; u.seen = now; } u.sx = g.loc.LocationX; u.sz = g.loc.LocationZ; u.tx = wx; u.ty = wy; }
-      u.name = `${DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.crewIds = g.members.map(m => m.pid); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
+      const dv = window.divOf ? window.divOf(g.team, g.pid) : null; u.div = dv ? dv.id : '';
+      u.name = `${dv ? dv.short : DEPT[g.dept]} ${g.cs || g.members[0].name}`; u.crew = g.members.map(m => m.name); u.crewIds = g.members.map(m => m.pid); u.ranks = g.members.map(m => m.perm === 'Normal' ? 'Member' : m.perm.replace('Server ', ''));
       const ds = g.members.map(m => m.since).filter(Number.isFinite); if (ds.length) u.startedAt = Math.min(...ds);   // the server knows when they came on duty
       starts.set(g.id, u.startedAt); u.gone = 0;
       // no vehicle of their own but moving at driving speed: in someone else's (a partner's cruiser); held 20 s so a red light doesn't flip it

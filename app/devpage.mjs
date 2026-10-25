@@ -22,7 +22,7 @@ const ROUTES = [
   ['GET', 'records?kind=&status=open', 'lookup', 'Police records, newest first (citation, warning, arrest, warrant, bolo, stop).'],
   ['POST', 'calls', 'calls', 'Put a call on the dispatch board: <code>{ "department": "pd", "location": "Postal 214", "details": "Shots fired" }</code>.'],
   ['POST', 'calls/clear', 'calls', 'Clear a call for everyone: <code>{ "key": "…" }</code> from <code>GET calls</code>.'],
-  ['POST', 'units/status', 'units', 'Set a unit’s status: <code>{ "unit": "1A-12", "status": "10-8" }</code>.'],
+  ['POST', 'units/status', 'units', 'Set a unit’s status: <code>{ "unit": "1A-12", "status": "10-8" }</code>. "10 8", "10-08" and "ten-eight" work too. The answer has the code and what it means here (<code>"label": "Available"</code>), so the bot can say back the CAD’s own words.'],
   ['POST', 'records', 'records', 'Write a record as the bot, like the MDT does. Warrants wait for a supervisor. See below.'],
   ['POST', 'records/{id}/act', 'records', 'Serve or recall a warrant, or clear a BOLO: <code>{ "action": "serve" }</code>. Sends <code>record.updated</code>.'],
   ['POST', 'licenses', 'records', 'Suspend, revoke or reinstate a license: <code>{ "roblox_name": "Kesh", "license": "driver", "status": "Suspended", "reason": "DUI", "days": 7 }</code>. <code>license</code> is driver or firearm; <code>status</code> is Suspended, Revoked or Valid; <code>days</code> only for a suspension (leave it out for until it’s reinstated); <code>officer</code> names who asked. Only someone seen in the server.'],

@@ -255,6 +255,14 @@ export const setVehicle = (cid, plate, b) => { const v = q('SELECT * FROM pd_veh
 // unit status (10-codes), shared so dispatch and every MDT show the same; kept in memory, gone after 12 hours
 const STATUS = new Map();
 export const STATUS_CODES = ['10-8', '10-6', '10-7', '10-11', '10-80', '10-23', '10-76', '10-15', '10-19', '10-97', '10-99'];
+// what each code means here, the same words the MDT shows, so a bot can say back the CAD's meaning rather than its own
+export const STATUS_LABELS = { '10-8': 'Available', '10-6': 'Busy', '10-7': 'Out of service', '10-11': 'Traffic stop', '10-80': 'Pursuit', '10-23': 'On scene', '10-76': 'En route', '10-15': 'Prisoner in custody', '10-19': 'Returning', '10-97': 'On scene', '10-99': 'Panic' };
+// a code however it was written: "10 8", "10-08", "108", "ten-eight", "Ten 8"
+const WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, eleven: 11, fifteen: 15, nineteen: 19, 'twenty-three': 23, 'twenty three': 23, eighty: 80, 'seventy-six': 76, 'seventy six': 76, 'ninety-seven': 97, 'ninety seven': 97, 'ninety-nine': 99, 'ninety nine': 99 };
+export const statusCode = v => { let s = String(v ?? '').trim().toLowerCase().replace(/[.,!]+$/, ''); s = s.replace(/^ten[\s-]*/, '10-');
+  const w = /^10-(.+)$/.exec(s); if (w && WORDS[w[1]]) s = '10-' + WORDS[w[1]];
+  const m = /^10[\s-]*0*(\d{1,2})$/.exec(s) || (/^10(\d{1,2})$/.test(s) && STATUS_CODES.includes('10-' + s.slice(2)) ? [, s.slice(2)] : null);
+  return m ? '10-' + +m[1] : String(v ?? '').trim(); };
 export const statuses = cid => { const m = STATUS.get(cid) || new Map(); for (const [k, v] of m) if (now() - v.at > 12 * 3600000) m.delete(k); return Object.fromEntries([...m].map(([k, v]) => [k, v.st])); };
-export const setStatus = (cid, unit, st, by) => { if (!STATUS_CODES.includes(st)) return { error: 'Unknown status.' }; const u = T(unit, 40); if (!u) return { error: 'You are not on a unit yet.' };
-  if (!STATUS.has(cid)) STATUS.set(cid, new Map()); STATUS.get(cid).set(u, { st, at: now(), by }); return { ok: true, unit: u, st }; };
+export const setStatus = (cid, unit, st, by) => { st = statusCode(st); if (!STATUS_CODES.includes(st)) return { error: 'Unknown status.' }; const u = T(unit, 40); if (!u) return { error: 'You are not on a unit yet.' };
+  if (!STATUS.has(cid)) STATUS.set(cid, new Map()); STATUS.get(cid).set(u, { st, at: now(), by }); return { ok: true, unit: u, st, label: STATUS_LABELS[st] }; };

@@ -55,8 +55,12 @@ export const levelFor = async (c, discordId) => { const d = c.settings && c.sett
 // of a section's roles open it (settings.discord.locks = { pd: [{ id, name }], … }; no roles means open to everyone). Admins and up
 // open everything. Someone without Discord on their account can't open a locked section; when Discord doesn't answer, nothing is locked.
 export const SECTIONS = ['dispatch', 'pd', 'fd', 'dot', 'civ', 'transit', 'hospital'];
-export const locksFor = async (c, user, role) => { const d = c.settings && c.settings.discord, L = d && d.locks; if (!L || !d.guild_id || !ready() || (RANK[role] || 0) >= RANK.admin) return {};
-  const set = SECTIONS.filter(k => Array.isArray(L[k]) && L[k].length); if (!set.length) return {};
+// and each department the server added (app/divisions.mjs), by its id: a Sheriff's Office can want a different role from the police
+export const sectionsFor = c => [...SECTIONS, ...(Array.isArray(c?.settings?.divs) ? c.settings.divs.map(d => d.id) : [])];
+export const locksFor = async (c, user, role) => { const d = c.settings && c.settings.discord, L0 = d && d.locks; if (!L0 || !d.guild_id || !ready() || (RANK[role] || 0) >= RANK.admin) return {};
+  // an added department without roles of its own follows the built-in one it works like
+  const L = { ...L0 }; for (const v of Array.isArray(c.settings.divs) ? c.settings.divs : []) if (!(Array.isArray(L[v.id]) && L[v.id].length) && Array.isArray(L0[v.kind]) && L0[v.kind].length) L[v.id] = L0[v.kind];
+  const set = sectionsFor(c).filter(k => Array.isArray(L[k]) && L[k].length); if (!set.length) return {};
   const mine = user?.discord_id ? await memberRoles(d.guild_id, user.discord_id) : null; if (mine === undefined) return {};
   const out = {}; for (const k of set) if (!L[k].some(r => (mine || []).includes(r.id))) out[k] = L[k].map(r => r.name); return out; };
 

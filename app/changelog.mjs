@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '3.4', date: '2026-10-25', tag: 'new', title: 'Add your own departments',
+    body: 'Settings → Departments can add up to four more departments, like a Sheriff’s Office or EMS. Each works like Law enforcement, Fire and EMS or Transportation, with its own name, short name, units, MDT and Discord roles.', items: ['Give an added department an in-game team (Sheriff → Sheriff’s Office), or let its players pick one of its units in the MDT (EMS players on the Fire team pick an EMS unit)', 'An EMS department can take medical calls only, so EMS answers EMS calls', 'A Sheriff’s Office gets the same calls as the police, on its own MDT', 'Bots: unit status codes can be written "10 8" or "ten-eight", and the answer says what the code means'] },
   { v: '3.5', date: '2026-10-25', tag: 'new', title: 'Your own alert sounds',
     body: 'Premium players can upload their own sound for the call alert and the panic alarm under Your MDT on the account page. It plays in every server’s CAD, at your alert volume, and only you hear it.', items: ['An mp3, wav, ogg or m4a of up to 1 MB', 'Remove it any time to go back to the built-in sounds', 'In the CAD, open the menu under your name and pick Alert sounds and look'] },
   { v: '3.4', date: '2026-10-24', tag: 'new', title: 'Arrange your phone',
