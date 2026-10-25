@@ -44,9 +44,18 @@
 #civMdt.phone .ph-key.act{top:17%;height:5%}#civMdt.phone .ph-key.up{top:25%;height:8.5%}#civMdt.phone .ph-key.down{top:35.5%;height:8.5%}
 #civMdt.phone .ph-key.side{left:auto;right:-7.5px;top:25.5%;height:12%;border-radius:0 3px 3px 0;background:linear-gradient(270deg,#5E5C58,#B9B7B2 45%,#77756F)}#civMdt.phone .ph-key.side:active{transform:translateX(-1.5px)}
 /* the volume, on a bar by the buttons */
-#civMdt.phone .ph-hud{position:absolute;z-index:41;left:calc(3.4% + 7px);top:24%;width:7px;height:19%;border-radius:999px;background:rgba(40,40,44,.7);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
-  overflow:hidden;opacity:0;transform:translateX(-6px);transition:opacity .18s ease,transform .25s cubic-bezier(.23,1,.32,1),width .2s ease;pointer-events:none}
-#civMdt.phone .ph-hud.on{opacity:1;transform:none;width:9px}#civMdt.phone .ph-hud i{position:absolute;left:0;right:0;bottom:0;height:calc(var(--v,.6) * 100%);background:#fff;transition:height .12s ease}#civMdt.phone .ph-hud.mute i{background:rgba(255,255,255,.45)}
+/* the volume, as iOS shows it: a frosted pill against the left edge by the buttons, filling white from the bottom, the speaker at the
+   bottom gaining waves as it gets louder (struck through at nothing) and turning grey once the white reaches it */
+#civMdt.phone .ph-hud{position:absolute;z-index:41;left:calc(var(--sw,344px) * .038);top:28.5%;width:calc(var(--sw,344px) * .114);height:calc(var(--sw,344px) * .357);border-radius:calc(var(--sw,344px) * .057);
+  background:rgba(30,30,32,.64);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 6px 22px rgba(0,0,0,.25),inset 0 0 0 .5px rgba(255,255,255,.12);
+  overflow:hidden;opacity:0;transform:translateX(-45%) scale(.9);transform-origin:left center;transition:opacity .2s ease,transform .34s cubic-bezier(.23,1,.32,1);pointer-events:none}
+#civMdt.phone .ph-hud.on{opacity:1;transform:none}
+#civMdt.phone .ph-hud i{position:absolute;left:0;right:0;bottom:0;height:calc(var(--v,.6) * 100%);background:rgba(255,255,255,.96);transition:height .16s cubic-bezier(.23,1,.32,1)}
+#civMdt.phone .ph-hud b{position:absolute;left:0;right:0;bottom:calc(var(--sw,344px) * .038);display:grid;place-items:center;color:rgba(255,255,255,.72);transition:color .15s ease}
+#civMdt.phone .ph-hud b svg{width:calc(var(--sw,344px) * .068);height:auto;display:block}#civMdt.phone .ph-hud.cover b{color:#6E6E73}
+@media (prefers-reduced-motion:reduce){#civMdt.phone .ph-hud{transform:none}}
+/* Silent mode: a struck-through bell beside the time */
+#civMdt.phone.ph-silent #cvClock::after{content:"";display:inline-block;width:.86em;height:.86em;margin-left:.25em;vertical-align:-.1em;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3Cmask id='m'%3E%3Crect width='24' height='24' fill='white'/%3E%3Cpath d='M2.5 2.5 21.5 21.5' stroke='black' stroke-width='4.6'/%3E%3C/mask%3E%3C/defs%3E%3Cpath mask='url(%23m)' fill='white' d='M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6V11a7 7 0 0 0-5.5-6.8V3.5a1.5 1.5 0 0 0-3 0v.7A7 7 0 0 0 5 11v5l-2 2v1h18v-1Z'/%3E%3Cpath d='M3.2 3.2 20.8 20.8' stroke='white' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat}
 /* Silent mode, in the Dynamic Island as it stretches out */
 #civMdt.phone .ph-isl{position:absolute;z-index:43;top:calc(var(--sw,344px) * .032);left:50%;width:32%;height:calc(var(--sw,344px) * .093);transform:translateX(-50%);border-radius:999px;background:#000;color:#fff;display:flex;align-items:center;justify-content:space-between;
   gap:8px;padding:0 14px;box-sizing:border-box;font:600 13px/1 -apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;opacity:0;pointer-events:none;overflow:hidden;white-space:nowrap;transition:width .4s cubic-bezier(.32,.72,0,1),opacity .2s ease}
@@ -268,8 +277,9 @@
 #civMdt.phone.pad .ph-key{left:auto;top:-6.5px;height:3.5px;border-radius:2px 2px 0 0;background:linear-gradient(180deg,#D3E8F1,#8CB2C4)}#civMdt.phone.pad .ph-key:active{transform:translateY(1.5px)}
 #civMdt.phone.pad .ph-key::before{inset:-8px -3px}#civMdt.phone.pad .ph-key.act{display:none}#civMdt.phone.pad .ph-key.side{right:8%;width:7%}
 #civMdt.phone.pad .ph-key.up{right:19%;width:5.5%}#civMdt.phone.pad .ph-key.down{right:25.5%;width:5.5%}
-#civMdt.phone.pad .ph-hud{left:auto;right:19%;top:24px;width:12%;height:7px;transform:translateY(-6px)}#civMdt.phone.pad .ph-hud.on{transform:none;width:12%;height:9px}
-#civMdt.phone.pad .ph-hud i{top:0;bottom:0;height:auto;width:calc(var(--v,.6) * 100%);transition:width .12s ease}#civMdt.phone.pad .ph-isl{display:none}
+#civMdt.phone.pad .ph-hud{left:auto;right:3%;top:14px;width:190px;height:42px;border-radius:21px;transform:translateY(-40%) scale(.94);transform-origin:top right}#civMdt.phone.pad .ph-hud.on{transform:none}
+#civMdt.phone.pad .ph-hud i{top:0;bottom:0;height:auto;width:calc(var(--v,.6) * 100%);transition:width .16s cubic-bezier(.23,1,.32,1)}
+#civMdt.phone.pad .ph-hud b{left:14px;right:auto;top:0;bottom:0}#civMdt.phone.pad .ph-hud b svg{width:22px}#civMdt.phone.pad .ph-isl{display:none}
 #civMdt.phone.pad .ph-lock-top{margin-top:40px}#civMdt.phone.pad .ph-lock-t b{font-size:96px}
 #civMdt.phone.pad .tablet .cam{top:-12px;width:6px;height:6px;aspect-ratio:auto;margin-left:-3px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2B3A55,#0B1220 60%,#05080F);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
 #civMdt.phone.pad .tablet .cam::after{display:none}
@@ -675,16 +685,20 @@
   const tick = () => { if (prefs.silent || !prefs.vol) return; try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state !== 'running') actx.resume();
     const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 1500; g.gain.setValueAtTime(.1 * prefs.vol / 16, t); g.gain.exponentialRampToValueAtTime(.0001, t + .035);
     o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .04); } catch (e) {} };
-  const hud = document.createElement('div'); hud.className = 'ph-hud'; hud.setAttribute('role', 'status'); hud.innerHTML = '<i></i>'; tab.appendChild(hud);
+  const hud = document.createElement('div'); hud.className = 'ph-hud'; hud.setAttribute('role', 'status'); hud.innerHTML = '<i></i><b></b>'; screen.appendChild(hud);
+  // the speaker: waves for how loud (one, two, three), struck through at nothing
+  const SPK = n => `<svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 8.5h4.5L13 3.5v17l-5.5-5H3a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Z" fill="currentColor" stroke="none"/>`
+    + (n ? ['M16.6 9.2a4 4 0 0 1 0 5.6', 'M19.6 6.6a8 8 0 0 1 0 10.8', 'M22.6 4a12 12 0 0 1 0 16'].slice(0, n).map(d => `<path d="${d}"/>`).join('') : '<path d="M2.5 3.5 17.5 21"/>') + '</svg>';
   let hudT = 0;
-  const showVol = () => { hud.style.setProperty('--v', (prefs.vol / 16).toFixed(3)); hud.classList.toggle('mute', !prefs.vol || !!prefs.silent); hud.setAttribute('aria-label', `Volume ${Math.round(prefs.vol / 16 * 100)}%`);
+  const showVol = () => { const v = prefs.vol / 16; hud.style.setProperty('--v', v.toFixed(3)); hud.querySelector('b').innerHTML = SPK(!prefs.vol ? 0 : v <= .34 ? 1 : v <= .67 ? 2 : 3);
+    hud.classList.toggle('cover', page.classList.contains('pad') ? v >= .14 : v >= .24); hud.setAttribute('aria-label', `Volume ${Math.round(prefs.vol / 16 * 100)}%`);
     hud.classList.add('on'); clearTimeout(hudT); hudT = setTimeout(() => hud.classList.remove('on'), 1500); };
   kUp.addEventListener('click', () => { prefs.vol = Math.min(16, prefs.vol + 1); save(); showVol(); tick(); });
   kDown.addEventListener('click', () => { prefs.vol = Math.max(0, prefs.vol - 1); save(); showVol(); tick(); });
   const isl = document.createElement('div'); isl.className = 'ph-isl'; isl.setAttribute('role', 'status'); screen.appendChild(isl);
   const BELL = on => `<svg width="17" height="17" viewBox="0 0 24 24" fill="${on ? '#FF453A' : '#fff'}"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6V11a7 7 0 0 0-5.5-6.8V3.5a1.5 1.5 0 0 0-3 0v.7A7 7 0 0 0 5 11v5l-2 2v1h18v-1Z"/>${on ? '<path d="M3 3 21 21" stroke="#FF453A" stroke-width="2.4" stroke-linecap="round"/><path d="M3.6 1.6 22.4 20.4" stroke="#000" stroke-width="1.6" stroke-linecap="round"/>' : ''}</svg>`;
   let islT = 0;
-  kAct.addEventListener('click', () => { prefs.silent = !prefs.silent; save();
+  kAct.addEventListener('click', () => { prefs.silent = !prefs.silent; save(); page.classList.toggle('ph-silent', !!prefs.silent);
     isl.innerHTML = BELL(prefs.silent) + (prefs.silent ? '<b>Silent</b>' : '<b class="ring">Ring</b>'); isl.setAttribute('aria-label', prefs.silent ? 'Silent mode on' : 'Silent mode off');
     isl.classList.add('on'); clearTimeout(islT); islT = setTimeout(() => isl.classList.remove('on'), 1700); });
   const off = document.createElement('div'); off.className = 'ph-off'; off.hidden = true; off.setAttribute('aria-label', 'Screen off. Tap to wake'); screen.appendChild(off);
@@ -817,7 +831,7 @@
     else if (a === 'calc') { closeCC(); btn('calc')?.click(); }
     else if (a === 'mirror') { closeCC(); prefs.device = prefs.device === 'tablet' ? 'phone' : 'tablet'; save(); applyDevice(); }
     else if (a === 'rec') rec ? stopRec() : startRec(); });
-  page.classList.toggle('ph-low', !!C().low); applyBr();
+  page.classList.toggle('ph-low', !!C().low); page.classList.toggle('ph-silent', !!prefs.silent); applyBr();
 
   // ── Calculator: Control Center opens it, and it's on the Home Screen ──
   ART.calc = ai('calc', '#4A4A4E', '#1A1A1D', '<rect x="11" y="10" width="38" height="9" rx="2.6" fill="#2C2C2F"/><rect x="33" y="12.8" width="13" height="3.4" rx="1.7" fill="#fff"/>'
