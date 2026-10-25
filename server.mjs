@@ -146,7 +146,7 @@ const licenseCfg = c => { const S = c.settings.licenseStyle, art = artOf(c); ret
 // View as: while an admin previews the CAD as a Discord role, the page's own API requests say so, and get that role's answers
 const VIEWAS_FETCH = `(()=>{const f=window.fetch,v=(OVERSITE.viewAs.role&&OVERSITE.viewAs.role.id)||'';window.fetch=(u,o={})=>{try{const x=new URL(typeof u==='string'?u:u.url,location.href);if(x.origin===location.origin&&x.pathname.includes('/api/')){o={...o,headers:new Headers(o.headers||{})};o.headers.set('x-ov-viewas',v)}}catch(e){}return f(u,o)}})();`;
 const mapPage = (c, user, role, oversight = false, locks = {}, viewAs = null) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const prem = premium.isPremium(c), cfg = { currency: c.settings.currency || '$', premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? licenseCfg(c) : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: c.settings.teams, divs: divisions.list(c), teamDiv: divisions.teamDiv(c), unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, radioBot: bots.hasOversite(c, 'dispatch'), roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, locks, discord: !!user.discord_id, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner, viewAs };
+  const prem = premium.isPremium(c), cfg = { currency: c.settings.currency || '$', premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? licenseCfg(c) : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: divisions.teams(c), divs: divisions.list(c), teamDiv: divisions.teamDiv(c), unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, radioBot: bots.hasOversite(c, 'dispatch'), roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, locks, discord: !!user.discord_id, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner, viewAs };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};${mapPref(cfg.setup)}${viewAs ? VIEWAS_FETCH : ''}</script><style>${features.css(c)}</style>`;
   const html = mapHtml.replace(/<head>/i, () => `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, () => `<title>${pages.esc(c.name)} · Oversite</title>`);
   return oversight ? html.replace(/<\/body>/i, () => `${pages.oversightBar(c)}</body>`) : html; };   // functions, so a $' in a name is never read as a replace pattern
@@ -183,8 +183,9 @@ const nextAfterCreate = slug => discordlink.ready() ? `/c/${slug}/discord/connec
 const can = (role, need) => (ROLE_RANK[role] || 0) >= ROLE_RANK[need];
 // a section the server locked to Discord roles (discordlink.locksFor): the refusal for someone without one, or null
 // a built-in department or any added department that works like it: a Sheriff's Office member logs Law enforcement shifts with the Sheriff role
-const lockedOutAll = async (c, user, role, k) => { const no = await lockedOut(c, user, role, k); if (!no) return null;
-  for (const d of divisions.list(c).filter(d => d.kind === k)) if (!await lockedOut(c, user, role, d.id)) return null; return no; };
+// (with the server's own departments in place of the standard ones, only theirs count)
+const lockedOutAll = async (c, user, role, k) => { const D = divisions.list(c).filter(d => d.kind === k), own = D.length > 0 && divisions.custom(c); let no = own ? null : await lockedOut(c, user, role, k); if (!own && !no) return null;
+  for (const d of D) { const x = await lockedOut(c, user, role, d.id); if (!x) return null; no = no || x; } return no; };
 const lockedOut = async (c, user, role, k) => { if (!discordlink.sectionsFor(c).includes(k)) return null; const L = (await discordlink.locksFor(c, user, role))[k]; if (!L) return null;
   const what = k === 'civ' ? 'The Civilian tab' : k === 'dispatch' ? 'Dispatch' : k === 'transit' ? 'Transit' : k === 'hospital' ? 'The Hospital app' : 'The ' + (divisions.list(c).find(d => d.id === k)?.name || c.settings.depts?.[k]?.name || { pd: 'Law Enforcement', fd: 'Fire Department', dot: 'Department of Transportation' }[k]) + ' MDT';
   return `${what} is only for people with ${L.length > 1 ? 'one of these Discord roles: ' : 'the Discord role '}${L.join(', ')}.`; };
@@ -384,7 +385,8 @@ const communityApi = async (req, res, slug, rest) => {
   // the Civilian tab (app/civ.mjs, businesses in app/civbiz.mjs): every member has an account, an ID, bills, a record and businesses
   // sections the server locked to Discord roles (Settings, Discord server): the police MDT and the Civilian tab refuse anyone without one
   if ((rest.startsWith('pd/') && rest !== 'pd/config') || rest.startsWith('civ/') || rest === 'court' || rest.startsWith('court/')) { const k = rest.startsWith('pd/') ? 'pd' : 'civ', L = await discordlink.locksFor(c, user, role);
-    if (L[k] && (k !== 'pd' || divisions.list(c).filter(d => d.kind === 'pd').every(d => L[d.id]))) return json(res, { error: `${k === 'pd' ? 'The police MDT' : 'The Civilian tab'} is only for people with ${L[k].length > 1 ? 'one of these Discord roles: ' : 'the Discord role '}${L[k].join(', ')}.`, locked: k }, 403); }
+    const P = k === 'pd' ? divisions.list(c).filter(d => d.kind === 'pd') : [], need = k === 'pd' && divisions.custom(c) ? (P.length && P.every(d => L[d.id]) ? L[P[0].id] : null) : L[k] && P.every(d => L[d.id]) ? L[k] : null;
+    if (need) return json(res, { error: `${k === 'pd' ? 'The police MDT' : 'The Civilian tab'} is only for people with ${need.length > 1 ? 'one of these Discord roles: ' : 'the Discord role '}${need.join(', ')}.`, locked: k }, 403); }
   if (rest.startsWith('civ/')) { const sub = rest.slice(4), st = () => { const s = civ.state(c, user, can(role, 'admin'), spawnedBy(c, user)); return s.off ? s : { ...s, ...civbiz.state(c, user) }; },
       ok = r => json(res, r.error ? r : { ...r, state: st() }, r.error ? 400 : 200);
     // players on a police, fire or DOT team in game don't use the Civilian tab (server staff, mod and up, excepted)
@@ -645,15 +647,20 @@ const communityApi = async (req, res, slug, rest) => {
   // department units (Engine 1, K-9, ...) and who is in which, for the unit tags on the map; players set their own from the MDT
   if (rest === 'settings' && M === 'POST') { const j = await jsonBody(req), s = c.settings;
     const name = String(j.name || '').trim(); if (name.length < 2 || name.length > 48) return json(res, { error: 'The name must be 2 to 48 characters.' }, 400); if (rude(name)) return json(res, { error: RUDE_MSG }, 400);
-    for (const d of ['pd', 'fd', 'dot']) { const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); if (rude(n) || rude(sh)) return json(res, { error: RUDE_MSG }, 400);
+    for (const d of ['pd', 'fd', 'dot']) { if (!j.depts?.[d]) continue;   // with the server's own departments, the standard ones aren't sent (they stay saved)
+      const n = String(j.depts?.[d]?.name || '').trim().slice(0, 40), sh = String(j.depts?.[d]?.short || '').trim().toUpperCase().slice(0, 6); if (!n || !sh) return json(res, { error: 'Every department needs a name and a short name.' }, 400); if (rude(n) || rude(sh)) return json(res, { error: RUDE_MSG }, 400);
       const raw = j.depts?.[d]?.units, units = [...new Set((Array.isArray(raw) ? raw : String(raw || '').split(',')).map(x => String(x).replace(/\s+/g, ' ').trim()).filter(Boolean))].slice(0, 20);
       if (units.some(x => x.length > 24)) return json(res, { error: 'Keep each unit name to 24 characters.' }, 400); if (units.some(x => rude(x))) return json(res, { error: RUDE_MSG }, 400);
       s.depts[d] = { name: n, short: sh, units }; }
-    const dv = divisions.clean(c, j.divs, rude); if (dv.rude) return json(res, { error: RUDE_MSG }, 400); if (dv.error) return json(res, { error: dv.error }, 400);
-    // a team goes to a built-in department (pd, fd, dot), to none (''), or to an added one, sent as its place in the list (div:0) since new ones have no id yet
-    const td = {}; for (const [t, d] of Object.entries(j.teams || {})) { if (!(t in s.teams)) continue; const m = /^div:(\d)$/.exec(d || ''), x = m && dv.divs[+m[1]];
-      if (x) { s.teams[t] = x.kind; td[t] = x.id; } else if (['pd', 'fd', 'dot', ''].includes(d)) s.teams[t] = d; }
-    s.divs = dv.divs; s.teamDiv = td;
+    // the server's own departments (Premium): sent as a list, empty to go back to the standard ones; not sent, they stay as saved
+    const sent = Array.isArray(j.divs), dv = divisions.clean(c, j.divs, rude); if (dv.rude) return json(res, { error: RUDE_MSG }, 400); if (dv.error) return json(res, { error: dv.error }, 400);
+    // a team goes to a standard department (pd, fd, dot) or to none (''); with the server's own, to one of them (sent as its place in
+    // the list, div:0, since new ones have no id yet) or to none
+    const own = sent && dv.divs.length > 0, td = {};
+    for (const [t, d] of Object.entries(j.teams || {})) { if (!(t in s.teams)) continue; const m = /^div:(\d)$/.exec(d || ''), x = own && m && dv.divs[+m[1]];
+      if (x) { s.teams[t] = x.kind; td[t] = x.id; } else if (own) td[t] = '';   // '': on none of the server's own (not on the CAD)
+      else if (['pd', 'fd', 'dot', ''].includes(d)) s.teams[t] = d; }
+    if (sent) { s.divs = dv.divs; s.teamDiv = td; }
     communities.rename(c.id, name); communities.saveSettings(c.id, s); return json(res, { ok: true }); }
   if (rest === 'codes' && M === 'POST') { const j = await jsonBody(req);
     if (j.role !== 'member') return json(res, { error: 'Servers only have an invite code now.' }, 400);
