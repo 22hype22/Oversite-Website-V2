@@ -22,7 +22,7 @@
   const ids = v => Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 200) : null;
   try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) prefs = { wall: WALLS[p.wall] ? p.wall : 'blue', widgets: (p.widgets || []).filter(w => WIDGETS.includes(w)), device: p.device === 'tablet' ? 'tablet' : 'phone',
     layout: ids(p.layout?.order) && ids(p.layout?.dock) ? { order: ids(p.layout.order), dock: ids(p.layout.dock), gone: ids(p.layout.gone) || [] } : null,
-    vol: Number.isInteger(p.vol) && p.vol >= 0 && p.vol <= 16 ? p.vol : 10, silent: !!p.silent,
+    vol: Number.isInteger(p.vol) && p.vol >= 0 && p.vol <= 16 ? p.vol : 10, silent: !!p.silent, pct: !!p.pct,
     cc: Object.fromEntries(Object.entries(p.cc && typeof p.cc === 'object' ? p.cc : {}).filter(([k, v]) => /^[a-z]{2,8}$/.test(k) && (typeof v === 'boolean' || (k === 'br' && Number.isFinite(v) && v >= .2 && v <= 1)))) }; } catch (e) {}
   // the home screen is laid out again when something it depends on changes (the device, the widgets, the size)
   let layoutFn = null, layoutQueued = false;
@@ -319,14 +319,23 @@
   const SIG = '<svg width="17" height="12" viewBox="0 0 17 12" fill="#fff"><rect x=".2" y="7.6" width="2.7" height="4.4" rx="1"/><rect x="4.8" y="5.3" width="2.7" height="6.7" rx="1"/><rect x="9.4" y="2.8" width="2.7" height="9.2" rx="1"/><rect x="14" y="0" width="2.7" height="12" rx="1"/></svg>';
   const WIFI = on => `<svg width="16" height="12" viewBox="0 0 16 12"${on ? '' : ' class="off"'}><g fill="none" stroke="#fff" stroke-width="1.75" stroke-linecap="round"><path d="M1.2 4.4a9.6 9.6 0 0 1 13.6 0"/><path d="M3.8 7a5.9 5.9 0 0 1 8.4 0"/></g><path d="M8 11.3 5.5 8.8a3.5 3.5 0 0 1 5 0Z" fill="#fff" stroke="#fff" stroke-width=".5" stroke-linejoin="round"/></svg>`;
   // the battery: this device's own charge when the browser tells it (green while charging, red when low), full otherwise
-  const BAT = (lvl = 1, chg = false, low = false) => { const w = Math.max(1.5, 19.6 * lvl), c = low ? '#FFD60A' : chg ? '#34C759' : lvl <= .2 ? '#FF3B30' : '#fff';   // yellow in Low Power Mode
-    return `<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23.5" height="12" rx="3.8" stroke="rgba(255,255,255,.4)"/><rect x="2.2" y="2.2" width="${w.toFixed(1)}" height="8.6" rx="2.2" fill="${c}"/>`
-      + `<path d="M25.6 4.6v3.8c.8-.3 1.3-1.1 1.3-1.9s-.5-1.6-1.3-1.9Z" fill="rgba(255,255,255,.45)"/>${chg ? '<path d="m13.4 2.4-4 4.9h2.7l-1 3.4 4-4.9h-2.7Z" fill="#fff" stroke="#000" stroke-width=".6" stroke-linejoin="round"/>' : ''}</svg>`; };
+  // the battery. Charging: a big bolt cut through it, as iOS draws it. With Battery Percentage on (Settings): the number inside, cut out of
+  // the battery (white on green, with a little bolt, while charging). Yellow in Low Power Mode, red when low.
+  const BOLT = 'M14.3.4 8.2 7.3h3.9l-1.6 5.3 6.2-7h-4Z', NUB = '<path d="M25.6 4.6v3.8c.8-.3 1.3-1.1 1.3-1.9s-.5-1.6-1.3-1.9Z" fill="rgba(255,255,255,.45)"/>';
+  const BAT = (lvl = 1, chg = false, low = false, pct = false) => { const c = low ? '#FFD60A' : chg ? '#34C759' : lvl <= .2 ? '#FF3B30' : '#fff';
+    if (pct) { const n = Math.round(lvl * 100), fs = n === 100 ? 8 : 9, F = 'font-family="-apple-system,BlinkMacSystemFont,Inter,system-ui,sans-serif" font-weight="700" text-anchor="middle"';
+      const body = `<rect x=".5" y=".5" width="23.5" height="12" rx="3.8" fill="rgba(255,255,255,.35)"/><rect x=".5" y=".5" width="${Math.max(2, 23.5 * lvl).toFixed(1)}" height="12" fill="${c}" clip-path="url(#ovbc)"/>`;
+      return `<svg width="27" height="13" viewBox="0 0 27 13"><defs><clipPath id="ovbc"><rect x=".5" y=".5" width="23.5" height="12" rx="3.8"/></clipPath>`
+        + (chg ? `</defs>${body}<text x="10.6" y="9.7" font-size="${fs}" ${F} fill="#fff">${n}</text><path d="M20.6 2.6 17.6 6.8h2l-.8 3.6 3-4.2h-2Z" fill="#fff"/>`
+          : `<mask id="ovbp${n}"><rect width="27" height="13" fill="#fff"/><text x="12.25" y="9.7" font-size="${fs}" ${F} fill="#000">${n}</text></mask></defs><g mask="url(#ovbp${n})">${body}</g>`) + NUB + '</svg>'; }
+    const w = Math.max(1.5, 19.6 * lvl), cell = `<rect x=".5" y=".5" width="23.5" height="12" rx="3.8" stroke="rgba(255,255,255,.4)" fill="none"/><rect x="2.2" y="2.2" width="${w.toFixed(1)}" height="8.6" rx="2.2" fill="${c}"/>${NUB}`;
+    return chg ? `<svg width="27" height="13" viewBox="0 0 27 13"><defs><mask id="ovbm"><rect width="27" height="13" fill="#fff"/><path d="${BOLT}" fill="#000" stroke="#000" stroke-width="2.6" stroke-linejoin="round"/></mask></defs><g mask="url(#ovbm)">${cell}</g><path d="${BOLT}" fill="#fff"/></svg>`
+      : `<svg width="27" height="13" viewBox="0 0 27 13">${cell}</svg>`; };
   const MOON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1Z"/></svg>';
   const ROT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M19.5 9.5A8 8 0 1 0 20 13"/><path d="m20.5 5.5-.8 4.3-4.2-1"/><rect x="9" y="11" width="6" height="5" rx="1" fill="#fff" stroke="none"/><path d="M10 11V9.5a2 2 0 0 1 4 0V11"/></svg>';
   const PLANE = '<svg width="15" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M21 15.5v-2l-8-5V3a1.5 1.5 0 0 0-3 0v5.5l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5Z"/></svg>';
   let bat = [1, false]; const C = () => prefs.cc || (prefs.cc = {});
-  const drawIc = () => { const c = C(); ic.innerHTML = (c.focus ? MOON : '') + (c.rot ? ROT : '') + (c.air ? PLANE : c.cell === false ? '' : SIG) + (c.wifi === false || (c.air && c.wifi !== true) ? '' : WIFI(navigator.onLine !== false)) + BAT(bat[0], bat[1], !!c.low); };
+  const drawIc = () => { const c = C(); ic.innerHTML = (c.focus ? MOON : '') + (c.rot ? ROT : '') + (c.air ? PLANE : c.cell === false ? '' : SIG) + (c.wifi === false || (c.air && c.wifi !== true) ? '' : WIFI(navigator.onLine !== false)) + BAT(bat[0], bat[1], !!c.low, !!prefs.pct); };
   drawIc(); addEventListener('online', drawIc); addEventListener('offline', drawIc);
   navigator.getBattery?.().then(B => { const up = () => { bat = [B.level, B.charging]; drawIc(); }; up(); B.addEventListener('levelchange', up); B.addEventListener('chargingchange', up); }).catch(() => {});
   // the status bar follows the screen's width (--sw)
@@ -499,6 +508,7 @@
       <h3>Home Screen</h3><div class="ps-g"><button type="button" class="ps-r" data-relayout><i class="ps-ic" style="background:#5E5CE6"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></i><span>Reset Home Screen Layout<small>Puts every app back where it started.</small></span></button></div>
       <p class="ps-note">Press and hold an app to move it: onto another page, or onto or off the dock. Pull down on the home screen to search.</p>
       <h3>Widgets</h3><div class="ps-g">${WIDGETS.map(w => `<label class="ps-r"><i class="ps-ic" style="background:${SW[w][1]}">${SW[w][2]}</i><span>${SW[w][0]}</span><span class="ps-sw"><input type="checkbox" data-wid="${w}"${prefs.widgets.includes(w) ? ' checked' : ''}><i></i></span></label>`).join('')}</div>
+      <h3>Battery</h3><div class="ps-g"><label class="ps-r"><i class="ps-ic" style="background:#30D158"><svg width="18" height="10" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23.5" height="12" rx="3.8" fill="none" stroke="#fff"/><rect x="2.2" y="2.2" width="14" height="8.6" rx="2.2" fill="#fff"/><path d="M25.6 4.6v3.8c.8-.3 1.3-1.1 1.3-1.9s-.5-1.6-1.3-1.9Z" fill="#fff"/></svg></i><span>Battery Percentage</span><span class="ps-sw"><input type="checkbox" data-pct${prefs.pct ? ' checked' : ''}><i></i></span></label></div>
       <h3>Weather</h3><div class="ps-g"><div class="ps-r"><i class="ps-ic" style="background:#2A84F0">${WX.sun}</i><span>${wx && !wx.error ? esc(wx.full) : 'Not found yet'}<small>${wx && !wx.error ? (wx.set ? 'Where this server is' : 'Guessed from the server’s name') : esc(wx?.error || '')}</small></span></div>
         ${wx?.canSet ? `<form class="ps-in" id="psPlace"><input id="psPlaceIn" name="q" placeholder="City, like Miami or Atlanta, Georgia" maxlength="80"><button>Set</button></form>` : ''}</div>
       ${wx?.canSet ? `<p class="ps-note${placeMsg?.err ? ' err' : ''}" id="psNote">${esc(placeMsg?.t || 'You run this server, so you can set where it is. Everyone’s weather follows it.')}</p>` : ''}</div>`;
@@ -508,7 +518,7 @@
   settings.section.addEventListener('click', e => { if (e.target.closest('[data-relayout]')) { prefs.layout = null; lay.order.length = 0; lay.dock.length = 0; lay.gone.length = 0; markGone(); save(); plan = ''; layout(); return; }
     const d = e.target.closest('[data-dev]'); if (d) { prefs.device = d.dataset.dev; save(); applyDevice(); drawSettings(); fit(); return; }
     const w = e.target.closest('[data-wall]'); if (!w) return; prefs.wall = w.dataset.wall; save(); applyWall(); drawSettings(); });
-  settings.section.addEventListener('change', e => { const t = e.target; if (!t.dataset.wid) return;
+  settings.section.addEventListener('change', e => { const t = e.target; if (t.hasAttribute('data-pct')) { prefs.pct = t.checked; save(); drawIc(); return; } if (!t.dataset.wid) return;
     prefs.widgets = WIDGETS.filter(w => w === t.dataset.wid ? t.checked : prefs.widgets.includes(w)); save(); drawWidgets(); });
   settings.section.addEventListener('submit', async e => { e.preventDefault(); const q = e.target.q.value.trim(); placeMsg = { t: 'Looking that up…' }; drawSettings();
     try { wx = await call('/weather/place', { q }); wxAt = Date.now(); placeMsg = { t: `Set. Everyone in this server now sees the weather in ${wx.full}.` }; } catch (x) { placeMsg = { t: x.message, err: true }; }
