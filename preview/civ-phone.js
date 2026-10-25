@@ -22,7 +22,8 @@
   const ids = v => Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 200) : null;
   try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) prefs = { wall: WALLS[p.wall] ? p.wall : 'blue', widgets: (p.widgets || []).filter(w => WIDGETS.includes(w)), device: p.device === 'tablet' ? 'tablet' : 'phone',
     layout: ids(p.layout?.order) && ids(p.layout?.dock) ? { order: ids(p.layout.order), dock: ids(p.layout.dock), gone: ids(p.layout.gone) || [] } : null,
-    vol: Number.isInteger(p.vol) && p.vol >= 0 && p.vol <= 16 ? p.vol : 10, silent: !!p.silent }; } catch (e) {}
+    vol: Number.isInteger(p.vol) && p.vol >= 0 && p.vol <= 16 ? p.vol : 10, silent: !!p.silent,
+    cc: Object.fromEntries(Object.entries(p.cc && typeof p.cc === 'object' ? p.cc : {}).filter(([k, v]) => /^[a-z]{2,8}$/.test(k) && (typeof v === 'boolean' || (k === 'br' && Number.isFinite(v) && v >= .2 && v <= 1)))) }; } catch (e) {}
   // the home screen is laid out again when something it depends on changes (the device, the widgets, the size)
   let layoutFn = null, layoutQueued = false;
   const queueLayout = () => { if (!layoutFn || layoutQueued) return; layoutQueued = true; requestAnimationFrame(() => { layoutQueued = false; layoutFn(); }); };
@@ -76,6 +77,51 @@
 #civMdt.phone.ph-edit .ph-rm{display:block;cursor:pointer}#civMdt.phone .tside button[data-p].ph-gone{display:none}
 #civMdt.phone .ph-editb{display:none;padding:5px 14px;border-radius:999px;border:0;background:rgba(255,255,255,.24);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:#fff;font:600 13px/1.2 inherit;cursor:pointer}
 #civMdt.phone.home.ph-edit .ph-editb{display:block}#civMdt.phone.home.ph-edit #cvClock,#civMdt.phone.home.ph-edit .sbar .sb-ic{display:none}#civMdt.phone.home.ph-edit .ph-editb,#civMdt.phone.home.ph-edit .ph-done{margin:0 calc(var(--sw,344px) * .07)}#civMdt.phone .tside:focus{outline:none}
+/* Control Center, pulled down from the top right: dark glass over the blurred screen, controls on a four-column grid */
+#civMdt.phone .ph-cc{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;padding:calc(var(--sw,344px) * .07) calc(var(--sw,344px) * .085) 20px;box-sizing:border-box;
+  background:rgba(0,0,0,calc(var(--p,1) * .38));-webkit-backdrop-filter:blur(calc(var(--p,1) * 26px)) saturate(1.3);backdrop-filter:blur(calc(var(--p,1) * 26px)) saturate(1.3);color:#fff;overflow-y:auto;scrollbar-width:none;touch-action:none;
+  font:500 13px/1.2 -apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;user-select:none}
+#civMdt.phone .ph-cc[hidden]{display:none}#civMdt.phone .ph-cc::-webkit-scrollbar{display:none}
+#civMdt.phone .ph-cc>*{opacity:var(--p,1);transform:translateY(calc((1 - var(--p,1)) * -26px)) scale(calc(.94 + var(--p,1) * .06));transform-origin:top right}
+#civMdt.phone .ph-cc.anim>*{transition:opacity .28s ease,transform .38s cubic-bezier(.32,.72,0,1)}#civMdt.phone .ph-cc.anim{transition:background .28s ease,backdrop-filter .28s ease}
+#civMdt.phone .cc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:calc(var(--sw,344px) * .05)}
+#civMdt.phone .cc-top button{background:none;border:0;color:#fff;padding:4px;cursor:pointer;line-height:0}
+#civMdt.phone .cc-stat{display:flex;justify-content:space-between;align-items:center;font-size:calc(var(--sw,344px) * .043);font-weight:600;margin:0 4px calc(var(--sw,344px) * .04)}
+#civMdt.phone .cc-stat span{display:flex;align-items:center;gap:6px}#civMdt.phone .cc-stat svg{display:block}
+#civMdt.phone .cc-g{--cell:calc((var(--sw,344px) * .83 - 3 * var(--sw,344px) * .045) / 4);display:grid;grid-template-columns:repeat(4,var(--cell));grid-auto-rows:var(--cell);gap:calc(var(--sw,344px) * .045);justify-content:center}
+#civMdt.phone .cc-t{position:relative;display:grid;place-items:center;border:0;padding:0;border-radius:50%;background:rgba(120,120,128,.32);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.18);color:#fff;cursor:pointer;
+  transition:background .18s ease,transform .12s ease}
+#civMdt.phone .cc-t:active{transform:scale(.94)}#civMdt.phone .cc-t:focus-visible{outline:2px solid #0A84FF;outline-offset:2px}
+#civMdt.phone .cc-t.on{background:rgba(255,255,255,.94);color:#1C1C1E}#civMdt.phone .cc-t.on.red{color:#FF453A}#civMdt.phone .cc-t.on.yel{background:#FFD60A;color:#1C1C1E}#civMdt.phone .cc-t.rec.on{background:#FF453A;color:#fff}
+#civMdt.phone .cc-mod{grid-column:span 2;grid-row:span 2;border-radius:calc(var(--cell) * .42);background:rgba(120,120,128,.3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.16);position:relative}
+#civMdt.phone .cc-conn{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;place-items:center;padding:calc(var(--cell) * .12)}
+#civMdt.phone .cc-conn>.cc-t{width:calc(var(--cell) * .88);height:calc(var(--cell) * .88)}#civMdt.phone .cc-t.blue.on{background:#0A84FF;color:#fff}#civMdt.phone .cc-t.green.on{background:#30D158;color:#fff}#civMdt.phone .cc-t.orange.on{background:#FF9F0A;color:#fff}
+#civMdt.phone .cc-mini{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--cell) * .08);width:calc(var(--cell) * .88)}#civMdt.phone .cc-mini .cc-t{width:calc(var(--cell) * .4);height:calc(var(--cell) * .4)}
+#civMdt.phone .cc-music{display:flex;flex-direction:column;padding:calc(var(--cell) * .2)}#civMdt.phone .cc-art{width:calc(var(--cell) * .62);height:calc(var(--cell) * .62);border-radius:12px;background:rgba(255,255,255,.12)}
+#civMdt.phone .cc-air{position:absolute;right:calc(var(--cell) * .18);top:calc(var(--cell) * .18);width:calc(var(--cell) * .5);height:calc(var(--cell) * .5)}
+#civMdt.phone .cc-music b{margin-top:auto;font-size:calc(var(--sw,344px) * .043);font-weight:600;opacity:.85}#civMdt.phone .cc-ctl{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+#civMdt.phone .cc-ctl button{background:none;border:0;color:#fff;padding:2px;cursor:pointer;line-height:0}#civMdt.phone .cc-ctl button:disabled{opacity:.4;cursor:default}
+#civMdt.phone .cc-sl{grid-row:span 2;position:relative;overflow:hidden;border-radius:calc(var(--cell) * .5);background:rgba(120,120,128,.32);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);cursor:ns-resize;touch-action:none}
+#civMdt.phone .cc-sl i{position:absolute;left:0;right:0;bottom:0;height:calc(var(--v,.5) * 100%);background:rgba(255,255,255,.94)}
+#civMdt.phone .cc-sl svg{position:absolute;left:50%;bottom:calc(var(--cell) * .3);transform:translateX(-50%)}#civMdt.phone .cc-sl:focus-visible{outline:2px solid #0A84FF;outline-offset:2px}
+#civMdt.phone .cc-focus{grid-column:span 2;border-radius:999px;display:flex;align-items:center;gap:12px;padding:0 calc(var(--cell) * .14);justify-content:flex-start;font-size:calc(var(--sw,344px) * .04);font-weight:600;white-space:nowrap;overflow:hidden}
+#civMdt.phone .cc-focus i{display:grid;place-items:center;width:calc(var(--cell) * .66);height:calc(var(--cell) * .66);border-radius:50%;background:rgba(255,255,255,.16)}
+#civMdt.phone .cc-focus.on{background:linear-gradient(110deg,#5E5CE6,#8A5CF6);color:#fff}#civMdt.phone .cc-focus.on i{background:#fff;color:#5E5CE6}
+#civMdt.phone .cc-t small{position:absolute;bottom:calc(var(--cell) * .12);font-size:10px;font-weight:600;font-variant-numeric:tabular-nums}
+#civMdt.phone .cc-tm{grid-column:1/-1;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}#civMdt.phone .cc-tm[hidden]{display:none}
+#civMdt.phone .cc-tm button{border:0;border-radius:999px;padding:8px 14px;background:rgba(120,120,128,.4);color:#fff;font:600 13px/1 inherit;cursor:pointer}#civMdt.phone .cc-tm button.dz{background:#FF453A}
+#civMdt.phone .ph-dim{position:absolute;inset:0;z-index:29;background:#000;opacity:calc((1 - var(--br,1)) * .78);pointer-events:none}
+/* a recording: the time in a red pill */
+#civMdt.phone.ph-rec #cvClock{background:#FF453A;border-radius:999px;width:auto;padding:1px 9px;margin:0 calc(var(--sw,344px) * .07)}
+#civMdt.phone.ph-low .tside button[data-p] svg{animation:none!important}
+#civMdt.phone.pad .ph-cc{--sw:420px;align-items:flex-end;padding:22px 26px 20px}#civMdt.phone.pad .ph-cc>*{width:min(360px,100%)}
+/* the Calculator app */
+#civMdt.phone .calc{display:flex;flex-direction:column;justify-content:flex-end;height:100%;padding:0 4px 8px;box-sizing:border-box;background:#000}
+#civMdt.phone .calc-d{color:#fff;font-size:64px;font-weight:300;text-align:right;padding:0 14px 8px;overflow:hidden;white-space:nowrap;font-variant-numeric:tabular-nums}
+#civMdt.phone .calc-k{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 10px}
+#civMdt.phone .calc-k button{aspect-ratio:1;border:0;border-radius:999px;background:#333;color:#fff;font:400 28px/1 -apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;cursor:pointer}
+#civMdt.phone .calc-k button.f{background:#A5A5A5;color:#000}#civMdt.phone .calc-k button.o{background:#FF9F0A}#civMdt.phone .calc-k button.o.on{background:#fff;color:#FF9F0A}
+#civMdt.phone .calc-k button.z{grid-column:span 2;aspect-ratio:auto;text-align:left;padding-left:30px}#civMdt.phone .calc-k button:active{filter:brightness(1.3)}
 #civMdt.phone .tablet .screen{border-radius:12.6%/5.9%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",system-ui,sans-serif;background:#05070D;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
 #civMdt.phone .tablet .cam{top:calc(3.4% + 11px);width:31%;height:auto;aspect-ratio:3.4/1;margin-left:-15.5%;border-radius:999px;background:#000;
@@ -263,10 +309,14 @@
   const SIG = '<svg width="17" height="12" viewBox="0 0 17 12" fill="#fff"><rect x="0" y="7.6" width="3.1" height="4.4" rx="1.2"/><rect x="4.6" y="5.3" width="3.1" height="6.7" rx="1.2"/><rect x="9.2" y="2.8" width="3.1" height="9.2" rx="1.2"/><rect x="13.8" y="0" width="3.1" height="12" rx="1.2"/></svg>';
   const WIFI = on => `<svg width="16" height="12" viewBox="0 0 16 12"${on ? '' : ' class="off"'}><g fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"><path d="M1.2 4.4a9.6 9.6 0 0 1 13.6 0"/><path d="M3.8 7a5.9 5.9 0 0 1 8.4 0"/></g><path d="M8 11.4 5.3 8.7a3.8 3.8 0 0 1 5.4 0Z" fill="#fff" stroke="#fff" stroke-width=".9" stroke-linejoin="round"/></svg>`;
   // the battery: this device's own charge when the browser tells it (green while charging, red when low), full otherwise
-  const BAT = (lvl = 1, chg = false) => { const w = Math.max(1.5, 19.6 * lvl), c = chg ? '#34C759' : lvl <= .2 ? '#FF3B30' : '#fff';
+  const BAT = (lvl = 1, chg = false, low = false) => { const w = Math.max(1.5, 19.6 * lvl), c = low ? '#FFD60A' : chg ? '#34C759' : lvl <= .2 ? '#FF3B30' : '#fff';   // yellow in Low Power Mode
     return `<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23.5" height="12" rx="3.8" stroke="rgba(255,255,255,.4)"/><rect x="2.2" y="2.2" width="${w.toFixed(1)}" height="8.6" rx="2.2" fill="${c}"/>`
       + `<path d="M25.6 4.6v3.8c.8-.3 1.3-1.1 1.3-1.9s-.5-1.6-1.3-1.9Z" fill="rgba(255,255,255,.45)"/>${chg ? '<path d="m13.4 2.4-4 4.9h2.7l-1 3.4 4-4.9h-2.7Z" fill="#fff" stroke="#000" stroke-width=".6" stroke-linejoin="round"/>' : ''}</svg>`; };
-  let bat = [1, false]; const drawIc = () => { ic.innerHTML = SIG + WIFI(navigator.onLine !== false) + BAT(...bat); };
+  const MOON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1Z"/></svg>';
+  const ROT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M19.5 9.5A8 8 0 1 0 20 13"/><path d="m20.5 5.5-.8 4.3-4.2-1"/><rect x="9" y="11" width="6" height="5" rx="1" fill="#fff" stroke="none"/><path d="M10 11V9.5a2 2 0 0 1 4 0V11"/></svg>';
+  const PLANE = '<svg width="15" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M21 15.5v-2l-8-5V3a1.5 1.5 0 0 0-3 0v5.5l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5Z"/></svg>';
+  let bat = [1, false]; const C = () => prefs.cc || (prefs.cc = {});
+  const drawIc = () => { const c = C(); ic.innerHTML = (c.focus ? MOON : '') + (c.rot ? ROT : '') + (c.air ? PLANE : c.cell === false ? '' : SIG) + (c.wifi === false || (c.air && c.wifi !== true) ? '' : WIFI(navigator.onLine !== false)) + BAT(bat[0], bat[1], !!c.low); };
   drawIc(); addEventListener('online', drawIc); addEventListener('offline', drawIc);
   navigator.getBattery?.().then(B => { const up = () => { bat = [B.level, B.charging]; drawIc(); }; up(); B.addEventListener('levelchange', up); B.addEventListener('chargingchange', up); }).catch(() => {});
   // the status bar follows the screen's width (--sw)
@@ -659,6 +709,138 @@
     if (d > 70) unlock(); else { lock.style.transform = ''; lock.style.opacity = ''; if (d < 6 && e.type === 'pointerup' && e.target.closest('.ph-lock-h')) unlock(); } };
   lock.addEventListener('pointerup', lockEnd); lock.addEventListener('pointercancel', lockEnd);
   lock.querySelector('.ph-lock-h').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); unlock(); } });
+
+  // ── Control Center: pulled down from the top right of the screen (a click on the status icons opens it too), as on an iPhone.
+  // Silent, the volume and the power button are the frame's own; brightness dims the screen; Airplane mode, Wi-Fi, mobile data, Focus,
+  // Rotation Lock and Low Power show in the status bar; the timer counts down and rings; Screen Recording records this tab and saves
+  // the video; Screen Mirroring shows the phone on the iPad. Bluetooth, AirDrop, the hotspot and Now Playing are for looks. ──
+  const cc = document.createElement('div'); cc.className = 'ph-cc'; cc.hidden = true; cc.setAttribute('role', 'dialog'); cc.setAttribute('aria-label', 'Control Center');
+  const dim = document.createElement('div'); dim.className = 'ph-dim'; screen.appendChild(dim); screen.appendChild(cc);
+  const sv = (d, f = false, sz = 22) => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" ${f ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'} aria-hidden="true">${d}</svg>`;
+  const I = { plus: sv('<path d="M12 5v14M5 12h14"/>', false, 24), power: sv('<path d="M12 3v8"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/>', false, 24),
+    plane: sv('<path d="M21 15.5v-2l-8-5V3a1.5 1.5 0 0 0-3 0v5.5l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5Z"/>', true),
+    drop: sv('<circle cx="12" cy="12" r="2"/><path d="M8.5 15.5a5 5 0 1 1 7 0M5.6 18.4a9 9 0 1 1 12.8 0"/>'),
+    wifi: sv('<path d="M2.5 9a13.5 13.5 0 0 1 19 0M5.8 12.4a9 9 0 0 1 12.4 0M9.1 15.8a4.4 4.4 0 0 1 5.8 0"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/>', false, 26),
+    cell: sv('<rect x="3" y="14" width="3.4" height="6" rx="1"/><rect x="8.2" y="10.5" width="3.4" height="9.5" rx="1"/><rect x="13.4" y="7" width="3.4" height="13" rx="1"/><rect x="18.6" y="3.5" width="3.4" height="16.5" rx="1"/>', true, 15),
+    bt: sv('<path d="m7 7 10 10-5 4V3l5 4L7 17"/>', false, 15), hot: sv('<path d="M10 13a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 11a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/>', false, 15),
+    vpn: sv('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>', false, 15),
+    airplay: sv('<circle cx="12" cy="10" r="2"/><path d="M8.5 13.5a5 5 0 1 1 7 0M5.6 16.4a9 9 0 1 1 12.8 0"/><path d="M8 21h8l-4-5Z" fill="currentColor" stroke="none"/>', false, 20),
+    rew: sv('<path d="M11 6 3 12l8 6Zm10 0-8 6 8 6Z"/>', true, 22), fwd: sv('<path d="m13 6 8 6-8 6Zm-10 0 8 6-8 6Z"/>', true, 22), play: sv('<path d="M7 4.5v15l13-7.5Z"/>', true, 30), pause: sv('<path d="M6 4h4v16H6Zm8 0h4v16h-4Z"/>', true, 30),
+    rot: sv('<path d="M19.5 9.5A8 8 0 1 0 20 13"/><path d="m20.5 5.5-.8 4.3-4.2-1"/><rect x="9" y="11" width="6" height="5" rx="1" fill="currentColor" stroke="none"/><path d="M10 11V9.5a2 2 0 0 1 4 0V11"/>', false, 26),
+    bell: on => sv('<path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6V11a7 7 0 0 0-5.5-6.8V3.5a1.5 1.5 0 0 0-3 0v.7A7 7 0 0 0 5 11v5l-2 2v1h18v-1Z" fill="currentColor" stroke="none"/>' + (on ? '<path d="M3 3 21 21" stroke-width="2.4"/>' : ''), false, 26),
+    moon: sv('<path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1Z"/>', true, 22), sun: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="#FFCC00"/><g stroke="#FFCC00" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g></svg>',
+    spk: '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3.5L12 5v14l-4.5-4H4Z" fill="#5AC8FA"/><path d="M15.5 9a4 4 0 0 1 0 6" fill="none" stroke="#5AC8FA" stroke-width="2" stroke-linecap="round"/></svg>',
+    flash: sv('<path d="M8 3h8v3l-2 4v10a2 2 0 0 1-4 0V10L8 6Z"/><circle cx="12" cy="14" r="1" fill="currentColor"/>'), timer: sv('<circle cx="12" cy="13" r="8"/><path d="M12 13 9 9.5M10 2h4"/>'),
+    calc: sv('<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><rect x="8" y="5.5" width="8" height="3.5" rx="1" fill="currentColor" stroke="none"/><path d="M8.5 13h0M12 13h0M15.5 13h0M8.5 16.5h0M12 16.5h0M15.5 16.5h0" stroke-width="2.6"/>'),
+    low: sv('<rect x="2.5" y="7" width="17" height="10" rx="3"/><path d="M22 10.5v3"/><rect x="5" y="9.5" width="4.5" height="5" rx="1" fill="currentColor" stroke="none"/>'),
+    mirror: sv('<rect x="2.5" y="4" width="13" height="10" rx="2"/><rect x="8.5" y="9" width="13" height="10" rx="2" fill="none"/>'), rec: sv('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5" fill="currentColor"/>') };
+  const wifiOn = () => { const c = C(); return !(c.wifi === false || (c.air && c.wifi !== true)); }, cellOn = () => !C().air && C().cell !== false, btOn = () => C().bt !== false;
+  const isOn = k => k === 'wifi' ? wifiOn() : k === 'cell' ? cellOn() : k === 'bt' ? btOn() : !!C()[k];
+  let timer = null, rec = null, playing = false;
+  const mmss = ms => { const t = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+  const tile = (k, ic, label, cls = '') => `<button type="button" class="cc-t ${cls}${isOn(k) ? ' on' : ''}" data-k="${k}" aria-label="${label}" aria-pressed="${isOn(k)}">${ic}</button>`;
+  const slider = (k, label, v, ic) => `<div class="cc-sl" data-s="${k}" role="slider" tabindex="0" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(v * 100)}" style="--v:${v.toFixed(3)}"><i></i>${ic}</div>`;
+  const drawCC = () => { const c = C();
+    cc.innerHTML = `<div class="cc-top"><button type="button" data-a="plus" aria-label="Settings">${I.plus}</button><button type="button" data-a="power" aria-label="Lock">${I.power}</button></div>
+      <div class="cc-stat"><span>${c.air ? PLANE : cellOn() ? SIG : ''}<b>Oversite</b>${wifiOn() ? WIFI(navigator.onLine !== false) : ''}</span><span>${c.rot ? ROT : ''}<b>${Math.round(bat[0] * 100)}%</b>${BAT(bat[0], bat[1], !!c.low)}</span></div>
+      <div class="cc-g"><div class="cc-mod cc-conn">${tile('air', I.plane, 'Airplane Mode', 'orange')}${tile('drop', I.drop, 'AirDrop', 'blue')}${tile('wifi', I.wifi, 'Wi-Fi', 'blue')}
+          <div class="cc-mini">${tile('cell', I.cell, 'Mobile Data', 'green')}${tile('bt', I.bt, 'Bluetooth', 'blue')}${tile('hot', I.hot, 'Personal Hotspot', 'green')}${tile('vpn', I.vpn, 'VPN', 'blue')}</div></div>
+        <div class="cc-mod cc-music"><span class="cc-art"></span><button type="button" class="cc-t cc-air" data-a="airplay" aria-label="AirPlay">${I.airplay}</button><b>Not Playing</b>
+          <div class="cc-ctl"><button type="button" disabled aria-label="Previous">${I.rew}</button><button type="button" data-a="play" aria-label="${playing ? 'Pause' : 'Play'}">${playing ? I.pause : I.play}</button><button type="button" disabled aria-label="Next">${I.fwd}</button></div></div>
+        ${tile('rot', I.rot, 'Rotation Lock', 'red')}<button type="button" class="cc-t red${prefs.silent ? ' on' : ''}" data-a="silent" aria-label="Silent Mode" aria-pressed="${!!prefs.silent}">${I.bell(prefs.silent)}</button>
+        ${slider('br', 'Brightness', c.br ?? 1, I.sun)}${slider('vol', 'Volume', prefs.vol / 16, I.spk)}
+        <button type="button" class="cc-t cc-focus${c.focus ? ' on' : ''}" data-k="focus" aria-pressed="${!!c.focus}"><i>${I.moon}</i>${c.focus ? 'Do Not Disturb' : 'Focus'}</button>
+        ${tile('flash', I.flash, 'Flashlight')}<button type="button" class="cc-t${timer ? ' on' : ''}" data-a="timer" aria-label="Timer">${I.timer}${timer ? `<small>${mmss(timer.end - Date.now())}</small>` : ''}</button>
+        <button type="button" class="cc-t" data-a="calc" aria-label="Calculator">${I.calc}</button>${tile('low', I.low, 'Low Power Mode', 'yel')}
+        <button type="button" class="cc-t${prefs.device === 'tablet' ? ' on' : ''}" data-a="mirror" aria-label="Screen Mirroring: show it on the iPad">${I.mirror}</button><button type="button" class="cc-t rec${rec ? ' on' : ''}" data-a="rec" aria-label="${rec ? 'Stop recording' : 'Screen Recording'}">${I.rec}</button>
+        <div class="cc-tm" hidden>${timer ? '<button type="button" class="dz" data-tm="stop">Cancel timer</button>' : [1, 3, 5, 10, 15, 30].map(m => `<button type="button" data-tm="${m}">${m} min</button>`).join('')}</div></div>`; };
+  const setP = p => cc.style.setProperty('--p', p.toFixed(3));
+  const settle = to => { if (still.matches) { setP(to); if (!to) cc.hidden = true; return; } cc.classList.add('anim'); setP(to); if (!to) setTimeout(() => { if (cc.style.getPropertyValue('--p') === '0.000') cc.hidden = true; }, 380); };
+  const openCC = () => { closeMenu(); closeSpot(); drawCC(); cc.classList.remove('anim'); cc.hidden = false; };
+  const closeCC = () => { if (!cc.hidden) settle(0); };
+  // a little alert at the top, as the Silent switch shows
+  const pill = (html, label, ms = 2200) => { isl.innerHTML = html; isl.setAttribute('aria-label', label); isl.classList.add('on'); clearTimeout(islT); islT = setTimeout(() => isl.classList.remove('on'), ms); };
+  const beep = (n = 3) => { if (prefs.silent || !prefs.vol) return; try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state !== 'running') actx.resume();
+    for (let i = 0; i < n; i++) { const t = actx.currentTime + i * .32, o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 880; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.25 * prefs.vol / 16, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + .25); o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .26); } } catch (e) {} };
+  // pulled down from the right of the status bar, following the finger; a tap there opens it too
+  let ccp = null;
+  sbar.style.touchAction = 'none';
+  sbar.addEventListener('pointerdown', e => { if (e.button || editing() || e.target.closest('button') || (rec && e.target.closest('#cvClock'))) return; const r = sbar.getBoundingClientRect(); if (e.clientX < r.left + r.width * .55) return;
+    ccp = { y: e.clientY, dy: 0, t: performance.now(), moved: false }; sbar.setPointerCapture(e.pointerId); openCC(); setP(0); });
+  sbar.addEventListener('pointermove', e => { if (!ccp) return; ccp.dy = Math.max(0, e.clientY - ccp.y); if (ccp.dy > 4) ccp.moved = true; setP(Math.min(1, ccp.dy / 170)); });
+  const ccEnd = () => { if (!ccp) return; const p = ccp; ccp = null; settle(!p.moved || p.dy > 55 || p.dy / Math.max(1, performance.now() - p.t) > .5 ? 1 : 0); };
+  sbar.addEventListener('pointerup', ccEnd); sbar.addEventListener('pointercancel', ccEnd);
+  // swiped up (or a tap on an empty spot) to close
+  let ccu = null;
+  cc.addEventListener('pointerdown', e => { if (e.button || e.target.closest('button,.cc-sl,.cc-mod')) return; ccu = { y: e.clientY, up: 0 }; cc.setPointerCapture(e.pointerId); cc.classList.remove('anim'); });
+  cc.addEventListener('pointermove', e => { if (!ccu) return; ccu.up = Math.max(0, ccu.y - e.clientY); if (!still.matches) setP(1 - Math.min(1, ccu.up / 220)); });
+  const ccUp = () => { if (!ccu) return; const u = ccu.up; ccu = null; settle(u > 50 || u < 5 ? 0 : 1); };
+  cc.addEventListener('pointerup', ccUp); cc.addEventListener('pointercancel', ccUp);
+  page.addEventListener('keydown', e => { if (e.key === 'Escape' && !cc.hidden) { e.stopPropagation(); closeCC(); } }, true);
+  // the sliders: brightness dims the screen, volume is the phone's
+  const applyBr = () => page.style.setProperty('--br', String(C().br ?? 1));
+  const slide = (el, v) => { v = Math.max(0, Math.min(1, v)); el.style.setProperty('--v', v.toFixed(3)); el.setAttribute('aria-valuenow', Math.round(v * 100));
+    if (el.dataset.s === 'br') { C().br = Math.max(.2, Math.round(v * 100) / 100); applyBr(); } else { const n = Math.round(v * 16); if (n !== prefs.vol) { prefs.vol = n; tick(); } } save(); };
+  let sl = null;
+  cc.addEventListener('pointerdown', e => { const el = e.target.closest('.cc-sl'); if (!el || e.button) return; const r = el.getBoundingClientRect(); sl = { el, r }; el.setPointerCapture(e.pointerId); slide(el, 1 - (e.clientY - r.top) / r.height); });
+  cc.addEventListener('pointermove', e => { if (sl) slide(sl.el, 1 - (e.clientY - sl.r.top) / sl.r.height); });
+  const slEnd = () => { sl = null; }; cc.addEventListener('pointerup', slEnd); cc.addEventListener('pointercancel', slEnd);
+  cc.addEventListener('keydown', e => { const el = e.target.closest('.cc-sl'); if (!el || !['ArrowUp', 'ArrowDown', 'ArrowRight', 'ArrowLeft'].includes(e.key)) return; e.preventDefault();
+    slide(el, +el.style.getPropertyValue('--v') + (e.key === 'ArrowUp' || e.key === 'ArrowRight' ? 1 : -1) / 16); });
+  // screen recording: this tab, through the browser's own screen recorder; the video is saved when it stops (a tap on the red time stops it)
+  const stopRec = () => { if (rec && rec.state !== 'inactive') rec.stop(); };
+  const startRec = async () => { closeCC(); let st;
+    try { st = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true, preferCurrentTab: true, selfBrowserSurface: 'include' }); }
+    catch (e) { pill(`${I.rec}<b class="ring">Recording off</b>`, 'Screen recording was not started'); return; }
+    const type = ['video/webm;codecs=vp9', 'video/webm', 'video/mp4'].find(t => window.MediaRecorder?.isTypeSupported?.(t)) || '', parts = [], mr = new MediaRecorder(st, type ? { mimeType: type } : undefined);
+    mr.ondataavailable = e => { if (e.data.size) parts.push(e.data); };
+    mr.onstop = () => { st.getTracks().forEach(t => t.stop()); rec = null; page.classList.remove('ph-rec'); if (!cc.hidden) drawCC();
+      const blob = new Blob(parts, { type: type.split(';')[0] || 'video/webm' }), url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = `Oversite recording ${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.${/mp4/.test(type) ? 'mp4' : 'webm'}`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+      pill(`${I.rec}<b class="ring">Saved</b>`, 'Screen recording saved'); };
+    st.getVideoTracks()[0]?.addEventListener('ended', stopRec);
+    mr.start(1000); rec = mr; page.classList.add('ph-rec'); };
+  $('cvClock')?.addEventListener('click', () => { if (rec) stopRec(); });
+  // the timer: counts down on its control and rings at the top when it's done
+  setInterval(() => { if (!timer) return; const left = timer.end - Date.now(), sm = cc.querySelector('[data-a="timer"] small'); if (sm) sm.textContent = mmss(left);
+    if (left <= 0) { timer = null; if (!cc.hidden) drawCC(); pill(`${I.timer}<b class="ring">Timer done</b>`, 'Timer done', 4000); beep(); } }, 500);
+  cc.addEventListener('click', e => { const t = e.target.closest('[data-k],[data-a],[data-tm]'); if (!t) return; const c = C(), k = t.dataset.k, a = t.dataset.a;
+    if (k) { if (k === 'air') { c.air = !c.air; delete c.wifi; delete c.cell; } else if (k === 'wifi') c.wifi = !wifiOn(); else if (k === 'cell') { const on = !cellOn(); c.cell = on; if (on) c.air = false; } else if (k === 'bt') c.bt = !btOn(); else c[k] = !c[k];
+      page.classList.toggle('ph-low', !!c.low); save(); drawIc(); drawCC(); cc.querySelector(`[data-k="${k}"]`)?.focus({ preventScroll: true }); return; }
+    if (t.dataset.tm) { if (t.dataset.tm === 'stop') timer = null; else timer = { end: Date.now() + t.dataset.tm * 60000 }; drawCC(); return; }
+    if (a === 'plus') { closeCC(); btn('phset')?.click(); }
+    else if (a === 'power') { closeCC(); setLock('off'); }
+    else if (a === 'airplay') t.classList.toggle('on');
+    else if (a === 'play') { playing = !playing; drawCC(); }
+    else if (a === 'silent') { kAct.click(); drawCC(); }
+    else if (a === 'timer') { const tm = cc.querySelector('.cc-tm'); tm.hidden = !tm.hidden; }
+    else if (a === 'calc') { closeCC(); btn('calc')?.click(); }
+    else if (a === 'mirror') { closeCC(); prefs.device = prefs.device === 'tablet' ? 'phone' : 'tablet'; save(); applyDevice(); }
+    else if (a === 'rec') rec ? stopRec() : startRec(); });
+  page.classList.toggle('ph-low', !!C().low); applyBr();
+
+  // ── Calculator: Control Center opens it, and it's on the Home Screen ──
+  ART.calc = ai('calc', '#4A4A4E', '#1A1A1D', '<rect x="11" y="10" width="38" height="9" rx="2.6" fill="#2C2C2F"/><rect x="33" y="12.8" width="13" height="3.4" rx="1.7" fill="#fff"/>'
+    + '<g fill="#D4D4D2">' + [16, 25, 34].flatMap(x => [27, 36.5, 46].map(y => `<circle cx="${x}" cy="${y}" r="3.6"/>`)).join('') + '</g><g fill="#FF9F0A">' + [27, 36.5, 46].map(y => `<circle cx="44" cy="${y}" r="3.6"/>`).join('') + '</g>');
+  addApp({ id: 'calc', name: 'Calculator', color: 'linear-gradient(180deg,#4A4A4E,#1A1A1D)', icon: I.calc, render: sec => {
+    const K = [['AC', 'f'], ['±', 'f'], ['%', 'f'], ['÷', 'o'], ['7'], ['8'], ['9'], ['×', 'o'], ['4'], ['5'], ['6'], ['−', 'o'], ['1'], ['2'], ['3'], ['+', 'o'], ['0', 'z'], ['.'], ['=', 'o']];
+    sec.innerHTML = `<div class="calc"><div class="calc-d" aria-live="polite">0</div><div class="calc-k">${K.map(([k, c]) => `<button type="button" class="${c || ''}" data-c="${k}">${k}</button>`).join('')}</div></div>`;
+    const d = sec.querySelector('.calc-d'); let cur = '0', acc = null, op = null, fresh = false;
+    const run = (a, b, o) => o === '+' ? a + b : o === '−' ? a - b : o === '×' ? a * b : o === '÷' ? (b === 0 ? NaN : a / b) : b;
+    const show = v => { const n = typeof v === 'number' ? v : parseFloat(v); d.textContent = typeof v === 'string' && !fresh ? v.replace(/^(-?)(\d+)/, (m, s, i) => s + (+i).toLocaleString('en-US'))
+      : !Number.isFinite(n) ? 'Error' : Math.abs(n) >= 1e9 || (Math.abs(n) < 1e-6 && n) ? n.toExponential(4) : (+n.toPrecision(9)).toLocaleString('en-US', { maximumFractionDigits: 8 });
+      d.style.fontSize = d.textContent.length > 9 ? '40px' : d.textContent.length > 7 ? '52px' : ''; sec.querySelector('[data-c="AC"]').textContent = cur !== '0' && !fresh ? 'C' : 'AC';
+      sec.querySelectorAll('.o').forEach(b => b.classList.toggle('on', fresh && b.dataset.c === op)); };
+    const press = k => { if (/^\d$/.test(k)) { cur = fresh || cur === '0' ? k : cur.length < 9 ? cur + k : cur; fresh = false; show(cur); return; }
+      if (k === '.') { if (fresh) { cur = '0'; fresh = false; } if (!cur.includes('.')) cur += '.'; show(cur); return; }
+      if (k === 'AC' || k === 'C') { if (k === 'C') { cur = '0'; show(cur); return; } cur = '0'; acc = null; op = null; fresh = false; show(cur); return; }
+      if (k === '±') { cur = cur.startsWith('-') ? cur.slice(1) : cur === '0' ? cur : '-' + cur; show(fresh ? +cur : cur); return; }
+      if (k === '%') { cur = String(+cur / 100); fresh = true; show(+cur); return; }
+      if (k === '=') { if (op === null) return; const r = run(acc, +cur, op); acc = null; op = null; cur = String(r); fresh = true; show(r); return; }
+      if (op !== null && !fresh) { acc = run(acc, +cur, op); cur = String(acc); } else if (acc === null || !fresh) acc = +cur; else acc = +cur; op = k; fresh = true; show(acc); };
+    sec.addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (b) press(b.dataset.c === 'AC' ? b.textContent : b.dataset.c); });   // AC reads C once something is typed
+    sec.tabIndex = -1; sec.addEventListener('keydown', e => { const m = { '/': '÷', '*': '×', '-': '−', '+': '+', Enter: '=', '=': '=', Escape: 'AC', Backspace: 'C', '%': '%', '.': '.' }[e.key] || (/^\d$/.test(e.key) ? e.key : null); if (!m) return; e.preventDefault(); if (m === 'AC') e.stopPropagation(); press(m); }); },
+    onOpen: sec => sec.focus({ preventScroll: true }) });
 
   // opening the Civilian tab starts on the home screen
   document.querySelector('.menu [data-view="civ"]')?.addEventListener('click', () => home(true));
