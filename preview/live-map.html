@@ -2401,10 +2401,19 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const OFF = Object.fromEntries(Object.entries(window.OVERSITE?.features || {}).filter(([, v]) => v === false).map(([k]) => [k, true]));
   for (const k of ['civ', 'staff', 'status']) if (OFF[k]) document.querySelector(`.menu [data-view="${k}"]`)?.remove();
   for (const d of ['pd', 'fd', 'dot']) if (OFF['dept_' + d]) document.querySelector(`.menu [data-view="mdt"][data-dept="${d}"]`)?.remove();
+  // each department the server added (a Sheriff's Office, EMS) is a CAD of its own: its own tab, after the built-in one it works like
+  for (const v of window.DIVS || []) { if (OFF['dept_' + v.kind]) continue; const after = [...document.querySelectorAll(`.menu [data-view="mdt"][data-dept="${v.kind}"]`)].pop(); if (!after) continue;
+    const b = document.createElement('button'); b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', 'false'); b.dataset.view = 'mdt'; b.dataset.dept = v.kind; b.dataset.div = v.id; b.textContent = v.name; after.after(b); }
   for (const k in OFF) document.body.classList.add('off-' + k);
   const tabs = [...document.querySelectorAll('.menu button')];
   // sliding pill behind the selected tab (left/right edges animate separately for a liquid stretch)
   const menuEl = document.querySelector('.menu'), menuPill = menuEl.querySelector('.menu-pill'); let pillX = null;
+  // with more departments than the bar fits, the department tabs go by their short names (LE, SO, FD, EMS, DOT), the full name on hover
+  const fitTabs = () => { const T = [...menuEl.querySelectorAll('[data-view="mdt"][data-dept]')], O = window.OVERSITE || {};
+    for (const t of T) { if (!t.dataset.full) t.dataset.full = t.textContent; t.textContent = t.dataset.full; t.title = t.title === t.dataset.full ? '' : t.title; }
+    if (menuEl.scrollWidth <= menuEl.clientWidth + 1) return;
+    for (const t of T) { const sh = window.divById(t.dataset.div)?.short || O.depts?.[t.dataset.dept]?.short; if (sh) { t.textContent = sh; if (!t.title) t.title = t.dataset.full; } } };
+  fitTabs(); addEventListener('resize', fitTabs); document.fonts?.ready.then(fitTabs);
   const placePill = (instant) => { const t = tabs.find(b => b.getAttribute('aria-selected') === 'true'); if (!t) { menuPill.style.opacity = 0; return; }
     const L = t.offsetLeft, R = menuEl.clientWidth - (t.offsetLeft + t.offsetWidth);
     menuPill.classList.toggle('instant', !!instant || pillX === null); menuPill.classList.toggle('go-right', pillX !== null && L > pillX); menuPill.classList.toggle('go-left', pillX !== null && L < pillX);
@@ -2419,43 +2428,48 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const mdt = document.getElementById('mdt'), mdtBtn = document.getElementById('mdtToggle');
   const DEPT_NAME = { pd: window.OVERSITE?.depts?.pd?.name || 'Law Enforcement', fd: window.OVERSITE?.depts?.fd?.name || 'Fire Department', dot: window.OVERSITE?.depts?.dot?.name || 'Department of Transportation' };
   const myDept = () => (window.ME && window.ME.dept) || null;                 // from the live roster (admin panel username); null = not identified
-  // in an added department (a Sheriff's Office, EMS), your department's MDT tab carries its name
-  addEventListener('me', () => { const m = window.ME, dv = m && m.div ? window.divById(m.div) : null;
-    document.querySelectorAll('.menu [data-view="mdt"][data-dept]').forEach(t => { if (!t.dataset.base) t.dataset.base = t.textContent; const want = dv && t.dataset.dept === m.dept ? dv.name : t.dataset.base; if (t.textContent !== want) t.textContent = want; }); });
+  // the CAD something is: an added department (its id) or a built-in one (pd, fd, dot). Yours follows your team in game and, on a team
+  // an added department shares with its built-in one (EMS on the Fire team), the unit you picked.
+  const myCad = () => window.ME && window.ME.dept ? window.ME.div || window.ME.dept : null;
+  const cadName = k => window.divById(k)?.name || DEPT_NAME[k] || k;
+  const tabCad = t => t.dataset.div || t.dataset.dept;
   const STAFF = ['mod', 'staff', 'admin', 'co_owner', 'owner'].includes(window.OVERSITE?.role);   // server staff open every tab and MDT, whatever their team
   const gated = () => !!window.HOSTED && !STAFF;                                        // the hosted site gates each MDT to its own team; the demo page lets you look at all of them
   const toastMsg = msg => { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 4200); };
-  const openMdt = (on, dept) => { if (on) { window.mdtDept = dept || window.mdtDept || myDept() || 'fd'; mdt.dataset.dept = window.mdtDept; }
+  // the MDT works like its built-in department (mdtDept: the screens, the calls); mdtDiv says which added department's it is, if any
+  const openMdt = (on, dept, div) => { if (on) { window.mdtDept = dept || window.mdtDept || myDept() || 'fd'; window.mdtDiv = dept ? div || '' : window.mdtDiv || ''; mdt.dataset.dept = window.mdtDept; mdt.dataset.div = window.mdtDiv; }
     document.body.classList.toggle('mdt-open', on); mdt.setAttribute('aria-hidden', !on); mdtBtn?.setAttribute('aria-pressed', on);
-    tabs.forEach(t => { if (t.dataset.view === 'mdt') t.setAttribute('aria-selected', on && t.dataset.dept === window.mdtDept); if (t.dataset.view === 'dispatch') t.setAttribute('aria-selected', !on && document.body.dataset.view === 'dispatch'); });
+    tabs.forEach(t => { if (t.dataset.view === 'mdt') t.setAttribute('aria-selected', on && tabCad(t) === (window.mdtDiv || window.mdtDept)); if (t.dataset.view === 'dispatch') t.setAttribute('aria-selected', !on && document.body.dataset.view === 'dispatch'); });
     dispatchEvent(new CustomEvent('mdt', { detail: on })); };
   window.openMdt = openMdt;
-  // the Discord lock that applies: your added department's, on your own department's MDT
-  const lockKey = d => { const m = window.ME; return m && m.dept === d && m.div ? m.div : d; };
-  const canOpen = dept => { if (!gated() || window.OVERSITE?.locks?.[lockKey(dept)]) return true; const mine = myDept();
-    if (!mine) { toastMsg(`You're not on the ${DEPT_NAME[dept]} team in game right now. Join it in ER:LC and its MDT opens here.`); return false; }
-    if (mine !== dept) { toastMsg(`You're on the ${DEPT_NAME[mine] || mine} team in game. The ${DEPT_NAME[dept]} MDT is only for its members.`); return false; } return true; };
-  const setView = (v, dept) => { if (v === 'mdt' && OFF['dept_' + dept]) v = 'dispatch';   // a department the server switched off has no MDT
+  // who may open an MDT: its own members. An added department that has no team of its own (EMS on the Fire team) opens for players on
+  // that team too, so they can pick one of its units and join it.
+  const tiedTeam = id => Object.values(window.OVERSITE?.teamDiv || {}).includes(id);
+  const mayOpen = k => { const mine = myCad(), dv = window.divById(k); return mine === k || (!!dv && !tiedTeam(dv.id) && myDept() === dv.kind) || (!!window.divById(mine) && !tiedTeam(mine) && k === window.divById(mine).kind); };
+  const canOpen = (dept, div) => { const k = div || dept; if (!gated() || window.OVERSITE?.locks?.[k]) return true;
+    if (!myDept()) { toastMsg(`You're not on the ${cadName(k)} team in game right now. Join it in ER:LC and its MDT opens here.`); return false; }
+    if (!mayOpen(k)) { toastMsg(`You're in ${cadName(myCad())}. The ${cadName(k)} MDT is only for its members.`); return false; } return true; };
+  const setView = (v, dept, div) => { if (v === 'mdt' && OFF['dept_' + dept]) v = 'dispatch';   // a department the server switched off has no MDT
     if (window.__civOnly && (v === 'dispatch' || v === 'mdt')) v = 'civ';   // players on the civilian team stay on their own tab
     if (window.__deptOnly && v === 'civ') v = 'dispatch';                                                 // and department players stay off theirs
     const real = v === 'mdt' ? 'dispatch' : v; document.body.dataset.view = real;
     for (const [k, id] of Object.entries(PAGES)) { const el = document.getElementById(id); if (el) el.hidden = real !== k; }
-    tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.view === v && (v !== 'mdt' || t.dataset.dept === dept)));
-    if (real !== 'dispatch') openMdt(false); else openMdt(v === 'mdt', dept);
+    tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.view === v && (v !== 'mdt' || tabCad(t) === (div || dept))));
+    if (real !== 'dispatch') openMdt(false); else openMdt(v === 'mdt', dept, div);
     dispatchEvent(new CustomEvent('viewchange', { detail: real })); };
-  const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const rl = window.OVERSITE?.locks?.[lockKey(t.dataset.dept)], ok = !rl && (!gated() || myDept() === t.dataset.dept); t.classList.toggle('locked', !ok);
-    t.title = rl ? 'Locked to Discord roles: ' + rl.join(', ') : ok ? '' : 'For players on the ' + DEPT_NAME[t.dataset.dept] + ' team in game'; }); };
+  const updateLocks = () => { tabs.forEach(t => { if (t.dataset.view !== 'mdt') return; const k = tabCad(t), rl = window.OVERSITE?.locks?.[k], ok = !rl && (!gated() || mayOpen(k)); t.classList.toggle('locked', !ok);
+    t.title = rl ? 'Locked to Discord roles: ' + rl.join(', ') : ok ? '' : 'For ' + cadName(k) + ' members'; }); };
   updateLocks(); addEventListener('me', updateLocks);
   // sections locked to Discord roles for this person (the server works it out: OVERSITE.locks = { pd: ['Law Enforcement'], … })
   const RLOCK = window.OVERSITE?.locks || {}, SEC_NAME = { dispatch: 'Dispatch', civ: 'Civilian', ...DEPT_NAME };
   const secLock = document.createElement('div'); secLock.className = 'sec-lock'; secLock.hidden = true; secLock.setAttribute('role', 'status'); document.body.appendChild(secLock);
-  const showLock = () => { const v = document.body.dataset.view, k = v === 'dispatch' ? (document.body.classList.contains('mdt-open') ? lockKey(window.mdtDept) : 'dispatch') : v === 'civ' ? 'civ' : null, need = k && RLOCK[k];
+  const showLock = () => { const v = document.body.dataset.view, k = v === 'dispatch' ? (document.body.classList.contains('mdt-open') ? window.mdtDiv || window.mdtDept : 'dispatch') : v === 'civ' ? 'civ' : null, need = k && RLOCK[k];
     document.body.classList.toggle('sec-locked', !!need); secLock.hidden = !need; if (!need) return;
     secLock.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
       <h2>${esc(SEC_NAME[k] || window.divById(k)?.name || 'This section')} is locked</h2><p>${window.OVERSITE?.discord ? `It’s only for people with ${need.length > 1 ? 'one of these roles' : 'this role'} in ${esc(window.OVERSITE?.name || 'the server')}’s Discord. Ask staff if you should have it.` : `It’s only for people with ${need.length > 1 ? 'one of these roles' : 'this role'} in the server’s Discord. Link Discord to your Oversite account so we can see your roles.`}</p>
       <div class="roles">${need.map(n => `<span>@${esc(n)}</span>`).join('')}</div>${window.OVERSITE?.discord ? '' : `<a href="/account?from=${encodeURIComponent('/' + (window.OVERSITE?.slug || ''))}">Link Discord</a>`}`; };
   addEventListener('viewchange', showLock); addEventListener('mdt', showLock);
-  tabs.forEach(t => { const k = t.dataset.view === 'mdt' ? t.dataset.dept : t.dataset.view; if (RLOCK[k]) { t.classList.add('locked'); t.title = 'Locked to Discord roles: ' + RLOCK[k].join(', '); } });
+  tabs.forEach(t => { const k = t.dataset.view === 'mdt' ? tabCad(t) : t.dataset.view; if (RLOCK[k]) { t.classList.add('locked'); t.title = 'Locked to Discord roles: ' + RLOCK[k].join(', '); } });
   // tabs follow your team in game: on the civilian team you see only the Civilian tab; on a department team you see Dispatch and
   // every department (only yours opens) but not Civilian. Not in game: everything shows. Server staff (mod and up) always see it all.
   const onCivTeam = () => !OFF.civ && !!(window.ME && window.ME.team && !window.ME.dept);   // with the Civilian tab off, civilians see the CAD like anyone not in game
@@ -2465,19 +2479,20 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const cur = document.body.dataset.view;
     if (civ && cur === 'dispatch') setView('civ');                               // a civilian lands on their own tab
     else if (dept && cur === 'civ') setView('dispatch');
-    placePill(true); };
+    fitTabs(); placePill(true); };
   addEventListener('me', updateTabs);
   // your MDT follows your team in game: switch teams and the old MDT closes and the new one opens; a refresh reopens the one you had open
-  const OPEN_KEY = 'oversite.mdtopen.' + (window.OVERSITE?.slug || ''); let lastDept = myDept();
+  const OPEN_KEY = 'oversite.mdtopen.' + (window.OVERSITE?.slug || ''); let lastCad = myCad();
   const wasOpen = () => { try { return sessionStorage.getItem(OPEN_KEY) || ''; } catch (e) { return ''; } };
-  addEventListener('mdt', e => { try { e.detail ? sessionStorage.setItem(OPEN_KEY, window.mdtDept || '') : sessionStorage.removeItem(OPEN_KEY); } catch (x) {} });
-  addEventListener('me', () => { if (!gated()) return; const d = myDept(), prev = lastDept, open = document.body.classList.contains('mdt-open'); lastDept = d;
-    if (d && !open && wasOpen() === d && document.body.dataset.view === 'dispatch') { setView('mdt', d); return; }   // after a refresh
-    if (d === prev || !open || window.mdtDept === d) return;
-    if (d) { setView('mdt', d); toastMsg(`You're on the ${DEPT_NAME[d]} team now, so its MDT is open.`); }
-    else { setView('dispatch'); toastMsg(`You left the ${DEPT_NAME[prev] || 'department'} team, so its MDT closed.`); } });
-  if (mdtBtn) mdtBtn.addEventListener('click', () => { const d = myDept() || (gated() ? null : 'fd'); if (!d) return canOpen('fd'); if (document.body.dataset.view !== 'dispatch') setView('dispatch'); if (document.body.classList.contains('mdt-open')) openMdt(false); else setView('mdt', d); });
-  tabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.view === 'mdt') { if (canOpen(t.dataset.dept)) setView('mdt', t.dataset.dept); } else if (t.dataset.view) setView(t.dataset.view); else tabs.forEach(x => x.setAttribute('aria-selected', x === t)); }));
+  addEventListener('mdt', e => { try { e.detail ? sessionStorage.setItem(OPEN_KEY, window.mdtDiv || window.mdtDept || '') : sessionStorage.removeItem(OPEN_KEY); } catch (x) {} });
+  const openMine = () => setView('mdt', myDept(), window.ME?.div || '');
+  addEventListener('me', () => { if (!gated()) return; const k = myCad(), prev = lastCad, open = document.body.classList.contains('mdt-open'); lastCad = k;
+    if (k && !open && wasOpen() === k && document.body.dataset.view === 'dispatch') { openMine(); return; }   // after a refresh
+    if (k === prev || !open || (window.mdtDiv || window.mdtDept) === k) return;
+    if (k) { openMine(); toastMsg(`You're in ${cadName(k)} now, so its MDT is open.`); }
+    else { setView('dispatch'); toastMsg(`You left ${cadName(prev) || 'the department'}, so its MDT closed.`); } });
+  if (mdtBtn) mdtBtn.addEventListener('click', () => { const d = myDept() || (gated() ? null : 'fd'); if (!d) return canOpen('fd'); if (document.body.dataset.view !== 'dispatch') setView('dispatch'); if (document.body.classList.contains('mdt-open')) openMdt(false); else myDept() ? openMine() : setView('mdt', d); });
+  tabs.forEach(t => t.addEventListener('click', () => { if (t.dataset.view === 'mdt') { if (canOpen(t.dataset.dept, t.dataset.div)) setView('mdt', t.dataset.dept, t.dataset.div || ''); } else if (t.dataset.view) setView(t.dataset.view); else tabs.forEach(x => x.setAttribute('aria-selected', x === t)); }));
   document.body.dataset.view = 'dispatch'; queueMicrotask(showLock);   // Dispatch itself may be locked
 
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -2532,13 +2547,19 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const DEPT = () => window.mdtDept || 'fd';
   const DEPT_NAME = { pd: window.OVERSITE?.depts?.pd?.name || 'Law Enforcement', fd: window.OVERSITE?.depts?.fd?.name || 'Fire Department', dot: window.OVERSITE?.depts?.dot?.name || 'Department of Transportation' };
   const myName = () => (window.ME && window.ME.name || '').toLowerCase();
-  const me = () => { const d = DEPT(), n = myName(); return UN().find(u => u.dept === d && n && u.crew.some(c => c.toLowerCase() === n)) || UN().find(u => u.dept === d) || UN()[0]; };
+  const me = () => { const d = DEPT(), n = myName(); return UN().find(u => u.dept === d && n && u.crew.some(c => c.toLowerCase() === n)) || UN().find(u => sameCad(u)) || UN().find(u => u.dept === d) || UN()[0]; };
   const STAGES = ['Dispatched', 'En route', 'On scene'];
   const CODES = { fd: new Set(['10-70', '10-50', '10-52', '10-45']), pd: new Set(['10-31', '10-32', '10-80', '10-38', '10-66', '10-91', '10-50']), dot: new Set(['10-53', '10-46']) };
-  // the added department this MDT is for: yours, when it's your own department's MDT
-  const divNow = () => { const m = window.ME; return m && m.dept === DEPT() && m.div ? window.divById(m.div) : null; };
-  const onDiv = (c, dv) => [c.unit, ...(c.more || []).map(x => x.name)].some(n => n && UN().some(u => u.name === n && u.div === dv.id));
-  const fdCall = c => { const dv = divNow(); if (dv && dv.calls === 'medical') return onDiv(c, dv) || (c.dept === DEPT() && !c.unit && window.isMedical(c));   // EMS: medical calls, and the ones it's on
+  // the added department this MDT is (a Sheriff's Office, EMS), or none for a built-in one; its units are its own
+  const divNow = () => window.divById(window.mdtDiv);
+  const sameCad = u => u.dept === DEPT() && (u.div || '') === (window.mdtDiv || '');
+  const onCad = c => [c.unit, ...(c.more || []).map(x => x.name)].some(n => n && UN().some(u => u.name === n && sameCad(u)));
+  const emsSplit = () => (window.DIVS || []).some(d => d.kind === 'fd' && d.calls === 'medical');
+  // the calls this MDT gets: a Sheriff's Office the same as the police; EMS that takes medical calls only those, and then the fire
+  // service only the fire calls; always the calls its own units are on
+  const fdCall = c => { const dv = divNow();
+    if (dv && dv.calls === 'medical') return onCad(c) || (c.dept === DEPT() && !c.unit && window.isMedical(c));
+    if (!dv && DEPT() === 'fd' && emsSplit()) return onCad(c) || (c.dept === 'fd' && !c.unit && !window.isMedical(c));
     return c.dept === DEPT() || (!c.unit && CODES[DEPT()].has(c.code)); };
   const applyDept = () => { const d = DEPT(); const sb = document.querySelector('#mdt .sb-mid'); if (sb) sb.textContent = divNow()?.name || DEPT_NAME[d];
     $('fdAppLbl').textContent = d === 'fd' ? 'Apparatus' : 'Vehicle'; $('fdAppH').textContent = d === 'fd' ? 'Apparatus' : 'Units';   // fire has apparatus; police and DOT have vehicles   // the department's own name from Settings, e.g. New York Fire Department
@@ -2574,7 +2595,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     $('fdUnitName').textContent = u.name; $('fdUnitCrew').textContent = u.crew.join(', ');
     { const O = window.OVERSITE || {}, tied = Object.values(O.teamDiv || {}), dv = divNow(), base = (O.depts && O.depts[u.dept] && O.depts[u.dept].units) || [];
       // a team given to an added department picks from its units; otherwise the department's own, then those of added ones that share its team (EMS units for Fire)
-      const sel = $('fdMyUnit'), list = dv && tied.includes(dv.id) ? dv.units : [...base, ...window.DIVS.filter(x => x.kind === u.dept && !tied.includes(x.id)).flatMap(x => x.units)], cur = (window.UNIT_OF || {})[String((window.OVERSITE && window.OVERSITE.rid) || '')] || '', k = list.join('|') + '#' + cur;
+      const sel = $('fdMyUnit'), list = dv ? (tied.includes(dv.id) ? dv.units : [...dv.units, ...base]) : [...base, ...window.DIVS.filter(x => x.kind === u.dept && !tied.includes(x.id)).flatMap(x => x.units)], cur = (window.UNIT_OF || {})[String((window.OVERSITE && window.OVERSITE.rid) || '')] || '', k = list.join('|') + '#' + cur;
       if (sel && sel.dataset.k !== k) { sel.dataset.k = k; sel.innerHTML = '<option value="">' + (list.length ? 'No unit' : 'None set up yet') + '</option>' + list.map(n => `<option${n === cur ? ' selected' : ''}>${esc(n)}</option>`).join(''); sel.disabled = !list.length || !(window.OVERSITE && window.OVERSITE.api); } }
     // ride with a teammate: anyone on duty in your department; you then show as one unit with them and get their calls
     { const sel = $('fdRide'), O = window.OVERSITE || {}, myRid = String(O.rid || ''), mates = [];
@@ -2615,7 +2636,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     logIt(`Status ${myStatus}`); renderUnit(); renderApp(); toast(`${u?.name} is ${myStatus}`); });
 
   // ── apparatus ──
-  const renderApp = () => { const rows = UN().filter(u => u.dept === DEPT()).map(u => { const st = unitStatus[u.name] || (CALLS().some(c => onIt(c, u.name)) ? '10-6' : '10-8');
+  const renderApp = () => { const rows = UN().filter(sameCad).map(u => { const st = unitStatus[u.name] || (CALLS().some(c => onIt(c, u.name)) ? '10-6' : '10-8');
       return `<div class="app"><div><b>${esc(u.name)}, ${esc(u.model || 'Engine')}</b><small>${esc(u.crew.join(', '))}</small></div><div class="st">${st}</div></div>`; });
     $('fdAppRows').innerHTML = rows.join('') || `<div class="empty">No ${({ pd: 'law enforcement', fd: 'fire', dot: 'DOT' })[DEPT()] || ''} units online.</div>`; $('fdAppCount').textContent = rows.length; };
 
@@ -2795,7 +2816,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   $('tlRanks').addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (!b) return; pick = b.dataset.r;
     for (const x of $('tlRanks').children) x.setAttribute('aria-pressed', x === b); $('tlS2').className = 'tl-step done'; occTo(pick); if (skipNow) finishSkip(); else autoPw(); });
   $('tlForm').addEventListener('submit', async e => { e.preventDefault(); if ($('tlGo').disabled) return; const d = DEPT(), st = $('tlSt'); $('tlGo').disabled = true; st.className = 'tl-st'; st.textContent = 'Checking password…';
-    try { const r = await fetch(OVS.api + '/mdt/signin', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d, div: window.ME && window.ME.dept === d ? window.ME.div || '' : '', rank: pick }) }), j = await r.json();
+    try { const r = await fetch(OVS.api + '/mdt/signin', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ dept: d, div: window.mdtDiv || '', rank: pick }) }), j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Could not sign in.');
       const u = me(); st.textContent = `Linking ${u ? u.name : 'your unit'}…`; await new Promise(res => setTimeout(res, 500));
       const was = locked.has(d) && signed[d] === pick; signed[d] = pick; locked.delete(d); saveLocks(); try { localStorage.setItem('oversite.rank.' + d, pick); } catch (x) {}
