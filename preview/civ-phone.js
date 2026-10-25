@@ -47,9 +47,9 @@
   overflow:hidden;opacity:0;transform:translateX(-6px);transition:opacity .18s ease,transform .25s cubic-bezier(.23,1,.32,1),width .2s ease;pointer-events:none}
 #civMdt.phone .ph-hud.on{opacity:1;transform:none;width:9px}#civMdt.phone .ph-hud i{position:absolute;left:0;right:0;bottom:0;height:calc(var(--v,.6) * 100%);background:#fff;transition:height .12s ease}#civMdt.phone .ph-hud.mute i{background:rgba(255,255,255,.45)}
 /* Silent mode, in the Dynamic Island as it stretches out */
-#civMdt.phone .ph-isl{position:absolute;z-index:41;top:calc(3.4% + 11px);left:50%;width:31%;transform:translateX(-50%);border-radius:999px;background:#000;color:#fff;display:flex;align-items:center;justify-content:space-between;
+#civMdt.phone .ph-isl{position:absolute;z-index:43;top:calc(var(--sw,344px) * .032);left:50%;width:32%;height:calc(var(--sw,344px) * .093);transform:translateX(-50%);border-radius:999px;background:#000;color:#fff;display:flex;align-items:center;justify-content:space-between;
   gap:8px;padding:0 14px;box-sizing:border-box;font:600 13px/1 -apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;opacity:0;pointer-events:none;overflow:hidden;white-space:nowrap;transition:width .4s cubic-bezier(.32,.72,0,1),opacity .2s ease}
-#civMdt.phone .ph-isl.on{width:44%;opacity:1}#civMdt.phone .ph-isl svg{flex:none}#civMdt.phone .ph-isl b{color:#FF453A;font-weight:600}#civMdt.phone .ph-isl b.ring{color:#fff}
+#civMdt.phone .ph-isl.on{width:41%;opacity:1}#civMdt.phone .ph-isl svg{flex:none}#civMdt.phone .ph-isl b{color:#FF453A;font-weight:600}#civMdt.phone .ph-isl b.ring{color:#fff}
 /* asleep: the screen dark; the Lock Screen: the date and a big time over the wallpaper, swiped up to open */
 #civMdt.phone .ph-off{position:absolute;inset:0;z-index:40;background:#000;cursor:pointer;animation:ph-fade .25s ease}#civMdt.phone .ph-off[hidden],#civMdt.phone .ph-lock[hidden]{display:none}
 #civMdt.phone .ph-lock{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;background:var(--wall);color:#fff;touch-action:none;cursor:grab;user-select:none;transition:transform .28s cubic-bezier(.32,.72,0,1),opacity .28s ease;animation:ph-fade .3s ease}
@@ -75,16 +75,23 @@
 #civMdt.phone .ph-rm::after{content:"";position:absolute;left:5.5px;right:5.5px;top:9.5px;height:2px;border-radius:1px;background:#fff}
 #civMdt.phone.ph-edit .ph-rm{display:block;cursor:pointer}#civMdt.phone .tside button[data-p].ph-gone{display:none}
 #civMdt.phone .ph-editb{display:none;padding:5px 14px;border-radius:999px;border:0;background:rgba(255,255,255,.24);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:#fff;font:600 13px/1.2 inherit;cursor:pointer}
-#civMdt.phone.home.ph-edit .ph-editb{display:block}#civMdt.phone.home.ph-edit .sbar>:not(.ph-editb):not(.ph-done){visibility:hidden}#civMdt.phone .tside:focus{outline:none}
+#civMdt.phone.home.ph-edit .ph-editb{display:block}#civMdt.phone.home.ph-edit #cvClock,#civMdt.phone.home.ph-edit .sbar .sb-ic{display:none}#civMdt.phone.home.ph-edit .ph-editb,#civMdt.phone.home.ph-edit .ph-done{margin:0 calc(var(--sw,344px) * .07)}#civMdt.phone .tside:focus{outline:none}
 #civMdt.phone .tablet .screen{border-radius:12.6%/5.9%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",system-ui,sans-serif;background:#05070D;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
 #civMdt.phone .tablet .cam{top:calc(3.4% + 11px);width:31%;height:auto;aspect-ratio:3.4/1;margin-left:-15.5%;border-radius:999px;background:#000;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);z-index:9}
 #civMdt.phone .tablet .cam::after{content:"";position:absolute;right:16%;top:50%;width:13%;aspect-ratio:1;transform:translateY(-50%);border-radius:50%;
   background:radial-gradient(circle at 35% 35%,#2B3A55,#0B1220 60%,#05080F)}
-#civMdt.phone .sbar{position:relative;z-index:6;padding:17px 28px 6px 34px;min-height:52px;font-size:15px;font-weight:600;color:#fff;letter-spacing:-.01em}
+#civMdt.phone .sbar{position:relative;z-index:6;display:flex;align-items:center;justify-content:space-between;padding:calc(var(--sw,344px) * .032) 0 0;height:calc(var(--sw,344px) * .125);margin-bottom:calc(var(--sw,344px) * .025);min-height:0;box-sizing:border-box;font-size:15px;font-weight:600;color:#fff;letter-spacing:-.01em}
+/* as on an iPhone: the time centred in the space left of the Dynamic Island, signal, Wi-Fi and battery in the space right of it */
+#civMdt.phone #cvClock{flex:none;width:34%;text-align:center;font-size:calc(var(--sw,344px) * .046);font-variant-numeric:tabular-nums}
+#civMdt.phone .sb-ic{width:34%;justify-content:center}
+/* the Dynamic Island, hanging near the top of the glass with the front camera in it */
+#civMdt.phone .ph-di{position:absolute;z-index:42;top:calc(var(--sw,344px) * .032);left:50%;width:calc(var(--sw,344px) * .32);height:calc(var(--sw,344px) * .093);transform:translateX(-50%);border-radius:999px;background:#000;pointer-events:none}
+#civMdt.phone .ph-di::after{content:"";position:absolute;right:16%;top:50%;width:26%;aspect-ratio:1;max-width:13px;transform:translateY(-50%);border-radius:50%;background:radial-gradient(circle at 35% 35%,#2B3A55,#0B1220 60%,#05080F)}
+#civMdt.phone:not(.pad) .tablet .cam{display:none}#civMdt.phone.pad .ph-di{display:none}
 #civMdt.phone .sbar .sb-mid,#civMdt.phone .sbar #cvTopBal{display:none}
-#civMdt.phone .sb-ic{display:flex;align-items:center;gap:6px}#civMdt.phone .sb-ic svg{display:block}
+#civMdt.phone .sb-ic{display:flex;align-items:center;gap:calc(var(--sw,344px) * .015)}#civMdt.phone .sb-ic svg{display:block;height:calc(var(--sw,344px) * .035);width:auto}#civMdt.phone .sb-ic svg:last-child{height:calc(var(--sw,344px) * .038)}#civMdt.phone .sb-ic .off{opacity:.35}
 #civMdt.phone.home .screen{background:var(--wall)}
 #civMdt.phone.home.wall-blue .screen::before{content:"";position:absolute;left:-30%;top:34%;width:150%;height:62%;border-radius:50%;border-top:2px solid rgba(110,160,255,.35);
   box-shadow:0 -14px 40px rgba(60,120,255,.18);transform:rotate(-24deg);pointer-events:none}
@@ -203,7 +210,7 @@
 #civMdt.phone .cv-form .grid3{grid-template-columns:1fr 1fr}
 #civMdt.phone .cv-car .cv-pills{order:3;flex-basis:100%;padding-left:0}
 @media (max-width:760px){#civMdt.phone{width:100vw}#civMdt.phone .tablet{aspect-ratio:auto;height:100%;border-radius:0;padding:0;box-shadow:none;background:#05070D}
-  #civMdt.phone .tablet .screen{border-radius:0;box-shadow:none}#civMdt.phone .tablet .cam{display:none}#civMdt.phone .tablet::before,#civMdt.phone .tablet::after,#civMdt.phone .ph-key,#civMdt.phone .ph-hud,#civMdt.phone .ph-isl{display:none}#civMdt.phone .tablet{border:0}#civMdt.phone .sbar{padding:10px 20px 6px;min-height:0}
+  #civMdt.phone .tablet .screen{border-radius:0;box-shadow:none}#civMdt.phone .tablet .cam{display:none}#civMdt.phone .tablet::before,#civMdt.phone .tablet::after,#civMdt.phone .ph-key,#civMdt.phone .ph-hud,#civMdt.phone .ph-isl,#civMdt.phone .ph-di{display:none}#civMdt.phone .tablet{border:0}#civMdt.phone .sbar{padding:10px 20px 6px;min-height:0;height:auto;margin-bottom:0}
   #civMdt.phone .tside button[data-p] svg,#civMdt.phone .ph-ghost svg{width:56px;height:56px;padding:14px}#civMdt.phone .ph-dock{margin-bottom:30px}}
 @media (prefers-reduced-motion:reduce){#civMdt.phone .tside,#civMdt.phone.home .tside{transition:none;transform:none}}
 /* the tablet, above phone width: the same home screen and apps on an iPad, landscape, a thin bezel with a camera dot in it (on a phone it stays the phone) */
@@ -222,7 +229,7 @@
 #civMdt.phone.pad .ph-lock-top{margin-top:40px}#civMdt.phone.pad .ph-lock-t b{font-size:96px}
 #civMdt.phone.pad .tablet .cam{top:-12px;width:6px;height:6px;aspect-ratio:auto;margin-left:-3px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2B3A55,#0B1220 60%,#05080F);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
 #civMdt.phone.pad .tablet .cam::after{display:none}
-#civMdt.phone.pad .sbar{padding:9px 26px 4px;min-height:32px;font-size:13.5px}#civMdt.phone.pad .sb-ic{gap:5px}
+#civMdt.phone.pad .sbar{padding:9px 26px 4px;min-height:32px;height:auto;margin-bottom:0;font-size:13.5px}#civMdt.phone.pad #cvClock{width:auto;text-align:left;font-size:inherit}#civMdt.phone.pad .sb-ic{width:auto;gap:5px}#civMdt.phone.pad .sb-ic svg,#civMdt.phone.pad .sb-ic svg:last-child{height:auto}#civMdt.phone.pad .sb-ic{gap:5px}
 #civMdt.phone.pad .tside{padding:22px max(56px,8%) 0}
 #civMdt.phone.pad .ph-wid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 24px;max-width:860px;width:100%;align-self:center;margin:4px 0 0}
 #civMdt.phone.pad .ph-wx b{font-size:32px}#civMdt.phone.pad .ph-w>div{aspect-ratio:1.75/1;border-radius:24px;padding:15px 18px}
@@ -255,9 +262,18 @@
 
   // status bar: signal, Wi-Fi and battery on the right, like the real thing
   const ic = document.createElement('span'); ic.className = 'sb-ic'; ic.setAttribute('aria-hidden', 'true');
-  ic.innerHTML = '<svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>'
-    + '<svg width="16" height="12" viewBox="0 0 16 12" fill="#fff"><path d="M8 2.6c2.3 0 4.4.9 6 2.4l1.3-1.4A10.4 10.4 0 0 0 8 .6 10.4 10.4 0 0 0 .7 3.6L2 5c1.6-1.5 3.7-2.4 6-2.4Zm0 3.6c1.3 0 2.5.5 3.4 1.3l1.4-1.4A6.7 6.7 0 0 0 8 4.2c-1.8 0-3.5.7-4.8 1.9l1.4 1.4C5.5 6.7 6.7 6.2 8 6.2Zm0 3.4L6 11.7 8 12l2-.3-2-2.1Z"/></svg>'
-    + '<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23" height="12" rx="3.8" stroke="rgba(255,255,255,.45)"/><rect x="2" y="2" width="17" height="9" rx="2.4" fill="#fff"/><path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2Z" fill="rgba(255,255,255,.45)"/></svg>';
+  const SIG = '<svg width="17" height="12" viewBox="0 0 17 12" fill="#fff"><rect x="0" y="7.6" width="3.1" height="4.4" rx="1.2"/><rect x="4.6" y="5.3" width="3.1" height="6.7" rx="1.2"/><rect x="9.2" y="2.8" width="3.1" height="9.2" rx="1.2"/><rect x="13.8" y="0" width="3.1" height="12" rx="1.2"/></svg>';
+  const WIFI = on => `<svg width="16" height="12" viewBox="0 0 16 12"${on ? '' : ' class="off"'}><g fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"><path d="M1.2 4.4a9.6 9.6 0 0 1 13.6 0"/><path d="M3.8 7a5.9 5.9 0 0 1 8.4 0"/></g><path d="M8 11.4 5.3 8.7a3.8 3.8 0 0 1 5.4 0Z" fill="#fff" stroke="#fff" stroke-width=".9" stroke-linejoin="round"/></svg>`;
+  // the battery: this device's own charge when the browser tells it (green while charging, red when low), full otherwise
+  const BAT = (lvl = 1, chg = false) => { const w = Math.max(1.5, 19.6 * lvl), c = chg ? '#34C759' : lvl <= .2 ? '#FF3B30' : '#fff';
+    return `<svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23.5" height="12" rx="3.8" stroke="rgba(255,255,255,.4)"/><rect x="2.2" y="2.2" width="${w.toFixed(1)}" height="8.6" rx="2.2" fill="${c}"/>`
+      + `<path d="M25.6 4.6v3.8c.8-.3 1.3-1.1 1.3-1.9s-.5-1.6-1.3-1.9Z" fill="rgba(255,255,255,.45)"/>${chg ? '<path d="m13.4 2.4-4 4.9h2.7l-1 3.4 4-4.9h-2.7Z" fill="#fff" stroke="#000" stroke-width=".6" stroke-linejoin="round"/>' : ''}</svg>`; };
+  let bat = [1, false]; const drawIc = () => { ic.innerHTML = SIG + WIFI(navigator.onLine !== false) + BAT(...bat); };
+  drawIc(); addEventListener('online', drawIc); addEventListener('offline', drawIc);
+  navigator.getBattery?.().then(B => { const up = () => { bat = [B.level, B.charging]; drawIc(); }; up(); B.addEventListener('levelchange', up); B.addEventListener('chargingchange', up); }).catch(() => {});
+  // the island, inside the glass; its size and the status bar follow the screen's width (--sw)
+  const di = document.createElement('div'); di.className = 'ph-di'; di.setAttribute('aria-hidden', 'true'); page.querySelector('.screen').appendChild(di);
+  new ResizeObserver(() => { const w = page.querySelector('.screen').clientWidth; if (w) page.style.setProperty('--sw', w + 'px'); }).observe(page.querySelector('.screen'));
   sbar.appendChild(ic);
 
   // home screen: widgets and apps on pages, the dots, the dock
@@ -618,10 +634,10 @@
     hud.classList.add('on'); clearTimeout(hudT); hudT = setTimeout(() => hud.classList.remove('on'), 1500); };
   kUp.addEventListener('click', () => { prefs.vol = Math.min(16, prefs.vol + 1); save(); showVol(); tick(); });
   kDown.addEventListener('click', () => { prefs.vol = Math.max(0, prefs.vol - 1); save(); showVol(); tick(); });
-  const isl = document.createElement('div'); isl.className = 'ph-isl'; isl.setAttribute('role', 'status'); tab.appendChild(isl);
+  const isl = document.createElement('div'); isl.className = 'ph-isl'; isl.setAttribute('role', 'status'); screen.appendChild(isl);
   const BELL = on => `<svg width="17" height="17" viewBox="0 0 24 24" fill="${on ? '#FF453A' : '#fff'}"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6V11a7 7 0 0 0-5.5-6.8V3.5a1.5 1.5 0 0 0-3 0v.7A7 7 0 0 0 5 11v5l-2 2v1h18v-1Z"/>${on ? '<path d="M3 3 21 21" stroke="#FF453A" stroke-width="2.4" stroke-linecap="round"/><path d="M3.6 1.6 22.4 20.4" stroke="#000" stroke-width="1.6" stroke-linecap="round"/>' : ''}</svg>`;
   let islT = 0;
-  kAct.addEventListener('click', () => { prefs.silent = !prefs.silent; save(); const cam = tab.querySelector('.cam'); if (cam) isl.style.height = cam.offsetHeight + 'px';
+  kAct.addEventListener('click', () => { prefs.silent = !prefs.silent; save();
     isl.innerHTML = BELL(prefs.silent) + (prefs.silent ? '<b>Silent</b>' : '<b class="ring">Ring</b>'); isl.setAttribute('aria-label', prefs.silent ? 'Silent mode on' : 'Silent mode off');
     isl.classList.add('on'); clearTimeout(islT); islT = setTimeout(() => isl.classList.remove('on'), 1700); });
   const off = document.createElement('div'); off.className = 'ph-off'; off.hidden = true; off.setAttribute('aria-label', 'Screen off. Tap to wake'); screen.appendChild(off);

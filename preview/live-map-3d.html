@@ -1380,7 +1380,7 @@
 <script src="/map3d.js?v=4" defer></script>
 <script src="/dropdown.js?v=1" defer></script>
 <script src="/license-card.js?v=5" defer></script>
-<script src="/mdt-setup.js?v=3" defer></script><script src="/mapping.js?v=5" defer></script><script src="/loa.js?v=2" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=3" defer></script><script src="/premises.js?v=2" defer></script><script src="/minimap.js?v=1" defer></script><script src="/hospital.js?v=1" defer></script><script src="/transit.js?v=1" defer></script><script src="/boats.js?v=1" defer></script><script src="/civ-phone.js?v=9" defer></script><script src="/civ-apps.js?v=1" defer></script>
+<script src="/mdt-setup.js?v=3" defer></script><script src="/mapping.js?v=5" defer></script><script src="/loa.js?v=2" defer></script><script src="/duty.js?v=1" defer></script><script src="/monitors.js?v=3" defer></script><script src="/flock.js?v=3" defer></script><script src="/premises.js?v=2" defer></script><script src="/minimap.js?v=1" defer></script><script src="/hospital.js?v=1" defer></script><script src="/transit.js?v=1" defer></script><script src="/boats.js?v=1" defer></script><script src="/civ-phone.js?v=10" defer></script><script src="/civ-apps.js?v=1" defer></script>
 <script src="/court.js?v=1" defer></script>
 <style id="phone">
   /* ───────── phones: the map fills the screen and the panels live in a bottom sheet with tabs ───────── */
@@ -4502,7 +4502,8 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
 (() => {
   const OV = window.OVERSITE, tab = document.querySelector('.menu [data-view="civ"]'), page = document.getElementById('civMdt'); if (!tab || !page) return;
   const $ = id => document.getElementById(id), offK = k => document.body.classList.contains('off-' + k);   // a part switched off in Settings → Features
-  const clock = () => { $('cvClock').textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }; clock(); setInterval(clock, 15000);
+  // a phone's status bar shows the time without AM/PM
+  const clock = () => { $('cvClock').textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M$/i, ''); }; clock(); setInterval(clock, 15000);
   if (!OV) { page.querySelector('.tscreens').innerHTML = '<div class="st-gate" style="height:100%"><div><b>Civilian</b>Open your server\'s CAD from the dashboard to use your wallet, bills and ID.</div></div>'; return; }
   const API = OV.api + '/civ', post = (p, b) => fetch(API + p, { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify(b || {}) }).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Something went wrong.'); return j; });
   const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
