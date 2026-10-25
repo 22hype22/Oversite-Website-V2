@@ -29,6 +29,11 @@ const ROUTES = [
   ['POST', 'plates/{plate}', 'vehicles', 'Change papers on a plate Oversite has seen: <code>{ "reg": "Expired", "ins": "Lapsed", "stolen": true }</code>. <code>reg</code> is Valid, Expired or Suspended; <code>ins</code> is Active, Lapsed or None.'],
   ['GET', 'bank?discord_id=', 'bank', 'A member’s balance in the Civilian economy.'],
   ['POST', 'bank', 'bank', 'Pay (positive) or charge (negative): <code>{ "discord_id": "…", "amount": 500, "memo": "Paycheck" }</code>. Charges never go below zero unless <code>"force": true</code>.'],
+  ['GET', 'fines?discord_id=&status=unpaid', 'fines', 'Someone’s fines from citations and arrests, and <code>owed</code> in total. Also takes <code>roblox_id</code> or <code>roblox_name</code>; <code>status</code> is unpaid (the default), paid or all.'],
+  ['GET', 'fines/{id}', 'fines', 'One fine: charges, amount, officer, when it was issued, and whether and how it was paid.'],
+  ['POST', 'fines/{id}/pay', 'fines', 'Mark a fine paid once your economy took the money: <code>{ "note": "Paid with UnbelievaBoat", "by": "Kesh" }</code> (both optional). Sends <code>fine.paid</code>.'],
+  ['POST', 'fines/{id}/unpay', 'fines', 'Undo a fine marked paid by mistake. Sends <code>fine.unpaid</code>.'],
+  ['POST', 'fines/pay-all', 'fines', 'Mark all of someone’s unpaid fines paid: <code>{ "discord_id": "…" }</code>. The answer has how many and the <code>total</code>.'],
   ['POST', 'alerts', 'alerts', 'A popup in the CAD: <code>{ "departments": ["pd", "fd"], "title": "Storm warning", "text": "…" }</code>.'],
   ['POST', 'commands', 'game', 'Run an ER:LC command: <code>{ "command": ":h Server restart in 5 minutes" }</code>.']];
 const SECTIONS = [
@@ -95,6 +100,24 @@ def oversite():
     event = request.get_json()
     return "", 200`)}
 <p>The owner can press <b>Send a test event</b> in their settings; it arrives as <code>test</code> with <code>"test": true</code>.</p>`],
+  ['economy', 'Your own economy', `<p class="lg-short"><b>In short</b><span>Pick <b>Economy bot</b> when connecting. Your bot takes the money for fines in your own economy, and Oversite keeps track of what is paid.</span></p>
+<p>Every citation and arrest in the MDT can come with a fine. When a server runs its own economy (a Discord economy bot, say) instead of the Civilian tab’s bank, the bot that runs it can:</p>
+<ul><li>Hear about each new fine with the <code>fine.issued</code> event, to take the money straight away or send the player a bill.</li>
+<li>Look up what someone owes with <code>GET fines?discord_id=…</code>, for a <code>/fines</code> command.</li>
+<li>Mark a fine paid with <code>POST fines/{id}/pay</code> (or all of them with <code>POST fines/pay-all</code>) once it took the money. The MDT then shows it paid, with who marked it.</li></ul>
+${code(`// /payfines: take what they owe from your economy, then tell Oversite
+const H = { Authorization: 'Bot ' + process.env.OVERSITE_KEY, 'content-type': 'application/json' };
+const r = await fetch(API + 'fines?discord_id=' + user.id, { headers: H }).then(r => r.json());
+if (!r.owed) return reply('You have no unpaid fines.');
+if (await balanceOf(user.id) < r.owed) return reply('You owe $' + r.owed + ' and can’t cover it.');
+await takeMoney(user.id, r.owed);
+await fetch(API + 'fines/pay-all', { method: 'POST', headers: H, body: JSON.stringify({ discord_id: user.id, note: 'Paid in Discord' }) });
+reply('Paid $' + r.owed + ' in fines.');`)}
+<p>A fine paid any other way sends <code>fine.paid</code> too: a Sergeant or above marking it paid in the MDT, or the player paying it from the Civilian bank. Each fine looks like this:</p>
+${code(`{ "id": 412, "kind": "citation", "subject": "Kesh", "roblox_id": "1234567", "charges": [{ "code": "T-101", "title": "Speeding", "fine": 250, "count": 1 }],
+  "fine": 250, "amount": 250, "officer": "22HYPE22", "issued_at": 1761400000000, "due_at": null,
+  "paid": false, "paid_at": null, "paid_by": null, "note": null }`)}
+<p><code>amount</code> is what is owed now: with the Civilian tab’s bank on, an overdue fine there has a late fee added.</p>`],
   ['doj', 'A Justice (DOJ) bot', `<p class="lg-short"><b>In short</b><span>Pick <b>Justice (DOJ) bot</b> when connecting it. Every department writes in the same CAD, so one bot hears every arrest, citation and warrant and can post it to each department’s Discord.</span></p>
 <p>Subscribe to <code>record.created</code> and <code>record.updated</code>. <code>record.created</code> comes when an officer of any department files an arrest, citation, warning or BOLO, and when a supervisor approves a warrant (so a warrant only goes out once it’s real). <code>record.updated</code> comes when a warrant is served, recalled or denied, a BOLO is cleared or a stop ends, with <code>action</code> and <code>action_by</code>.</p>
 ${code(`// post every new record to each department's log channel

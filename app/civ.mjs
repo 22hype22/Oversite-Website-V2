@@ -95,7 +95,7 @@ const fixVehicle = (cid, plate) => { const late = k => !!q("SELECT 1 FROM civ_bi
   q('UPDATE pd_vehicles SET reg = ?, ins = ? WHERE community_id = ? AND plate = ?').run(late('reg') ? 'Expired' : 'Valid', late('ins') ? 'Lapsed' : 'Active', cid, plate); };
 const settle = (cid, b) => { q("UPDATE civ_bills SET status = 'Paid', paid_at = ? WHERE id = ?").run(now(), b.id);
   if (b.kind === 'fine') { const rid = +b.ref.split(':')[1], r = q('SELECT data FROM pd_records WHERE community_id = ? AND id = ?').get(cid, rid);
-    if (r) { const d = JSON.parse(r.data || '{}'); d.paid_at = now(); q('UPDATE pd_records SET data = ? WHERE community_id = ? AND id = ?').run(JSON.stringify(d), cid, rid); } }
+    if (r) { const d = JSON.parse(r.data || '{}'); d.paid_at = now(); d.paid_by = 'Civilian bank'; q('UPDATE pd_records SET data = ? WHERE community_id = ? AND id = ?').run(JSON.stringify(d), cid, rid); hooks.finePaid(cid, rid); } }
   if (b.kind === 'reg' || b.kind === 'ins') fixVehicle(cid, b.ref.split(':')[1]);
   if (b.kind === 'court') { const payee = +b.ref.split(':')[2]; if (acct(cid, payee)) move(cid, payee, b.amount, 'court', `Paid by ${who(b.user_id)}: ${b.label.replace(/: owed to .*/, '')}`); }
   if (b.kind === 'inv') { const z = biz(cid, b.ref.split(':')[1]); if (z) { bizEarn(cid, z.id, b.amount, `Paid: ${b.label}`); hooks.commission(cid, z, +b.ref.split(':')[3] || 0, b.amount); } }
@@ -248,7 +248,7 @@ export const bizMove = (id, amount, memo) => { const z = q('SELECT balance FROM 
 export const bizEarn = (cid, id, amount, memo) => { bizMove(id, amount, memo); const c = communities.byId(cid); if (!c || !feature(c, 'biztax')) return;
   const rate = conf(c).biztax, tax = Math.round(amount * rate / 100); if (tax > 0) bizMove(id, -tax, `Business tax, ${rate}%`); };
 // app/civbiz.mjs fills these in: Premium managers who can run a business, how many businesses someone may own, and commission on a paid bill
-export const hooks = { manager: () => false, managed: () => [], maxBiz: () => 2, commission: () => {} };
+export const hooks = { manager: () => false, managed: () => [], maxBiz: () => 2, commission: () => {}, finePaid: () => {} };   // finePaid: a fine paid from the bank (app/fines.mjs tells bots)
 const BIZ_KINDS = ['Store', 'Restaurant', 'Gas station', 'Tech store', 'Gun store', 'Outdoors store', 'Farm', 'Movie theater', 'Mechanic', 'Towing', 'Taxi', 'Security', 'Law firm', 'Medical', 'Real estate', 'Bank', 'News'];   // each has its own job and catalog (app/civbiz.mjs)
 const mine = (c, user, id) => { const z = biz(c.id, id); return z && z.owner_id === user.id ? z : null; };
 const runs = (c, user, id) => { const z = biz(c.id, id); return z && (z.owner_id === user.id || hooks.manager(c, user, z)) ? z : null; };   // the owner, or a Premium manager

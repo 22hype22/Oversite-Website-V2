@@ -16,6 +16,7 @@ export const SCOPES = {
   records: ['Write police records', 'Citations, warnings, arrests, BOLOs and warrants. Warrants still wait for a supervisor.'],
   vehicles: ['Vehicle papers', 'Set a plate’s registration, insurance and stolen flag.'],
   bank: ['Bank', 'Read balances, and pay or charge members in the Civilian economy.'],
+  fines: ['Fines', 'Look up the fines on people’s citations and arrests, and mark them paid. For an economy of your own.'],
   alerts: ['CAD alerts', 'Pop up an alert in the CAD for one or more departments.'],
   game: ['In-game commands', 'Run ER:LC commands like :h, :pm, :kick and :ban. They show in your logs under the bot’s name.'] };
 export const EVENTS = {
@@ -29,12 +30,15 @@ export const EVENTS = {
   'case.filed': ['Someone files a civil suit in Court', 'read'], 'case.updated': ['A judge takes a case, sets a hearing or rules, or a case is settled or withdrawn', 'read'],
   'rdm.flagged': ['RDM watch flags a possible random deathmatch (or adds a kill to a flag)', 'read'],
   'arrest.logged': ['Someone is arrested in game (sent to jail): who, the officer closest to them and where', 'read'],
+  'fine.issued': ['A citation or arrest comes with a fine', 'fines'], 'fine.paid': ['A fine is paid (by a bot, in the MDT or from the Civilian bank)', 'fines'],
+  'fine.unpaid': ['A fine marked paid by mistake is marked unpaid again', 'fines'],
   'loa.requested': ['Someone asks for leave (LOA) from a department or the staff team', 'read'], 'loa.decided': ['A leave request is approved or denied', 'read'] };
 // what the "Connect a bot" form ticks for each kind of bot
 export const PRESETS = {
   department: { name: 'Department bot', scopes: ['read', 'people', 'units', 'calls', 'lookup', 'records'], events: ['shift.started', 'shift.ended', 'call.created', 'call.updated', 'call.cleared', 'unit.status', 'panic', 'record.created', 'record.updated', 'loa.requested', 'loa.decided', 'monitor.alert', 'license.updated'] },
   justice: { name: 'Justice (DOJ) bot', scopes: ['read', 'people', 'lookup', 'records'], events: ['record.created', 'record.updated', 'license.updated', 'case.filed', 'case.updated'] },
-  roleplay: { name: 'Roleplay bot', scopes: ['read', 'people', 'lookup', 'vehicles', 'bank', 'records'], events: ['record.created', 'call.created'] },
+  roleplay: { name: 'Roleplay bot', scopes: ['read', 'people', 'lookup', 'vehicles', 'bank', 'records', 'fines'], events: ['record.created', 'call.created', 'fine.issued', 'fine.paid'] },
+  economy: { name: 'Economy bot', scopes: ['people', 'fines'], events: ['fine.issued', 'fine.paid', 'fine.unpaid'] },
   moderation: { name: 'Moderation bot', scopes: ['read', 'people', 'game'], events: ['player.joined', 'player.left', 'rdm.flagged', 'arrest.logged'] },
   readonly: { name: 'Read only', scopes: ['read'], events: [] } };
 // a server's own bots (made here, with a key): 1 free, 10 with Premium. Oversite bots bought on oversite.shop (roleplay, dispatch,

@@ -25,6 +25,8 @@ import * as premium from './app/premium.mjs';
 import * as bounds from './app/bounds.mjs';
 import * as safezones from './app/safezones.mjs';
 import * as rdm from './app/rdm.mjs';
+import * as helpspam from './app/helpspam.mjs';
+import * as fines from './app/fines.mjs';
 import * as transit from './app/transit.mjs';
 import * as hospital from './app/hospital.mjs';
 import * as boats from './app/boats.mjs';
@@ -118,6 +120,7 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
     if (logsArrests(cc)) try { arrests.observe(cc, body); } catch (e) { console.log('arrests observe:', e.message); }
     if (features.on(cc, 'automations')) automations.observe(cc, body); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
   f.wantKills = () => { const cc = communities.byId(c.id) || c; return safezones.wantsKills(cc) || rdm.wantsKills(cc); };   // safe zones and RDM watch need the kill log
+  f.wantHelpLogs = () => helpspam.wantsLogs(communities.byId(c.id) || c);   // help spam limits need the mod calls and command log
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => { res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); res.write(`event: callstates\ndata: ${JSON.stringify(callStates(communities.byId(c.id) || c))}\n\n`); }; } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
@@ -317,6 +320,10 @@ const communityApi = async (req, res, slug, rest) => {
     // the arrest log (app/arrests.mjs): every arrest in game, searchable by suspect or officer, name or Roblox ID
     if (sub === 'arrests' && M === 'GET') return json(res, { arrests: arrests.list(c, { q: new URL(req.url, 'http://x').searchParams.get('q') || '' }) });
     if (sub === 'rdm' && M === 'GET') return json(res, { flags: rdm.list(c), settings: rdm.of(c), canEdit: can(role, 'admin') });
+    // help spam limits (app/helpspam.mjs): warn, then kick, then ban someone who keeps calling for a mod; admins and up set the limit
+    if (sub === 'helpspam' && M === 'GET') return json(res, { settings: helpspam.of(c), log: helpspam.log(c), canEdit: can(role, 'admin') });
+    if (sub === 'helpspam/settings' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can change the help spam limit.' }, 403); const r = helpspam.save(c, await jsonBody(req)); console.log(`helpspam: ${c.slug} settings by ${by.name}`); return json(res, r); }
+    if (sub === 'helpspam/clear' && M === 'POST') return json(res, { ...helpspam.clear(c, (await jsonBody(req)).name), log: helpspam.log(c) });
     if (sub === 'rdm/settings' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can change RDM watch.' }, 403); const r = rdm.save(c, await jsonBody(req)); console.log(`rdm: ${c.slug} settings by ${by.name}`); return json(res, r); }
     if (sub === 'rdm/resolve' && M === 'POST') { const j = await jsonBody(req), r = rdm.resolve(c, j.id, String(j.status || ''), by); return json(res, r.error ? r : { ok: true, flags: rdm.list(c) }, r.error ? 400 : 200); }
     // Fire AOP: the areas fires may burn in, drawn and switched by staff
@@ -442,6 +449,10 @@ const communityApi = async (req, res, slug, rest) => {
     if (sub === 'records/act' && M === 'POST') { const j = req._body ||= await jsonBody(req), a = String(j.action || ''), k = ['backup', 'respond'].includes(a) ? 'pd_backup' : features.RECORD[police.record(c.id, j.id)?.kind]; if (k && !features.on(c, k)) return off(k); }
     if (sub === 'records' && M === 'GET') return json(res, { records: recent(police.list(c.id, { kind: qs.get('kind') || '', status: qs.get('status') || '', mine: qs.get('mine') === '1' }, user.id)) });
     if (sub === 'records' && M === 'POST') { const r = police.create(c.id, by, req._body, police.penalOf(c)); if (r.ok) { f.bcast('pdrec', JSON.stringify(r.record)); if (!(r.record.kind === 'warrant' && r.record.status === 'Pending')) recordEvent(c, r.record); } return json(res, r, r.error ? 400 : 200); }
+    // marking a fine paid by hand (paid in person, or in an economy Oversite doesn't run): a Sergeant or above (app/fines.mjs)
+    if (sub === 'records/act' && M === 'POST' && ['paid', 'unpaid'].includes(req._body.action)) { const j = req._body; if (!by.supervisor) return json(res, { error: 'Only a Sergeant or above can mark a fine paid.' }, 403);
+      const r = fines.setPaid(c, j.id, j.action === 'paid', by.name, j.note); if (r.error) return json(res, { error: r.error }, r.status || 400); const rec = police.record(c.id, j.id);
+      f.bcast('pdrec', JSON.stringify({ ...rec, _act: j.action, _by: by.name })); return json(res, { ok: true, record: rec }); }
     if (sub === 'records/act' && M === 'POST') { const j = req._body, r = police.act(c.id, by, j); if (r.ok && j.action === 'approve') recordEvent(c, r.record); if (r.ok) recordChanged(c, r.record, String(j.action || ''), by.name); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: String(j.action || ''), _by: by.name })); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only an admin can delete records.' }, 403); const id = +(await jsonBody(req)).id || 0; police.remove(c.id, id); f.bcast('pdrec', JSON.stringify({ id, _deleted: true })); return json(res, { ok: true }); }
     return json(res, { error: 'Not found.' }, 404); }
@@ -788,6 +799,20 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
     if (M === 'GET') { const a = civ.ensure(c, u.id); return ok({ person: who(u), balance: a.balance }); }
     const amount = Math.round(+J.amount); if (!Number.isFinite(amount) || !amount || Math.abs(amount) > 1e7) return bad('Send an amount, like 500 to pay or -200 to charge.');
     civ.ensure(c, u.id); const r = civ.move(c.id, u.id, amount, amount > 0 ? 'grant' : 'charge', String(J.memo || '').slice(0, 80) || by, !!J.force); return r.error ? bad(r.error) : ok({ ok: true, person: who(u), balance: r.balance }); }
+  // fines (app/fines.mjs), for an economy the server runs itself: what someone owes, and marking fines paid once the bot took the money
+  if (at[0] === 'fines') { if (need('fines') || off('dept_pd')) return;
+    if (!at[1] && M === 'GET') { const o = Object.fromEntries(qs), u = o.discord_id ? person({ discord_id: o.discord_id }) : null; if (o.discord_id && !u?.roblox_id) return bad('Nobody with that Discord ID has a Roblox account linked on Oversite.', 404);
+      const rid = String(u?.roblox_id || o.roblox_id || '').replace(/\D/g, ''), name = String(o.roblox_name || '').trim(); if (!rid && !name) return bad('Send discord_id, roblox_id or roblox_name.');
+      const status = ['unpaid', 'paid', 'all'].includes(o.status) ? o.status : 'unpaid', r = fines.list(c.id, { rid, name: rid ? '' : name, status, limit: o.limit });
+      return ok({ person: { roblox_id: rid || r.fines[0]?.roblox_id || null, roblox_name: u?.roblox_name || r.fines[0]?.subject || name || null, ...(u && bots.can(bot, 'people') ? { discord_id: u.discord_id || null } : {}) }, status, owed: r.owed, fines: r.fines }); }
+    if (at[1] === 'pay-all' && !at[2] && M === 'POST') { const u = J.discord_id ? person({ discord_id: String(J.discord_id) }) : null; if (J.discord_id && !u?.roblox_id) return bad('Nobody with that Discord ID has a Roblox account linked on Oversite.', 404);
+      const rid = String(u?.roblox_id || J.roblox_id || '').replace(/\D/g, ''), name = String(J.roblox_name || '').trim(); if (!rid && !name) return bad('Send discord_id, roblox_id or roblox_name.');
+      const L = fines.list(c.id, { rid, name: rid ? '' : name, status: 'unpaid', limit: 200 }).fines, done = L.map(x => fines.setPaid(c, x.id, true, J.by ? `${String(J.by).slice(0, 30)} via ${bot.name}` : by, J.note)).filter(r => r.ok).map(r => r.fine);
+      return ok({ ok: true, paid: done.length, total: done.reduce((s, x) => s + x.amount, 0), fines: done }); }
+    if (/^\d{1,9}$/.test(at[1] || '') && !at[2] && M === 'GET') { const x = fines.get(c.id, at[1]); return x ? ok({ fine: x }) : bad('No citation or arrest with a fine has that id.', 404); }
+    if (/^\d{1,9}$/.test(at[1] || '') && ['pay', 'unpay'].includes(at[2]) && !at[3] && M === 'POST') { const r = fines.setPaid(c, at[1], at[2] === 'pay', J.by ? `${String(J.by).slice(0, 30)} via ${bot.name}` : by, J.note);
+      return r.error ? json(res, { error: r.error, ...(r.fine ? { fine: r.fine } : {}) }, r.status || 400) : ok(r); }
+    return bad('Not found.', 404); }
   if (rest === 'alerts' && M === 'POST') { if (need('alerts')) return; const depts = (Array.isArray(J.departments) ? J.departments : ['all']).filter(d => ['pd', 'fd', 'dot', 'all'].includes(d)); const title = String(J.title || '').trim().slice(0, 80), text = String(J.text || '').trim().slice(0, 300);
     if (!title && !text) return bad('Send a title or text.'); f.bcast('autoalert', JSON.stringify({ depts: depts.length ? depts : ['all'], title: title || bot.name, text })); return ok({ ok: true }); }
   if (rest === 'commands' && M === 'POST') { if (need('game')) return; const cmd = String(J.command || '').trim(); if (!/^:[a-z]/i.test(cmd) || cmd.length > 200) return bad('Send an ER:LC command, like { "command": ":h Server restart in 5 minutes" }.');
@@ -1333,7 +1358,7 @@ const licenseChanged = (c, j, x) => { const ch = chars.byKey(c.id, j.rid), u = c
   console.log(`licenses: ${c.slug} ${x.kind} ${x.was} -> ${x.status} by ${x.by}`);
   bots.emit(c, 'license.updated', { roblox_id: /^\d{1,20}$/.test(String(j.rid || '')) ? String(j.rid) : null, roblox_name: String(j.name || '') || null, discord_id: u?.discord_id || null, license: x.kind, license_name: x.name, status: x.status, was: x.was, until: x.until, reason: x.reason, by: x.by, at: x.at }); };
 const recordChanged = (c, r, action, who) => { if (!['approve', 'backup', 'respond'].includes(action)) bots.emit(c, 'record.updated', { ...r, action, action_by: who }); };
-const recordEvent = (c, r) => { bots.emit(c, 'record.created', r); if (!features.on(c, 'automations')) return; automations.fire(c, 'record', { kind: r.kind, subject: r.subject || '', plate: r.plate || '', by: r.by || '', charges: (r.charges || []).map(x => x.title).join(', '), reason: r.reason || '' }); };
+const recordEvent = (c, r) => { bots.emit(c, 'record.created', r); fines.issued(c, r); if (!features.on(c, 'automations')) return; automations.fire(c, 'record', { kind: r.kind, subject: r.subject || '', plate: r.plate || '', by: r.by || '', charges: (r.charges || []).map(x => x.title).join(', '), reason: r.reason || '' }); };
 // what /admin shows about alerts and backups
 const alertsInfo = () => { const L = backup.list(), d = backup.disk(); let last = null; try { last = JSON.parse(siteSettings.get('backup_last') || 'null'); } catch (e) {}
   return { alerts: alerts.ready(), offsite: backup.offsite(), last, backups: L.slice(0, 6).map(b => ({ name: b.name, kind: b.kind, size: b.size, at: b.at })), count: L.length, disk: d && { used: d.used, free: d.free } }; };
@@ -1353,7 +1378,9 @@ process.on('uncaughtException', e => { console.error('uncaught:', e); alerts.sen
 process.on('unhandledRejection', e => { console.error('unhandled rejection:', e); alerts.send('rejection', 'Oversite hit an error it didn’t handle', String(e?.stack || e).slice(0, 1800), 'warn'); });
 staff.startHistory(); bounds.start(feedFor, id => communities.key(id));
 arrests.onArrest((c, e) => bots.emit(c, 'arrest.logged', e)); arrests.start(feedFor, id => communities.key(id), logsArrests);
+fines.onChange((c, ev, f) => bots.emit(c, ev, f)); civ.hooks.finePaid = (cid, id) => { const c = communities.byId(cid); if (c) fines.paidInBank(c, id); };
 rdm.onFlag((c, e) => bots.emit(c, 'rdm.flagged', e)); rdm.start(feedFor, id => communities.key(id), c => premium.isPremium(c) && features.on(c, 'staff') && features.on(c, 'st_rdm'));
+helpspam.start(feedFor, id => communities.key(id), c => premium.isPremium(c) && features.on(c, 'staff') && features.on(c, 'st_modcalls'));
 cmdq.start(staff.send, async c => { const s = await feedFor(c).snapshot(); if (s.status !== 200) return null; try { return (JSON.parse(s.body).Players || []).length; } catch (e) { return null; } }, id => communities.key(id));   // queued commands and temporary bans safezones.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), (cid, body) => { staffhub.observe(cid, body); const cc = communities.byId(cid); if (cc) monitorRead(cc, body); });
 supporter.start(); civ.start();
 // business shifts end when the worker leaves the server or the civilian team; loans take their weekly payment

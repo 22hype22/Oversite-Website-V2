@@ -179,7 +179,7 @@ const ROUTES = [
   [/^panic(\/clear)?$/, 'panic'], [/^calls\/state$/, 'assign'], [/^reports(\/delete)?$/, 'reports'], [/^srvstatus/, 'status'], [/^radio\//, 'radio'], [/^status$/, 'unitstatus'], [/^units\/me$/, 'unitpick'], [/^units\/ride$/, 'ridewith'], [/^calls\/clear$/, 'clearcall'],
   [/^mdt\/sign(in|out)$/, 'mdtsignin'], [/^roads$/, 'roads'],
   [/^pd\//, 'dept_pd'], [/^pd\/search$/, 'pd_lookup'], [/^pd\/records\/delete$/, 'pd_delete'],
-  [/^staff\/records/, 'st_records'], [/^staff\/logs$/, 'st_logs'], [/^staff\/rdm/, 'st_rdm'], [/^staff\/arrests/, 'st_arrests'],
+  [/^staff\/records/, 'st_records'], [/^staff\/logs$/, 'st_logs'], [/^staff\/rdm/, 'st_rdm'], [/^staff\/helpspam/, 'st_modcalls'], [/^staff\/arrests/, 'st_arrests'],
   [/^civ\/autopay$/, 'autopay'], [/^civ\/stolen$/, 'stolen'], [/^civ\/(home|prop)$/, 'housing'], [/^civ\/grant$/, 'civ_grant'], [/^civ\/character$/, 'civid'],
   [/^civ\/biz\/(buy|cancel)$/, 'shops'], [/^civ\/biz\/(request|respond)$/, 'biz_requests'], [/^civ\/biz\/review$/, 'reviews'], [/^civ\/biz\/ad$/, 'ads'],
   [/^civ\/biz\/clock$/, 'work'], [/^civ\/(job\/apply|biz\/decide)$/, 'hiring'], [/^civ\/job\/quit$/, 'biz'], [/^civ\/biz\/(task|job|game)$/, 'tasks'],

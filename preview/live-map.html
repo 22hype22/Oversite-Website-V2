@@ -1606,7 +1606,7 @@
               <div class="st-mapctl"><button id="stZin" aria-label="Zoom in">+</button><button id="stZout" aria-label="Zoom out">−</button><button id="stZfit" aria-label="Fit map">⤢</button></div>
               <div class="st-legend" id="stLegend"></div></div></section>
           <section class="tscreen st-pane" data-p="mapping"><div id="stMapping" style="height:100%"></div></section>
-          <section class="tscreen st-pane" data-p="calls"><div class="thead"><div><h2>Mod calls</h2><small>Players calling for staff in game</small></div></div><div id="stCalls"></div></section>
+          <section class="tscreen st-pane" data-p="calls"><div class="thead"><div><h2>Mod calls</h2><small>Players calling for staff in game</small></div></div><div id="stCalls"></div><div id="stHelp"></div></section>
           <section class="tscreen st-pane" data-p="records"><div class="thead"><div><h2>Records</h2><small>Every warning, kick, ban and note</small></div></div><label class="st-search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stRecFind" placeholder="Search records by player or Roblox ID" autocomplete="off" spellcheck="false"></label><div id="stRecords"></div></section>
           <section class="tscreen st-pane" data-p="bans"><div class="thead"><div><h2>Bans</h2><small>Banned from the server</small></div></div><div id="stBans"></div></section>
           <section class="tscreen st-pane" data-p="arrests"><div class="thead"><div><h2>Arrests</h2><small>Every arrest in game: who went to jail, the officer closest to them and where. Proof for disputed arrests.</small></div></div><label class="st-search"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="stArrQ" placeholder="Search by suspect or officer, name or Roblox ID" autocomplete="off" spellcheck="false"></label><div id="stArr"><div class="st-empty">Loading…</div></div></section>
@@ -3294,7 +3294,8 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     $('pdViewT').textContent = k + (r.booking?.num ? ' ' + r.booking.num : ' #' + r.id);
     const ch = r.charges?.length ? `<table><thead><tr><th>Code</th><th>Charge</th><th style="text-align:right">Count</th><th style="text-align:right">Fine</th>${r.kind !== 'citation' ? '<th style="text-align:right">Jail</th>' : ''}</tr></thead><tbody>${r.charges.map(x => `<tr><td><code>${esc(x.code)}</code></td><td>${esc(x.title)} ${tag(x.cls, x.cls === 'Felony' ? 'r' : x.cls === 'Misdemeanor' ? 'a' : '')}</td><td class="n">${x.count}</td><td class="n">${money(x.fine * x.count)}</td>${r.kind !== 'citation' ? `<td class="n">${x.jail * x.count} min</td>` : ''}</tr>`).join('')}</tbody>
       <tfoot><tr><td></td><td>Total</td><td></td><td class="n">${money(r.charges.reduce((a, x) => a + x.fine * x.count, 0))}</td>${r.kind !== 'citation' ? `<td class="n">${r.charges.reduce((a, x) => a + x.jail * x.count, 0)} min</td>` : ''}</tr></tfoot></table>` : '';
-    const kv = [['Status', r.status], ['Person', r.subject ? `<a href="#" data-person="${esc(r.subject_rid)}" data-pn="${esc(r.subject)}" style="color:inherit">${esc(r.subject)}</a>` : ''], ['Plate', r.plate ? `<a href="#" data-vp="${esc(r.plate)}" style="color:inherit">${esc(r.plate)}</a>` : ''], ['Vehicle', esc([r.color, r.vehicle || r.model].filter(Boolean).join(' '))],
+    const fined = (r.kind === 'citation' || r.kind === 'arrest') && r.fine > 0;
+    const kv = [['Status', r.status], ['Fine', fined ? `${money(r.fine)} · ${r.paid_at ? `<span style="color:var(--green)">Paid</span> ${esc(stamp(r.paid_at))}${r.paid_by ? ' by ' + esc(r.paid_by) : ''}${r.paid_note ? ' (' + esc(r.paid_note) + ')' : ''}` : 'Unpaid'}` : ''], ['Person', r.subject ? `<a href="#" data-person="${esc(r.subject_rid)}" data-pn="${esc(r.subject)}" style="color:inherit">${esc(r.subject)}</a>` : ''], ['Plate', r.plate ? `<a href="#" data-vp="${esc(r.plate)}" style="color:inherit">${esc(r.plate)}</a>` : ''], ['Vehicle', esc([r.color, r.vehicle || r.model].filter(Boolean).join(' '))],
       ['Location', esc(r.location)], ['Unit', esc(r.unit)], ['Written by', esc(r.by)], ['When', esc(stamp(r.at))], ['Type', r.kind === 'warrant' || r.kind === 'bolo' ? esc(r.type) : ''], ['Approved by', esc(r.approved_by)], ['Closed by', esc(r.closed_by)], ['Outcome', esc(r.outcome)],
       ['Booked at', esc(r.booking?.facility)], ['Miranda', r.booking ? (r.booking.miranda ? 'Read' : 'Not read') : ''], ['Officers', esc((r.officers || []).join(', '))], ['Backup', esc((r.backup || []).map(b => b.by + ' (Code ' + b.code + ')').join(', '))]].filter(x => x[1]);
     $('pdView').innerHTML = `<div class="pd-doc"><div class="pd-hd"><div><div class="tags" style="margin:0 0 6px">${tag(k, c)}${r.armed ? tag('Armed and dangerous', 'R') : ''}</div><h3>${esc(r.kind === 'bolo' ? (r.type === 'vehicle' ? [r.color, r.model, r.plate].filter(Boolean).join(' ') || 'Vehicle' : r.subject || 'Person') : r.subject || r.plate || k)}</h3><p>${esc(r.reason || r.desc || '')}</p></div></div>
@@ -3304,6 +3305,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     if (r.kind === 'warrant' && r.status === 'Pending' && CFG.supervisor) A.push(['deny', 'Deny', 'ghost'], ['approve', 'Approve', '']);
     if (r.kind === 'warrant' && r.status === 'Active') A.push(['recall', 'Recall', 'ghost'], ['serve', 'Mark served', '']);
     if (r.kind === 'bolo' && open) A.push(['clear', 'Clear BOLO', '']);
+    if (fined && CFG.supervisor) A.push(r.paid_at ? ['unpaid', 'Mark unpaid', 'ghost'] : ['paid', 'Mark fine paid', '']);   // paid in person, or in the server's own economy
     if (r.kind === 'stop' && open && r.by === CFG.me) A.push(['end', 'End stop', '']);
     if (CFG.admin) A.push(['delete', 'Delete', 'ghost']);
     $('pdViewActs').innerHTML = A.map(([a, l, c]) => `<button type="button" class="btn ${c}" data-act="${a}">${l}</button>`).join('');
@@ -3311,7 +3313,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   $('pdViewActs').addEventListener('click', async e => { const b = e.target.closest('[data-act]'); if (!b || !viewing) return; const a = b.dataset.act; b.disabled = true;
     try { if (a === 'delete') { await req('records/delete', { id: viewing.id }); toast('Deleted'); show(viewBack); refresh(); return; }
       if (a === 'end') { endStop(); return; }
-      const j = await req('records/act', { id: viewing.id, action: a }); toast({ approve: 'Warrant approved. It is active now.', deny: 'Warrant denied', serve: 'Warrant served', recall: 'Warrant recalled', clear: 'BOLO cleared' }[a] || 'Done'); openRecord(j.record, viewBack); refresh(); }
+      const j = await req('records/act', { id: viewing.id, action: a }); toast({ approve: 'Warrant approved. It is active now.', deny: 'Warrant denied', serve: 'Warrant served', recall: 'Warrant recalled', clear: 'BOLO cleared', paid: 'Fine marked paid', unpaid: 'Fine marked unpaid' }[a] || 'Done'); openRecord(j.record, viewBack); refresh(); }
     catch (x) { toast(x.message); b.disabled = false; } });
   $('pdView').addEventListener('click', e => { const p = e.target.closest('[data-person]'), v = e.target.closest('[data-vp]'); if (!p && !v) return; e.preventDefault(); if (p) openPerson(p.dataset.person, p.dataset.pn); else openVehicle(v.dataset.vp); });
   $('pdViewBack').addEventListener('click', () => show(viewBack));
@@ -4428,6 +4430,23 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
   $('stRdm').addEventListener('click', e => { const r = e.target.closest('[data-rdmres]'); if (r) { e.stopPropagation(); return rdmResolve(+r.dataset.f, r.dataset.rdmres); }
     const d = e.target.closest('[data-rdmdo]'); if (!d) return; e.stopPropagation(); const f = (RD.flags || []).find(x => x.id === +d.dataset.f); if (!f) return;
     sheet(d.dataset.rdmdo, { id: f.killer_id, name: f.killer }); cur.rdm = f.id; $('stDlgR').value = 'RDM: ' + f.reasons.join(', '); });
+  // ── help spam limits (app/helpspam.mjs): someone who keeps calling for staff gets a warning, then a kick, then a ban ──
+  let HS = null; const HS_DID = { warn: 'Warned', kick: 'Kicked', ban: 'Banned' };
+  const loadHelp = async () => { try { const r = await fetch(API + '/helpspam'); if (r.ok) HS = await r.json(); } catch (e) {} drawHelp(); };
+  const drawHelp = () => { if (!HS) return; const S = HS.settings, L = HS.log || [];
+    $('stHelp').innerHTML = `<div class="thead" style="margin-top:18px"><div><h2>Help spam</h2><small>Someone who keeps calling for staff gets a warning, then a kick, then a ban</small></div></div>`
+      + (HS.canEdit ? `<form class="st-rdmset" id="stHelpF"><label><input type="checkbox" name="on"${S.on ? ' checked' : ''}> <b>Limit help calls</b></label>
+        <label>Too many: <select name="limit">${[2, 3, 4, 5, 6, 8, 10, 15, 20].map(n => opt(n, S.limit, n + ' calls')).join('')}</select> within <select name="mins">${[1, 2, 5, 10, 15, 30, 60].map(n => opt(n, S.mins, n + ' min')).join('')}</select></label>
+        <label>Forget someone's strikes after <select name="forget">${[1, 3, 7, 14, 30, 90].map(n => opt(n, S.forget, n + ' day' + (n === 1 ? '' : 's'))).join('')}${opt(0, S.forget, 'never')}</select></label>
+        <div class="st-rdmrow"><button class="st-go" style="padding:6px 14px">Save</button><span class="msg" id="stHelpM"></span></div>
+        <small>The first time: a :pm warning. The second: a kick (they can join back). The third: a ban. Mod calls and !help, :help or !mod commands all count; staff in game never do.</small></form>`
+        : `<div class="st-rdmset"><small>${S.on ? `${S.limit} help calls within ${S.mins} min: a warning, then a kick, then a ban. An admin can change this.` : 'Help spam limits are off. An admin can turn them on here.'}</small></div>`)
+      + L.map(x => `<div class="st-rdm done"><div class="st-rdmh">${av(x.roblox_id, x.name, 'width:30px;height:30px')}<div class="grow"><b><button class="lnk" data-open="${esc(x.roblox_id)}" data-name="${esc(x.name)}">${esc(x.name)}</button></b><small>${HS_DID[x.action] || esc(x.action)} by Oversite · ${x.calls} help calls · ${esc(ago(x.at))}</small></div><button class="st-btn" data-hsclear="${esc(x.name)}" title="They start again from a warning">Clear strikes</button></div></div>`).join(''); };
+  $('stHelp').addEventListener('submit', async e => { e.preventDefault(); const f = e.target, m = $('stHelpM'), v = n => f.elements[n];
+    try { const r = await post('/helpspam/settings', { on: v('on').checked, limit: +v('limit').value, mins: +v('mins').value, forget: +v('forget').value });
+      HS.settings = r.settings; m.textContent = 'Saved.'; setTimeout(() => { if (m.isConnected) m.textContent = ''; }, 2500); } catch (x) { m.textContent = x.message; } });
+  $('stHelp').addEventListener('click', async e => { const b = e.target.closest('[data-hsclear]'); if (!b) return; e.stopPropagation();
+    try { const r = await post('/helpspam/clear', { name: b.dataset.hsclear }); HS.log = r.log; toast(r.ok ? `${b.dataset.hsclear}'s strikes are cleared.` : 'They have no strikes.'); drawHelp(); } catch (x) { toast(x.message); } });
   let render = () => { if (!D) return; $('stLive').style.background = 'var(--green)'; $('stServer').textContent = `${D.server.name || 'Server'} · ${D.server.players ?? D.players.length}/${D.server.max ?? '?'}`;
     renderPlayers(); renderCalls(); renderBans(); renderLogs(); if (pane === 'player') renderPlayer();
     const rn = D.rdm || 0; $('stRdmN').textContent = rn; $('stRdmN').hidden = !rn;   // open RDM flags; a new one pops up a note
@@ -4435,7 +4454,7 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
 
   // ── navigation ──
   let show = p => { pane = p; document.querySelectorAll('#stTabs [data-p]').forEach(b => b.setAttribute('aria-selected', b.dataset.p === p)); document.querySelectorAll('#staffMdt .st-pane').forEach(x => x.classList.toggle('on', x.dataset.p === p));
-    if (p === 'records') renderRecords(); if (p === 'player') renderPlayer(); if (p === 'rdm') loadRdm(); if (p === 'arrests') loadArr(); };
+    if (p === 'records') renderRecords(); if (p === 'player') renderPlayer(); if (p === 'rdm') loadRdm(); if (p === 'arrests') loadArr(); if (p === 'calls') loadHelp(); };
   const open = (id, name) => { const live = D && D.players.find(p => p.id === id); sel = live || { id, name, team: '', callsign: '', permission: '' }; show('player'); if (D) renderPlayers(); };
   $('stTabs').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) show(b.dataset.p); });
   $('stFind').addEventListener('input', () => D && renderPlayers());
