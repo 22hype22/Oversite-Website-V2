@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '3.6', date: '2026-10-25', tag: 'new', title: 'The phone’s buttons work',
+    body: 'The buttons on the Civilian phone’s frame do what they do on an iPhone, and pressing and holding an app works like it does there.', items: ['Side button: the screen goes dark; press it again (or tap) for the Lock Screen, then swipe up to open the phone where you left it', 'Volume buttons: the phone’s volume, shown on a bar beside them', 'Action button: Silent mode, shown in the Dynamic Island', 'Press and hold an app: Open, Edit Home Screen or Remove App. Keep dragging to move it', 'Edit mode: a minus on each app takes it off the Home Screen (search still finds it; Settings → Reset Home Screen brings it back), and Edit adds a widget or changes the wallpaper', 'On the iPad, the top button locks and the volume buttons sit beside it'] },
   { v: '3.5', date: '2026-10-25', tag: 'new', title: 'Swipe home, and a real iPad',
     body: 'On the Civilian phone, drag the bar at the bottom up to go back to the home screen, like on an iPhone: the app shrinks away as you swipe and the home screen shows behind it. Picking the tablet in Settings now shows an iPad Air, with its sky-blue edge, black border, camera and buttons.', items: [] },
   { v: '3.4', date: '2026-10-25', tag: 'new', title: 'Add your own departments',

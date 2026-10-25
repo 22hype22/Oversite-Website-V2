@@ -21,7 +21,8 @@
   let prefs = { wall: 'blue', widgets: ['weather', 'wallet'], device: 'phone', layout: null };
   const ids = v => Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 200) : null;
   try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) prefs = { wall: WALLS[p.wall] ? p.wall : 'blue', widgets: (p.widgets || []).filter(w => WIDGETS.includes(w)), device: p.device === 'tablet' ? 'tablet' : 'phone',
-    layout: ids(p.layout?.order) && ids(p.layout?.dock) ? { order: ids(p.layout.order), dock: ids(p.layout.dock) } : null }; } catch (e) {}
+    layout: ids(p.layout?.order) && ids(p.layout?.dock) ? { order: ids(p.layout.order), dock: ids(p.layout.dock), gone: ids(p.layout.gone) || [] } : null,
+    vol: Number.isInteger(p.vol) && p.vol >= 0 && p.vol <= 16 ? p.vol : 10, silent: !!p.silent }; } catch (e) {}
   // the home screen is laid out again when something it depends on changes (the device, the widgets, the size)
   let layoutFn = null, layoutQueued = false;
   const queueLayout = () => { if (!layoutFn || layoutQueued) return; layoutQueued = true; requestAnimationFrame(() => { layoutQueued = false; layoutFn(); }); };
@@ -35,12 +36,46 @@
   background:linear-gradient(#000,#000) padding-box,
     linear-gradient(135deg,#E3E1DC 0%,#9C9A95 14%,#6D6B67 32%,#B5B3AE 50%,#6D6B67 68%,#9C9A95 86%,#E3E1DC 100%) border-box;
   box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.08),inset 0 0 0 2px rgba(0,0,0,.9)}
-#civMdt.phone .tablet::before,#civMdt.phone .tablet::after{content:"";position:absolute;width:4px;pointer-events:none;
-  background:linear-gradient(90deg,#5E5C58,#B9B7B2 45%,#77756F)}
-#civMdt.phone .tablet::before{left:-7.5px;top:17%;height:5%;border-radius:3px 0 0 3px}
-#civMdt.phone .tablet::after{right:-7.5px;top:25.5%;height:12%;border-radius:0 3px 3px 0}
-#civMdt.phone .tablet .ph-vol{position:absolute;left:-7.5px;width:4px;border-radius:3px 0 0 3px;pointer-events:none;background:linear-gradient(90deg,#5E5C58,#B9B7B2 45%,#77756F)}
-#civMdt.phone .tablet .ph-vol.up{top:25%;height:8.5%}#civMdt.phone .tablet .ph-vol.down{top:35.5%;height:8.5%}
+/* the buttons on the frame work: the Action button (Silent mode) and volume buttons on the left, the side button (lock) on the right */
+#civMdt.phone .ph-key{position:absolute;left:-7.5px;width:4px;padding:0;border:0;border-radius:3px 0 0 3px;background:linear-gradient(90deg,#5E5C58,#B9B7B2 45%,#77756F);cursor:pointer;transition:transform .08s ease}
+#civMdt.phone .ph-key::before{content:"";position:absolute;inset:-3px -8px}#civMdt.phone .ph-key:active{transform:translateX(1.5px)}
+#civMdt.phone .ph-key:focus-visible{outline:2px solid #0A84FF;outline-offset:2px}
+#civMdt.phone .ph-key.act{top:17%;height:5%}#civMdt.phone .ph-key.up{top:25%;height:8.5%}#civMdt.phone .ph-key.down{top:35.5%;height:8.5%}
+#civMdt.phone .ph-key.side{left:auto;right:-7.5px;top:25.5%;height:12%;border-radius:0 3px 3px 0;background:linear-gradient(270deg,#5E5C58,#B9B7B2 45%,#77756F)}#civMdt.phone .ph-key.side:active{transform:translateX(-1.5px)}
+/* the volume, on a bar by the buttons */
+#civMdt.phone .ph-hud{position:absolute;z-index:41;left:calc(3.4% + 7px);top:24%;width:7px;height:19%;border-radius:999px;background:rgba(40,40,44,.7);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  overflow:hidden;opacity:0;transform:translateX(-6px);transition:opacity .18s ease,transform .25s cubic-bezier(.23,1,.32,1),width .2s ease;pointer-events:none}
+#civMdt.phone .ph-hud.on{opacity:1;transform:none;width:9px}#civMdt.phone .ph-hud i{position:absolute;left:0;right:0;bottom:0;height:calc(var(--v,.6) * 100%);background:#fff;transition:height .12s ease}#civMdt.phone .ph-hud.mute i{background:rgba(255,255,255,.45)}
+/* Silent mode, in the Dynamic Island as it stretches out */
+#civMdt.phone .ph-isl{position:absolute;z-index:41;top:calc(3.4% + 11px);left:50%;width:31%;transform:translateX(-50%);border-radius:999px;background:#000;color:#fff;display:flex;align-items:center;justify-content:space-between;
+  gap:8px;padding:0 14px;box-sizing:border-box;font:600 13px/1 -apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;opacity:0;pointer-events:none;overflow:hidden;white-space:nowrap;transition:width .4s cubic-bezier(.32,.72,0,1),opacity .2s ease}
+#civMdt.phone .ph-isl.on{width:44%;opacity:1}#civMdt.phone .ph-isl svg{flex:none}#civMdt.phone .ph-isl b{color:#FF453A;font-weight:600}#civMdt.phone .ph-isl b.ring{color:#fff}
+/* asleep: the screen dark; the Lock Screen: the date and a big time over the wallpaper, swiped up to open */
+#civMdt.phone .ph-off{position:absolute;inset:0;z-index:40;background:#000;cursor:pointer;animation:ph-fade .25s ease}#civMdt.phone .ph-off[hidden],#civMdt.phone .ph-lock[hidden]{display:none}
+#civMdt.phone .ph-lock{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;background:var(--wall);color:#fff;touch-action:none;cursor:grab;user-select:none;transition:transform .28s cubic-bezier(.32,.72,0,1),opacity .28s ease;animation:ph-fade .3s ease}
+#civMdt.phone .ph-lock-top{margin-top:58px;opacity:.9}#civMdt.phone .ph-lock-t{text-align:center;margin-top:6px}#civMdt.phone .ph-lock-t small{display:block;font-size:17px;font-weight:600;opacity:.9}
+#civMdt.phone .ph-lock-t b{display:block;font-size:84px;font-weight:600;letter-spacing:-.02em;line-height:1;margin-top:2px;font-variant-numeric:tabular-nums}
+#civMdt.phone .ph-lock-b{margin-top:auto;width:100%;display:flex;justify-content:space-between;padding:0 44px;box-sizing:border-box}
+#civMdt.phone .ph-lock-b span{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+#civMdt.phone .ph-lock-h{margin:22px 0 34px;padding:6px 10px;border:0;background:none;color:#fff;font:500 13px/1 inherit;opacity:.85;cursor:pointer}
+#civMdt.phone.ph-locked .sbar{z-index:9}#civMdt.phone.ph-locked .ph-back,#civMdt.phone.ph-locked .ph-bar{visibility:hidden}
+@keyframes ph-fade{from{opacity:0}to{opacity:1}}
+/* press and hold an app: a menu under it, over a blurred home screen */
+#civMdt.phone .ph-menu{position:absolute;inset:0;z-index:12;background:rgba(0,0,0,.28);-webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);opacity:0;transition:opacity .18s ease}
+#civMdt.phone .ph-menu.on{opacity:1}#civMdt.phone .ph-menu[hidden]{display:none}
+#civMdt.phone .ph-menu-ic{position:absolute;width:60px;height:60px;border-radius:22.5%;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.45);transform:scale(.96);transition:transform .25s cubic-bezier(.23,1,.32,1)}
+#civMdt.phone .ph-menu.on .ph-menu-ic{transform:scale(1.06)}#civMdt.phone .ph-menu-ic svg{display:block;width:100%;height:100%;padding:0}
+#civMdt.phone .ph-menu-card{position:absolute;min-width:220px;max-width:calc(100% - 24px);border-radius:14px;overflow:hidden;background:rgba(44,44,48,.82);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);
+  box-shadow:0 16px 40px rgba(0,0,0,.45);transform-origin:var(--o,top left);transform:scale(.9);opacity:0;transition:transform .22s cubic-bezier(.23,1,.32,1),opacity .15s ease}
+#civMdt.phone .ph-menu.on .ph-menu-card{transform:none;opacity:1}
+#civMdt.phone .ph-menu-card button{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:11px 15px;border:0;border-top:.5px solid rgba(255,255,255,.12);background:none;color:#fff;font:400 15px/1.2 inherit;text-align:left;cursor:pointer}
+#civMdt.phone .ph-menu-card button:first-child{border-top:0}#civMdt.phone .ph-menu-card button:hover,#civMdt.phone .ph-menu-card button:focus-visible{background:rgba(255,255,255,.08);outline:none}#civMdt.phone .ph-menu-card button.dz{color:#FF453A}
+/* edit mode: a minus on each app takes it off the Home Screen; Edit (top left) adds widgets or changes the wallpaper */
+#civMdt.phone .ph-rm{display:none;position:absolute;top:-6px;left:calc(50% - 36px);width:21px;height:21px;border-radius:50%;background:rgba(90,90,96,.92);z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+#civMdt.phone .ph-rm::after{content:"";position:absolute;left:5.5px;right:5.5px;top:9.5px;height:2px;border-radius:1px;background:#fff}
+#civMdt.phone.ph-edit .ph-rm{display:block;cursor:pointer}#civMdt.phone .tside button[data-p].ph-gone{display:none}
+#civMdt.phone .ph-editb{display:none;padding:5px 14px;border-radius:999px;border:0;background:rgba(255,255,255,.24);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:#fff;font:600 13px/1.2 inherit;cursor:pointer}
+#civMdt.phone.home.ph-edit .ph-editb{display:block}#civMdt.phone.home.ph-edit .sbar>:not(.ph-editb):not(.ph-done){visibility:hidden}#civMdt.phone .tside:focus{outline:none}
 #civMdt.phone .tablet .screen{border-radius:12.6%/5.9%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",system-ui,sans-serif;background:#05070D;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
 #civMdt.phone .tablet .cam{top:calc(3.4% + 11px);width:31%;height:auto;aspect-ratio:3.4/1;margin-left:-15.5%;border-radius:999px;background:#000;
@@ -168,7 +203,7 @@
 #civMdt.phone .cv-form .grid3{grid-template-columns:1fr 1fr}
 #civMdt.phone .cv-car .cv-pills{order:3;flex-basis:100%;padding-left:0}
 @media (max-width:760px){#civMdt.phone{width:100vw}#civMdt.phone .tablet{aspect-ratio:auto;height:100%;border-radius:0;padding:0;box-shadow:none;background:#05070D}
-  #civMdt.phone .tablet .screen{border-radius:0;box-shadow:none}#civMdt.phone .tablet .cam{display:none}#civMdt.phone .tablet::before,#civMdt.phone .tablet::after,#civMdt.phone .tablet .ph-vol{display:none}#civMdt.phone .tablet{border:0}#civMdt.phone .sbar{padding:10px 20px 6px;min-height:0}
+  #civMdt.phone .tablet .screen{border-radius:0;box-shadow:none}#civMdt.phone .tablet .cam{display:none}#civMdt.phone .tablet::before,#civMdt.phone .tablet::after,#civMdt.phone .ph-key,#civMdt.phone .ph-hud,#civMdt.phone .ph-isl{display:none}#civMdt.phone .tablet{border:0}#civMdt.phone .sbar{padding:10px 20px 6px;min-height:0}
   #civMdt.phone .tside button[data-p] svg,#civMdt.phone .ph-ghost svg{width:56px;height:56px;padding:14px}#civMdt.phone .ph-dock{margin-bottom:30px}}
 @media (prefers-reduced-motion:reduce){#civMdt.phone .tside,#civMdt.phone.home .tside{transition:none;transform:none}}
 /* the tablet, above phone width: the same home screen and apps on an iPad, landscape, a thin bezel with a camera dot in it (on a phone it stays the phone) */
@@ -178,10 +213,13 @@
 #civMdt.phone.pad .tablet{aspect-ratio:4/3;border-radius:30px;padding:18px;border:3px solid transparent;
   background:linear-gradient(#050608,#050608) padding-box,linear-gradient(135deg,#E2F1F8 0%,#A9CCDC 16%,#86AFC3 38%,#C9E3EE 54%,#8AB3C7 74%,#D6EBF3 100%) border-box;
   box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.07)}
-#civMdt.phone.pad .tablet .screen{border-radius:14px}
-#civMdt.phone.pad .tablet::before,#civMdt.phone.pad .tablet .ph-vol{left:auto;top:-6.5px;width:7%;height:3.5px;border-radius:2px 2px 0 0;background:linear-gradient(180deg,#D3E8F1,#8CB2C4)}
-#civMdt.phone.pad .tablet::before{right:8%}#civMdt.phone.pad .tablet::after{display:none}
-#civMdt.phone.pad .tablet .ph-vol.up{right:19%;top:-6.5px;height:3.5px;width:5.5%}#civMdt.phone.pad .tablet .ph-vol.down{right:25.5%;top:-6.5px;height:3.5px;width:5.5%}
+#civMdt.phone.pad .tablet .screen{border-radius:14px}#civMdt.phone.pad .tablet::before,#civMdt.phone.pad .tablet::after{display:none}
+#civMdt.phone.pad .ph-key{left:auto;top:-6.5px;height:3.5px;border-radius:2px 2px 0 0;background:linear-gradient(180deg,#D3E8F1,#8CB2C4)}#civMdt.phone.pad .ph-key:active{transform:translateY(1.5px)}
+#civMdt.phone.pad .ph-key::before{inset:-8px -3px}#civMdt.phone.pad .ph-key.act{display:none}#civMdt.phone.pad .ph-key.side{right:8%;width:7%}
+#civMdt.phone.pad .ph-key.up{right:19%;width:5.5%}#civMdt.phone.pad .ph-key.down{right:25.5%;width:5.5%}
+#civMdt.phone.pad .ph-hud{left:auto;right:19%;top:24px;width:12%;height:7px;transform:translateY(-6px)}#civMdt.phone.pad .ph-hud.on{transform:none;width:12%;height:9px}
+#civMdt.phone.pad .ph-hud i{top:0;bottom:0;height:auto;width:calc(var(--v,.6) * 100%);transition:width .12s ease}#civMdt.phone.pad .ph-isl{display:none}
+#civMdt.phone.pad .ph-lock-top{margin-top:40px}#civMdt.phone.pad .ph-lock-t b{font-size:96px}
 #civMdt.phone.pad .tablet .cam{top:-12px;width:6px;height:6px;aspect-ratio:auto;margin-left:-3px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2B3A55,#0B1220 60%,#05080F);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
 #civMdt.phone.pad .tablet .cam::after{display:none}
 #civMdt.phone.pad .sbar{padding:9px 26px 4px;min-height:32px;font-size:13.5px}#civMdt.phone.pad .sb-ic{gap:5px}
@@ -210,8 +248,6 @@
 #civMdt.phone .ps-r .ps-sw{flex:none}#civMdt.phone .ps-walls{row-gap:30px}#civMdt.phone button.ps-r:first-child{border-top:0}`;
   document.head.appendChild(css);
   page.classList.add('phone', 'home');
-  // the volume buttons (the Action button and the side button are drawn by the frame itself)
-  for (const k of ['up', 'down']) { const v = document.createElement('i'); v.className = 'ph-vol ' + k; v.setAttribute('aria-hidden', 'true'); page.querySelector('.tablet')?.appendChild(v); }
   const screen = page.querySelector('.screen'), screens = page.querySelector('.tscreens'), sbar = page.querySelector('.sbar');
   const applyWall = () => { for (const k of Object.keys(WALLS)) page.classList.toggle('wall-' + k, k === prefs.wall); page.style.setProperty('--wall', WALLS[prefs.wall][1]); };
   const applyDevice = () => { page.classList.toggle('pad', prefs.device === 'tablet'); dispatchEvent(new CustomEvent('ovphonedevice', { detail: { device: prefs.device } })); queueLayout(); };
@@ -237,7 +273,7 @@
   const appName = b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
   // The layout: the apps in order (the pages are that list cut to fit each page) and the dock. Until something is moved, an app
   // takes its usual place: the dock if it starts there, else after the others.
-  const lay = prefs.layout ? { order: [...prefs.layout.order], dock: [...prefs.layout.dock] } : { order: [], dock: [] };
+  const lay = prefs.layout ? { order: [...prefs.layout.order], dock: [...prefs.layout.dock], gone: [...(prefs.layout.gone || [])] } : { order: [], dock: [], gone: [] };   // gone: taken off the Home Screen (search still finds them)
   const dockMax = () => page.classList.contains('pad') && innerWidth > 760 ? 6 : 4;
   const learn = (before = {}) => { for (const b of btns()) { const id = b.dataset.p; if (lay.order.includes(id) || lay.dock.includes(id)) continue;
     if (!prefs.layout && DOCK.includes(id)) { lay.dock.push(id); lay.dock.sort((x, y) => DOCK.indexOf(x) - DOCK.indexOf(y)); continue; }
@@ -343,7 +379,8 @@
   };
 
   // an app with its own icon art gets it in place of the line glyph
-  const paint = b => { const art = ART[b.dataset.p], g = b.querySelector('svg'); if (art && g && !g.classList.contains('ai')) g.outerHTML = art; };
+  const paint = b => { const art = ART[b.dataset.p], g = b.querySelector('svg'); if (art && g && !g.classList.contains('ai')) g.outerHTML = art;
+    if (!b.querySelector('.ph-rm')) b.insertAdjacentHTML('beforeend', '<span class="ph-rm" title="Remove from Home Screen"></span>'); };
   tabs.querySelectorAll('button[data-p]').forEach(paint);
 
   // adding an app: an icon on the home screen and its own screen, which `render` fills the first time it opens
@@ -395,7 +432,7 @@
     if (keep && $(keep)) $(keep).focus(); };
   const settings = addApp({ id: 'phset', name: 'Settings', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
     color: 'linear-gradient(180deg,#A3A8B1,#6E737C)', render: sec => { setSec = sec; drawSettings(); }, onOpen: () => loadWx(true) });
-  settings.section.addEventListener('click', e => { if (e.target.closest('[data-relayout]')) { prefs.layout = null; lay.order.length = 0; lay.dock.length = 0; save(); plan = ''; layout(); return; }
+  settings.section.addEventListener('click', e => { if (e.target.closest('[data-relayout]')) { prefs.layout = null; lay.order.length = 0; lay.dock.length = 0; lay.gone.length = 0; markGone(); save(); plan = ''; layout(); return; }
     const d = e.target.closest('[data-dev]'); if (d) { prefs.device = d.dataset.dev; save(); applyDevice(); drawSettings(); fit(); return; }
     const w = e.target.closest('[data-wall]'); if (!w) return; prefs.wall = w.dataset.wall; save(); applyWall(); drawSettings(); });
   settings.section.addEventListener('change', e => { const t = e.target; if (!t.dataset.wid) return;
@@ -410,7 +447,7 @@
     + '<input type="search" placeholder="Search" aria-label="Search apps" autocomplete="off" enterkeyhint="go"></label><button type="button" class="ph-spot-x">Cancel</button></div><div class="ph-spot-res" aria-live="polite"></div>';
   screen.appendChild(spot);
   const sq = spot.querySelector('input'), res = spot.querySelector('.ph-spot-res');
-  const hits = () => { const v = sq.value.trim().toLowerCase(), all = [...lay.dock, ...lay.order].map(btn).filter(shown);
+  const hits = () => { const v = sq.value.trim().toLowerCase(), all = [...lay.dock, ...lay.order].map(btn).filter(b => shown(b) || (b && !b.hidden && b.classList.contains('ph-gone')));
     return v ? all.filter(b => appName(b).toLowerCase().includes(v)) : all.slice(0, 8); };
   const drawSpot = () => { const list = hits(), v = sq.value.trim();
     res.innerHTML = list.length ? `<h4>${v ? 'Apps' : 'Suggestions'}</h4><div class="ph-spot-grid">${list.map(b => `<button type="button" class="ph-spot-app" data-go="${esc(b.dataset.p)}" style="--app:${esc(getComputedStyle(b).getPropertyValue('--app').trim())}">${b.querySelector('svg')?.outerHTML || ''}<span>${esc(appName(b))}</span></button>`).join('')}</div>`
@@ -429,7 +466,7 @@
   const editing = () => page.classList.contains('ph-edit');
   const enterEdit = () => { if (!editing()) page.classList.add('ph-edit'); };
   const leaveEdit = () => { page.classList.remove('ph-edit'); };
-  done.addEventListener('click', leaveEdit);
+  done.addEventListener('click', () => { leaveEdit(); tabs.focus({ preventScroll: true }); });   // Done hides itself, so the keyboard carries on from the Home Screen
   const listOf = id => lay.dock.includes(id) ? lay.dock : lay.order;
   const dockCount = () => lay.dock.filter(id => shown(btn(id))).length;
   const changed = before => { if (JSON.stringify(lay) === before) return false; prefs.layout = lay; layout(); return true; };
@@ -473,11 +510,11 @@
   tabs.addEventListener('pointerdown', e => { if (!page.classList.contains('home') || e.button > 0 || press || e.target.closest('.ph-dots')) return;
     const b = e.target.closest('button[data-p]');
     press = { b, id: e.pointerId, x: e.clientX, y: e.clientY, left: pager.scrollLeft, from: cur, mouse: e.pointerType === 'mouse', mode: null, held: !!(b && editing()) };
-    if (b && !editing()) press.t = setTimeout(() => { if (press && !press.mode) { press.held = true; enterEdit(); } }, 450); });
+    if (b && !editing()) press.t = setTimeout(() => { if (press && !press.mode) { press.held = true; appMenu(b); } }, 450); });
   addEventListener('pointermove', e => { const p = press; if (!p || e.pointerId !== p.id) return;
     const dx = e.clientX - p.x, dy = e.clientY - p.y, far = Math.hypot(dx, dy);
     if (!p.mode) {
-      if (p.held && p.b && far > 5) startDrag(e);
+      if (p.held && p.b && far > 5) { closeMenu(); startDrag(e); }
       else if (!p.held && far > 8) { clearTimeout(p.t);
         if (dy > 0 && dy > Math.abs(dx) * 1.2 && !editing()) { p.mode = 'pull'; spot.hidden = false; spot.classList.add('pulling'); }
         else if (p.mouse && Math.abs(dx) > Math.abs(dy)) { p.mode = 'swipe'; swiping = true; pager.style.scrollSnapType = 'none'; }
@@ -497,10 +534,12 @@
   tabs.addEventListener('contextmenu', e => { if (e.target.closest('button[data-p]')) e.preventDefault(); });
   // in edit mode nothing opens; a tap on an empty spot ends it. Right after a hold or a drag, the click it ends with is not a tap.
   tabs.addEventListener('click', e => { const onApp = e.target.closest('button[data-p],[data-open]');
+    if (editing() && e.target.closest('.ph-rm') && onApp?.dataset.p) { e.preventDefault(); e.stopImmediatePropagation(); removeApp(onApp.dataset.p); return; }
     if (Date.now() < mute || (editing() && onApp)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (editing() && !onApp && !e.target.closest('.ph-dots')) leaveEdit(); }, true);
   // with the keyboard: in edit mode the arrow keys move the focused app
-  tabs.addEventListener('keydown', e => { const b = e.target.closest('button[data-p]'); if (!editing() || !b || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+  tabs.addEventListener('keydown', e => { const b = e.target.closest('button[data-p]'); if (editing() && b && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); removeApp(b.dataset.p); return; }
+    if (!editing() || !b || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
     e.preventDefault(); const id = b.dataset.p, list = listOf(id), i = list.indexOf(id), j = i + (e.key === 'ArrowLeft' ? -1 : 1);
     if (j < 0 || j >= list.length) return; const was = JSON.stringify(lay); [list[i], list[j]] = [list[j], list[i]]; if (changed(was)) { keep(); b.focus(); } });
 
@@ -525,14 +564,93 @@
   bar.addEventListener('pointerup', endSwipe); bar.addEventListener('pointercancel', endSwipe);
   bar.addEventListener('click', () => { if (swiped) { swiped = false; return; } home(true); }); back.addEventListener('click', () => home(true));
   page.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !menu.hidden) { e.stopPropagation(); closeMenu(); return; }
     if (e.key === 'Escape' && spotOpen()) { e.stopPropagation(); closeSpot(); return; }
     if (e.key === 'Escape' && editing()) { e.stopPropagation(); leaveEdit(); return; }
     if (e.key === 'Escape' && !page.classList.contains('home') && !e.target.closest('input,textarea,select,dialog')) { e.stopPropagation(); home(true); return; }
     const typing = e.target.closest('input,textarea,select,[contenteditable]');
     if (page.classList.contains('home') && !typing && (e.key === '/' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'))) { e.preventDefault(); openSpot(); } });
+  // ── press and hold an app: a menu under it over the blurred Home Screen (Open, Edit Home Screen, Remove App). Moving the finger
+  // from there starts moving apps, as on an iPhone. The same menu, from Edit in edit mode, adds a widget or changes the wallpaper. ──
+  const menu = document.createElement('div'); menu.className = 'ph-menu'; menu.hidden = true; screen.appendChild(menu);
+  const MI = { open: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>',
+    edit: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2"/></svg>',
+    rm: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>',
+    wid: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/></svg>',
+    wall: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg>' };
+  const at = r => { const sr = screen.getBoundingClientRect(), k = screen.offsetWidth ? sr.width / screen.offsetWidth : 1; return { x: (r.left - sr.left) / k, y: (r.top - sr.top) / k, w: r.width / k, h: r.height / k }; };
+  const showMenu = (items, r, iconHTML = '') => { const W = screen.offsetWidth, H = screen.offsetHeight, cardW = 230, below = r.y + r.h + 10 + items.length * 44 < H - 30;
+    const x = Math.max(12, Math.min(W - cardW - 12, r.x + (r.x + r.w / 2 > W / 2 ? r.w - cardW : 0))), y = below ? r.y + r.h + 10 : Math.max(12, r.y - 10 - items.length * 44);
+    menu.innerHTML = (iconHTML ? `<div class="ph-menu-ic" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.w}px">${iconHTML}</div>` : '')
+      + `<div class="ph-menu-card" role="menu" style="left:${x}px;top:${y}px;width:${cardW}px;--o:${below ? 'top' : 'bottom'} ${x > r.x ? 'left' : 'right'}">${items.map(([m, label, ic, dz]) => `<button type="button" role="menuitem" data-m="${m}"${dz ? ' class="dz"' : ''}><span>${esc(label)}</span>${MI[ic] || ''}</button>`).join('')}</div>`;
+    menu.hidden = false; void menu.offsetWidth; menu.classList.add('on'); menu.querySelector('[data-m]')?.focus({ preventScroll: true }); };
+  let menuFor = null;
+  // closing it hands focus back to the app it was for (or the Home Screen), so the keyboard keeps working in the phone
+  const closeMenu = () => { if (menu.hidden) return; menu.classList.remove('on'); const f = menuFor && btn(menuFor); menuFor = null; if (menu.contains(document.activeElement)) (f && shown(f) ? f : tabs).focus({ preventScroll: true }); setTimeout(() => { if (!menu.classList.contains('on')) menu.hidden = true; }, still.matches ? 0 : 170); };
+  const appMenu = b => { const ic = b.querySelector('svg'); if (!ic) return; menuFor = b.dataset.p;
+    showMenu([['open', 'Open ' + appName(b), 'open'], ['edit', 'Edit Home Screen', 'edit'], ['rm', 'Remove App', 'rm', true]], at(ic.getBoundingClientRect()), ic.outerHTML); };
+  menu.addEventListener('click', e => { const a = e.target.closest('[data-m]'), id = menuFor; closeMenu(); if (!a) return;
+    if (a.dataset.m === 'open') btn(id)?.click(); else if (a.dataset.m === 'edit') enterEdit(); else if (a.dataset.m === 'rm') removeApp(id);
+    else if (a.dataset.m === 'wid' || a.dataset.m === 'wall') { leaveEdit(); btn('phset')?.click(); }
+    if (!page.contains(document.activeElement) || !document.activeElement.offsetParent) tabs.focus({ preventScroll: true }); });
+  if (!tabs.hasAttribute('tabindex')) tabs.tabIndex = -1;   // so focus can rest on the Home Screen itself
+  const editB = document.createElement('button'); editB.type = 'button'; editB.className = 'ph-editb'; editB.textContent = 'Edit'; sbar.prepend(editB);
+  editB.addEventListener('click', () => showMenu([['wid', 'Add Widget', 'wid'], ['wall', 'Wallpaper', 'wall']], at(editB.getBoundingClientRect())));
+  // taking an app off the Home Screen: it hides there, search still finds it, and Settings → Reset Home Screen brings it back
+  const markGone = () => btns().forEach(b => b.classList.toggle('ph-gone', lay.gone.includes(b.dataset.p)));
+  const removeApp = id => { if (!id || lay.gone.includes(id)) return; lay.gone.push(id); markGone(); keep(); queueLayout(); };
+  markGone();
+
+  // ── the buttons on the frame, as on the real thing. Side button: the screen goes dark; pressed again (or a tap), the Lock Screen
+  // with the date and time, and a swipe up opens the phone where it was. Volume buttons: the phone's volume, on a bar by the buttons,
+  // with a click. Action button: Silent mode, shown as the Dynamic Island stretches. On the iPad the top button locks. Kept on this device.
+  const tab = page.querySelector('.tablet');
+  const key = (k, label) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'ph-key ' + k; b.setAttribute('aria-label', label); tab.appendChild(b); return b; };
+  const kAct = key('act', 'Action button: Silent mode'), kUp = key('up', 'Volume up'), kDown = key('down', 'Volume down'), kSide = key('side', 'Side button: lock');
+  if (!Number.isFinite(prefs.vol)) prefs.vol = 10;
+  let actx = null;
+  const tick = () => { if (prefs.silent || !prefs.vol) return; try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state !== 'running') actx.resume();
+    const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 1500; g.gain.setValueAtTime(.1 * prefs.vol / 16, t); g.gain.exponentialRampToValueAtTime(.0001, t + .035);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .04); } catch (e) {} };
+  const hud = document.createElement('div'); hud.className = 'ph-hud'; hud.setAttribute('role', 'status'); hud.innerHTML = '<i></i>'; tab.appendChild(hud);
+  let hudT = 0;
+  const showVol = () => { hud.style.setProperty('--v', (prefs.vol / 16).toFixed(3)); hud.classList.toggle('mute', !prefs.vol || !!prefs.silent); hud.setAttribute('aria-label', `Volume ${Math.round(prefs.vol / 16 * 100)}%`);
+    hud.classList.add('on'); clearTimeout(hudT); hudT = setTimeout(() => hud.classList.remove('on'), 1500); };
+  kUp.addEventListener('click', () => { prefs.vol = Math.min(16, prefs.vol + 1); save(); showVol(); tick(); });
+  kDown.addEventListener('click', () => { prefs.vol = Math.max(0, prefs.vol - 1); save(); showVol(); tick(); });
+  const isl = document.createElement('div'); isl.className = 'ph-isl'; isl.setAttribute('role', 'status'); tab.appendChild(isl);
+  const BELL = on => `<svg width="17" height="17" viewBox="0 0 24 24" fill="${on ? '#FF453A' : '#fff'}"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2Zm7-6V11a7 7 0 0 0-5.5-6.8V3.5a1.5 1.5 0 0 0-3 0v.7A7 7 0 0 0 5 11v5l-2 2v1h18v-1Z"/>${on ? '<path d="M3 3 21 21" stroke="#FF453A" stroke-width="2.4" stroke-linecap="round"/><path d="M3.6 1.6 22.4 20.4" stroke="#000" stroke-width="1.6" stroke-linecap="round"/>' : ''}</svg>`;
+  let islT = 0;
+  kAct.addEventListener('click', () => { prefs.silent = !prefs.silent; save(); const cam = tab.querySelector('.cam'); if (cam) isl.style.height = cam.offsetHeight + 'px';
+    isl.innerHTML = BELL(prefs.silent) + (prefs.silent ? '<b>Silent</b>' : '<b class="ring">Ring</b>'); isl.setAttribute('aria-label', prefs.silent ? 'Silent mode on' : 'Silent mode off');
+    isl.classList.add('on'); clearTimeout(islT); islT = setTimeout(() => isl.classList.remove('on'), 1700); });
+  const off = document.createElement('div'); off.className = 'ph-off'; off.hidden = true; off.setAttribute('aria-label', 'Screen off. Tap to wake'); screen.appendChild(off);
+  const lock = document.createElement('div'); lock.className = 'ph-lock'; lock.hidden = true;
+  lock.innerHTML = '<div class="ph-lock-top"><svg width="16" height="20" viewBox="0 0 16 20" fill="#fff"><path d="M3 8V5.5a5 5 0 0 1 10 0V8h.5A1.5 1.5 0 0 1 15 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 17.5v-8A1.5 1.5 0 0 1 2.5 8Zm2 0h6V5.5a3 3 0 0 0-6 0Z"/></svg></div>'
+    + '<div class="ph-lock-t"><small></small><b></b></div><div class="ph-lock-b"><span><svg width="18" height="22" viewBox="0 0 18 24" fill="#fff"><path d="M3 1h12l-1.6 6.5H4.6Zm1.6 8h8.8v12a2 2 0 0 1-2 2H6.6a2 2 0 0 1-2-2Z"/></svg></span>'
+    + '<span><svg width="22" height="18" viewBox="0 0 24 20" fill="#fff"><path d="M8.5 1h7l1.6 2.5H21a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2h3.9Zm3.5 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg></span></div>'
+    + '<button type="button" class="ph-lock-h">Swipe up to open</button>';
+  screen.appendChild(lock);
+  let lockState = 'on', clockT = 0;
+  const drawLock = () => { const d = new Date(); lock.querySelector('small').textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    lock.querySelector('.ph-lock-t b').textContent = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M$/i, ''); };
+  const setLock = s => { lockState = s; off.hidden = s !== 'off'; lock.hidden = s !== 'lock'; page.classList.toggle('ph-locked', s !== 'on'); clearInterval(clockT);
+    if (s === 'lock') { lock.style.transform = ''; lock.style.opacity = ''; drawLock(); clockT = setInterval(drawLock, 15000); }
+    if (s !== 'on') { closeMenu(); closeSpot(); leaveEdit(); } };
+  kSide.addEventListener('click', () => setLock(lockState === 'off' ? 'lock' : 'off'));
+  off.addEventListener('click', () => setLock('lock'));
+  const unlock = () => { if (still.matches) { setLock('on'); return; } lock.style.transform = 'translateY(-100%)'; lock.style.opacity = '0'; setTimeout(() => setLock('on'), 260); };
+  let lsw = null;
+  lock.addEventListener('pointerdown', e => { if (e.button) return; lsw = { y: e.clientY, dy: 0 }; lock.setPointerCapture(e.pointerId); lock.style.transition = 'none'; });
+  lock.addEventListener('pointermove', e => { if (!lsw) return; lsw.dy = Math.max(0, lsw.y - e.clientY); if (still.matches) return; lock.style.transform = `translateY(${-lsw.dy}px)`; lock.style.opacity = String(1 - Math.min(.7, lsw.dy / 360)); });
+  const lockEnd = e => { if (!lsw) return; const d = lsw.dy; lsw = null; lock.style.transition = '';
+    if (d > 70) unlock(); else { lock.style.transform = ''; lock.style.opacity = ''; if (d < 6 && e.type === 'pointerup' && e.target.closest('.ph-lock-h')) unlock(); } };
+  lock.addEventListener('pointerup', lockEnd); lock.addEventListener('pointercancel', lockEnd);
+  lock.querySelector('.ph-lock-h').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); unlock(); } });
+
   // opening the Civilian tab starts on the home screen
   document.querySelector('.menu [data-view="civ"]')?.addEventListener('click', () => home(true));
-  window.ovPhone = { addApp, call, esc, home, open: id => tabs.querySelector(`button[data-p="${id}"]`)?.click(), isOpen: id => !page.classList.contains('home') && !!added.get(id)?.sec.classList.contains('on') };
+  window.ovPhone = { addApp, call, esc, home, sound: () => ({ volume: prefs.vol / 16, silent: !!prefs.silent }), open: id => tabs.querySelector(`button[data-p="${id}"]`)?.click(), isOpen: id => !page.classList.contains('home') && !!added.get(id)?.sec.classList.contains('on') };
   drawWidgets(); loadWx(); fit(); layout();
   dispatchEvent(new CustomEvent('ovphoneready'));
 })();
