@@ -16,7 +16,7 @@ const ROUTES = [
   ['GET', 'loa?status=pending', 'read', 'Leave (LOA) requests from departments and the staff team: who, which department, first and last day, reason and status. Leave out <code>status</code> for recent ones too. Or get them as they happen with the <code>loa.requested</code> event.'],
   ['GET', 'people?discord_id=', 'people', 'A member’s Roblox account from their Discord ID. Also takes <code>roblox_id</code> or <code>roblox_name</code>.'],
   ['GET', 'lookup?q=', 'lookup', 'Search people and plates, with their warrant and BOLO flags.'],
-  ['GET', 'person?roblox_name=', 'lookup', 'One person’s criminal record, for a <code>/search</code> command: <code>wanted</code>, open warrants, BOLOs, arrests, citations and warnings with counts, their vehicles and license. Also takes <code>discord_id</code> or <code>roblox_id</code>.'],
+  ['GET', 'person?roblox_name=', 'lookup', 'One person’s criminal record, for a <code>/search</code> command: <code>wanted</code>, officer safety <code>markers</code> (like FI, Firearms), open warrants, BOLOs, arrests, citations and warnings with counts, their vehicles and license. Also takes <code>discord_id</code> or <code>roblox_id</code>.'],
   ['GET', 'plates/{plate}', 'lookup', 'A plate: model, color, owner, registration, insurance, stolen, flags and its records.'],
   ['GET', 'penal', 'lookup', 'The server’s charges: code, title, fine, jail time and class, for writing records.'],
   ['GET', 'records?kind=&status=open', 'lookup', 'Police records, newest first (citation, warning, arrest, warrant, bolo, stop).'],

@@ -832,6 +832,20 @@
   .pd-av{position:relative;width:32px;height:32px;flex:none;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#24262B;font-size:12px;font-weight:600;color:#C9CCD2}
   .pd-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.pd-av.big{width:64px;height:64px;font-size:20px}
   .pd-tag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 7px;border-radius:5px;background:rgba(255,255,255,.08);color:#C9CCD2;white-space:nowrap;line-height:1.2}
+  .pd-tag.pd-mk{letter-spacing:.04em;box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
+  .pd-mks{margin:12px 0 4px}.pd-mks.on{border:1px solid rgba(224,69,59,.55);background:rgba(224,69,59,.08);border-radius:12px;padding:12px;animation:pdMkIn .5s ease-out}
+  @keyframes pdMkIn{from{box-shadow:0 0 0 6px rgba(224,69,59,.35)}to{box-shadow:0 0 0 0 rgba(224,69,59,0)}}@media (prefers-reduced-motion:reduce){.pd-mks.on{animation:none}}
+  .pd-mkh{display:flex;align-items:center;gap:7px;color:#FF8A82;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+  .pd-mk-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}.pd-mk-row:first-of-type{border-top:0}
+  .pd-mk-row>div{flex:1;min-width:0}.pd-mk-row b{font-size:13.5px}.pd-mk-row p{margin:2px 0 0;font-size:12.5px;color:var(--dim,#A6A9B0)}.pd-mk-row small{display:block;margin-top:2px;font-size:11px;color:var(--faint,#7C8088)}
+  .pd-mk-c{flex:none;min-width:40px;text-align:center;font:800 13px/1 inherit;letter-spacing:.04em;padding:7px 6px;border-radius:7px;background:#E0453B;color:#fff}.pd-mk-row.lv-warn .pd-mk-c{background:#F2C14E;color:#1A1405}
+  .pd-mk-x{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:inherit;font-size:16px;line-height:1;cursor:pointer}.pd-mk-x:hover{background:rgba(255,255,255,.16)}
+  .pd-mk-add{margin-top:6px}.pd-mk-add summary{cursor:pointer;font-size:12.5px;color:var(--dim,#A6A9B0);list-style:none;padding:4px 0}.pd-mk-add summary::-webkit-details-marker{display:none}.pd-mk-add summary::before{content:"+ "}
+  .pd-mk-add form{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.pd-mk-add input{flex:1;min-width:120px}.pd-mk-add input[name="ocode"]{flex:0 0 70px;min-width:0}
+  .pd-upd{display:grid;gap:8px;margin-bottom:10px}.pd-upd>div{border-left:2px solid rgba(255,255,255,.14);padding:2px 0 2px 10px}.pd-upd small{font-size:11px;color:var(--faint,#7C8088)}.pd-upd p{margin:2px 0 0;font-size:13px;white-space:pre-wrap}
+  .pd-updf{display:flex;gap:8px;align-items:flex-end}.pd-updf textarea{flex:1;resize:vertical}
+  .pd-mk-add select{flex:0 0 auto;width:auto;max-width:100%;color-scheme:dark}.pd-updf textarea,.pd-mk-add input,.pd-mk-add select{font:inherit;font-size:13px;color:inherit;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:8px 10px;outline:0}
+  .pd-updf textarea:focus,.pd-mk-add input:focus{border-color:rgba(255,255,255,.3)}
   .pd-tag.r{background:rgba(224,69,59,.16);color:#FF8A82}.pd-tag.R{background:#E0453B;color:#fff}.pd-tag.a{background:rgba(242,193,78,.15);color:#F2C14E}.pd-tag.b{background:rgba(76,141,255,.16);color:#8DB6FF}.pd-tag.g{background:rgba(70,208,124,.14);color:#7EDCA3}
   .plate{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:none;min-width:80px;padding:3px 7px 3px;border-radius:5px;background:#F1F2EE;color:#16264A;border:1.5px solid #16264A;box-shadow:inset 0 0 0 1px #F1F2EE;font:700 14px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;white-space:nowrap}
   #mdt .plate small{display:block;font:800 6px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;color:#38542A;margin:0 0 2px;white-space:nowrap}
@@ -3174,6 +3188,16 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const plate = (p, big) => `<span class="plate${big ? ' big' : ''}"><small>LIBERTY COUNTY</small>${esc(p)}</span>`;
   const KIND = { warrant: ['Warrant', 'r'], citation: ['Citation', 'a'], warning: ['Warning', ''], arrest: ['Arrest', 'r'], bolo: ['BOLO', 'a'], stop: ['Traffic stop', 'b'] };
   const tag = (t, c = '') => `<span class="pd-tag ${c}">${esc(t)}</span>`;
+  // person markers (app/markers.mjs): FI, VI and the like, red for danger, amber otherwise
+  const markTags = M => (M || []).map(m => `<span class="pd-tag pd-mk ${m.level === 'danger' ? 'R' : 'a'}" title="${esc(m.label)}">${esc(m.code)}</span>`).join('');
+  // looking up someone with markers sounds an alert (if sound is on): two quick high tones
+  const markTone = () => { try { if (localStorage.getItem('oversite.sound') === 'off') return; } catch (e) {} try { const A = window.__mkCtx || (window.__mkCtx = new (window.AudioContext || window.webkitAudioContext)()); if (A.state !== 'running') A.resume(); const t0 = A.currentTime;
+    for (const [i, f] of [[0, 988], [1, 1319], [2, 988], [3, 1319]]) { const o = A.createOscillator(), g = A.createGain(), t = t0 + i * .14; o.type = 'triangle'; o.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + .01); g.gain.exponentialRampToValueAtTime(0.0001, t + .12); o.connect(g).connect(A.destination); o.start(t); o.stop(t + .13); } } catch (e) {} };
+  const markBlock = (j, p) => { const M = j.markers || [], T = CFG.markers || [];
+    return `<div class="pd-mks${M.length ? ' on' : ''}">${M.length ? `<div class="pd-mkh"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg><b>Officer safety markers</b></div>`
+      + M.map(m => `<div class="pd-mk-row lv-${m.level}"><span class="pd-mk-c">${esc(m.code)}</span><div><b>${esc(m.label)}</b>${m.note ? `<p>${esc(m.note)}</p>` : ''}<small>Added by ${esc(m.by || 'an officer')} · ${esc(ago(m.at))}</small></div>${CFG.supervisor || m.by === CFG.me ? `<button type="button" class="pd-mk-x" data-mkdel="${m.id}" title="Take this marker off" aria-label="Take the ${esc(m.code)} marker off">×</button>` : ''}</div>`).join('') : ''}
+      <details class="pd-mk-add"><summary>Add a marker</summary><form id="pdMkF" data-rid="${esc(p.rid || '')}" data-name="${esc(p.name || '')}"><select name="code">${T.map(t => `<option value="${esc(t[0])}">${esc(t[0])} · ${esc(t[1])}</option>`).join('')}<option value="">Other…</option></select>
+        <input name="ocode" maxlength="4" placeholder="Code" hidden><input name="olabel" maxlength="30" placeholder="What it means" hidden><input name="note" maxlength="160" placeholder="Note (optional), like “Carries a pistol in his waistband”"><button class="btn sm" type="submit">Add</button></form></details></div>`; };
   const flagTags = flags => { const f = new Set(flags.map(x => typeof x === 'string' ? x : x.kind + (x.status === 'Pending' ? ':p' : '')));
     return (f.has('warrant') ? tag('Active warrant', 'R') : '') + (f.has('warrant:p') ? tag('Warrant pending', 'a') : '') + (f.has('bolo') ? tag('BOLO', 'a') : '') + (f.has('stolen') ? tag('Stolen', 'R') : ''); };
   const wanted = rid => { const p = (window.ERLC?.players || []).find(p => String(p.Player || '').split(':')[1] === String(rid)); return p ? +p.WantedStars || 0 : 0; };
@@ -3193,7 +3217,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const curNav = () => mdt.querySelector('.tside [aria-selected="true"]')?.dataset.pane || 'home';
 
   // ───────── lookup ─────────
-  let res = { people: [], vehicles: [] }, qT, cur = null;
+  let res = { people: [], vehicles: [] }, qT, cur = null, lastMk = '';
   const live = () => { const P = window.ERLC?.players || [], V = window.ERLC?.vehicles || [];
     return { people: P.map(p => { const [name, rid] = String(p.Player || '').split(':'); return { rid, name, team: p.Team || '', live: true }; }).filter(p => p.name),
       vehicles: V.filter(v => v.Plate).map(v => ({ plate: String(v.Plate).toUpperCase(), model: v.Name || '', color: v.ColorName || '', hex: v.ColorHex || '', owner: String(v.Owner || '').split(':')[0], live: true })) }; };
@@ -3201,7 +3225,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const ppl = k === 'veh' ? [] : src.people, veh = k === 'people' ? [] : src.vehicles;
     let h = '';
     if (ppl.length) h += `<h4>${q ? 'People' : 'In the server now'}</h4>` + ppl.slice(0, 25).map(p => { const id = p.rid || p.name, ws = wanted(p.rid);
-      return `<button type="button" class="pd-r" data-p="${esc(p.rid || '')}" data-n="${esc(p.name)}" aria-current="${sel === 'p:' + id}">${av(p.rid, p.name)}<div><b>${esc(p.name)}</b><small>${esc([p.player ? 'played by ' + p.player : '', p.team, p.live ? 'in game' : p.last_seen ? 'seen ' + ago(p.last_seen) : p.player ? '' : 'from a record', p.addr ? 'address match' : ''].filter(Boolean).join(' · '))}</small>${(p.flags?.length || ws) ? `<div class="tags">${flagTags(p.flags || [])}${ws ? tag('Wanted ' + '★'.repeat(Math.min(ws, 5)), 'r') : ''}</div>` : ''}</div></button>`; }).join('');
+      return `<button type="button" class="pd-r" data-p="${esc(p.rid || '')}" data-n="${esc(p.name)}" aria-current="${sel === 'p:' + id}">${av(p.rid, p.name)}<div><b>${esc(p.name)}</b><small>${esc([p.player ? 'played by ' + p.player : '', p.team, p.live ? 'in game' : p.last_seen ? 'seen ' + ago(p.last_seen) : p.player ? '' : 'from a record', p.addr ? 'address match' : ''].filter(Boolean).join(' · '))}</small>${(p.flags?.length || ws || p.markers?.length) ? `<div class="tags">${markTags(p.markers)}${flagTags(p.flags || [])}${ws ? tag('Wanted ' + '★'.repeat(Math.min(ws, 5)), 'r') : ''}</div>` : ''}</div></button>`; }).join('');
     if (veh.length) h += `<h4>${q ? 'Vehicles' : 'Vehicles out now'}</h4>` + veh.slice(0, 25).map(v => `<button type="button" class="pd-r" data-v="${esc(v.plate)}" aria-current="${sel === 'v:' + v.plate}">${plate(v.plate)}<div><b>${esc(v.model || 'Vehicle')}</b><small>${v.hex ? `<span class="pd-sw" style="background:${esc(v.hex)}"></span>` : ''}${esc([v.color, v.owner ? 'owner ' + v.owner : ''].filter(Boolean).join(' · '))}</small>${v.flags?.length ? `<div class="tags">${flagTags(v.flags)}</div>` : ''}</div></button>`).join('');
     if (q && src.boats?.length && k !== 'people') h += '<h4>Boats</h4>' + src.boats.map(b => `<button type="button" class="pd-r" data-p="${esc(b.rid || '')}" data-n="${esc(b.owner)}"><span class="plate" style="flex:none"><small>HULL</small>${esc(b.hull)}</span><div><b>${esc([b.name, b.model].filter(Boolean).join(' · '))}${b.stolen ? ' ' + tag('Stolen', 'R') : ''}</b><small>${esc(['Owner ' + b.owner, b.color].filter(Boolean).join(' · '))}</small></div></button>`).join('');
     $('pdRes').innerHTML = h || `<div class="pd-empty">${q ? `<b>No matches</b>Nobody or nothing called “${esc(q)}” has been seen in this server.` : '<b>Search to begin</b>Players and vehicles in the server show here while it is live.'}</div>`; };
@@ -3241,11 +3265,13 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const openPerson = async (rid, name) => { cur = { t: 'p', id: rid, name }; drawRes(); $('pdDet').innerHTML = '<div class="pd-empty">Running…</div>'; if (!mdt.querySelector('[data-pane="lookup"].on')) show('lookup', 'lookup');
     let j; try { j = await req('person?' + (rid ? 'id=' + encodeURIComponent(rid) : 'name=' + encodeURIComponent(name))); } catch (e) { $('pdDet').innerHTML = `<div class="pd-empty">${esc(e.message)}</div>`; return; }
     const p = j.person, L = j.license, ws = wanted(p.rid), H = keep(j.history), n = k => H.filter(r => r.kind === k).length; keep(j.flags);
+    { const k = (p.rid || p.name) + ':' + (j.markers || []).map(m => m.code).join(','); if ((j.markers || []).length && lastMk !== k) markTone(); lastMk = k; }
     const dl = (j.licenses || []).find(l => l.kind === 'driver'), fp = (j.licenses || []).find(l => l.kind === 'firearm'); cur.p = p;
     const lic = (dl && dl.status !== 'Valid' ? tag('License ' + dl.status.toLowerCase(), dl.status === 'Revoked' ? 'R' : 'r') : !j.account ? tag('No Oversite account', '') : !L || L.none ? tag('No license on file', 'a') : tag('License valid', 'g'))
       + (fp && fp.status !== 'Valid' ? tag('Firearms permit ' + fp.status.toLowerCase(), fp.status === 'Revoked' ? 'R' : 'r') : '');
     $('pdDet').innerHTML = `<div class="pd-hd">${av(p.rid, p.name, true)}<div><h3>${esc(p.name)}</h3><p>${esc([L?.display && L.display !== p.name ? L.display : '', p.character ? (p.player ? 'Played by ' + p.player : 'Character') : p.rid ? 'Roblox ID ' + p.rid : '', p.team ? 'last on ' + p.team : '', p.last_seen ? 'seen ' + ago(p.last_seen) : ''].filter(Boolean).join(' · '))}</p>
-      <div class="tags">${flagTags(j.flags)}${ws ? tag('Wanted in game ' + '★'.repeat(Math.min(ws, 5)), 'r') : ''}${lic}</div></div></div>
+      <div class="tags">${markTags(j.markers)}${flagTags(j.flags)}${ws ? tag('Wanted in game ' + '★'.repeat(Math.min(ws, 5)), 'r') : ''}${lic}</div></div></div>
+      ${markBlock(j, p)}
       ${actions(p.name, p.rid, '')}
       ${L && !L.none ? `<h4>Driver's license</h4><div class="pd-kv"><div><span>License no.</span><b>${esc(L.num)}</b></div><div><span>Age</span><b>${esc(L.age || '–')}</b></div><div><span>Sex</span><b>${esc(L.gndr || '–')}</b></div><div><span>Issued</span><b>${esc(L.iss || '–')}</b></div>
         <div><span>Height</span><b>${esc(L.hgt || '–')}</b></div><div><span>Weight</span><b>${esc(L.wgt || '–')}</b></div><div><span>Hair / eyes</span><b>${esc([L.hair, L.eyes].filter(Boolean).join(' / ') || '–')}</b></div><div><span>Address</span><b title="${esc(L.addr)}">${esc(L.addr || '–')}</b></div></div>` : ''}
@@ -3266,6 +3292,13 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       ${j.owner_flags.length ? `<h4>Owner's warrants and BOLOs</h4><div class="pd-list">${j.owner_flags.map(histRow).join('')}</div>` : ''}
       <h4>History</h4>${j.history.length ? `<div class="pd-list">${j.history.map(histRow).join('')}</div>` : '<p class="pd-empty" style="padding:10px 0;text-align:left">Nothing on file for this plate.</p>'}`;
     $('pdDet').dataset.cur = v.plate; };
+  // markers: add one (a listed one, or Other with its own code and name) or take one off; the alert doesn't sound for your own change
+  $('pdDet').addEventListener('change', e => { const f = e.target.closest('#pdMkF'); if (!f || e.target.name !== 'code') return; const other = !e.target.value; f.elements.ocode.hidden = !other; f.elements.olabel.hidden = !other; if (other) f.elements.ocode.focus(); });
+  const afterMk = (key, M) => { lastMk = key + ':' + M.map(m => m.code).join(','); if (cur?.t === 'p') openPerson(cur.id, cur.name); };
+  $('pdDet').addEventListener('submit', async e => { const f = e.target.closest('#pdMkF'); if (!f) return; e.preventDefault(); const v = n => f.elements[n].value.trim(), code = v('code'), b = f.querySelector('button'); b.disabled = true;
+    try { const j = await req('markers', { rid: f.dataset.rid, name: f.dataset.name, code: code || v('ocode'), label: code ? '' : v('olabel'), note: v('note') }); toast('Marker added'); afterMk(f.dataset.rid || f.dataset.name, j.markers); } catch (x) { toast(x.message); b.disabled = false; } });
+  $('pdDet').addEventListener('click', async e => { const x = e.target.closest('[data-mkdel]'); if (!x) return; e.preventDefault(); x.disabled = true;
+    try { const j = await req('markers/remove', { id: +x.dataset.mkdel }); toast('Marker taken off'); afterMk(cur?.p?.rid || cur?.p?.name || '', j.markers); } catch (y) { toast(y.message); x.disabled = false; } });
   $('pdDet').addEventListener('change', async e => { const s = e.target.closest('[data-vset]'); if (!s) return; try { drawVehicle(await req('vehicle', { plate: $('pdDet').dataset.cur, [s.dataset.vset]: s.value })); toast('Saved'); } catch (x) { toast(x.message); } });
   $('pdDet').addEventListener('click', async e => { const t = e.target.closest('[data-plate]:not([data-new]),[data-owner],[data-stolen],[data-stopv]'); if (!t) return; e.preventDefault();
     if (t.dataset.stolen != null) { try { drawVehicle(await req('vehicle', { plate: $('pdDet').dataset.cur, stolen: t.dataset.stolen === '1' })); toast(t.dataset.stolen === '1' ? 'Marked stolen. Officers see it on every lookup.' : 'Marked recovered'); } catch (x) { toast(x.message); } return; }
@@ -3361,7 +3394,9 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       ['Booked at', esc(r.booking?.facility)], ['Miranda', r.booking ? (r.booking.miranda ? 'Read' : 'Not read') : ''], ['Officers', esc((r.officers || []).join(', '))], ['Backup', esc((r.backup || []).map(b => b.by + ' (Code ' + b.code + ')').join(', '))]].filter(x => x[1]);
     $('pdView').innerHTML = `<div class="pd-doc"><div class="pd-hd"><div><div class="tags" style="margin:0 0 6px">${tag(k, c)}${r.armed ? tag('Armed and dangerous', 'R') : ''}</div><h3>${esc(r.kind === 'bolo' ? (r.type === 'vehicle' ? [r.color, r.model, r.plate].filter(Boolean).join(' ') || 'Vehicle' : r.subject || 'Person') : r.subject || r.plate || k)}</h3><p>${esc(r.reason || r.desc || '')}</p></div></div>
       <div class="pd-kv">${kv.map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('')}</div>${ch}
-      ${r.desc && r.reason ? `<h4>Description</h4><div class="txt">${esc(r.desc)}</div>` : ''}${r.booking?.property ? `<h4>Property</h4><div class="txt">${esc(r.booking.property)}</div>` : ''}${r.notes ? `<h4>${r.kind === 'arrest' ? 'Narrative' : 'Notes'}</h4><div class="txt">${esc(r.notes)}</div>` : ''}</div>`;
+      ${r.desc && r.reason ? `<h4>Description</h4><div class="txt">${esc(r.desc)}</div>` : ''}${r.booking?.property ? `<h4>Property</h4><div class="txt">${esc(r.booking.property)}</div>` : ''}${r.notes ? `<h4>${r.kind === 'arrest' ? 'Narrative' : 'Notes'}</h4><div class="txt">${esc(r.notes)}</div>` : ''}
+      <h4>Follow-up notes</h4>${(r.updates || []).length ? `<div class="pd-upd">${r.updates.map(u => `<div><small>${esc(stamp(u.at))} · ${esc(u.by)}</small><p>${esc(u.text)}</p></div>`).join('')}</div>` : ''}
+      <form class="pd-updf" id="pdNoteF"><textarea name="text" rows="2" maxlength="500" placeholder="${r.kind === 'warrant' ? 'Like “Suspect wasn’t home, warrant still outstanding” or “Firearm seized”' : 'Add what happened since, for every officer to see'}"></textarea><button class="btn sm" type="submit">Add note</button></form></div>`;
     const A = []; const open = r.status === 'Active' || r.status === 'Pending';
     if (r.kind === 'warrant' && r.status === 'Pending' && CFG.supervisor) A.push(['deny', 'Deny', 'ghost'], ['approve', 'Approve', '']);
     if (r.kind === 'warrant' && r.status === 'Active') A.push(['recall', 'Recall', 'ghost'], ['serve', 'Mark served', '']);
@@ -3378,6 +3413,8 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     catch (x) { toast(x.message); b.disabled = false; } });
   $('pdView').addEventListener('click', e => { const p = e.target.closest('[data-person]'), v = e.target.closest('[data-vp]'); if (!p && !v) return; e.preventDefault(); if (p) openPerson(p.dataset.person, p.dataset.pn); else openVehicle(v.dataset.vp); });
   $('pdViewBack').addEventListener('click', () => show(viewBack));
+  $('pdView').addEventListener('submit', async e => { if (e.target.id !== 'pdNoteF') return; e.preventDefault(); const f = e.target, b = f.querySelector('button'), text = f.elements.text.value.trim(); if (!text || !viewing) return; b.disabled = true;
+    try { const j = await req('records/note', { id: viewing.id, text }); recCache.set(j.record.id, j.record); toast('Note added'); openRecord(j.record, viewBack); } catch (x) { toast(x.message); b.disabled = false; } });
   const recCache = new Map();
   mdt.addEventListener('click', e => { const r = e.target.closest('[data-rec]'); if (r) { const rec = recCache.get(+r.dataset.rec); if (rec) openRecord(rec); return; }
     const n = e.target.closest('[data-new]'); if (n && mdt.contains(n)) openForm(n.dataset.new, { subject: n.dataset.subject, rid: n.dataset.rid, plate: n.dataset.plate, model: n.dataset.model, color: n.dataset.color }); });
@@ -3496,6 +3533,8 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     if (r.kind === 'bolo' && !r._act && !mine) alert('bolo:' + r.id, 'bolo', `BOLO${r.armed ? ', armed and dangerous' : ''}: ${r.type === 'vehicle' ? [r.color, r.model, r.plate].filter(Boolean).join(' ') || 'vehicle' : r.subject || 'person'}`, [r.reason, r.desc, r.location ? 'last seen ' + r.location : ''].filter(Boolean).join(' · '), [['view', 'View', true], ['x', 'Dismiss']], 20000);
     if (r.kind === 'warrant' && !r._act && r.status === 'Pending' && CFG.supervisor && !mine) alert('war:' + r.id, '', `Warrant waiting for your approval: ${r.subject}`, `${(r.charges || []).map(c => c.title).join(', ')} · from ${r.by}`, [['view', 'Review', true], ['x', 'Later']], 30000);
     if (myStop && r.id === myStop.id) { myStop = r.status === 'Active' ? { ...r, done: myStop.done } : null; drawStop(); }
+    // someone else's note on the record you have open shows up, unless you're halfway through writing one
+    if (r._act === 'note' && !mine && viewing && viewing.id === r.id && mdt.querySelector('[data-pane="pdview"].on') && !$('pdNoteF')?.elements.text.value.trim()) openRecord(r, viewBack);
     if (isPD()) refresh(); });
 
   // the plate reader flagged a car out in game: police (and dispatch) can start a traffic stop on it straight away

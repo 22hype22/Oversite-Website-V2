@@ -4,6 +4,7 @@
 // characters, so a person is their Roblox account, and their license details are the ones they filled in on Oversite. A server
 // that uses roleplay characters (app/chars.mjs) has a person be a character instead: keyed 'c<id>', with the cars given to it.
 import { db, now, users, licenses, mdtSignin } from './db.mjs';
+import * as markers from './markers.mjs';
 import { statusOf as licenseStatus } from './pdlicense.mjs';
 import * as chars from './chars.mjs';
 import { POSTALS } from './postals.mjs';
@@ -187,6 +188,10 @@ export const act = (cid, by, b) => { const r = record(cid, b.id); if (!r) return
   else return { error: 'You can\'t do that to this record.' };
   q('UPDATE pd_records SET status = ?, data = ?, updated = ? WHERE community_id = ? AND id = ?').run(status, JSON.stringify(d), now(), cid, r.id);
   return { ok: true, record: record(cid, r.id) }; };
+// a follow-up note on any record, by any officer, kept in order under it: "Suspect wasn't home, warrant still outstanding", "Firearm seized"
+export const addNote = (cid, by, b) => { const r = record(cid, b.id); if (!r) return { error: 'That record is gone.' }; const text = T(b.text, 500); if (!text) return { error: 'Write the note first.' };
+  const d = JSON.parse(q('SELECT data FROM pd_records WHERE community_id = ? AND id = ?').get(cid, r.id).data || '{}'); d.updates = [...(Array.isArray(d.updates) ? d.updates : []), { at: now(), by: T(by.name, 40), text }].slice(-50);
+  q('UPDATE pd_records SET data = ?, updated = ? WHERE community_id = ? AND id = ?').run(JSON.stringify(d), now(), cid, r.id); return { ok: true, record: record(cid, r.id) }; };
 export const remove = (cid, id) => q('DELETE FROM pd_records WHERE community_id = ? AND id = ?').run(cid, +id || 0);
 
 // ── lookups ──
@@ -211,7 +216,7 @@ export const search = (cid, text) => { const s = T(text, 40); if (!s) return { p
     for (const k of [...out.keys()]) if (played.has(String(k))) out.delete(k);
     for (const ch of rp.values()) out.set(ch.key, { rid: ch.key, name: ch.name, team: '', last_seen: 0, player: chars.player(ch)?.name || '' }); }
   const vehicles = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND (plate LIKE ? OR owner LIKE ? OR model LIKE ?) ORDER BY last_seen DESC LIMIT 15').all(cid, plate, like, like).map(v => vehRow(v, cid));
-  const ppl = [...out.values()].slice(0, 15).map(p => ({ ...p, flags: flagsFor(cid, p.rid, p.name).map(f => f.kind) }));
+  const ppl = [...out.values()].slice(0, 15).map(p => ({ ...p, flags: flagsFor(cid, p.rid, p.name).map(f => f.kind), markers: markers.codesFor(cid, p.rid, p.name) }));
   return { people: ppl, vehicles: vehicles.map(v => ({ ...v, flags: [...flagsFor(cid, '', '', [v.plate]).map(f => f.kind), ...(v.stolen ? ['stolen'] : [])] })) }; };
 
 // a roleplay character as a person: its own name, record, licenses and cars; the details on its ID, the looks from the player's license
@@ -223,7 +228,7 @@ const charPerson = async (cid, ch, licenseOf) => { const pl = chars.player(ch), 
     addr: ch.address || 'N/A', iss: l.iss || '', dob: ch.dob || '', num: 'LC' + String(ch.id).padStart(8, '0').slice(-8) }; }
   const vehicles = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND char_id = ? ORDER BY last_seen DESC LIMIT 20').all(cid, ch.id).map(v => vehRow(v, cid));
   const history = q("SELECT * FROM pd_records WHERE community_id = ? AND (subject_rid = ? OR (subject_rid = '' AND lower(subject) = lower(?))) ORDER BY at DESC LIMIT 100").all(cid, ch.key, ch.name).map(row);
-  return { person: who, account: !!acct, license, vehicles, history, flags: flagsFor(cid, ch.key, ch.name, vehicles.map(v => v.plate)), character: { ...Object.fromEntries(Object.keys(chars.FIELDS).map(k => [k, ch[k]])) } }; };
+  return { person: who, account: !!acct, license, vehicles, history, flags: flagsFor(cid, ch.key, ch.name, vehicles.map(v => v.plate)), markers: markers.forPerson(cid, ch.key, ch.name), character: { ...Object.fromEntries(Object.keys(chars.FIELDS).map(k => [k, ch[k]])) } }; };
 // a name, Roblox ID or character key to a character: a key always; on a server with characters, also one by that exact name, or the one a player is on
 export const characterFor = (cid, key) => { const k = String(key ?? '').trim(); if (!k) return null;
   const byKey = chars.byKey(cid, k); if (byKey) return byKey; if (!chars.rp(cid)) return null; const same = chars.named(cid, k); if (same.length === 1) return same[0];
@@ -239,7 +244,7 @@ export const person = async (cid, key, licenseOf) => { const ch = characterFor(c
   if (acct) { const l = await licenseOf(acct); if (l.saved) license = { display: l.display, age: l.age, gndr: l.gndr, hair: l.hair, eyes: l.eyes, hgt: l.hgt, wgt: l.wgt, addr: l.addr, iss: l.iss, num: 'LC' + String(who.rid).padStart(8, '0').slice(-8) }; else license = { display: l.display, none: true }; }
   const vehicles = q('SELECT * FROM pd_vehicles WHERE community_id = ? AND (owner_rid = ? OR lower(owner) = lower(?)) ORDER BY last_seen DESC LIMIT 20').all(cid, who.rid || '-', who.name || '-').map(v => vehRow(v, cid));
   const n = (who.name || '').toLowerCase(), history = q("SELECT * FROM pd_records WHERE community_id = ? AND ((subject_rid <> '' AND subject_rid = ?) OR lower(subject) = ?) ORDER BY at DESC LIMIT 100").all(cid, who.rid || '-', n || '-').map(row);
-  return { person: who, account: !!acct, license, vehicles, history, flags: flagsFor(cid, who.rid, who.name, vehicles.map(v => v.plate)) }; };
+  return { person: who, account: !!acct, license, vehicles, history, flags: flagsFor(cid, who.rid, who.name, vehicles.map(v => v.plate)), markers: markers.forPerson(cid, who.rid, who.name) }; };
 
 // someone this server has seen in game, by Roblox ID or exact name: { rid, name } or null; on a server with characters, the character
 export const seenPerson = (cid, rid, name) => { const ch = characterFor(cid, rid || name); if (ch) return { rid: ch.key, name: ch.name }; return seenPlayer(cid, rid, name); };

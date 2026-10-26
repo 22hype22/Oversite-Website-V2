@@ -27,6 +27,7 @@ import * as safezones from './app/safezones.mjs';
 import * as rdm from './app/rdm.mjs';
 import * as helpspam from './app/helpspam.mjs';
 import * as fines from './app/fines.mjs';
+import * as markers from './app/markers.mjs';
 import * as transit from './app/transit.mjs';
 import * as hospital from './app/hospital.mjs';
 import * as boats from './app/boats.mjs';
@@ -433,7 +434,7 @@ const communityApi = async (req, res, slug, rest) => {
     if (side !== undefined && side !== 'pd') return json(res, { error: side ? 'The police MDT is for players on a police team in game.' : 'Join a police team in game to use the police MDT.' }, 403); }
   if (rest.startsWith('pd/')) { const sub = rest.slice(3), qs = new URL(req.url, 'http://x').searchParams, by = { uid: user.id, name: user.roblox_name || user.name, supervisor: police.isSupervisor(c.id, user.id, can(role, 'admin'), ranksFor(c, premium.isPremium(c)).pd) };
     const prem = premium.isPremium(c), cut = prem ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5, recent = L => cut ? L.filter(r => r.at >= cut || r.status === 'Active' || r.status === 'Pending') : L;   // free servers see the last 30 days
-    if (sub === 'config' && M === 'GET') return json(res, { penal: police.penalOf(c), rank: police.pdRank(c.id, user.id), supervisor: by.supervisor, admin: can(role, 'admin'), me: by.name, premium: prem, recordDays: prem ? 0 : premium.FREE_RECORD_DAYS });
+    if (sub === 'config' && M === 'GET') return json(res, { markers: markers.TYPES, penal: police.penalOf(c), rank: police.pdRank(c.id, user.id), supervisor: by.supervisor, admin: can(role, 'admin'), me: by.name, premium: prem, recordDays: prem ? 0 : premium.FREE_RECORD_DAYS });
     if (sub === 'search' && M === 'GET') return json(res, { ...police.search(c.id, qs.get('q')), ...(features.on(c, 'boats') ? { boats: boats.search(c.id, qs.get('q')) } : {}) });
     if (sub === 'person' && M === 'GET') { const r = await police.person(c.id, qs.get('id') || qs.get('name'), licenseOf); if (r.history) r.history = recent(r.history);
       const who = r.person?.rid && users.byRoblox(r.person.rid); if (who && features.on(c, 'pd_character')) r.character = civ.charOf(c.id, who.id);   // the character they made in the Civilian tab
@@ -460,6 +461,10 @@ const communityApi = async (req, res, slug, rest) => {
       const r = fines.setPaid(c, j.id, j.action === 'paid', by.name, j.note); if (r.error) return json(res, { error: r.error }, r.status || 400); const rec = police.record(c.id, j.id);
       f.bcast('pdrec', JSON.stringify({ ...rec, _act: j.action, _by: by.name })); return json(res, { ok: true, record: rec }); }
     if (sub === 'records/act' && M === 'POST') { const j = req._body, r = police.act(c.id, by, j); if (r.ok && j.action === 'approve') recordEvent(c, r.record); if (r.ok) recordChanged(c, r.record, String(j.action || ''), by.name); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: String(j.action || ''), _by: by.name })); return json(res, r, r.error ? 400 : 200); }
+    // follow-up notes on a record (police.addNote), and markers on a person's profile (app/markers.mjs): FI, VI and the like
+    if (sub === 'records/note' && M === 'POST') { const r = police.addNote(c.id, by, await jsonBody(req)); if (r.ok) f.bcast('pdrec', JSON.stringify({ ...r.record, _act: 'note', _by: by.name })); return json(res, r, r.error ? 400 : 200); }
+    if (sub === 'markers' && M === 'POST') { const r = markers.add(c.id, by, await jsonBody(req)); return json(res, r, r.error ? 400 : 200); }
+    if (sub === 'markers/remove' && M === 'POST') { const r = markers.remove(c.id, by, (await jsonBody(req)).id); return json(res, r, r.error ? 400 : 200); }
     if (sub === 'records/delete' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only an admin can delete records.' }, 403); const id = +(await jsonBody(req)).id || 0; police.remove(c.id, id); f.bcast('pdrec', JSON.stringify({ id, _deleted: true })); return json(res, { ok: true }); }
     return json(res, { error: 'Not found.' }, 404); }
   // staff courses (app/courses.mjs): staff take every open course, any member takes public ones; admins write them and mark written answers
@@ -771,7 +776,7 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
     // on a server with roleplay characters the person is a character: its name, and the player behind it
     return ok({ person: { roblox_name: r.person.name || null, roblox_id: r.person.rid || null, ...(bots.can(bot, 'people') ? { discord_id: acct?.discord_id || null } : {}), last_seen: r.person.last_seen || null,
         ...(r.person.character ? { character: true, name: r.person.name, player: r.person.player || null } : {}) },
-      known: !!(r.person.last_seen || H.length), wanted: warrants.some(w => w.status === 'Active'), warrants, bolos: r.flags.filter(x => x.kind === 'bolo'),
+      known: !!(r.person.last_seen || H.length), wanted: warrants.some(w => w.status === 'Active'), markers: (r.markers || []).map(m => ({ code: m.code, label: m.label, note: m.note || null, by: m.by, at: m.at })), warrants, bolos: r.flags.filter(x => x.kind === 'bolo'),
       counts: { arrests: n('arrest'), citations: n('citation'), warnings: n('warning'), warrants: n('warrant') }, records: H.slice(0, 50), vehicles: r.vehicles, license: r.license, ...(features.on(c, 'pd_licenses') ? { licenses: pdlic.of(c.id, r.person.rid, r.person.name) } : {}) }); }
   if (at[0] === 'plates' && at[1] && M === 'GET') { if (need('lookup') || off('pd_lookup')) return; const r = police.vehicle(c.id, decodeURIComponent(at[1])); return r.error ? bad(r.error, 404) : ok({ ...r, history: r.history.slice(0, 25) }); }
   // suspend, revoke or reinstate a license (app/pdlicense.mjs): { discord_id | roblox_id | roblox_name, license: driver | firearm, status: Suspended | Revoked | Valid, reason, days?, officer? }
