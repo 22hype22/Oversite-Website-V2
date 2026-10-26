@@ -35,8 +35,12 @@ export const finishInstall = async (req, code) => {
 // the server's roles for the picker: highest first, without @everyone and roles that belong to bots
 // how many people are in a server's Discord (for the server browser), or null
 export const counts = async gid => { if (!ready() || !gid) return null; try { const g = await bot(`/guilds/${gid}?with_counts=true`); return g ? { members: g.approximate_member_count ?? null, online: g.approximate_presence_count ?? null } : null; } catch (e) { return null; } };
-export const roles = async gid => { const list = await bot(`/guilds/${gid}/roles`); if (!list) return null;
-  return list.filter(r => r.id !== gid && !r.managed).sort((a, b) => b.position - a.position).map(r => ({ id: r.id, name: r.name, color: r.color ? '#' + r.color.toString(16).padStart(6, '0') : null })); };
+// a Discord server's roles, kept for a minute; when Discord doesn't answer (a rate limit, an outage) the last list it gave is used
+const ROLES = new Map();
+export const roles = async gid => { const hit = ROLES.get(gid); if (hit && Date.now() - hit.at < 60000) return hit.list;
+  let list; try { list = await bot(`/guilds/${gid}/roles`); } catch (e) { if (hit) return hit.list; throw e; } if (!list) { ROLES.delete(gid); return null; }
+  const out = list.filter(r => r.id !== gid && !r.managed).sort((a, b) => b.position - a.position).map(r => ({ id: r.id, name: r.name, color: r.color ? '#' + r.color.toString(16).padStart(6, '0') : null }));
+  ROLES.set(gid, { list: out, at: Date.now() }); return out; };
 
 const cache = new Map(), TTL = 60000;
 const memberRoles = async (gid, uid) => { const k = gid + ':' + uid, hit = cache.get(k); if (hit && Date.now() - hit.at < TTL) return hit.roles;

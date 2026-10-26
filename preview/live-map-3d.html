@@ -3144,7 +3144,8 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       catch (x) { pop.innerHTML = `<h4>View as a role</h4><p>${e(x.message || 'Could not load the roles.')}</p>`; } };
     const closePop = () => { pop.hidden = true; eye.setAttribute('aria-expanded', 'false'); };
     eye.addEventListener('click', () => pop.hidden ? openPop() : closePop());
-    document.addEventListener('pointerdown', ev => { if (!pop.hidden && !ev.target.closest('.va-pop,#viewAsBtn')) closePop(); });
+    // the role and team lists open as menus of their own on the page (dropdown.js): picking from one isn't a click outside
+    document.addEventListener('pointerdown', ev => { if (!pop.hidden && !ev.target.closest('.va-pop,#viewAsBtn,.dd-menu')) closePop(); });
     pop.addEventListener('keydown', ev => { if (ev.key === 'Escape') { ev.stopPropagation(); closePop(); eye.focus(); } });
     if (VA) { const bar = document.createElement('div'); bar.className = 'va-bar'; bar.setAttribute('role', 'status'); if (VA.role?.color) bar.style.setProperty('--rc', VA.role.color);
       bar.innerHTML = `<i aria-hidden="true"></i><span>Viewing as <b>${VA.role ? '@' + e(VA.role.name) : 'a member with no roles'}</b>${VA.team ? ' on the ' + e(VA.team) + ' team' : ', not in game'} <small>· with their access, recorded as you</small></span><button type="button">Change</button><a href="/${e(O.slug)}">Exit</a>`;

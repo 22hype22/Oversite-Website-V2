@@ -1186,7 +1186,9 @@ const route = async (req, res) => {
     // View as: an admin sees the CAD as someone holding one Discord role (and on a team in game, if picked) would: their rank, their locks,
     // their tabs. It's only a preview; what they do in it still happens as themselves.
     if (sub === '/' && url.searchParams.has('viewas') && !oversight && can(role, 'admin')) { const rid = String(url.searchParams.get('viewas') || '').replace(/\D/g, '').slice(0, 20), team = String(url.searchParams.get('team') || '').slice(0, 30);
-      const gid = c.settings.discord?.guild_id, list = gid && rid ? await discordlink.roles(gid).catch(() => null) : null, r = rid ? (list || []).find(x => x.id === rid) : null;
+      const gid = c.settings.discord?.guild_id, list = gid && rid ? await discordlink.roles(gid).catch(() => undefined) : null;
+      // a role Discord no longer has goes back to the normal CAD; when Discord didn't answer at all, the preview still opens by the role's id
+      const r = rid ? (list || []).find(x => x.id === rid) || (list === undefined && gid ? { id: rid, name: 'a Discord role', color: null } : null) : null;
       if (rid && !r) return redirect(res, `/${c.slug}`);
       const p = discordlink.previewAs(c, rid ? [rid] : []), vr = ROLE_RANK[p.role] > ROLE_RANK[role] ? role : p.role;   // never more than your own
       console.log(`cad: ${user.roblox_name || user.name} views ${c.slug} as ${r ? '@' + r.name : 'a member with no roles'}${team ? ' on ' + team : ''}`);
