@@ -28,6 +28,7 @@ import * as rdm from './app/rdm.mjs';
 import * as helpspam from './app/helpspam.mjs';
 import * as fines from './app/fines.mjs';
 import * as markers from './app/markers.mjs';
+import * as joincheck from './app/joincheck.mjs';
 import * as transit from './app/transit.mjs';
 import * as hospital from './app/hospital.mjs';
 import * as boats from './app/boats.mjs';
@@ -321,6 +322,9 @@ const communityApi = async (req, res, slug, rest) => {
     // the arrest log (app/arrests.mjs): every arrest in game, searchable by suspect or officer, name or Roblox ID
     if (sub === 'arrests' && M === 'GET') return json(res, { arrests: arrests.list(c, { q: new URL(req.url, 'http://x').searchParams.get('q') || '' }) });
     if (sub === 'rdm' && M === 'GET') return json(res, { flags: rdm.list(c), settings: rdm.of(c), canEdit: can(role, 'admin') });
+    // join check (app/joincheck.mjs): what players need to stay in the server, and who was warned or kicked; admins and up set it
+    if (sub === 'joincheck' && M === 'GET') return json(res, { settings: joincheck.of(c), log: joincheck.log(c), labels: joincheck.LABEL, discord: !!c.settings.discord?.guild_id, canEdit: can(role, 'admin') });
+    if (sub === 'joincheck/settings' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can change the join check.' }, 403); const r = joincheck.save(c, await jsonBody(req)); if (r.ok) console.log(`joincheck: ${c.slug} settings by ${by.name}`); return json(res, r, r.error ? 400 : 200); }
     // help spam limits (app/helpspam.mjs): warn, then kick, then ban someone who keeps calling for a mod; admins and up set the limit
     if (sub === 'helpspam' && M === 'GET') return json(res, { settings: helpspam.of(c), log: helpspam.log(c), canEdit: can(role, 'admin') });
     if (sub === 'helpspam/settings' && M === 'POST') { if (!can(role, 'admin')) return json(res, { error: 'Only admins and up can change the help spam limit.' }, 403); const r = helpspam.save(c, await jsonBody(req)); console.log(`helpspam: ${c.slug} settings by ${by.name}`); return json(res, r); }
@@ -1394,6 +1398,7 @@ arrests.onArrest((c, e) => bots.emit(c, 'arrest.logged', e)); arrests.start(feed
 fines.onChange((c, ev, f) => bots.emit(c, ev, f)); civ.hooks.finePaid = (cid, id) => { const c = communities.byId(cid); if (c) fines.paidInBank(c, id); };
 rdm.onFlag((c, e) => bots.emit(c, 'rdm.flagged', e)); rdm.start(feedFor, id => communities.key(id), c => premium.isPremium(c) && features.on(c, 'staff') && features.on(c, 'st_rdm'));
 helpspam.start(feedFor, id => communities.key(id), c => premium.isPremium(c) && features.on(c, 'staff') && features.on(c, 'st_modcalls'));
+joincheck.start(feedFor, id => communities.key(id), c => premium.isPremium(c) && features.on(c, 'staff') && features.on(c, 'st_joincheck'), PUBLIC);
 cmdq.start(staff.send, async c => { const s = await feedFor(c).snapshot(); if (s.status !== 200) return null; try { return (JSON.parse(s.body).Players || []).length; } catch (e) { return null; } }, id => communities.key(id));   // queued commands and temporary bans safezones.start(feedFor, id => communities.key(id)); career.start(feedFor, id => communities.key(id), (cid, body) => { staffhub.observe(cid, body); const cc = communities.byId(cid); if (cc) monitorRead(cc, body); });
 supporter.start(); civ.start();
 // business shifts end when the worker leaves the server or the civilian team; loans take their weekly payment

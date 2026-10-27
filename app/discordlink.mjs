@@ -47,6 +47,8 @@ const memberRoles = async (gid, uid) => { const k = gid + ':' + uid, hit = cache
   let roles = null; try { const m = await bot(`/guilds/${gid}/members/${uid}`); roles = m ? m.roles || [] : null; } catch (e) { return hit ? hit.roles : undefined; }   // undefined: Discord didn't answer
   cache.set(k, { roles, at: Date.now() }); return roles; };
 export const forget = gid => { for (const k of cache.keys()) if (k.startsWith(gid + ':')) cache.delete(k); };
+// whether a Discord account is in a Discord server: true, false, or undefined when Discord didn't answer (then nobody is acted on)
+export const inGuild = async (gid, discordId) => { if (!ready() || !gid || !discordId) return undefined; const r = await memberRoles(gid, discordId); return r === undefined ? undefined : !!r; };
 
 // the access a Discord account's roles give in this community, or null
 export const levelFor = async (c, discordId) => { const d = c.settings && c.settings.discord; if (!ready() || !d || !d.guild_id || !discordId) return null;
