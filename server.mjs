@@ -764,6 +764,10 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
   // MDT duty shifts changed since a time (ms), deleted ones too; an Oversite bot linked for one department reads only that one
   if (rest === 'duty-shifts' && M === 'GET') { if (need('read')) return; return ok(duty.forBots(c, duty.DEPTS, qs.get('since'))); }   // every department's shifts
   if (rest === 'loa' && M === 'GET') { if (need('read')) return; return ok({ requests: staffhub.leaveForBots(c, qs.get('status')).map(({ dept, dept_name, ...l }) => ({ ...l, department: dept, department_name: dept_name, starts: isoDay(l.starts), ends: isoDay(l.ends) })) }); }
+  // for a bot's own join check: whether this player has a character here, and whether the CAD's join check already runs (then the bot stays out)
+  if (rest === 'join-check' && M === 'GET') { if (need('people')) return; const rid = String(qs.get('roblox_id') || '').replace(/\D/g, ''), u = rid ? users.byRoblox(rid) : null;
+    return ok({ cad_join_check: !!(premium.isPremium(c) && features.on(c, 'staff') && features.on(c, 'st_joincheck') && joincheck.of(c).on), account: !!u,
+      has_character: !!(u && chars.list(c.id, u.id).some(ch => chars.nameOf(ch))) }); }
   if (rest === 'people' && M === 'GET') { if (need('people')) return; const u = person(Object.fromEntries(qs)); if (!u) return bad('Nobody with that ID or name has an Oversite account.', 404); return ok({ person: who(u) }); }
   // police lookups
   if (rest === 'records' && M === 'GET') { if (need('lookup') || off('pd_records')) return; return ok({ records: police.list(c.id, { kind: ['warrant', 'citation', 'warning', 'arrest', 'bolo', 'stop'].includes(qs.get('kind')) ? qs.get('kind') : '', status: qs.get('status') === 'open' ? 'open' : '' }).slice(0, 100) }); }
