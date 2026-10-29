@@ -72,7 +72,10 @@ const logOf = event => Object.keys(LOGS).find(k => LOGS[k][2].includes(event));
 const LOG_BASES = ['department', 'dispatch', 'roleplay', 'customs'];   // the Oversite bots that post CAD logs
 const logsFor = b => LOG_BASES.includes(b.base) ? Object.keys(LOGS).filter(k => LOGS[k][2].every(ev => can(b, EVENTS[ev][1]))) : [];
 // the events a linked Oversite bot is sent: those of the logs it has a channel for
-const logEvents = b => [...new Set(Object.entries(b.logs || {}).filter(([k, ch]) => ch && LOGS[k]).flatMap(([k]) => LOGS[k][2]))];
+// A log kind can now point at several channels (and servers). Stored as an
+// array; older data stored one channel as a string, so read both shapes.
+const asArr = v => Array.isArray(v) ? [...new Set(v.filter(Boolean).map(String))] : (v ? [String(v)] : []);
+const logEvents = b => [...new Set(Object.entries(b.logs || {}).filter(([k, ch]) => asArr(ch).length && LOGS[k]).flatMap(([k]) => LOGS[k][2]))];
 
 // what the settings page sees: never the key or the signing secret
 export const view = b => ({ id: b.id, name: b.name, scopes: b.scopes, hint: b.hint, created: b.created, by: b.by, oversite: !!b.oversite, guild: b.guild || null, hook: b.hook ? { url: b.hook.url, events: b.hook.events } : null,
@@ -144,7 +147,7 @@ export const link = async (c, code, prem, by) => { const secret = process.env.CA
 export const setLogs = async (c, id, logs) => { const L = list0(c), b = L.find(x => x.id === id); if (!b?.oversite) return { error: 'Only Oversite bots post logs.' };
   if (!b.hook) return { error: 'Link this bot again with a new code from its page to turn on logs.' };
   const ch = await channels(c, id); if (ch.error) return ch; const ok = new Set(ch.channels.filter(x => !b.guild || !x.guild || x.guild === b.guild.id).map(x => x.id)), kinds = logsFor(b), next = {};   // only the picked Discord server's channels
-  for (const [k, v] of Object.entries(logs || {})) { const cid = String(v || ''); if (!kinds.includes(k) || !cid) continue; if (!ok.has(cid)) return { error: 'The bot can’t see one of those channels. Refresh and pick again.' }; next[k] = cid; }
+  for (const [k, v] of Object.entries(logs || {})) { if (!kinds.includes(k)) continue; const cids = asArr(v).slice(0, 20); if (!cids.length) continue; for (const cid of cids) if (!ok.has(cid)) return { error: 'The bot can’t see one of those channels. Refresh and pick again.' }; next[k] = cids; }
   b.logs = next; b.hook.events = logEvents(b); store(c, L); return { ok: true, bot: view(b) }; };
 const chCache = new Map();
 export const channels = async (c, id) => { const b = list0(c).find(x => x.id === id); if (!b?.oversite) return { error: 'Only Oversite bots post logs.' };
@@ -166,7 +169,7 @@ export const setGuild = async (c, id, guild) => { const L = list0(c), b = L.find
   const ch = await channels(c, id); if (ch.error) return ch; const g = ch.guilds.find(x => x.id === String(guild || ''));
   if (guild && !g) return { error: 'The bot isn’t in that Discord server any more. Refresh and pick again.' };
   b.guild = g ? { id: g.id, name: g.name } : null; const keep = new Set(ch.channels.filter(x => !g || x.guild === g.id).map(x => x.id));
-  b.logs = Object.fromEntries(Object.entries(b.logs || {}).filter(([, cid]) => keep.has(cid))); if (b.hook) b.hook.events = logEvents(b); store(c, L); chCache.delete(b.id); return { ok: true, bot: view(b) }; };
+  b.logs = Object.fromEntries(Object.entries(b.logs || {}).map(([k, v]) => [k, asArr(v).filter(cid => keep.has(cid))]).filter(([, arr]) => arr.length)); if (b.hook) b.hook.events = logEvents(b); store(c, L); chCache.delete(b.id); return { ok: true, bot: view(b) }; };
 export const DUTY_DEPTS = ['pd', 'fd', 'dot'];
 export const remove = (c, id) => { store(c, list0(c).filter(b => b.id !== id)); used.delete(id); stat.delete(id); return { ok: true }; };
 
@@ -182,8 +185,8 @@ export const can = (b, s) => b.scopes.includes(s);
 // sending an event: JSON signed like Stripe's (t=<seconds>,v1=<HMAC-SHA256 of "t.body">), one retry, never following redirects
 const sign = (secret, body) => { const t = Math.floor(Date.now() / 1000); return `t=${t},v1=${createHmac('sha256', secret).update(`${t}.${body}`).digest('hex')}`; };
 const deliver = async (c, b, event, data, test = false, retry = false) => {
-  const channel = b.oversite ? b.logs?.[logOf(event)] || undefined : undefined;
-  const body = JSON.stringify({ id: 'evt_' + randomBytes(8).toString('hex'), event, server: { name: c.name, slug: c.slug }, at: new Date().toISOString(), test: test || undefined, channel_id: channel, guild_id: b.oversite ? b.guild?.id || undefined : undefined, data });
+  const chans = b.oversite ? asArr(b.logs?.[logOf(event)]) : [];
+  const body = JSON.stringify({ id: 'evt_' + randomBytes(8).toString('hex'), event, server: { name: c.name, slug: c.slug }, at: new Date().toISOString(), test: test || undefined, channel_id: chans[0] || undefined, channel_ids: chans.length ? chans : undefined, guild_id: b.oversite ? b.guild?.id || undefined : undefined, data });
   let status = 0, error = ''; const ok = await checkUrl(b.hook.url); if (ok.error) error = ok.error;
   else try { const r = await fetch(ok.url, { method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(6000), headers: { 'content-type': 'application/json', 'user-agent': 'Oversite-Events/1', 'x-oversite-event': event, 'x-oversite-signature': sign(unseal(b.hook.secret), body) }, body });
     status = r.status; if (!r.ok) error = `The bot answered ${r.status}`; } catch (e) { error = e.name === 'TimeoutError' ? 'The bot took over 6 seconds to answer' : 'The bot couldn’t be reached'; }
