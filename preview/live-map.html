@@ -738,6 +738,11 @@
   .mini svg.gps .r2{stroke:rgba(6,18,40,.75);stroke-width:calc(var(--sw) * 9)}
   .mini svg.gps .r1{stroke:#4C8DFF;stroke-width:calc(var(--sw) * 5)}
   .mini svg.gps .dst{fill:#E24B4B;stroke:#fff;stroke-width:calc(var(--sw) * 2.5)}
+  /* the search behind a new route (window.routeFx): roads tried in blue from both ends, then the route in green */
+  .rfx path{fill:none;stroke-linecap:round;stroke-linejoin:round}.rfx .ex{stroke:#2F7BFF;opacity:.9}.rfx .rt{stroke:#3DDC84}.rfx .rt2{stroke:rgba(61,220,132,.35)}
+  svg.rfx-on>.r1,svg.rfx-on>.r2{opacity:0}svg.gps>.r1,svg.gps>.r2,#dmRoute>.r1,#dmRoute>.r2{transition:opacity .35s ease}
+  .mini svg.gps .rfx .ex{stroke-width:calc(var(--sw) * 2.4)}.mini svg.gps .rfx .rt{stroke-width:calc(var(--sw) * 5)}.mini svg.gps .rfx .rt2{stroke-width:calc(var(--sw) * 12)}
+  #dmRoute .rfx path{vector-effect:non-scaling-stroke}#dmRoute .rfx .ex{stroke-width:2.2px}#dmRoute .rfx .rt{stroke-width:5px}#dmRoute .rfx .rt2{stroke-width:13px}
   /* labels sit clear of their dot on the department map */
   #dmDots .st-dot b{transform:translate(12px,-50%)}#dmDots .st-dot.me b{transform:translate(17px,-50%)}
   /* MDT maps: no dark edge or vignette, and your dot sits where you are when the map frames a whole trip */
@@ -2017,12 +2022,13 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
       for (let i = 0; i <= 12; i++) { const t = i / 12, u = 1 - t; p.push([u * u * u * A[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * B[0], u * u * u * A[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * B[1]]); }
       return piece(a, b, 25, 0, 0, p, 1, k); };
     const CS = 25, GW = Math.ceil(2000 / CS);
-    let E = [], adj = [], cells = new Map(), S = 0, G, P, seen, done, gen = 0;
+    let E = [], adj = [], cells = new Map(), S = 0, G, P, seen, done, GB, NB, TE, seenB, doneB, gen = 0;
     const build = links => { E = BASE.concat(links); adj = NV.map(() => []); cells = new Map();
       E.forEach((e, i) => { e.key = key(e); adj[e.a].push(i); if (e.b !== e.a) adj[e.b].push(i); const k = Math.min(8, e.L / 2); e.ha = ang(e.p[0], at(e, k)); e.hb = ang(e.p[e.p.length - 1], at(e, e.L - k));   // heading leaving each end
         for (let j = 1; j < e.p.length; j++) { const [x0, y0] = e.p[j - 1], [x1, y1] = e.p[j];   // nearest road piece to a point, through a coarse grid of the pieces' segments
           for (let cx = Math.floor(Math.min(x0, x1) / CS); cx <= Math.floor(Math.max(x0, x1) / CS); cx++) for (let cy = Math.floor(Math.min(y0, y1) / CS); cy <= Math.floor(Math.max(y0, y1) / CS); cy++) { const k = cy * GW + cx; if (!cells.has(k)) cells.set(k, []); cells.get(k).push(i * 4096 + j); } } });
-      S = 2 * E.length; G = new Float64Array(S); P = new Int32Array(S); seen = new Uint32Array(S); done = new Uint32Array(S); gen = 0; };
+      S = 2 * E.length; G = new Float64Array(S); P = new Int32Array(S); seen = new Uint32Array(S); done = new Uint32Array(S); gen = 0;
+      GB = new Float64Array(S); NB = new Int32Array(S); TE = new Int8Array(S); seenB = new Uint32Array(S); doneB = new Uint32Array(S); };
     // the owner's fixes: { "x_y": { o: 1 | -1 | 0, b: 1, x: 1, l: 1 | 0 }, "t_x1_y1_x2_y2": { t: 1 } } = one-way along / against how the piece was
     // traced, blocked, not a road, lot; and a tunnel they added between two road ends
     let OVR = {}, linksKey = null;
@@ -2048,25 +2054,43 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const allowed = (n, i1, i2) => { const g = NT.get(n); return !g || g.has(i1) === g.has(i2); };   // under a bridge: road to road, highway to highway
     const hpush = (h, f, k) => { h.push([f, k]); let i = h.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; [h[p], h[i]] = [h[i], h[p]]; i = p; } };
     const hpop = h => { const top = h[0], last = h.pop(); if (h.length) { h[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < h.length && h[l][0] < h[m][0]) m = l; if (r < h.length && h[r][0] < h[m][0]) m = r; if (m === i) break; [h[m], h[i]] = [h[i], h[m]]; i = m; } } return top; };
+    // Like a satnav, the search grows from both ends at once: forward from you along the roads you could drive, and backward from
+    // the call along the roads that lead to it, always extending whichever side is cheaper so far. Where the two meet is a route;
+    // once neither side could still find a cheaper meeting, the cheapest one is the quickest drive (bidirectional Dijkstra over
+    // "just drove piece i in direction d", so turns and one-ways count the same both ways). Every piece each side settles is kept
+    // in order (pts.ex: piece * 2 + side) so the maps can show the search spreading out (window.routeFx).
     const netRoute = (ax, ay, bx, by) => { const A = near(ax, ay), B = near(bx, by); if (!A || !B) return null;
       const lots = new Set([E[A.i].lot, E[B.i].lot].filter(Boolean));
       const cost = (e, len) => { const t = len / V(e.lot ? 10 : e.mph); return e.lot && !lots.has(e.lot) ? t * 4 + 20 : t; };   // other lots: only as a last resort
-      gen++; const heap = [], tx = (NV[E[B.i].a][0] + NV[E[B.i].b][0]) / 2, ty = (NV[E[B.i].a][1] + NV[E[B.i].b][1]) / 2, h = n => Math.max(0, Math.hypot(NV[n][0] - tx, NV[n][1] - ty) - E[B.i].L) / VMAX;
-      const relax = (k, g, from) => { if (seen[k] === gen && G[k] <= g) return; seen[k] = gen; G[k] = g; P[k] = from; hpush(heap, g + h(endOf(E[k >> 1], k & 1)), k); };
-      const ea = E[A.i], eb = E[B.i]; let best = Infinity, bestK = -2, bestEnd = null;
+      gen++; const hf = [], hb = [], ex = [], ea = E[A.i], eb = E[B.i]; let best = Infinity, bestK = -2, steps = 0;
+      const relaxF = (k, g, from) => { if (seen[k] === gen && G[k] <= g) return; seen[k] = gen; G[k] = g; P[k] = from; hpush(hf, g, k); if (seenB[k] === gen && g + GB[k] < best) { best = g + GB[k]; bestK = k; } };
+      const relaxB = (k, g, next, te) => { if (seenB[k] === gen && GB[k] <= g) return; seenB[k] = gen; GB[k] = g; NB[k] = next; TE[k] = te; hpush(hb, g, k); if (seen[k] === gen && G[k] + g < best) { best = G[k] + g; bestK = k; } };
+      const startOf = (e, d) => d === 0 ? e.a : e.b;
       if (A.i === B.i) { const d = B.s >= A.s ? 0 : 1; if (ok(ea, d)) { best = cost(ea, Math.abs(B.s - A.s)); bestK = -1; } }
-      if (ok(ea, 0)) relax(A.i * 2, cost(ea, ea.L - A.s), -1); if (ok(ea, 1)) relax(A.i * 2 + 1, cost(ea, A.s), -1);
-      while (heap.length) { const [f, k] = hpop(heap); if (f >= best) break; if (done[k] === gen) continue; done[k] = gen;
-        const i1 = k >> 1, e = E[i1], d = k & 1, n = endOf(e, d), g = G[k], junction = adj[n].length > 2;
-        for (const d2 of [0, 1]) { if ((d2 === 0 ? eb.a : eb.b) !== n || !ok(eb, d2) || (i1 === B.i && d2 !== d) || !allowed(n, i1, B.i)) continue;   // finish along the destination's piece
-          const t = i1 === B.i ? 0 : turnCost(turnOf(e, d, eb, d2), junction), tot = g + t + cost(eb, d2 === 0 ? B.s : eb.L - B.s); if (tot < best) { best = tot; bestK = k; bestEnd = d2; } }
-        for (const i2 of adj[n]) for (const d2 of [0, 1]) { const e2 = E[i2]; if ((d2 === 0 ? e2.a : e2.b) !== n || !ok(e2, d2) || !allowed(n, i1, i2)) continue;
-          if (i2 === i1 && d2 !== d) { if (adj[n].length > 1) continue; }            // U-turns only where the road ends
-          else if (i2 === i1) continue;
-          relax(i2 * 2 + d2, g + turnCost(turnOf(e, d, e2, d2), junction) + cost(e2, e2.L), k); } }
+      if (ok(ea, 0)) relaxF(A.i * 2, cost(ea, ea.L - A.s), -1); if (ok(ea, 1)) relaxF(A.i * 2 + 1, cost(ea, A.s), -1);
+      // the backward side starts from every way onto the destination's piece: having driven piece i1 to the junction where it begins
+      for (const d2 of [0, 1]) { const n = startOf(eb, d2); if (!ok(eb, d2)) continue; const tail = cost(eb, d2 === 0 ? B.s : eb.L - B.s), junction = adj[n].length > 2;
+        for (const i1 of adj[n]) for (const d1 of [0, 1]) { const e1 = E[i1]; if (endOf(e1, d1) !== n || !ok(e1, d1) || (i1 === B.i && d1 !== d2) || !allowed(n, i1, B.i)) continue;
+          relaxB(i1 * 2 + d1, (i1 === B.i ? 0 : turnCost(turnOf(e1, d1, eb, d2), junction)) + tail, -1, d2); } }
+      for (;;) { const tf = hf.length ? hf[0][0] : Infinity, tb = hb.length ? hb[0][0] : Infinity; if (tf === Infinity && tb === Infinity) break;
+        if ((tf === Infinity ? tb : tb === Infinity ? tf : tf + tb) >= best || steps++ > 400000) break;   // neither side can find a quicker meeting any more
+        if (tf <= tb) { const [, k] = hpop(hf); if (done[k] === gen) continue; done[k] = gen; ex.push(k & ~1);
+          const i1 = k >> 1, e = E[i1], d = k & 1, n = endOf(e, d), g = G[k], junction = adj[n].length > 2;
+          for (const i2 of adj[n]) for (const d2 of [0, 1]) { const e2 = E[i2]; if (startOf(e2, d2) !== n || !ok(e2, d2) || !allowed(n, i1, i2)) continue;
+            if (i2 === i1 && d2 !== d) { if (adj[n].length > 1) continue; }            // U-turns only where the road ends
+            else if (i2 === i1) continue;
+            relaxF(i2 * 2 + d2, g + turnCost(turnOf(e, d, e2, d2), junction) + cost(e2, e2.L), k); } }
+        else { const [, k2] = hpop(hb); if (doneB[k2] === gen) continue; doneB[k2] = gen; ex.push((k2 & ~1) | 1);
+          // the ways into this piece: having driven piece i1 to the junction where it begins (the forward rules, run in reverse)
+          const i2 = k2 >> 1, e2 = E[i2], d2 = k2 & 1, n = startOf(e2, d2), g = GB[k2] + cost(e2, e2.L), junction = adj[n].length > 2;
+          for (const i1 of adj[n]) for (const d1 of [0, 1]) { const e1 = E[i1]; if (endOf(e1, d1) !== n || !ok(e1, d1) || !allowed(n, i1, i2)) continue;
+            if (i2 === i1 && d2 !== d1) { if (adj[n].length > 1) continue; } else if (i2 === i1) continue;
+            relaxB(i1 * 2 + d1, g + turnCost(turnOf(e1, d1, e2, d2), junction), k2, -1); } } }
       if (bestK === -2) return null;
+      // the drive: the forward side's pieces up to the meeting, then the backward side's on to the destination's piece
+      const chain = []; let bestEnd = null;
+      if (bestK >= 0) { for (let k = bestK; k >= 0; k = P[k]) chain.push(k); chain.reverse(); let k = bestK; while (NB[k] >= 0) { k = NB[k]; chain.push(k); } bestEnd = TE[k]; bestK = chain[chain.length - 1]; }
       // the drive as points, with the turns at real junctions marked for spoken directions
-      const chain = []; for (let k = bestK; k >= 0; k = P[k]) chain.push(k); chain.reverse();
       const pts = [[ax, ay]], turns = [], add = q => { const l = pts[pts.length - 1]; if (Math.hypot(q[0] - l[0], q[1] - l[1]) > 0.3) pts.push(q); };
       const along = (e, s0, s1) => { add(at(e, s0)); if (s1 > s0) { for (let j = 0; j < e.c.length; j++) if (e.c[j] > s0 && e.c[j] < s1) add(e.p[j]); } else { for (let j = e.c.length - 1; j >= 0; j--) if (e.c[j] < s0 && e.c[j] > s1) add(e.p[j]); } add(at(e, s1)); };
       if (bestK === -1) along(ea, A.s, B.s);
@@ -2077,7 +2101,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
             if (lt && Math.hypot(here[0] - pts[lt.i][0], here[1] - pts[lt.i][1]) < 14) { lt.d += t; lt.d = Math.atan2(Math.sin(lt.d), Math.cos(lt.d)); }   // a wide junction traced as two: one turn
             else turns.push({ i: pts.length - 1, d: t }); }
           const last = j === legs.length - 1; along(e2, d2 === 0 ? 0 : e2.L, last ? B.s : d2 === 0 ? e2.L : 0); } }
-      add([bx, by]); pts.turns = turns.filter(t => Math.abs(t.d) * 180 / Math.PI >= 25); pts.secs = best; return pts; };
+      add([bx, by]); pts.turns = turns.filter(t => Math.abs(t.d) * 180 / Math.PI >= 25); pts.secs = best; pts.ex = ex; return pts; };
     // ── where a moving car is about to be: carry on along the road it is on, through each junction the way it most likely goes ──
     // At a junction the pick is the road nearest `prefer` (the unit's GPS route to its call, or the way it drove here before),
     // else the straightest legal road. Returns the points ahead, kept in the car's lane, or null when it isn't on a road.
@@ -2116,6 +2140,24 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const OVS = window.OVERSITE; if (OVS && OVS.roads) setOv(OVS.roads.ov);
     else if (!/^https?:$/.test(location.protocol)) { try { setOv(JSON.parse(localStorage.getItem('oversite-roads') || '{}')); } catch (e) {} }
   })();
+  // A new route on a map plays the search that found it, like a satnav thinking: the roads it tried spread out in blue from you and
+  // from the call at once, meet, and the route lights up green along the roads; then the usual route line takes over. Only when the
+  // route is for somewhere new, not each time it's redrawn as you drive, and not with reduced motion on.
+  window.routeFx = (svg, pts) => { const R = window.ROADNET; if (!svg || !R || !pts || !pts.ex || !pts.ex.length || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    svg.querySelector('.rfx')?._stop();
+    const NS = 'http://www.w3.org/2000/svg', g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'rfx'); g.innerHTML = '<path class="ex"/><path class="ex"/><path class="rt2"/><path class="rt"/>';
+    svg.insertBefore(g, svg.querySelector('.dst')); const [p0, p1, rt2, rt] = g.children, E = R.E, ex = pts.ex, f = q => q[0].toFixed(1) + ' ' + q[1].toFixed(1);
+    const D = ex.map(v => { const e = E[v >> 1]; return e ? 'M' + e.p.map(f).join('L') : ''; }), rd = 'M' + pts.map(f).join('L'); rt.setAttribute('d', rd); rt2.setAttribute('d', rd);
+    let L = 0; try { L = rt.getTotalLength(); } catch (e) {} for (const x of [rt, rt2]) { x.style.strokeDasharray = L; x.style.strokeDashoffset = L; }
+    const T1 = Math.min(1500, 500 + ex.length * 1.2), T2 = 750, T3 = 700, T4 = 450, out = t => 1 - Math.pow(1 - t, 3), acc = ['', ''];
+    let i = 0, raf = 0, t0 = 0;
+    const stop = () => { cancelAnimationFrame(raf); g.remove(); svg.classList.remove('rfx-on'); };
+    const step = ts => { if (!t0) t0 = ts; const t = ts - t0, n = Math.min(ex.length, Math.ceil(ex.length * Math.min(1, t / T1)));
+      if (n > i) { for (; i < n; i++) acc[ex[i] & 1] += D[i]; p0.setAttribute('d', acc[0]); p1.setAttribute('d', acc[1]); }
+      if (t > T1 * 0.9) { const k = out(Math.min(1, (t - T1 * 0.9) / T2)); rt.style.strokeDashoffset = rt2.style.strokeDashoffset = L * (1 - k); }
+      if (t > T1 + T2 + T3) { svg.classList.remove('rfx-on'); g.style.opacity = 1 - Math.min(1, (t - T1 - T2 - T3) / T4); }
+      if (t > T1 + T2 + T3 + T4 || !svg.isConnected) return stop(); raf = requestAnimationFrame(step); };
+    g._stop = stop; svg.classList.add('rfx-on'); raf = requestAnimationFrame(step); };
   const HOSTED = window.HOSTED = /^https?:$/.test(location.protocol);   // the hosted site has no demo: units come from the server only
   let units = HOSTED ? [] : JSON.parse(document.getElementById('units').textContent);
   if (HOSTED) { const fl = document.querySelector('.fleet'); if (fl) fl.innerHTML = '<div class="empty" style="padding:18px 6px;color:var(--dim);font-size:12.5px;line-height:1.5">No units on duty. Players on a mapped team appear here as soon as the server link is set up.</div>';
@@ -2172,7 +2214,8 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     if (!c || !Number.isFinite(c.x)) { if (svg) svg.remove(); m.view = m.base; m.route = null; m.cx = m.cy = null; return; }
     if (!svg) { svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'gps'); svg.innerHTML = '<path class="r2"/><path class="r1"/><circle class="dst" r="0"/>'; el.insertBefore(svg, el.querySelector('.pin')); }
     const moved = m.route && Math.hypot(u.x - m.route[0][0], u.y - m.route[0][1]);
-    if (!m.route || m.routeFor !== c.startedAt || m.rGen !== window.ROUTE_GEN || (moved > 10 && ts - m.routeAt > 500)) { m.route = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; m.routeFor = c.startedAt; m.routeAt = ts; m.rGen = window.ROUTE_GEN; }
+    if (!m.route || m.routeFor !== c.startedAt || m.rGen !== window.ROUTE_GEN || (moved > 10 && ts - m.routeAt > 500)) { const fresh = m.routeFor !== c.startedAt; m.route = window.roadRoute ? window.roadRoute(u.x, u.y, c.x, c.y) : [[u.x, u.y], [c.x, c.y]]; m.routeFor = c.startedAt; m.routeAt = ts; m.rGen = window.ROUTE_GEN;
+      if (fresh) window.routeFx(svg, m.route); }
     const pts = [[u.x, u.y], ...m.route.slice(1)], d = 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
     // frame the whole trip: centre between you and the call, zoomed in until both (and the road between) just fit
     const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), ar = m.w / m.h || 1;
@@ -3615,7 +3658,7 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
       .map(c => `<div class="dm-call${c.startedAt === focusT ? ' hl' : ''}" style="--ux:${(c.x / W * MS).toFixed(2)};--uy:${(c.y / W * MS).toFixed(2)}" title="${esc(c.code + ' ' + c.type + ', ' + c.where)}"><i></i><b>${esc(c.code)}</b></div>`).join('');
     // your route to the call you're on, along the roads (same search as the home map)
     const mc = me && (window.CALLS || []).find(k => window.onIt ? window.onIt(k, me.name) : k.unit === me.name), rp = $('dmRoute');
-    if (mc && Number.isFinite(mc.x) && window.roadRoute) { if (!draw.r || draw.rFor !== mc.startedAt || draw.rGen !== window.ROUTE_GEN || (Math.hypot(me.x - draw.r[0][0], me.y - draw.r[0][1]) > 10 && Date.now() - draw.rAt > 500)) { draw.r = window.roadRoute(me.x, me.y, mc.x, mc.y); draw.rFor = mc.startedAt; draw.rAt = Date.now(); draw.rGen = window.ROUTE_GEN; }
+    if (mc && Number.isFinite(mc.x) && window.roadRoute) { if (!draw.r || draw.rFor !== mc.startedAt || draw.rGen !== window.ROUTE_GEN || (Math.hypot(me.x - draw.r[0][0], me.y - draw.r[0][1]) > 10 && Date.now() - draw.rAt > 500)) { const fresh = draw.rFor !== mc.startedAt; draw.r = window.roadRoute(me.x, me.y, mc.x, mc.y); draw.rFor = mc.startedAt; draw.rAt = Date.now(); draw.rGen = window.ROUTE_GEN; if (fresh) window.routeFx(rp, draw.r); }
       const d = 'M' + [[me.x, me.y], ...draw.r.slice(1)].map(q => q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join('L'); rp.querySelectorAll('path').forEach(x => x.setAttribute('d', d)); }
     else { draw.r = null; rp.querySelectorAll('path').forEach(x => x.removeAttribute('d')); }
     const nb = $('dmNav'); nb.hidden = !mc; if (mc) nb.dataset.nav = mc.startedAt;
