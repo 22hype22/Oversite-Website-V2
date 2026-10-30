@@ -2037,7 +2037,9 @@ window.divById = id => id ? window.DIVS.find(d => d.id === id) || null : null;
   const api = path => fetch(O().api + path, { headers: { 'x-oversite': '1' } }).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Could not load call history.'); return j; });
   const units = c => c.units.map(u => u.name).join(', ');
   const load = async () => { const L = box.querySelector('.ch-list'); L.innerHTML = '<div class="ch-empty">Loading…</div>';
-    try { const j = await api('/calls/history?' + new URLSearchParams({ q, days })); box.querySelector('.ch-free').textContent = j.freeDays ? `Showing the last ${j.freeDays} days. Premium servers keep every call.` : '';
+    try { const j = await api('/calls/history?' + new URLSearchParams({ q, days })); box.querySelector('.ch-free').textContent = j.freeDays ? `Free servers keep a week of calls. Premium keeps every call, as far back as you like.` : '';
+      // without Premium, only a week back: the longer ranges say so instead
+      for (const o of box.querySelectorAll('.ch-d option')) { const long = !!j.freeDays && (!+o.value || +o.value > j.freeDays); o.disabled = long; o.textContent = o.textContent.replace(' (Premium)', '') + (long ? ' (Premium)' : ''); }
       L.innerHTML = j.calls.length ? j.calls.map(c => `<button type="button" class="ch-it${sel === c.key ? ' on' : ''}" data-chk="${e(c.key)}"><span class="ch-t"><b>${e(day(c.received))}</b>${e(hm(c.received))}</span><span class="ch-w"><b>${e(c.type)}</b><small>${e([c.where, units(c) || 'No units', c.cleared ? dur(c.received, c.cleared) : 'Still open'].filter(Boolean).join(' · '))}</small></span>${c.notes.length ? `<span class="ch-nc">${c.notes.length} note${c.notes.length === 1 ? '' : 's'}</span>` : ''}</button>`).join('')
         + (j.more ? '<div class="ch-empty">Showing the newest 100. Search to narrow it down.</div>' : '') : `<div class="ch-empty">${q ? 'No calls match that.' : 'No calls in this time.'}</div>`; }
     catch (x) { L.innerHTML = `<div class="ch-empty">${e(x.message)}</div>`; } };

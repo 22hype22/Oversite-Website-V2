@@ -231,10 +231,10 @@ const communityApi = async (req, res, slug, rest) => {
     feedFor(c).bcast('callnote', JSON.stringify({ key: r.key, notes: r.notes })); return json(res, r); }
   if ((rest === 'calls/history' || rest === 'calls/history/one') && M === 'GET') { if (!can(role, 'mod') && liveSide(c, user) === 'civ') return json(res, { error: 'Call history is for players on a department team.' }, 403);
     const no = await lockedOut(c, user, role, 'dispatch'); if (no) return json(res, { error: no }, 403);
-    const qs = new URL(req.url, 'http://x').searchParams, prem = premium.isPremium(c), cut = prem ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5;
+    const qs = new URL(req.url, 'http://x').searchParams, prem = premium.isPremium(c), cut = prem ? 0 : Date.now() - callhist.FREE_DAYS * 864e5;
     if (rest === 'calls/history/one') { const r = callhist.get(c.id, String(qs.get('key') || '')); return r && r.received >= cut ? json(res, { call: r }) : json(res, { error: 'That call isn’t on file.' }, 404); }
     const L = callhist.list(c.id, { q: qs.get('q') || '', days: Math.max(0, Math.min(400, +qs.get('days') || 0)), unit: qs.get('unit') || '', cut, before: +qs.get('before') || 0 });
-    return json(res, { calls: L.slice(0, 100), more: L.length > 100, freeDays: prem ? 0 : premium.FREE_RECORD_DAYS }); }
+    return json(res, { calls: L.slice(0, 100), more: L.length > 100, freeDays: prem ? 0 : callhist.FREE_DAYS }); }
   // dispatch radio: a channel is for players on that department's team in game (server staff can use any), All units for any department
   if (rest.startsWith('radio/')) { const qs = new URL(req.url, 'http://x').searchParams, j = M === 'POST' ? await jsonBody(req) : {}, ch = String(qs.get('ch') || j.ch || '');
     if (!bots.hasOversite(c, 'dispatch')) return json(res, { error: 'The radio comes with the Oversite Dispatch bot. The server’s owner links it in Settings, under Bots.', needBot: true }, 403);

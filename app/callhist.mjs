@@ -1,7 +1,7 @@
 // Call history and call notes. Every 911 call the CAD sees (in game, from the Civilian tab, from a bot) is kept here: what it was,
 // where, who called, which units went and when (dispatched, en route, on scene), and when and by whom it was cleared, or that it
 // ended in game. Dispatch and the units on a call add notes to it ("Suspect left northbound in a red sedan"), live for everyone,
-// and can keep adding them after it's over ("Report filed: FD-2026-0012"). Free servers see the last 30 days; Premium all of it.
+// and can keep adding them after it's over ("Report filed: FD-2026-0012"). Free servers see the last week (FREE_DAYS); Premium all of it.
 // A call's key is the one the CAD gives it: `${CallNumber or Description}@${StartedAt}`.
 import { db, now } from './db.mjs';
 
@@ -14,6 +14,7 @@ const q = sql => db.prepare(sql);
 const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 export const keyOf = c => String(`${c.CallNumber ?? c.Description ?? ''}@${c.StartedAt ?? ''}`).replace(/[^\w .:@#-]/g, '').slice(0, 120);   // the CAD's own (live-map.html pushCalls)
 const KEY = /^[\w .:@#-]{1,120}$/, ENDED = 120000, KEEP_DAYS = 400;
+export const FREE_DAYS = 7;
 
 const row = r => r && ({ key: r.key, type: r.type, where: r.where_txt || '', team: r.team || '', caller: r.caller || '', x: r.x, y: r.y, received: r.received,
   dispatched: r.dispatched || null, enroute: r.enroute || null, onscene: r.onscene || null, cleared: r.cleared || null, cleared_by: r.cleared_by || '',
