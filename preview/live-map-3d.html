@@ -738,6 +738,30 @@
   .mini svg.gps .r2{stroke:rgba(6,18,40,.75);stroke-width:calc(var(--sw) * 9)}
   .mini svg.gps .r1{stroke:#4C8DFF;stroke-width:calc(var(--sw) * 5)}
   .mini svg.gps .dst{fill:#E24B4B;stroke:#fff;stroke-width:calc(var(--sw) * 2.5)}
+  /* notes on a call (dispatch board, MDT call detail, Call history) */
+  .cn{display:grid;gap:8px}.cn-l{display:grid;gap:6px;max-height:220px;overflow:auto}.cn-n{border-left:2px solid rgba(76,141,255,.55);padding:1px 0 1px 9px}.cn-n small{font-size:10.5px;color:#8C9098}.cn-n p{margin:1px 0 0;font-size:12.5px;line-height:1.4;color:#E6E8EB;white-space:pre-wrap;overflow-wrap:anywhere}
+  .cn-none{font-size:12px;color:#7C8088}.cn-f{display:flex;gap:6px}.cn-f input{flex:1;min-width:0;font:inherit;font-size:12.5px;color:#E9EAEC;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px 9px;outline:0;user-select:text}
+  .cn-f input:focus{border-color:rgba(76,141,255,.6)}.cn-f button{flex:none;font:600 12px/1 inherit;color:#0B0B0C;background:#ECEDEF;border:0;border-radius:8px;padding:0 12px;cursor:pointer}.cn-f button:disabled{opacity:.5}
+  #callRows .cn-row{cursor:pointer}#callRows .cn-row[aria-expanded="true"]{background:rgba(255,255,255,.04)}#callRows .cn-open{padding:8px 12px 12px 18px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03)}
+  .cn-cnt{font-size:10px;font-weight:600;color:#8DB6FF;background:rgba(76,141,255,.14);border-radius:5px;padding:1px 5px;margin-left:4px;vertical-align:1px}
+  .det-notes{margin-top:12px}.det-notes .cn-l{max-height:160px}
+  .lh .ch-open{margin-left:auto;margin-right:8px;font:500 11.5px/1 inherit;color:#C9CDD3;background:rgba(255,255,255,.07);border:0;border-radius:7px;padding:5px 9px;cursor:pointer}.lh .ch-open:hover{background:rgba(255,255,255,.12)}
+  /* Call history window */
+  .ch-wrap{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;background:rgba(0,0,0,.55);padding:16px}.ch-wrap[hidden]{display:none}
+  .ch{width:min(980px,100%);height:min(680px,100%);display:flex;flex-direction:column;background:#141518;border:1px solid rgba(255,255,255,.1);border-radius:16px;color:#E9EAEC;box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden}
+  .ch header{display:flex;align-items:center;padding:14px 16px 6px}.ch header h2{margin:0;font-size:17px;font-weight:600}.ch-x{margin-left:auto;width:32px;height:32px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:inherit;font-size:20px;line-height:1;cursor:pointer}
+  .ch-bar{display:flex;gap:8px;padding:6px 16px}.ch-bar input,.ch-bar select{font:inherit;font-size:13px;color:inherit;background:#1C1D20;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:8px 10px;outline:0;color-scheme:dark}.ch-bar input{flex:1;min-width:0;user-select:text}.ch-bar select{width:150px}.ch-bar .dd{flex:0 0 150px;width:150px!important}
+  .ch-free{margin:0;padding:0 16px;font-size:11.5px;color:#8C9098}.ch-free:empty{display:none}
+  .ch-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);border-top:1px solid rgba(255,255,255,.07);margin-top:8px}
+  .ch-list{overflow:auto;border-right:1px solid rgba(255,255,255,.07)}.ch-det{overflow:auto;padding:14px 16px}
+  .ch-it{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;border-bottom:1px solid rgba(255,255,255,.05);padding:10px 14px;cursor:pointer}.ch-it:hover{background:rgba(255,255,255,.04)}.ch-it.on{background:rgba(76,141,255,.12)}
+  .ch-t{flex:none;width:58px;display:grid;font-size:11.5px;color:#9A9EA6}.ch-t b{font-size:12px;color:#C9CDD3;font-weight:600}.ch-w{flex:1;min-width:0;display:grid}.ch-w b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ch-w small{font-size:11.5px;color:#8C9098;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ch-nc{flex:none;font-size:10.5px;color:#8DB6FF;background:rgba(76,141,255,.14);border-radius:5px;padding:2px 6px}
+  .ch-empty{padding:18px 14px;font-size:12.5px;color:#8C9098}.ch-back{display:none;font:inherit;font-size:12.5px;color:#9A9EA6;background:none;border:0;padding:0 0 8px;cursor:pointer}
+  .ch-det h3{margin:0;font-size:16px;font-weight:600}.ch-sub{margin:3px 0 12px;font-size:12.5px;color:#9A9EA6}.ch-det h4{margin:14px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#8C9098;font-weight:600}
+  .ch-tl{display:grid;gap:6px}.ch-s{display:grid;grid-template-columns:110px 1fr;column-gap:10px;font-size:12.5px}.ch-s span{color:#8C9098}.ch-s small{grid-column:2;font-size:11px;color:#7C8088}
+  .ch-u{display:flex;flex-wrap:wrap;gap:6px;margin:0;font-size:12.5px;color:#8C9098}.ch-u span{display:inline-flex;gap:6px;align-items:baseline;color:#E6E8EB;background:rgba(255,255,255,.06);border-radius:7px;padding:4px 8px}.ch-u small{font-size:10.5px;color:#8C9098}
+  @media (max-width:720px){.ch-body{grid-template-columns:1fr}.ch-det{display:none}.ch.det .ch-list,.ch-wrap.det .ch-list{display:none}.ch-wrap.det .ch-det{display:block}.ch-wrap.det .ch-back{display:block}}
   /* the search behind a new route (window.routeFx): roads tried in blue from both ends, then the route in green */
   .rfx path{fill:none;stroke-linecap:round;stroke-linejoin:round}.rfx .ex{stroke:#2F7BFF;opacity:.9}.rfx .rt{stroke:#3DDC84}.rfx .rt2{stroke:rgba(61,220,132,.35)}
   svg.rfx-on>.r1,svg.rfx-on>.r2{opacity:0}svg.gps>.r1,svg.gps>.r2,#dmRoute>.r1,#dmRoute>.r2{transition:opacity .35s ease}
@@ -1790,7 +1814,7 @@
             <span id="fdAssigned" hidden></span>
           </section>
           <section class="tscreen" data-pane="calls">
-            <header class="thead"><h2>Calls</h2><span class="cnt" id="fdCallCount">0</span></header>
+            <header class="thead"><h2>Calls</h2><span class="cnt" id="fdCallCount">0</span><button type="button" class="btn ghost sm ch-open" data-ch style="margin-left:auto">Call history</button></header>
             <div class="rows" id="fdCallRows"></div>
             <div class="tcard detail" id="fdDetail">
               <div class="tch"><h3 id="fdDetTitle">Select a call</h3><span class="pill" id="fdDetPri" hidden></span></div>
@@ -1927,7 +1951,7 @@
     </div>
     <div class="card list calls" id="callsCard">
       <div class="lh">
-        <h3>Active Calls <span class="cnt" id="callsCount">0</span></h3>
+        <h3>Active Calls <span class="cnt" id="callsCount">0</span></h3><button type="button" class="ch-open" data-ch title="Every call, with its times, units and notes">History</button>
         <div class="pris" id="callPris" aria-label="Calls by priority"></div>
       </div>
       <div class="rows" id="callRows" role="list" aria-label="Active calls"></div>
@@ -1981,6 +2005,62 @@ window.divById = id => id ? window.DIVS.find(d => d.id === id) || null : null;
     if (k === 'dot') return first(t, DOT, 'dot_other');
     if (k === 'fd') { if (FIRE.test(t)) return first(t, FD, 'fire_other'); if (ALARM.test(t)) return 'fire_alarm'; if (RESCUE.test(t)) return 'fire_rescue'; return window.isMedical(c) ? first(t, EMS, 'ems_other') : 'fire_other'; }
     return first(t, LE, 'le_other'); }; }
+// ── notes on a call and Call history (app/callhist.mjs) ──
+// Dispatch and the units on a call add notes to it; everyone with the call open sees them as they're written. Call history keeps
+// every call after it's cleared: times, units, who cleared it and its notes, which can still be added to afterwards.
+(() => { const e = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const O = () => window.OVERSITE || {}, hm = t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  window.CALL_NOTES = {};
+  addEventListener('ov:callnotes', ev => { window.CALL_NOTES = { ...window.CALL_NOTES, ...(ev.detail || {}) }; dispatchEvent(new CustomEvent('callnotes')); });
+  addEventListener('ov:callnote', ev => { const d = ev.detail || {}; if (!d.key) return; window.CALL_NOTES[d.key] = d.notes || []; dispatchEvent(new CustomEvent('callnotes', { detail: d.key })); });
+  const noteList = (N, empty) => (N || []).length ? N.map(n => `<div class="cn-n"><small>${e(hm(n.at))} · ${e(n.by || 'Someone')}${n.as === 'unit' ? '' : ' (dispatch)'}</small><p>${e(n.text)}</p></div>`).join('') : `<div class="cn-none">${empty}</div>`;
+  window.noteCount = key => (window.CALL_NOTES[key] || []).length;
+  // the notes on a live call, with a box to add one; `as` is dispatch or unit
+  window.noteBlock = (c, as) => !c || !c.key || !O().api ? '' : `<div class="cn"><div class="cn-l" data-cnl="${e(c.key)}">${noteList(window.CALL_NOTES[c.key], 'No notes yet.')}</div>
+    <form class="cn-f" data-cnk="${e(c.key)}" data-as="${as}"><input maxlength="400" placeholder="Add a note for everyone on this call" aria-label="Add a note to this call" autocomplete="off"><button type="submit">Add</button></form></div>`;
+  addEventListener('callnotes', () => { for (const el of document.querySelectorAll('[data-cnl]')) el.innerHTML = noteList(window.CALL_NOTES[el.dataset.cnl], 'No notes yet.'); });
+  const post = async (key, text, as) => { const r = await fetch(O().api + '/calls/note', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ key, text, as }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Could not add the note.'); return j; };
+  document.addEventListener('submit', async ev => { const f = ev.target.closest?.('.cn-f'); if (!f) return; ev.preventDefault(); const i = f.querySelector('input'), b = f.querySelector('button'), text = i.value.trim(); if (!text) return; b.disabled = true;
+    try { const j = await post(f.dataset.cnk, text, f.dataset.as); window.CALL_NOTES[j.key] = j.notes; i.value = ''; dispatchEvent(new CustomEvent('callnotes', { detail: j.key }));
+      // the live copy of the note can arrive (and redraw the board) before this answer: empty every box that still holds it
+      for (const x of document.querySelectorAll('.cn-f')) if (x.dataset.cnk === j.key && x.querySelector('input').value.trim() === text) x.querySelector('input').value = ''; if (f.closest('.ch')) { chOpen(j.key); load(); } }
+    catch (x) { f.dataset.err = x.message; i.placeholder = x.message; } b.disabled = false; });
+  // a list that redraws often (the call board): keep a note being typed, and the focus, across the redraw
+  window.keepNotes = (box, draw) => { const typing = [...box.querySelectorAll('.cn-f')].map(f => ({ k: f.dataset.cnk, v: f.querySelector('input').value, on: document.activeElement === f.querySelector('input') })).filter(x => x.v || x.on);
+    draw(); for (const t of typing) { const f = [...box.querySelectorAll('.cn-f')].find(x => x.dataset.cnk === t.k); if (!f) continue; const i = f.querySelector('input'); i.value = t.v; if (t.on) { i.focus(); i.setSelectionRange(t.v.length, t.v.length); } } };
+
+  // ── Call history: a window over the CAD ──
+  let box = null, q = '', days = 7, sel = null, T = 0;
+  const dur = (a, b) => { if (!a || !b) return ''; const m = Math.round((b - a) / 60000); return m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
+  const day = t => { const d = new Date(t), n = new Date(); return d.toDateString() === n.toDateString() ? 'Today' : d.toLocaleDateString([], { month: 'short', day: 'numeric' }); };
+  const api = path => fetch(O().api + path, { headers: { 'x-oversite': '1' } }).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Could not load call history.'); return j; });
+  const units = c => c.units.map(u => u.name).join(', ');
+  const load = async () => { const L = box.querySelector('.ch-list'); L.innerHTML = '<div class="ch-empty">Loading…</div>';
+    try { const j = await api('/calls/history?' + new URLSearchParams({ q, days })); box.querySelector('.ch-free').textContent = j.freeDays ? `Showing the last ${j.freeDays} days. Premium servers keep every call.` : '';
+      L.innerHTML = j.calls.length ? j.calls.map(c => `<button type="button" class="ch-it${sel === c.key ? ' on' : ''}" data-chk="${e(c.key)}"><span class="ch-t"><b>${e(day(c.received))}</b>${e(hm(c.received))}</span><span class="ch-w"><b>${e(c.type)}</b><small>${e([c.where, units(c) || 'No units', c.cleared ? dur(c.received, c.cleared) : 'Still open'].filter(Boolean).join(' · '))}</small></span>${c.notes.length ? `<span class="ch-nc">${c.notes.length} note${c.notes.length === 1 ? '' : 's'}</span>` : ''}</button>`).join('')
+        + (j.more ? '<div class="ch-empty">Showing the newest 100. Search to narrow it down.</div>' : '') : `<div class="ch-empty">${q ? 'No calls match that.' : 'No calls in this time.'}</div>`; }
+    catch (x) { L.innerHTML = `<div class="ch-empty">${e(x.message)}</div>`; } };
+  const chOpen = async key => { sel = key; box.querySelectorAll('.ch-it').forEach(b => b.classList.toggle('on', b.dataset.chk === key)); const D = box.querySelector('.ch-det'); box.classList.add('det');
+    try { const { call: c } = await api('/calls/history/one?' + new URLSearchParams({ key })); const step = (l, t, x) => t ? `<div class="ch-s"><span>${l}</span><b>${e(day(t))} ${e(hm(t))}</b>${x ? `<small>${e(x)}</small>` : ''}</div>` : '';
+      D.innerHTML = `<button type="button" class="ch-back">‹ All calls</button><h3>${e(c.type)}</h3><p class="ch-sub">${e([c.where, c.team ? 'to ' + c.team : '', c.caller ? 'caller ' + c.caller : ''].filter(Boolean).join(' · '))}</p>
+        <div class="ch-tl">${step('Received', c.received)}${step('Dispatched', c.dispatched, c.dispatched ? 'after ' + dur(c.received, c.dispatched) : '')}${step('En route', c.enroute)}${step('On scene', c.onscene, c.onscene ? dur(c.received, c.onscene) + ' after the call' : '')}${step(c.cleared_by === 'Ended in game' ? 'Ended in game' : 'Cleared', c.cleared, c.cleared_by && c.cleared_by !== 'Ended in game' ? 'by ' + c.cleared_by : '')}${c.cleared ? '' : '<div class="ch-s"><span>Status</span><b>Still open</b></div>'}</div>
+        <h4>Units</h4><p class="ch-u">${c.units.length ? c.units.map(u => `<span>${e(u.name)}<small>${e(hm(u.at))}</small></span>`).join('') : 'Nobody was sent.'}</p>
+        <h4>Notes</h4><div class="cn"><div class="cn-l">${noteList(c.notes, 'No notes on this call.')}</div><form class="cn-f" data-cnk="${e(c.key)}" data-as="dispatch"><input maxlength="400" placeholder="Add a note, like “Report filed: FD-2026-0012”" aria-label="Add a note to this call" autocomplete="off"><button type="submit">Add</button></form></div>`; }
+    catch (x) { D.innerHTML = `<button type="button" class="ch-back">‹ All calls</button><div class="ch-empty">${e(x.message)}</div>`; } };
+  window.openCallHistory = () => { if (!O().api) return;
+    if (!box) { box = document.createElement('div'); box.className = 'ch-wrap'; box.hidden = true;
+      box.innerHTML = `<div class="ch" role="dialog" aria-modal="true" aria-label="Call history"><header><h2>Call history</h2><button type="button" class="ch-x" aria-label="Close">×</button></header>
+        <div class="ch-bar"><input type="search" class="ch-q" placeholder="Search calls, places, callers, units or notes" aria-label="Search call history"><select class="ch-d" aria-label="When"><option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="0">All</option></select></div>
+        <p class="ch-free"></p><div class="ch-body"><div class="ch-list"></div><div class="ch-det"><div class="ch-empty">Pick a call to see what happened.</div></div></div></div>`;
+      document.body.appendChild(box);
+      box.addEventListener('click', ev => { if (ev.target === box || ev.target.closest('.ch-x')) return close(); if (ev.target.closest('.ch-back')) { box.classList.remove('det'); return; } const it = ev.target.closest('[data-chk]'); if (it) chOpen(it.dataset.chk); });
+      box.querySelector('.ch-q').addEventListener('input', ev => { clearTimeout(T); T = setTimeout(() => { q = ev.target.value.trim(); load(); }, 250); });
+      box.querySelector('.ch-d').addEventListener('change', ev => { days = +ev.target.value; load(); });
+      box.addEventListener('keydown', ev => { if (ev.key === 'Escape') { ev.stopPropagation(); close(); } }); }
+    box.hidden = false; box.classList.remove('det'); load(); setTimeout(() => box.querySelector('.ch-q').focus(), 30); };
+  const close = () => { if (box) box.hidden = true; };
+  document.addEventListener('click', ev => { if (ev.target.closest('[data-ch]')) { ev.preventDefault(); window.openCallHistory(); } }); })();
 window.isMedical = c => /\b(ems|medic\w*|ambulance|paramedics?|injur\w*|hurt|bleed\w*|blood|unconscious|unresponsive|breath\w*|overdos\w*|od|heart|cardiac|chest pain|seizure|stroke|shot|gunshot|stabb?\w*|wound\w*|fell|fall(en)?|collaps\w*|sick|ill|pregnan\w*|labou?r|hospital|cpr|chok\w*|broken|fractur\w*|allerg\w*|diabet\w*|faint\w*|dying|dead|crash\w*|accident|collision|mva|hit by)\b/i.test(`${c.type || ''} ${c.code || ''}`);
 if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(window.OVERSITE.api + '/units', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; window.UNIT_OF = j.of || {}; window.RIDE_WITH = j.ride || {};
     for (const d of ['pd', 'fd', 'dot']) if (window.OVERSITE.depts && window.OVERSITE.depts[d]) window.OVERSITE.depts[d].units = (j.units || {})[d] || [];
@@ -2413,16 +2493,23 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   renderRoster(); addEventListener('units', renderRoster);
 
   const pin = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>';
-  const renderCalls = () => { calls.innerHTML = [...CALLS].sort((a, b) => a.pri - b.pri || b.startedAt - a.startedAt).map(c => `<div class="row p${c.pri}" role="listitem" style="--acc:${COL[c.dept] || '#C9CDD3'}">
+  // a call opens below its row for its notes (dispatch adds them; the units on it see them on their MDT)
+  let openK = null;
+  const drawRows = () => window.keepNotes(calls, () => { calls.innerHTML = [...CALLS].sort((a, b) => a.pri - b.pri || b.startedAt - a.startedAt).map(c => { const nn = c.key ? window.noteCount(c.key) : 0; return `<div class="row p${c.pri}${c.key ? ' cn-row' : ''}" role="listitem" style="--acc:${COL[c.dept] || '#C9CDD3'}"${c.key ? ` data-ck="${esc(c.key)}" tabindex="0" aria-expanded="${openK === c.key}"` : ''}>
     <span class="prail"></span><span class="code">${c.code}</span>
-    <div class="what"><b>${esc(c.type)}</b><span>${pin}${esc(c.where)}</span></div>
+    <div class="what"><b>${esc(c.type)}${nn ? ` <small class="cn-cnt">${nn} note${nn === 1 ? '' : 's'}</small>` : ''}</b><span>${pin}${esc(c.where)}</span></div>
     <div class="asg"><span class="unit${c.unit ? '' : ' none'}">${c.unit ? esc(c.unit) + (c.more && c.more.length ? ` <small>+${c.more.length}</small>` : '') : 'Unassigned'}</span>
       <span class="cstage">${[0, 1, 2].map(i => `<i class="${c.unit && i <= c.stage ? 'on' : ''}"></i>`).join('')}<small>${c.unit ? STAGES[c.stage] : 'Pending'}</small></span></div>
-    <span class="age" data-start="${c.startedAt}"></span></div>`).join('');
-  document.getElementById('callsCount').textContent = CALLS.length;
+    <span class="age" data-start="${c.startedAt}"></span></div>${openK && openK === c.key ? `<div class="cn-open">${window.noteBlock(c, 'dispatch')}</div>` : ''}`; }).join(''); });
+  addEventListener('callnotes', () => renderCalls());
+  calls.addEventListener('click', ev => { if (ev.target.closest('.cn-open')) return; const r = ev.target.closest('[data-ck]'); if (!r) return; openK = openK === r.dataset.ck ? null : r.dataset.ck; renderCalls();
+    if (openK) calls.querySelector('.cn-open input')?.focus(); });
+  calls.addEventListener('keydown', ev => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('[data-ck]')) { ev.preventDefault(); ev.target.click(); } });
+  const renderCount = () => { document.getElementById('callsCount').textContent = CALLS.length;
   const pc = { 1: 0, 2: 0, 3: 0 }; for (const c of CALLS) pc[c.pri]++;
   document.getElementById('callPris').innerHTML = [1, 2, 3].map(p => `<span class="p${p}">P${p} ${pc[p]}</span>`).join('');
   const cc = document.getElementById('callCount'); if (cc) cc.textContent = CALLS.length; tick(); };
+  const renderCalls = () => { drawRows(); renderCount(); };
   window.addCall = c => { CALLS.push(c); renderCalls(); dispatchEvent(new CustomEvent('calls')); };
   // a call that ended somewhere else (cleared in game): off the board, and no longer focused on the map
   window.removeCall = c => { const i = CALLS.indexOf(c); if (i < 0) return false; CALLS.splice(i, 1); if (window.focusCall === c.startedAt) { window.focusCall = null; dispatchEvent(new CustomEvent('focuscall', { detail: null })); }
@@ -2810,10 +2897,10 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     const u = me(), mine = onIt(c, u?.name), lead = c.unit === u?.name;
     const top = `<div class="row2"><div><span>Location</span><b>${esc(c.where)}</b></div><div><span>Received</span><b>${hhmm(c.startedAt)} (${fmtAge((Date.now() - c.startedAt) / 1000)} ago)</b></div><div><span>Assigned</span><b>${c.unit ? esc(c.unit) : 'Unassigned'}</b></div><div><span>Call #</span><b>${c.num || '—'}</b></div></div>`;
     const bot = `<div class="tl">${STAGES.map((_, i) => `<i class="${c.unit && i <= c.stage ? 'on' : ''}"></i>`).join('')}<small>${c.unit ? STAGES[c.stage].toUpperCase() : 'PENDING'}</small></div>
-      <div class="notes">${esc(c.notes || 'No additional notes from dispatch.')}</div>
+      ${c.notes ? `<div class="notes">${esc(c.notes)}</div>` : ''}
       <div class="acts">${!c.unit ? `<button class="btn" data-act="respond">Respond (${esc(u?.name || '')})</button>` : lead ? `<button class="btn ghost" data-act="enroute">En route</button><button class="btn ghost" data-act="onscene">On scene</button><button class="btn danger" data-act="clear">Clear call</button>` : mine ? `<button class="btn ghost" data-act="leave">Leave call</button>` : `<button class="btn ghost" data-act="assist">Assist</button>`}<button class="btn ghost" data-act="report">Write report</button></div>`;
     if (detKey !== key(c) || !body.querySelector('.det')) { detKey = key(c); detTop = top; detBot = bot; cmZoom = 1;
-      body.innerHTML = `<div class="det"><div class="det-top">${top}</div>${cmapHTML()}<div class="det-bot">${bot}</div></div>`; layoutCmap(c); return; }
+      body.innerHTML = `<div class="det"><div class="det-top">${top}</div>${cmapHTML()}<div class="det-bot">${bot}</div><div class="det-notes">${window.noteBlock(c, 'unit')}</div></div>`; layoutCmap(c); return; }
     if (top !== detTop) { detTop = top; body.querySelector('.det-top').innerHTML = top; }
     if (bot !== detBot) { detBot = bot; body.querySelector('.det-bot').innerHTML = bot; }
     layoutCmap(c); };
@@ -4293,7 +4380,7 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
       const [x, y] = Array.isArray(c.Position) && c.Position.length >= 2 ? toWorld(c.Position[0], c.Position[1]) : [1000, 1000];
       const dept = S.teams[c.Team] || 'pd';
       const call = { pri: /\bPANIC\b/.test(c.Description || '') ? 1 : 2, code: '911', type: c.Description || 'Emergency call',   // a panic (a bus driver's, say) is priority 1
-        where: c.PositionDescriptor || 'Unknown location', unit: '', dept, team: String(c.Team || ''), stage: 0, startedAt: (c.StartedAt || Date.now() / 1000) * 1000, x, y, live: true };
+        where: c.PositionDescriptor || 'Unknown location', unit: '', dept, team: String(c.Team || ''), key: k, stage: 0, startedAt: (c.StartedAt || Date.now() / 1000) * 1000, x, y, live: true };
       gameCalls.set(k, { call, gone: 0 }); window.addCall?.(call); }
     for (const [k, g] of gameCalls) { if (now.has(k)) { g.gone = 0; continue; } if (++g.gone < 2) continue;
       gameCalls.delete(k); if (window.removeCall?.(g.call)) console.log(`911 call ${k} cleared in game: removed from dispatch`); } };
@@ -4357,7 +4444,7 @@ body.voice-open .stage .warn{transform:translate3d(calc(-1 * (var(--adminw) + va
     es.addEventListener('panics', e => { try { for (const p of JSON.parse(e.data) || []) dispatchEvent(new CustomEvent('panic', { detail: p })); } catch (x) {} });
     es.addEventListener('panicclear', e => { try { dispatchEvent(new CustomEvent('panicclear', { detail: JSON.parse(e.data) })); } catch (x) {} });   // suspended (you or this server): reload straight into the notice
     // the law enforcement MDT: 10-codes, and records (warrants, BOLOs, stops and backup calls) as officers write them
-    for (const ev of ['unitstatus', 'unitstatuses', 'pdrec', 'deptreports', 'alpr', 'autoalert', 'monitor', 'hospital']) es.addEventListener(ev, e => { try { dispatchEvent(new CustomEvent('ov:' + ev, { detail: JSON.parse(e.data) })); } catch (x) {} });
+    for (const ev of ['callnote', 'callnotes', 'unitstatus', 'unitstatuses', 'pdrec', 'deptreports', 'alpr', 'autoalert', 'monitor', 'hospital']) es.addEventListener(ev, e => { try { dispatchEvent(new CustomEvent('ov:' + ev, { detail: JSON.parse(e.data) })); } catch (x) {} });
     es.addEventListener('roads', e => { try { window.ROADNET?.setOv(JSON.parse(e.data).ov); } catch (x) {} });   // an owner fixed a road: re-route now
     es.addEventListener('err', e => { let j = {}; try { j = JSON.parse(e.data); } catch (x) {}
       if (j.code === 2000) { if (S.key) seedKey(); else status(ERR[2000], 'err'); return; }

@@ -29,6 +29,7 @@ import * as helpspam from './app/helpspam.mjs';
 import * as fines from './app/fines.mjs';
 import * as markers from './app/markers.mjs';
 import * as joincheck from './app/joincheck.mjs';
+import * as callhist from './app/callhist.mjs';
 import * as transit from './app/transit.mjs';
 import * as hospital from './app/hospital.mjs';
 import * as boats from './app/boats.mjs';
@@ -115,6 +116,7 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
     const hits = cameras.active(cc) ? cameras.check(cc, body, mapOff(cc)) : read;
     if (features.on(cc, 'alpr')) for (const h of hits) { f.bcast('alpr', JSON.stringify(h)); if (features.on(cc, 'automations')) automations.fire(cc, 'alpr', h); bots.emit(cc, 'alpr', h); }
     try { bots.observe(cc, f.withExtra(body), callKey); } catch (e) {}
+    try { callhist.observe(c.id, f.withExtra(body)); } catch (e) { console.log('callhist observe:', e.message); }   // every call, kept for Call history
     monitorRead(cc, body);
     if (premium.isPremium(cc) && features.on(cc, 'staff')) try { fireaop.observe(cc, body, fireHands); } catch (e) {}
     if (features.on(cc, 'transit')) try { transit.observe(cc, communities.key(c.id), body); } catch (e) { console.log('transit observe:', e.message); }
@@ -124,7 +126,7 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
   f.wantKills = () => { const cc = communities.byId(c.id) || c; return safezones.wantsKills(cc) || rdm.wantsKills(cc); };   // safe zones and RDM watch need the kill log
   f.wantHelpLogs = () => helpspam.wantsLogs(communities.byId(c.id) || c);   // help spam limits need the mod calls and command log
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
-  f.onStream = res => { res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); res.write(`event: callstates\ndata: ${JSON.stringify(callStates(communities.byId(c.id) || c))}\n\n`); }; } return f; };   // everyone's 10-code on connect
+  f.onStream = res => { res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); res.write(`event: callnotes\ndata: ${JSON.stringify(callhist.openNotes(c.id))}\n\n`); res.write(`event: callstates\ndata: ${JSON.stringify(callStates(communities.byId(c.id) || c))}\n\n`); }; } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // which side someone is playing right now, from the server's latest ER:LC snapshot: 'pd' | 'fd' | 'dot' | 'civ', null when they
 // aren't in the server, undefined when there's no fresh data (then nothing is blocked, so an ER:LC outage never locks anyone out)
@@ -218,12 +220,21 @@ const communityApi = async (req, res, slug, rest) => {
   // a game 911 call cleared by anyone in the CAD clears for everyone (and stays cleared after a reload, for as long as ER:LC still lists it)
   // dispatch and the MDTs are for the departments: on the civilian team in game you can't clear calls, set a unit or status, or press panic
   // (server staff, mod and up, see and use everything whatever their team)
-  if (M === 'POST' && !can(role, 'mod') && ['calls/clear', 'calls/state', 'reports', 'reports/delete', 'units/me', 'status', 'panic', 'panic/clear', 'units/ride'].includes(rest) && liveSide(c, user) === 'civ')
+  if (M === 'POST' && !can(role, 'mod') && ['calls/clear', 'calls/state', 'calls/note', 'reports', 'reports/delete', 'units/me', 'status', 'panic', 'panic/clear', 'units/ride'].includes(rest) && liveSide(c, user) === 'civ')
     return json(res, { error: 'You’re on the civilian team in game. Dispatch is for players on a department team.' }, 403);
   // Settings → Features: what a switched-off feature does is refused (police records, staff actions and homes depend on what's posted: checked where they're handled)
   const offKey = features.routeKeys(rest).find(k => (M !== 'GET' || ['dept_pd', 'pd_lookup', 'st_records', 'st_logs', 'reports', 'status', 'radio'].includes(k)) && !features.on(c, k)), off = k => json(res, { error: `This server has switched this off: ${features.nameOf(k)}.` }, 403);
   if (offKey) return off(offKey);
   if (rest === 'calls/clear' && M === 'POST') { const r = clearCall(c, String((await jsonBody(req)).key || ''), user.roblox_name || user.name || ''); return json(res, r, r.error ? 400 : 200); }
+  // notes on a call (app/callhist.mjs), from dispatch or a unit's MDT, live for everyone; and Call history: every call the CAD has seen
+  if (rest === 'calls/note' && M === 'POST') { const j = await jsonBody(req), r = callhist.addNote(c.id, j.key, user.roblox_name || user.name || '', j.text, j.as); if (r.error) return json(res, r, 400);
+    feedFor(c).bcast('callnote', JSON.stringify({ key: r.key, notes: r.notes })); return json(res, r); }
+  if ((rest === 'calls/history' || rest === 'calls/history/one') && M === 'GET') { if (!can(role, 'mod') && liveSide(c, user) === 'civ') return json(res, { error: 'Call history is for players on a department team.' }, 403);
+    const no = await lockedOut(c, user, role, 'dispatch'); if (no) return json(res, { error: no }, 403);
+    const qs = new URL(req.url, 'http://x').searchParams, prem = premium.isPremium(c), cut = prem ? 0 : Date.now() - premium.FREE_RECORD_DAYS * 864e5;
+    if (rest === 'calls/history/one') { const r = callhist.get(c.id, String(qs.get('key') || '')); return r && r.received >= cut ? json(res, { call: r }) : json(res, { error: 'That call isn’t on file.' }, 404); }
+    const L = callhist.list(c.id, { q: qs.get('q') || '', days: Math.max(0, Math.min(400, +qs.get('days') || 0)), unit: qs.get('unit') || '', cut, before: +qs.get('before') || 0 });
+    return json(res, { calls: L.slice(0, 100), more: L.length > 100, freeDays: prem ? 0 : premium.FREE_RECORD_DAYS }); }
   // dispatch radio: a channel is for players on that department's team in game (server staff can use any), All units for any department
   if (rest.startsWith('radio/')) { const qs = new URL(req.url, 'http://x').searchParams, j = M === 'POST' ? await jsonBody(req) : {}, ch = String(qs.get('ch') || j.ch || '');
     if (!bots.hasOversite(c, 'dispatch')) return json(res, { error: 'The radio comes with the Oversite Dispatch bot. The server’s owner links it in Settings, under Bots.', needBot: true }, 403);
@@ -281,7 +292,7 @@ const communityApi = async (req, res, slug, rest) => {
   if (rest === 'calls/state' && M === 'POST') { const j = await jsonBody(req), k = String(j.key || ''); if (!/^[\w .:@#-]{1,120}$/.test(k)) return json(res, { error: 'Bad call.' }, 400);
     const T = v => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 40), D = v => ['pd', 'fd', 'dot'].includes(v) ? v : '';
     const st = { unit: T(j.unit), dept: D(j.dept), stage: Math.max(0, Math.min(2, Math.round(+j.stage || 0))), more: (Array.isArray(j.more) ? j.more : []).slice(0, 8).map(m => ({ name: T(m?.name), dept: D(m?.dept) })).filter(m => m.name), at: Date.now() };
-    const s = communities.byId(c.id).settings, now = Date.now(); s.callstate = Object.fromEntries(Object.entries(callStates(c, s)).filter(([, v]) => now - (v.at || 0) < 12 * 3600000).slice(-300)); s.callstate[k] = st;
+    const s = communities.byId(c.id).settings, now = Date.now(); s.callstate = Object.fromEntries(Object.entries(callStates(c, s)).filter(([, v]) => now - (v.at || 0) < 12 * 3600000).slice(-300)); s.callstate[k] = st; try { callhist.state(c.id, k, st); } catch (e) {}
     communities.saveSettings(c.id, s); c.settings.callstate = s.callstate; f.bcast('callstate', JSON.stringify({ key: k, ...st }));
     bots.emit(c, 'call.updated', { key: k, unit: st.unit, department: st.dept, stage: ['assigned', 'en route', 'on scene'][st.stage], more: st.more, by: user.roblox_name || user.name || '' }); return json(res, { ok: true }); }
   if (rest.startsWith('v2/server') && M === 'GET') { const s = await f.snapshot(); res.writeHead(s.status || 502, { 'content-type': 'application/json', 'cache-control': 'no-store', ...s.headers }); return res.end(s.body); }
@@ -1343,7 +1354,7 @@ const unitsView = (c, s) => { const teams = c.settings.teams || {}, D = c.settin
 // clearing a call off the board for everyone, and a unit's 10-code: from the CAD and from bots
 const clearCall = (c, k, by) => { if (!/^[\w .:@#-]{1,120}$/.test(k)) return { error: 'Bad call.' };
     const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
-    if (s.callstate) delete s.callstate[k];
+    if (s.callstate) delete s.callstate[k]; try { callhist.cleared(c.id, k, by); } catch (e) {}
     communities.saveSettings(c.id, s); c.settings.cleared = s.cleared; feedFor(c).bcast('callclear', JSON.stringify({ key: k, by })); bots.emit(c, 'call.cleared', { key: k, by }); return { ok: true }; };
 const setUnitStatus = (c, unit, st, by) => { const r = police.setStatus(c.id, unit, st, by); if (r.ok) { feedFor(c).bcast('unitstatus', JSON.stringify({ unit: r.unit, st: r.st })); bots.emit(c, 'unit.status', { unit: r.unit, status: r.st, label: r.label, by }); } return r; };
 bots.gate(c => features.on(c, 'bots')); bots.limit((c, i) => i < bots.max(premium.isPremium(c)));
