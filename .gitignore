@@ -13,3 +13,6 @@ preview/live-map-3d-standalone.html
 *.db-wal
 *.db-shm
 app.secret
+
+# npm
+node_modules/

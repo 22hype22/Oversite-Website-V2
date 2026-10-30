@@ -10,5 +10,8 @@
   "scripts": {
     "start": "node --experimental-sqlite --disable-warning=ExperimentalWarning server.mjs",
     "pages": "python3 preview/build-rail.py && python3 preview/build-3d.py"
+  },
+  "dependencies": {
+    "motion": "^14.9.0"
   }
 }
