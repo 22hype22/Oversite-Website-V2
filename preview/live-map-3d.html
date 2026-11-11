@@ -2823,22 +2823,26 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const renderLog = () => { const el = $('fdLog'); if (!el) return; el.innerHTML = LOG.length ? LOG.map(l => `<div class="row-l"><span>${logTime(l.t)}</span><div>${esc(l.m)}</div></div>`).join('') : '<div class="empty">Nothing logged this shift.</div>'; };
   const logIt = m => { if (LOG[0] && LOG[0].m === m) return; LOG.unshift({ t: Date.now(), m }); if (LOG.length > 12) LOG.length = 12; renderLog(); };
   let lastAssigned = null;
-  let renderUnit = () => { const u = me(); if (!u) return;
-    $('fdUnitName').textContent = u.name; $('fdUnitCrew').textContent = u.crew.join(', ');
-    { const O = window.OVERSITE || {}, tied = Object.values(O.teamDiv || {}), base = (O.depts && O.depts[u.dept] && O.depts[u.dept].units) || [], mineT = (O.teamDiv || {})[window.ME?.team];
+  let renderUnit = () => { const u = me(), ud = u ? u.dept : DEPT();
+    // your status shows whether or not you are on a unit yet: picking a 10-code before picking a unit used to change nothing on screen
+    { const pill = $('fdStatusPill'); pill.textContent = myStatus; pill.className = 'pill st ' + stClass(myStatus);
+      for (const b of $('fdStatus').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.st === myStatus); }
+    $('fdUnitName').textContent = u ? u.name : (window.ME?.name || 'No unit'); $('fdUnitCrew').textContent = u ? u.crew.join(', ') : 'Not on a unit yet. Pick yours under Unit so dispatch sees your status.';
+    { const O = window.OVERSITE || {}, tied = Object.values(O.teamDiv || {}), base = (O.depts && O.depts[ud] && O.depts[ud].units) || [], mineT = (O.teamDiv || {})[window.ME?.team];
       // with the server's own departments: the units of your team's, then of the ones with no team that work the same way (paramedic
       // units for the Fire team), each under its name; picking one of those moves you to it. Otherwise the standard department's units.
-      const G = window.DIVS.length ? window.DIVS.filter(x => x.kind === u.dept && (x.id === mineT || !tied.includes(x.id))).sort((a, b) => (b.id === mineT) - (a.id === mineT)).map(x => [x.name, x.units]).filter(g => g[1].length) : [['', base]];
+      const G = window.DIVS.length ? window.DIVS.filter(x => x.kind === ud && (x.id === mineT || !tied.includes(x.id))).sort((a, b) => (b.id === mineT) - (a.id === mineT)).map(x => [x.name, x.units]).filter(g => g[1].length) : [['', base]];
       const list = G.flatMap(g => g[1]), sel = $('fdMyUnit'), cur = (window.UNIT_OF || {})[String((window.OVERSITE && window.OVERSITE.rid) || '')] || '', k = G.map(g => g[0] + ':' + g[1].join('|')).join('/') + '#' + cur;
       const opt = n => `<option${n === cur ? ' selected' : ''}>${esc(n)}</option>`;
       if (sel && sel.dataset.k !== k) { sel.dataset.k = k; sel.innerHTML = '<option value="">' + (list.length ? 'No unit' : 'None set up yet') + '</option>' + (G.length > 1 ? G.map(([n, L]) => `<optgroup label="${esc(n)}">${L.map(opt).join('')}</optgroup>`).join('') : list.map(opt).join('')); sel.disabled = !list.length || !(window.OVERSITE && window.OVERSITE.api); } }
     // ride with a teammate: anyone on duty in your department; you then show as one unit with them and get their calls
     { const sel = $('fdRide'), O = window.OVERSITE || {}, myRid = String(O.rid || ''), mates = [];
-      for (const v of window.UNITS || []) if (v.dept === u.dept && v.live) (v.crewIds || []).forEach((id, i) => { if (id && String(id) !== myRid) mates.push([String(id), v.crew[i]]); });
+      for (const v of window.UNITS || []) if (v.dept === ud && v.live) (v.crewIds || []).forEach((id, i) => { if (id && String(id) !== myRid) mates.push([String(id), v.crew[i]]); });
       const cur = (window.RIDE_WITH || {})[myRid] || '', k = mates.map(m => m.join(':')).join('|') + '#' + cur;
       if (sel && sel.dataset.k !== k) { sel.dataset.k = k; const has = mates.some(m => m[0] === cur);
         sel.innerHTML = '<option value="">' + (mates.length ? 'Nobody (my own unit)' : 'No teammates on duty') + '</option>' + mates.map(([id, n]) => `<option value="${esc(id)}"${id === cur ? ' selected' : ''}>${esc(n)}</option>`).join('') + (cur && !has ? '<option value="' + esc(cur) + '" selected>Teammate (off duty)</option>' : '');
-        sel.disabled = !O.api || !/^\d+$/.test(myRid) || (!mates.length && !cur); } } $('fdApparatus').textContent = u.model || 'Engine'; $('fdApparatus').title = u.model || '';   // long vehicle names end in … ; the full name on hover
+        sel.disabled = !O.api || !/^\d+$/.test(myRid) || (!mates.length && !cur); } } if (!u) return;   // the rest is about your unit
+    $('fdApparatus').textContent = u.model || 'Engine'; $('fdApparatus').title = u.model || '';   // long vehicle names end in … ; the full name on hover
     const pill = $('fdStatusPill'); pill.textContent = myStatus; pill.className = 'pill st ' + stClass(myStatus);
     for (const b of $('fdStatus').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.st === myStatus);
     const mine = CALLS().find(c => onIt(c, u.name)); $('fdAssigned').textContent = mine ? `${mine.code}, ${mine.where}` : 'None';
@@ -2868,7 +2872,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   addEventListener('unitassign', () => renderUnit());
   $('fdStatus').addEventListener('click', e => { const b = e.target.closest('[data-st]'); if (!b) return; myStatus = b.dataset.st; const u = me(); if (u) unitStatus[u.name] = myStatus;
     const mine = CALLS().find(c => onIt(c, u?.name)); if (mine) { if (myStatus === '10-76') mine.stage = 1; if (myStatus === '10-23') mine.stage = 2; dispatchEvent(new CustomEvent('calls')); }
-    logIt(`Status ${myStatus}`); renderUnit(); renderApp(); toast(`${u?.name} is ${myStatus}`); });
+    logIt(`Status ${myStatus}`); renderUnit(); renderApp(); toast(u ? `${u.name} is ${myStatus}` : `You are ${myStatus}. Pick your unit so dispatch sees it.`); });
 
   // ── apparatus ──
   const renderApp = () => { const rows = UN().filter(sameCad).map(u => { const st = unitStatus[u.name] || (CALLS().some(c => onIt(c, u.name)) ? '10-6' : '10-8');
