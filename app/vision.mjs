@@ -4,7 +4,8 @@
 // a fire, shots). From that the server keeps its own picture of the server: where each sharer is, who they're near, and calls
 // for what they saw. It is served to the CAD (and the Oversite AI Dispatch bot, through the bot API) as if ER:LC had sent it,
 // so the map, units, MDTs and dispatch all work as on a private server. Frames are never stored.
-// Premium servers with the Oversite AI Dispatch bot, without an ER:LC key. The Anthropic key is set by a site admin on /admin.
+// Premium servers with the Oversite AI Dispatch bot. With no ER:LC key (a public server) the sharers' picture is the whole server; with
+// one, ER:LC's players stay and anyone only the sharers have seen is added. The Anthropic key is set by a site admin on /admin.
 import Anthropic from '@anthropic-ai/sdk';
 import { siteSettings, unseal } from './db.mjs';
 import { POSTALS } from './postals.mjs';
@@ -77,9 +78,17 @@ export const stop = (cid, name) => { const s = S.get(cid); if (!s) return; const
 // someone seen only on another player's screen, with no Roblox account Oversite knows: a steady made-up ID so the CAD can tell them apart
 const pseudo = name => { let h = 7; for (const ch of name.toLowerCase()) h = (h * 131 + ch.charCodeAt(0)) % 1e9; return String(9e9 + h); };
 // the server as ER:LC would describe it, from what the sharers saw: players with positions (ER:LC's own units), for the live feed
-export const snapshotBody = c => { const s = st(c.id), now = Date.now(), P = [];
+// the players the sharers placed, as ER:LC lists them
+export const players = c => { const s = st(c.id), now = Date.now(), P = [];
   for (const [k, p] of s.people) { if (now - p.at > (p.self ? SELF_TTL : SEEN_TTL)) { if (now - p.at > 10 * 60000) s.people.delete(k); continue; } if (!Number.isFinite(p.x)) continue;
     P.push({ Player: `${p.name}:${p.rid || pseudo(p.name)}`, Permission: 'Normal', Team: p.team || 'Civilian', Callsign: p.callsign || null, WantedStars: 0,
       Location: { LocationX: Math.round(p.x * GAME), LocationZ: Math.round(p.y * GAME), PostalCode: p.postal || '', StreetName: p.street || '' }, Oversite: { aiView: true, sharing: !!p.self } }); }
+  return P; };
+// a server with no ER:LC key: the whole picture is what the sharers saw
+export const snapshotBody = c => { const P = players(c);
   return JSON.stringify({ Name: c.name, OwnerId: 0, CoOwnerIds: [], CurrentPlayers: P.length, MaxPlayers: 40, JoinKey: '', AccVerifiedReq: '', TeamBalance: false, Players: P, Vehicles: [], EmergencyCalls: [], JoinLogs: [], Staff: { Admins: {}, Mods: {}, Helpers: {} } }); };
+// a server with an ER:LC key too: ER:LC's own players stay as they are, and anyone only the sharers have seen is added
+export const merge = (c, body) => { const P = players(c); if (!P.length) return body; let j; try { j = JSON.parse(body); } catch (e) { return body; } if (!Array.isArray(j.Players)) return body;
+  const have = new Set(j.Players.map(p => String(p.Player || '').split(':')[0].toLowerCase())); const add = P.filter(p => !have.has(p.Player.split(':')[0].toLowerCase()));
+  if (!add.length) return body; j.Players = [...j.Players, ...add]; return JSON.stringify(j); };
 export const sharing = cid => { const s = S.get(cid); if (!s) return []; const now = Date.now(); return [...s.sharers.values()].filter(x => now - x.at < SELF_TTL).map(x => x.name); };
