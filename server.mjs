@@ -30,6 +30,7 @@ import * as fines from './app/fines.mjs';
 import * as markers from './app/markers.mjs';
 import * as joincheck from './app/joincheck.mjs';
 import * as callhist from './app/callhist.mjs';
+import * as vision from './app/vision.mjs';
 import * as transit from './app/transit.mjs';
 import * as hospital from './app/hospital.mjs';
 import * as boats from './app/boats.mjs';
@@ -124,12 +125,15 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
     if (logsArrests(cc)) try { arrests.observe(cc, body); } catch (e) { console.log('arrests observe:', e.message); }
     if (features.on(cc, 'automations')) automations.observe(cc, body); career.observe(c.id, body); staffhub.observe(c.id, body); try { civbiz.observe(communities.byId(c.id) || c, body); } catch (e) { console.log('civbiz observe:', e.message); } };
   f.wantKills = () => { const cc = communities.byId(c.id) || c; return safezones.wantsKills(cc) || rdm.wantsKills(cc); };   // safe zones and RDM watch need the kill log
-  f.wantHelpLogs = () => helpspam.wantsLogs(communities.byId(c.id) || c);   // help spam limits need the mod calls and command log
+  f.wantHelpLogs = () => helpspam.wantsLogs(communities.byId(c.id) || c);
+  f.synth = () => { const cc = communities.byId(c.id) || c; return aiView(cc) ? vision.snapshotBody(cc) : null; };   // a public server: the picture from players' screens (app/vision.mjs)   // help spam limits need the mod calls and command log
   f.withExtra = body => civ.withCalls(c.id, body, clearedCalls(communities.byId(c.id) || c));                                                                   // 911 calls made from the Civilian tab                                                          // plates, owners and players for the PD lookups
   f.onStream = res => { res.write(`event: unitstatuses\ndata: ${JSON.stringify(police.statuses(c.id))}\n\n`); res.write(`event: callnotes\ndata: ${JSON.stringify(callhist.openNotes(c.id))}\n\n`); res.write(`event: callstates\ndata: ${JSON.stringify(callStates(communities.byId(c.id) || c))}\n\n`); }; } return f; };   // everyone's 10-code on connect
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // which side someone is playing right now, from the server's latest ER:LC snapshot: 'pd' | 'fd' | 'dot' | 'civ', null when they
 // aren't in the server, undefined when there's no fresh data (then nothing is blocked, so an ER:LC outage never locks anyone out)
+// AI view (app/vision.mjs): a public server (no ER:LC key) on Premium with the Oversite AI Dispatch bot, once Oversite's AI key is set
+const aiView = c => !!c && !communities.key(c.id) && premium.isPremium(c) && bots.hasOversite(c, 'dispatch') && features.on(c, 'aiview') && vision.status().ready;
 const liveSide = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Date.now() - sn.t > 180000 || !user.roblox_id) return undefined;
   let j; try { j = JSON.parse(sn.body); } catch (e) { return undefined; }
   const p = (j.Players || []).find(x => String(x.Player || '').split(':')[1] === String(user.roblox_id)); if (!p) return null;
@@ -153,7 +157,7 @@ const licenseCfg = c => { const S = c.settings.licenseStyle, art = artOf(c); ret
 // View as: while an admin previews the CAD as a Discord role, the page's own API requests say so, and get that role's answers
 const VIEWAS_FETCH = `(()=>{const f=window.fetch,v=(OVERSITE.viewAs.role&&OVERSITE.viewAs.role.id)||'';window.fetch=(u,o={})=>{try{const x=new URL(typeof u==='string'?u:u.url,location.href);if(x.origin===location.origin&&x.pathname.includes('/api/')){o={...o,headers:new Headers(o.headers||{})};o.headers.set('x-ov-viewas',v)}}catch(e){}return f(u,o)}})();`;
 const mapPage = (c, user, role, oversight = false, locks = {}, viewAs = null) => { const f = join(ROOT, 'live-map-3d.html'), m = statSync(f).mtimeMs; if (!mapHtml || m !== mapMtime) { mapHtml = readFileSync(f, 'utf8'); mapMtime = m; }
-  const prem = premium.isPremium(c), cfg = { currency: c.settings.currency || '$', premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? licenseCfg(c) : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: divisions.teams(c), divs: divisions.list(c), teamDiv: divisions.teamDiv(c), unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, radioBot: bots.hasOversite(c, 'dispatch'), roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, locks, discord: !!user.discord_id, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner, viewAs };
+  const prem = premium.isPremium(c), cfg = { currency: c.settings.currency || '$', premium: prem, logo: prem && profile.iconSource(c) && features.on(c, 'serverlogo') ? `/c/${c.slug}/icon` : '', license: prem ? licenseCfg(c) : null, slug: c.slug, name: c.name, api: `/c/${c.slug}/api`, role, me: user.roblox_name || '', rid: user.roblox_id || '', user: user.name, signed: !!user.roblox_name, depts: c.settings.depts, teams: divisions.teams(c), divs: divisions.list(c), teamDiv: divisions.teamDiv(c), unitOf: unitMembers.all(c.id), rideWith: rideWith.all(c.id), voice: voice.voiceSettings(c).on && prem, radioBot: bots.hasOversite(c, 'dispatch'), aiView: aiView(c) ? { every: vision.EVERY_MS, teams: Object.keys(c.settings.teams || {}) } : null, roads: c.settings.roads || null, mdt: mdtSignin.mine(c.id, user.id), ranks: features.on(c, 'mdtsignin') ? ranksFor(c, prem) : null, features: features.all(c), gold: features.on(c, 'goldchecks') ? users.premiumRoblox() : [], setup: premium.userInfo(user).on ? mdtprefs.get(user.id) : null, locks, discord: !!user.discord_id, beta: premium.isBeta(user), canEdit: (ROLE_RANK[role] || 0) >= ROLE_RANK.co_owner, viewAs };
   const inject = `<base href="/"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4"><link rel="manifest" href="/manifest.webmanifest?v=4"><meta name="apple-mobile-web-app-title" content="Oversite"><meta name="application-name" content="Oversite"><meta name="theme-color" content="#0D1416"><script>window.OVERSITE=${JSON.stringify(cfg).replace(/</g, '\\u003c')};${mapPref(cfg.setup)}${viewAs ? VIEWAS_FETCH : ''}</script><style>${features.css(c)}</style>`;
   const html = mapHtml.replace(/<head>/i, () => `<head>${inject}`).replace(/<title>[^<]*<\/title>/i, () => `<title>${pages.esc(c.name)} · Oversite</title>`);
   return oversight ? html.replace(/<\/body>/i, () => `${pages.oversightBar(c)}</body>`) : html; };   // functions, so a $' in a name is never read as a replace pattern
@@ -226,6 +230,17 @@ const communityApi = async (req, res, slug, rest) => {
   const offKey = features.routeKeys(rest).find(k => (M !== 'GET' || ['dept_pd', 'pd_lookup', 'st_records', 'st_logs', 'reports', 'status', 'radio'].includes(k)) && !features.on(c, k)), off = k => json(res, { error: `This server has switched this off: ${features.nameOf(k)}.` }, 403);
   if (offKey) return off(offKey);
   if (rest === 'calls/clear' && M === 'POST') { const r = clearCall(c, String((await jsonBody(req)).key || ''), user.roblox_name || user.name || ''); return json(res, r, r.error ? 400 : 200); }
+  // AI view: a frame of someone's Roblox screen, read by the AI; their place, who they're near and what they saw go on the map for everyone
+  if (rest === 'vision/frame' && M === 'POST') { if (!aiView(c)) return json(res, { error: 'The AI view is for Premium public servers with the Oversite AI Dispatch bot.' }, 403);
+    if (!user.roblox_name) return json(res, { error: 'Link your Roblox account first, so the CAD knows which player you are.' }, 403);
+    let j = {}; try { j = JSON.parse(await body(req, 1.6e6) || '{}'); } catch (e) { return json(res, { error: 'That frame was too big.' }, 413); }
+    const img = String(j.img || ''); if (!/^[A-Za-z0-9+/=]{100,1500000}$/.test(img)) return json(res, { error: 'Bad frame.' }, 400);
+    const team = Object.keys(c.settings.teams || {}).includes(j.team) ? j.team : 'Civilian', callsign = String(j.callsign || '').replace(/[^\w -]/g, '').slice(0, 12);
+    const r = await vision.frame(c, { name: user.roblox_name, rid: String(user.roblox_id || ''), team, callsign }, img, {
+      ridOf: name => police.seenPerson(c.id, '', name)?.rid || users.byRobloxName(name)?.roblox_id || '', call: (dept, where, text, pos) => civ.autoCall(c, dept, where, text, pos) });
+    if (r.ok) feedFor(c).pushSynth(vision.snapshotBody(c));
+    return json(res, r, r.error ? (r.busy ? 503 : 400) : 200); }
+  if (rest === 'vision/stop' && M === 'POST') { vision.stop(c.id, user.roblox_name); if (aiView(c)) feedFor(c).pushSynth(vision.snapshotBody(c)); return json(res, { ok: true }); }
   // notes on a call (app/callhist.mjs), from dispatch or a unit's MDT, live for everyone; and Call history: every call the CAD has seen
   if (rest === 'calls/note' && M === 'POST') { const j = await jsonBody(req), r = callhist.addNote(c.id, j.key, user.roblox_name || user.name || '', j.text, j.as); if (r.error) return json(res, r, 400);
     feedFor(c).bcast('callnote', JSON.stringify({ key: r.key, notes: r.notes })); return json(res, r); }
@@ -920,6 +935,10 @@ const globalApi = async (req, res, rest) => {
   if (rest === 'admin/premium' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = req._body || await jsonBody(req), c = communities.byId(Number(j.id)); if (!c) return json(res, { error: 'No such server.' }, 404);
     if (j.off) premium.revoke(c.id); else if (j.until || j.forever) premium.setUntil(c.id, j.forever ? 4102444800000 : Number(j.until), user.roblox_name || user.name); else premium.grant(c.id, Math.min(3650, Math.max(1, Number(j.days) || 30)), user.roblox_name || user.name);
     console.log(`premium: ${c.slug} ${j.off ? 'turned off' : j.forever ? 'granted forever' : j.until ? 'granted until ' + new Date(+j.until).toISOString().slice(0, 10) : 'granted ' + j.days + ' days'} by ${user.roblox_name || user.name}`); return json(res, { ok: true, premium: premium.info(c) }); }
+  // the AI key for the AI view (app/vision.mjs), sealed like the Stripe key: from Anthropic's console, it starts with sk-ant-
+  if (rest === 'admin/ai' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), k = String(j.key || '').trim();
+    if (k && !/^sk-ant-[A-Za-z0-9_-]{20,300}$/.test(k)) return json(res, { error: 'That isn’t an Anthropic API key. It starts with sk-ant-.' }, 400);
+    if (k) siteSettings.set('anthropic_key', seal(k)); if (j.clear) siteSettings.set('anthropic_key', ''); console.log(`ai: key ${j.clear ? 'cleared' : 'updated'} by ${user.roblox_name || user.name}`); return json(res, vision.status()); }
   // Stripe keys for selling Premium, sealed like the ER:LC key
   // Oversite's own Discord: which server and role Premium people get (the Supporter role), and the invite link shown to them
   if (rest === 'admin/supporter' && req.method === 'GET') return json(res, await supporter.status(String(new URL(req.url, 'http://x').searchParams.get('guild') || '').replace(/\D/g, '')));
@@ -1089,7 +1108,7 @@ const route = async (req, res) => {
     console.log(`backup: ${b.name} downloaded by ${user.roblox_name || user.name}`);
     res.writeHead(200, { 'content-type': 'application/gzip', 'content-disposition': `attachment; filename="${b.name}"`, 'cache-control': 'no-store' }); return createReadStream(p).pipe(res); }
   if (path === '/admin') { const user = auth.currentUser(req); if (!isSiteMod(user)) return msg(res, user, 'Page not found', 'There is nothing here.', { href: '/', label: 'Home' }, 404);
-    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus(), owner: isSiteAdmin(user), betaNote: siteSettings.get('beta_note'), alertsInfo: alertsInfo() })); }
+    return page(res, pages.admin({ logo: LOGO, user, servers: communities.overview(), reports: reports.open(), reasons: { ...REPORT_REASONS, review: REVIEW_REASON }, app: await erlcAppStatus(false), tickets: support.open(), stripe: premium.stripeStatus(), ai: vision.status(), owner: isSiteAdmin(user), betaNote: siteSettings.get('beta_note'), alertsInfo: alertsInfo() })); }
   // a player's public page: the servers they run, their reviews, and their career if they're Premium and show it
   if ((m0r = path.match(/^\/user\/(\d{1,20})\/?$/))) { const user = auth.currentUser(req); if (auth.limited(req, 'player', 60, 60000)) return msg(res, user, 'Slow down', 'Too many pages at once. Try again in a minute.', { href: '/explore', label: 'Explore servers' }, 429);
     const P = player.view(m0r[1], user); if (!P) return msg(res, user, 'Player not found', 'Nobody with that Roblox account runs a listed server or uses Oversite.', { href: '/explore', label: 'Explore servers' }, 404);

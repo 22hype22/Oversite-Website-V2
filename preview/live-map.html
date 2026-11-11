@@ -3246,6 +3246,52 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
     if (VA) { const bar = document.createElement('div'); bar.className = 'va-bar'; bar.setAttribute('role', 'status'); if (VA.role?.color) bar.style.setProperty('--rc', VA.role.color);
       bar.innerHTML = `<i aria-hidden="true"></i><span>Viewing as <b>${VA.role ? '@' + e(VA.role.name) : 'a member with no roles'}</b>${VA.team ? ' on the ' + e(VA.team) + ' team' : ', not in game'} <small>· with their access, recorded as you</small></span><button type="button">Change</button><a href="/${e(O.slug)}">Exit</a>`;
       document.body.appendChild(bar); bar.querySelector('button').addEventListener('click', openPop); eye.classList.add('on'); } }
+  // AI view (app/vision.mjs): on a public server, share your Roblox window and the AI reads where you are and who you're near, every
+  // few seconds, for the map, the units and the AI dispatcher. Only the window you pick is seen; frames are read and thrown away.
+  if (O.aiView && O.api && icons) {
+    const AV = O.aiView, e2 = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const css2 = document.createElement('style'); css2.textContent = `#aiViewBtn.on{color:#3DDC84}.av-pop{position:fixed;z-index:60;width:320px;padding:14px;border-radius:14px;background:rgba(22,23,26,.97);border:1px solid rgba(255,255,255,.1);box-shadow:0 18px 50px rgba(0,0,0,.5);color:#E9EAEC;font-size:13px}
+.av-pop[hidden]{display:none}.av-pop h4{margin:0 0 4px;font-size:14px}.av-pop p{margin:0 0 10px;color:#9A9EA6;font-size:12.5px;line-height:1.45}.av-pop label{display:grid;gap:5px;margin-bottom:10px;color:#9A9EA6;font-size:12px}
+.av-pop select,.av-pop input{font:inherit;font-size:13px;color:#E9EAEC;background:#1C1D20;border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:8px 10px;color-scheme:dark;user-select:text}
+.av-pop .av-go{width:100%;padding:9px 12px;border:0;border-radius:999px;background:#ECEDEF;color:#0B0B0C;font:600 13px/1 inherit;cursor:pointer}.av-pop .av-go.stop{background:#E24B4B;color:#fff}
+.av-st{margin-top:10px;padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.05);font-size:12px;color:#C9CDD3;line-height:1.45}.av-st b{color:#fff}.av-st .bad{color:#FF8A82}
+.av-chip{position:fixed;z-index:58;left:12px;bottom:12px;display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:rgba(20,22,25,.92);border:1px solid rgba(61,220,132,.4);color:#E9EAEC;font-size:12.5px;cursor:pointer}
+.av-chip i{width:8px;height:8px;border-radius:50%;background:#3DDC84;box-shadow:0 0 0 3px rgba(61,220,132,.25)}.av-chip[hidden]{display:none}`; document.head.appendChild(css2);
+    const btn = document.createElement('button'); btn.type = 'button'; btn.id = 'aiViewBtn'; btn.title = 'Share your Roblox screen with the AI dispatcher'; btn.setAttribute('aria-label', 'Share your screen with the AI dispatcher');
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><circle cx="12" cy="10" r="2.2"/></svg>';
+    icons.insertBefore(btn, document.getElementById('viewAsBtn') || document.getElementById('adminToggle') || icons.lastElementChild);
+    const pop = document.createElement('div'); pop.className = 'av-pop'; pop.hidden = true; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Share your screen with the AI dispatcher'); document.body.appendChild(pop);
+    const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'av-chip'; chip.hidden = true; chip.innerHTML = '<i></i><span>AI view on</span>'; document.body.appendChild(chip);
+    let stream = null, video = null, T = 0, busy = false, last = null, team = '', callsign = '';
+    try { team = localStorage.getItem('oversite.aiview.team') || ''; callsign = localStorage.getItem('oversite.aiview.cs') || ''; } catch (x) {}
+    const sharing = () => !!stream;
+    const statusHTML = () => !last ? 'Waiting for the first frame…' : last.error ? `<span class="bad">${e2(last.error)}</span>` : last.read?.screen_ok === false ? '<span class="bad">That doesn’t look like ER:LC. Share the Roblox window.</span>'
+      : `${last.read.placed ? `On the map at <b>Postal ${e2(last.read.postal)}</b>${last.read.street ? ', ' + e2(last.read.street) : ''}` : '<span class="bad">Can’t read your postal code yet. Keep the ER:LC HUD on screen.</span>'}${last.read.nearby?.length ? `<br>Near you: ${last.read.nearby.map(e2).join(', ')}` : ''}${last.read.calls?.length ? `<br>Called in: ${last.read.calls.map(e2).join(', ')}` : ''}`;
+    const draw = () => { const r = btn.getBoundingClientRect(); pop.style.top = (r.bottom + 8) + 'px'; pop.style.left = Math.max(8, Math.min(innerWidth - 328, r.right - 320)) + 'px';
+      pop.innerHTML = sharing() ? `<h4>Sharing with the AI dispatcher</h4><p>Every ${Math.round(AV.every / 1000)} seconds a frame of your Roblox window is read to put you on the map. Frames aren’t saved.</p><div class="av-st" id="avSt">${statusHTML()}</div><button type="button" class="av-go stop" style="margin-top:10px">Stop sharing</button>`
+        : `<h4>Share your screen</h4><p>This server has no ER:LC key, so the CAD learns where everyone is from players’ screens. Share your Roblox window: every ${Math.round(AV.every / 1000)} seconds the AI reads your postal code, the players near you and anything you see happening, puts you on the map and tells dispatch. Frames are read and thrown away, never saved.</p>
+        <label>Your team in game<select id="avTeam">${AV.teams.map(t => `<option${t === team ? ' selected' : ''}>${e2(t)}</option>`).join('')}</select></label>
+        <label>Callsign (optional)<input id="avCs" maxlength="12" value="${e2(callsign)}" placeholder="Like 1A-12" autocomplete="off"></label>
+        <button type="button" class="av-go">Pick the Roblox window and start</button>`; };
+    const send = async () => { if (!stream || busy || !video.videoWidth) return; busy = true;
+      try { const w = Math.min(1280, video.videoWidth), h = Math.round(video.videoHeight * w / video.videoWidth), cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(video, 0, 0, w, h);
+        const img = cv.toDataURL('image/jpeg', 0.72).split(',')[1];
+        const r = await fetch(O.api + '/vision/frame', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: JSON.stringify({ img, team, callsign }) }); const j = await r.json().catch(() => ({}));
+        if (!j.skipped) last = r.ok ? j : { error: j.error || 'Something went wrong.' }; if (r.status === 403) stop(); }
+      catch (x) { last = { error: 'Couldn’t reach Oversite.' }; }
+      busy = false; const st = document.getElementById('avSt'); if (st) st.innerHTML = statusHTML(); };
+    const start = async () => { team = pop.querySelector('#avTeam').value; callsign = pop.querySelector('#avCs').value.trim(); try { localStorage.setItem('oversite.aiview.team', team); localStorage.setItem('oversite.aiview.cs', callsign); } catch (x) {}
+      try { stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 2 }, audio: false }); } catch (x) { stream = null; return; }
+      video = document.createElement('video'); video.muted = true; video.playsInline = true; video.srcObject = stream; await video.play().catch(() => {});
+      stream.getVideoTracks()[0].addEventListener('ended', stop); last = null; T = setInterval(send, AV.every); setTimeout(send, 800);
+      btn.classList.add('on'); chip.hidden = false; draw(); };
+    const stop = () => { clearInterval(T); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; video = null; btn.classList.remove('on'); chip.hidden = true;
+      fetch(O.api + '/vision/stop', { method: 'POST', headers: { 'content-type': 'application/json', 'x-oversite': '1' }, body: '{}' }).catch(() => {}); if (!pop.hidden) draw(); };
+    const open = () => { draw(); pop.hidden = false; };
+    btn.addEventListener('click', () => pop.hidden ? open() : (pop.hidden = true)); chip.addEventListener('click', open);
+    pop.addEventListener('click', ev => { const g = ev.target.closest('.av-go'); if (!g) return; sharing() ? stop() : start(); });
+    document.addEventListener('pointerdown', ev => { if (!pop.hidden && !ev.target.closest('.av-pop,#aiViewBtn,.av-chip,.dd-menu')) pop.hidden = true; });
+    addEventListener('beforeunload', () => { if (stream) navigator.sendBeacon?.(O.api + '/vision/stop'); }); }
   const mark = document.querySelector('.bar .mark') || document.querySelector('.mark'); if (mark) { mark.style.cursor = 'pointer'; mark.title = O.name + ' · your account'; mark.addEventListener('click', () => { location.href = '/account'; }); }
   dispatchEvent(new Event('resize')); })();
 </script>

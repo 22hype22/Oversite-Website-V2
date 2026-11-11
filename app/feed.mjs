@@ -49,6 +49,8 @@ export class Feed {
     this.timer = null; const now = Date.now();
     if (!this.clients.size && now - this.lastClient > IDLE_STOP) { ACTIVE.delete(this); return; }
     ACTIVE.add(this);
+    // no ER:LC key, but the server's picture comes from players' screens (app/vision.mjs, set by server.mjs as this.synth): send that
+    if (!this.key && this.synth) { const sb = this.synth(); if (sb) { this.pushSynth(sb); this.timer = setTimeout(() => this.tick(), 2500); return; } }
     if (!this.key) { this.bcast('err', NOKEY); this.timer = setTimeout(() => this.tick(), 5000); return; }
     if (!appKey() && !this.soloOk()) { this.bcast('err', SOLO_WAIT); this.timer = setTimeout(() => this.tick(), 8000); return; }
     if (now < this.holdUntil) { this.timer = setTimeout(() => this.tick(), this.holdUntil - now); return; }
@@ -126,7 +128,11 @@ export class Feed {
   // one request at a time per server, and a failed answer is reused for a few seconds, so many callers can't multiply requests to ER:LC
   snapshot() { if (this.snap && Date.now() - this.snap.t < 5000) return Promise.resolve(this.snap); if (this.failSnap && Date.now() - this.failSnap.t < 4000) return Promise.resolve(this.failSnap);
     return this.snapP || (this.snapP = this.snapshotNow().then(s => { if (s.status !== 200) this.failSnap = { ...s, t: Date.now() }; return s; }).finally(() => { this.snapP = null; })); }   // snapP, not inflight: that one counts the live feed's own requests
-  async snapshotNow() { if (!this.key) return { status: 401, body: NOKEY, headers: {} };
+  // a picture built without ER:LC (the AI view): goes out like an ER:LC answer, through the same duty, extras and observers
+  pushSynth(body) { const t = Date.now(); let out = body; try { out = this.withDuty(out, t) || out; } catch (e) {} if (this.withExtra) { try { out = this.withExtra(out) || out; } catch (e) {} }
+    this.snap = { t, taken: t, status: 200, body: out, headers: {} }; this.bcast('server', out, t); try { this.onSnap?.(out); } catch (e) {} return this.snap; }
+  async snapshotNow() { if (!this.key && this.synth) { const sb = this.synth(); if (sb) return this.pushSynth(sb); }
+    if (!this.key) return { status: 401, body: NOKEY, headers: {} };
     if (!appKey() && !this.soloOk()) return { status: 403, body: SOLO_WAIT, headers: {} };
     try { const kl = this.logsQuery(), up = await fetch(UPSTREAM + QUERY + kl, { headers: erlcHeaders(this.key) }); let body = await up.text(); const headers = pickRL(up.headers); if (kl && up.ok) body = this.takeKills(body); this.takeRL(headers, this.seq); const out = { t: Date.now(), taken: Date.now(), status: up.status, body, headers }; if (up.ok) { this.snap = out; try { this.onSnap?.(body); } catch (e) {} } return out; }
     catch (e) { return { status: 502, body: JSON.stringify({ message: 'could not reach api.erlc.gg: ' + e.message }), headers: {} }; } }
