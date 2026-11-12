@@ -183,7 +183,9 @@ let civCallsXZ = false;
 export const withCalls = (cid, body, cleared) => { const open = q('SELECT * FROM civ_calls WHERE community_id = ? AND at >= ?').all(cid, now() - 3600000)
     .filter(r => !cleared[`CIV${r.id}@${Math.floor(r.at / 1000)}`]); if (!open.length) return body;
   let j; try { j = JSON.parse(body); } catch (e) { return body; }
-  j.EmergencyCalls = [...(Array.isArray(j.EmergencyCalls) ? j.EmergencyCalls : []), ...open.map(r => ({ CallNumber: `CIV${r.id}`, Team: DEPT_TEAM[r.dept] || 'Police',
+  // the feed's answer can already carry them (a cached answer read again): never add the same call twice
+  const have = new Set((Array.isArray(j.EmergencyCalls) ? j.EmergencyCalls : []).map(k => String(k.CallNumber ?? ''))); const add = open.filter(r => !have.has(`CIV${r.id}`)); if (!add.length) return body;
+  j.EmergencyCalls = [...(Array.isArray(j.EmergencyCalls) ? j.EmergencyCalls : []), ...add.map(r => ({ CallNumber: `CIV${r.id}`, Team: DEPT_TEAM[r.dept] || 'Police',
     Description: `${r.details} (caller ${r.name})`, PositionDescriptor: r.location, StartedAt: Math.floor(r.at / 1000), ...(Number.isFinite(r.x) && Number.isFinite(r.z) ? { Position: [r.x, r.z] } : {}) }))];
   return JSON.stringify(j); };
 

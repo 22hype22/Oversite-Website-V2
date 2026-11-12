@@ -134,12 +134,13 @@ const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // aren't in the server, undefined when there's no fresh data (then nothing is blocked, so an ER:LC outage never locks anyone out)
 // AI view (app/vision.mjs): Premium with the Oversite AI Dispatch bot, once Oversite's AI key is set; an ER:LC key isn't needed (public
 // servers have none) and doesn't get in the way. aiViewMissing says what's still needed, for admins whose CAD shows the button greyed out.
-const aiViewMissing = c => [!vision.status().ready && 'Oversite’s AI key: a site admin adds it on /admin, under AI view', !premium.isPremium(c) && 'Premium for this server',
+const aiViewMissing = c => [!vision.status().ready && 'Oversite to switch on its AI (not something your server sets up)', !premium.isPremium(c) && 'Premium for this server',
   !bots.hasOversite(c, 'dispatch') && 'the Oversite AI Dispatch bot, linked in Settings → Bots', !features.on(c, 'aiview') && 'AI view switched on in Settings → Features'].filter(Boolean);
 const aiView = c => !!c && !aiViewMissing(c).length;
 const liveSide = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Date.now() - sn.t > 180000 || !user.roblox_id) return undefined;
   let j; try { j = JSON.parse(sn.body); } catch (e) { return undefined; }
-  const p = (j.Players || []).find(x => String(x.Player || '').split(':')[1] === String(user.roblox_id)); if (!p) return null;
+  // the AI view's picture only has the players someone's screen has caught: anyone else is unknown there, not out of the game
+  const p = (j.Players || []).find(x => String(x.Player || '').split(':')[1] === String(user.roblox_id)); if (!p) return sn.synth ? undefined : null;
   return (c.settings.teams || {})[p.Team] || 'civ'; };
 // where someone is standing in game right now ({ x, z, label }), from the latest snapshot; null when unknown
 const posOf = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Date.now() - sn.t > 60000 || !user.roblox_id) return null;
@@ -940,7 +941,8 @@ const globalApi = async (req, res, rest) => {
     console.log(`premium: ${c.slug} ${j.off ? 'turned off' : j.forever ? 'granted forever' : j.until ? 'granted until ' + new Date(+j.until).toISOString().slice(0, 10) : 'granted ' + j.days + ' days'} by ${user.roblox_name || user.name}`); return json(res, { ok: true, premium: premium.info(c) }); }
   // the AI key for the AI view (app/vision.mjs), sealed like the Stripe key: from Anthropic's console, it starts with sk-ant-
   if (rest === 'admin/ai' && req.method === 'POST') { if (!sameOrigin(req)) return json(res, { error: 'Bad request.' }, 400); const j = await jsonBody(req), k = String(j.key || '').trim();
-    if (k && !/^sk-ant-[A-Za-z0-9_-]{20,300}$/.test(k)) return json(res, { error: 'That isn’t an Anthropic API key. It starts with sk-ant-.' }, 400);
+    if (k && !vision.KEY_RE.test(k)) return json(res, { error: 'That isn’t an Anthropic API key. It starts with sk-ant-.' }, 400);
+    if (k) { const chk = await vision.check(k); if (chk.error) return json(res, chk, 400); }
     if (k) siteSettings.set('anthropic_key', seal(k)); if (j.clear) siteSettings.set('anthropic_key', ''); console.log(`ai: key ${j.clear ? 'cleared' : 'updated'} by ${user.roblox_name || user.name}`); return json(res, vision.status()); }
   // Stripe keys for selling Premium, sealed like the ER:LC key
   // Oversite's own Discord: which server and role Premium people get (the Supporter role), and the invite link shown to them

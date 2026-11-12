@@ -5,16 +5,24 @@
 // for what they saw. It is served to the CAD (and the Oversite AI Dispatch bot, through the bot API) as if ER:LC had sent it,
 // so the map, units, MDTs and dispatch all work as on a private server. Frames are never stored.
 // Premium servers with the Oversite AI Dispatch bot. With no ER:LC key (a public server) the sharers' picture is the whole server; with
-// one, ER:LC's players stay and anyone only the sharers have seen is added. The Anthropic key is set by a site admin on /admin.
+// one, ER:LC's players stay and anyone only the sharers have seen is added. Oversite pays for it: one Anthropic key for the whole site,
+// set by a site admin on /admin (or ANTHROPIC_API_KEY in Railway). Servers never bring or see a key.
 import Anthropic from '@anthropic-ai/sdk';
 import { siteSettings, unseal } from './db.mjs';
 import { POSTALS } from './postals.mjs';
 
 const MODEL = 'claude-haiku-5-5', EVERY = 5000, MIN_GAP = 4000, MAX_SHARERS = 10, SELF_TTL = 30000, SEEN_TTL = 60000, GAME = 5355 / 2000;
 export const key = () => (process.env.ANTHROPIC_API_KEY || unseal(siteSettings.get('anthropic_key')) || '').trim();
+export const KEY_RE = /^sk-ant-[A-Za-z0-9_-]{20,300}$/;
 let client = null, clientKey = '';
 const api = () => { const k = key(); if (!k) return null; if (!client || clientKey !== k) { client = new Anthropic({ apiKey: k, maxRetries: 1, timeout: 20000 }); clientKey = k; } return client; };
 export const status = () => ({ ready: !!key(), fromEnv: !!(process.env.ANTHROPIC_API_KEY || '').trim(), model: MODEL });
+// a key a site admin pasted on /admin: checked with Anthropic before it's kept (it can see the model the AI view uses)
+export const check = async k => { try { await new Anthropic({ apiKey: k, maxRetries: 0, timeout: 15000 }).models.retrieve(MODEL); return { ok: true }; }
+  catch (e) { if (e instanceof Anthropic.AuthenticationError) return { error: 'Anthropic didn’t accept that key. Check you copied all of it.' };
+    if (e instanceof Anthropic.PermissionDeniedError || e instanceof Anthropic.NotFoundError) return { error: `That key can’t use ${MODEL}, the model the AI view reads frames with.` };
+    if (e instanceof Anthropic.RateLimitError) return { ok: true };
+    return { error: 'Anthropic didn’t answer. Try again in a minute.' }; } };
 export const EVERY_MS = EVERY;
 
 const T = (v, n) => String(v ?? '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
@@ -33,10 +41,10 @@ const TOOL = { name: 'report_view', description: 'Report what this ER:LC frame s
     events: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['kind', 'detail'], properties: { kind: { type: 'string', enum: ['crash', 'fire', 'shots', 'injured', 'pursuit', 'robbery', 'other'] }, detail: { type: 'string' } } } } } } };
 
 // one frame: what it shows, or { error }
-const read = async (jpegB64) => { const cl = api(); if (!cl) return { error: 'The AI view isn’t set up on Oversite yet.' };
+const read = async (jpegB64) => { const cl = api(); if (!cl) return { error: 'The AI view isn’t switched on at Oversite yet.' };
   let r; try { r = await cl.messages.create({ model: MODEL, max_tokens: 1024, thinking: { type: 'disabled' }, output_config: { effort: 'low' }, system: SYSTEM, tools: [TOOL], tool_choice: { type: 'tool', name: TOOL.name },
     messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: jpegB64 } }, { type: 'text', text: 'Report what this frame shows.' }] }] }); }
-  catch (e) { if (e instanceof Anthropic.RateLimitError) return { error: 'The AI is busy. It will catch up in a moment.', busy: true }; if (e instanceof Anthropic.AuthenticationError) return { error: 'The AI view isn’t set up on Oversite yet.' };
+  catch (e) { if (e instanceof Anthropic.RateLimitError) return { error: 'The AI is busy. It will catch up in a moment.', busy: true }; if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) { console.log('vision: Anthropic refused the site key:', e.status); return { error: 'The AI view is down at Oversite right now. It will be back soon.' }; }
     if (e instanceof Anthropic.APIError) return { error: `The AI didn’t answer (${e.status || 'network'}).`, busy: true }; return { error: 'The AI didn’t answer.', busy: true }; }
   if (r.stop_reason === 'refusal') return { error: 'The AI couldn’t read that frame.' };
   const b = r.content.find(x => x.type === 'tool_use' && x.name === TOOL.name); if (!b || !b.input || typeof b.input !== 'object') return { error: 'The AI couldn’t read that frame.' };

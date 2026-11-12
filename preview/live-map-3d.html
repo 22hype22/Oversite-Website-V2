@@ -2681,7 +2681,7 @@ if (window.OVERSITE && window.OVERSITE.api) { const pullUnits = () => fetch(wind
   const mayOpen = k => { const mine = myCad(), dv = window.divById(k), md = window.divById(mine); return mine === k || (!!dv && !tiedTeam(dv.id) && myDept() === dv.kind)
     || (!!md && !tiedTeam(mine) && (k === md.kind || k === window.OVERSITE?.teamDiv?.[window.ME?.team])); };
   const canOpen = (dept, div) => { const k = div || dept; if (!gated() || window.OVERSITE?.locks?.[k]) return true;
-    if (!myDept()) { toastMsg(`You're not on the ${cadName(k)} team in game right now. Join it in ER:LC and its MDT opens here.`); return false; }
+    if (!myDept()) { toastMsg(window.OVERSITE?.aiView?.every ? `The CAD can't see your team yet. Share your Roblox screen (the screen button at the top) and pick ${cadName(k)}, and its MDT opens here.` : `You're not on the ${cadName(k)} team in game right now. Join it in ER:LC and its MDT opens here.`); return false; }
     if (!mayOpen(k)) { toastMsg(`You're in ${cadName(myCad())}. The ${cadName(k)} MDT is only for its members.`); return false; } return true; };
   const setView = (v, dept, div) => { if (v === 'mdt' && OFF['dept_' + dept]) v = 'dispatch';   // a department the server switched off has no MDT
     if (window.__civOnly && (v === 'dispatch' || v === 'mdt')) v = 'civ';   // players on the civilian team stay on their own tab

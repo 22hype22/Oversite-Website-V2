@@ -130,7 +130,7 @@ export class Feed {
     return this.snapP || (this.snapP = this.snapshotNow().then(s => { if (s.status !== 200) this.failSnap = { ...s, t: Date.now() }; return s; }).finally(() => { this.snapP = null; })); }   // snapP, not inflight: that one counts the live feed's own requests
   // a picture built without ER:LC (the AI view): goes out like an ER:LC answer, through the same duty, extras and observers
   pushSynth(body) { const t = Date.now(); let out = body; try { out = this.withDuty(out, t) || out; } catch (e) {} if (this.withExtra) { try { out = this.withExtra(out) || out; } catch (e) {} }
-    this.snap = { t, taken: t, status: 200, body: out, headers: {} }; this.bcast('server', out, t); try { this.onSnap?.(out); } catch (e) {} return this.snap; }
+    this.snap = { t, taken: t, status: 200, body: out, headers: {}, synth: true }; this.bcast('server', out, t); try { this.onSnap?.(out); } catch (e) {} return this.snap; }
   async snapshotNow() { if (!this.key && this.synth) { const sb = this.synth(); if (sb) return this.pushSynth(sb); }
     if (!this.key) return { status: 401, body: NOKEY, headers: {} };
     if (!appKey() && !this.soloOk()) return { status: 403, body: SOLO_WAIT, headers: {} };
