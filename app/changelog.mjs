@@ -1,6 +1,8 @@
 // What's new in Oversite, newest first: shown under Updates on every server's Status & Updates tab.
 // tag: new (a feature), change (works differently), fix (a bug fixed), notice (heads-up)
 export const CHANGELOG = [
+  { v: '4.8', date: '2026-11-12', tag: 'new', title: 'AI view is free for every server',
+    body: 'Sharing your Roblox screen with the AI dispatcher no longer needs Premium or the AI Dispatch bot. Every server has it, and Oversite covers the cost.', items: ['Press the monitor button at the top of the CAD, pick your team and callsign, and share your Roblox window', 'The AI puts you and the players near you on the map and turns crashes, fires and shots it sees into calls', 'Works on public servers with no ER:LC key, and adds players ER:LC misses on private ones', 'Owners can still switch it off in Settings → Features'] },
   { v: '4.7.1', date: '2026-11-12', tag: 'fix', title: 'AI view and the AI Dispatch bot work together properly',
     body: 'Checked the AI view end to end with the Oversite AI Dispatch bot and fixed what didn’t line up.', items: ['The bot no longer sees the same Civilian 911 call twice', 'Players the screens haven’t caught yet can still use department radio on public servers', 'The MDT tells you to share your screen and pick a team when it can’t find you on an AI view server', 'Oversite pays for the AI: servers don’t need their own key'] },
   { v: '4.7', date: '2026-11-11', tag: 'new', title: 'AI view: the CAD on public servers',

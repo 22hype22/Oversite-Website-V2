@@ -132,10 +132,9 @@ const feedFor = c => { let f = feeds.get(c.id); if (!f) { f = new Feed(c.id, () 
 const calOf = c => ({ auto: {}, manual: c.settings.cal || [] });
 // which side someone is playing right now, from the server's latest ER:LC snapshot: 'pd' | 'fd' | 'dot' | 'civ', null when they
 // aren't in the server, undefined when there's no fresh data (then nothing is blocked, so an ER:LC outage never locks anyone out)
-// AI view (app/vision.mjs): Premium with the Oversite AI Dispatch bot, once Oversite's AI key is set; an ER:LC key isn't needed (public
+// AI view (app/vision.mjs): every server, free, once Oversite's AI key is set (Oversite pays), unless switched off in Features; an ER:LC key isn't needed (public
 // servers have none) and doesn't get in the way. aiViewMissing says what's still needed, for admins whose CAD shows the button greyed out.
-const aiViewMissing = c => [!vision.status().ready && 'Oversite to switch on its AI (not something your server sets up)', !premium.isPremium(c) && 'Premium for this server',
-  !bots.hasOversite(c, 'dispatch') && 'the Oversite AI Dispatch bot, linked in Settings → Bots', !features.on(c, 'aiview') && 'AI view switched on in Settings → Features'].filter(Boolean);
+const aiViewMissing = c => [!vision.status().ready && 'Oversite to switch on its AI (not something your server sets up)', !features.on(c, 'aiview') && 'AI view switched on in Settings → Features'].filter(Boolean);
 const aiView = c => !!c && !aiViewMissing(c).length;
 const liveSide = (c, user) => { const sn = feeds.get(c.id)?.snap; if (!sn || Date.now() - sn.t > 180000 || !user.roblox_id) return undefined;
   let j; try { j = JSON.parse(sn.body); } catch (e) { return undefined; }

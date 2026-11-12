@@ -141,7 +141,7 @@ export const GROUPS = [
     F('st_announce', 'Announcements', 'Announcing a message to everyone in game.', { parent: 'staff', hide: ['#stAnnounce'] })] },
 
   { title: 'Server', items: [
-    F('aiview', 'AI view (public servers)', 'Players share their Roblox screen from the CAD and the AI reads where they are, who is near them and what is happening, for the map, the units and the AI Dispatch bot. Works on public servers, no ER:LC key needed. Needs Premium and the Oversite AI Dispatch bot.', { tag: 'Premium', hide: ['#aiViewBtn'] }),
+    F('aiview', 'AI view (public servers)', 'Players share their Roblox screen from the CAD and the AI reads where they are, who is near them and what is happening, for the map, the units and the AI Dispatch bot. Works on public servers, no ER:LC key needed. Free for every server.', { hide: ['#aiViewBtn'] }),
     F('voice', 'Proximity voice', 'Players hear each other by distance in game. Range and muffling are under Premium.', { tag: 'Premium', hide: ['#voiceBtn'] }),
     F('bounds', 'Boundaries', 'Warn, then respawn, players who leave the areas you draw in the CAD, under Server Staff, Mapping.'),
     F('safezones', 'Safe zones', 'Areas with no crime, drawn in the CAD under Server Staff, Mapping: players are told when they walk in, and killers in one are warned.'),

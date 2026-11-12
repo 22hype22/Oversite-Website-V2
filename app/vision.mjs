@@ -4,7 +4,7 @@
 // a fire, shots). From that the server keeps its own picture of the server: where each sharer is, who they're near, and calls
 // for what they saw. It is served to the CAD (and the Oversite AI Dispatch bot, through the bot API) as if ER:LC had sent it,
 // so the map, units, MDTs and dispatch all work as on a private server. Frames are never stored.
-// Premium servers with the Oversite AI Dispatch bot. With no ER:LC key (a public server) the sharers' picture is the whole server; with
+// Every server, free. With no ER:LC key (a public server) the sharers' picture is the whole server; with
 // one, ER:LC's players stay and anyone only the sharers have seen is added. Oversite pays for it: one Anthropic key for the whole site,
 // set by a site admin on /admin (or ANTHROPIC_API_KEY in Railway). Servers never bring or see a key.
 import Anthropic from '@anthropic-ai/sdk';
