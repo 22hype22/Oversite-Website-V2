@@ -837,7 +837,7 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
     if (!where || !text) return bad('Send a location and details, like { "department": "pd", "location": "Postal 214", "details": "Shots fired" }.');
     const id = civ.autoCall(c, dept, where, `${text}`).lastInsertRowid; return ok({ ok: true, key: `CIV${id}@${Math.floor(Date.now() / 1000)}` }); }
   if (rest === 'calls/clear' && M === 'POST') { if (need('calls') || off('clearcall')) return; const r = clearCall(c, String(J.key || ''), by); return r.error ? bad(r.error) : ok(r); }
-  if (rest === 'units/status' && M === 'POST') { if (need('units') || off('unitstatus')) return; const r = setUnitStatus(c, J.unit, String(J.status || ''), by); return r.error ? bad(r.error + ` Codes: ${police.STATUS_CODES.join(', ')}.`) : ok(r); }
+  if (rest === 'units/status' && M === 'POST') { if (need('units') || off('unitstatus')) return; const r = setUnitStatus(c, await boardUnit(c, J.unit, J.roblox_name), String(J.status || ''), by); return r.error ? bad(r.error + ` Codes: ${police.STATUS_CODES.join(', ')}.`) : ok(r); }
   if (rest === 'records' && M === 'POST') { if (need('records') || off('dept_pd')) return; const k = features.RECORD[String(J.kind || '')]; if (k && off(k)) return;
     const unknown = (Array.isArray(J.charges) ? J.charges : []).find(x => !(x && typeof x === 'object' && x.custom) && !police.chargeFor(x, police.penalOf(c))); if (unknown) return bad(`Unknown charge: ${JSON.stringify(unknown).slice(0, 60)}. Use a code like "T-101" from GET penal, or { "custom": "…", "fine": 0, "jail": 0 } for one that isn't listed.`);
     if (J.discord_id && !J.subject) { const u = person(J); if (u?.roblox_name) { J.subject = u.roblox_name; J.subject_rid = u.roblox_id; } }
@@ -1384,6 +1384,13 @@ const clearCall = (c, k, by) => { if (!/^[\w .:@#-]{1,120}$/.test(k)) return { e
     const s = communities.byId(c.id).settings, now = Date.now(); s.cleared = Object.fromEntries(Object.entries(clearedCalls(c, s)).filter(([, t]) => now - t < 12 * 3600000).slice(-300)); s.cleared[k] = now;
     if (s.callstate) delete s.callstate[k]; try { callhist.cleared(c.id, k, by); } catch (e) {}
     communities.saveSettings(c.id, s); c.settings.cleared = s.cleared; feedFor(c).bcast('callclear', JSON.stringify({ key: k, by })); bots.emit(c, 'call.cleared', { key: k, by }); return { ok: true }; };
+// the unit a bot means, as the board knows it: a callsign said on the radio ("D 319") is the one a player has in game or typed in the
+// CAD ("D-319"), whatever its case, spaces or dashes; with none like it, the player by their Roblox name; else as sent
+const boardUnit = async (c, unit, name) => { const u = String(unit || '').trim(), N = x => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!u && !name) return u; let v = null; try { v = await liveView(c); } catch (e) { return u; }
+  const P = v?.players || [], want = N(u), byCs = want && P.find(p => p.Callsign && N(p.Callsign) === want); if (byCs) return byCs.Callsign;
+  const nm = N(name), byName = nm && P.find(p => N(String(p.Player || '').split(':')[0]) === nm); if (byName) return byName.Callsign || String(byName.Player).split(':')[0];
+  return u; };
 const setUnitStatus = (c, unit, st, by) => { const r = police.setStatus(c.id, unit, st, by); if (r.ok) { feedFor(c).bcast('unitstatus', JSON.stringify({ unit: r.unit, st: r.st })); bots.emit(c, 'unit.status', { unit: r.unit, status: r.st, label: r.label, by }); } return r; };
 bots.gate(c => features.on(c, 'bots')); bots.limit((c, i) => i < bots.max(premium.isPremium(c)));
 career.hooks.shift = (cid, kind, d) => { const c = communities.byId(cid); if (c) bots.emit(c, kind, d); };
