@@ -10,6 +10,7 @@ const ROUTES = [
   ['GET', 'server', 'read', 'Name, whether ER:LC is answering, players, max players, open calls, join code and the CAD link.'],
   ['GET', 'players', 'read', 'Everyone in game: name, Roblox ID, team, department, callsign, postal and street. With <b>Match Discord and Roblox</b>, each also has <code>discord_id</code> when they have an Oversite account.'],
   ['GET', 'calls', 'read', 'Open 911 calls with their <code>key</code>, who called, where, and the units on them.'],
+  ['GET', 'game', 'read', 'The server as ER:LC answers <code>/v2/server?Players=true&amp;Vehicles=true&amp;EmergencyCalls=true</code>: players with where they are, vehicles and calls, the CAD&rsquo;s own included. On a public server with no ER:LC key this is what the AI view sees.'],
   ['GET', 'units', 'read', 'Units on duty by department, with callsign and 10-code status.'],
   ['GET', 'shifts?days=7&roblox_id=', 'read', 'Time on duty, counted from the in-game team (1 to 30 days; one person with <code>roblox_id</code>).'],
   ['GET', 'duty-shifts?since=', 'read', 'Shifts people started and ended on their department’s MDT, changed since <code>since</code> (ms; send back the <code>now</code> it answered). Deleted ones come with <code>deleted: true</code>. An Oversite bot linked for one department gets only that one.'],

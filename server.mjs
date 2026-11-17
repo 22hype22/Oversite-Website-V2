@@ -777,6 +777,11 @@ const botApi = async (req, res, rest) => { const M = req.method, key = String(re
   const who = u => u && { discord_id: u.discord_id || null, roblox_id: u.roblox_id ? String(u.roblox_id) : null, roblox_name: u.roblox_name || null, member: members.role(c.id, u.id) || null };
   if (rest === 'me' && M === 'GET') return ok({ bot: { name: bot.name, permissions: bot.scopes }, server: { name: c.name, slug: c.slug, cad: `${PUBLIC()}/${c.slug}` } });
   // reading the server
+  // the game as ER:LC answers /v2/server?Players=true&Vehicles=true&EmergencyCalls=true: players with their place, vehicles and calls,
+  // the CAD's own (Civilian tab, AI view) included. For a bot with no ER:LC key of its own, like one on a public server the AI view reads
+  if (rest === 'game' && M === 'GET') { if (need('read')) return; const f = feedFor(c), s = await f.snapshot(); let j = null;
+    if (s.status === 200) try { j = JSON.parse(f.withExtra ? f.withExtra(s.body) : s.body); } catch (e) {}
+    return ok({ live: s.status === 200 && !!j, ai_view: !!s.synth, game: j ? { Players: j.Players || [], Vehicles: j.Vehicles || [], EmergencyCalls: j.EmergencyCalls || [], CurrentPlayers: j.CurrentPlayers ?? (j.Players || []).length, MaxPlayers: j.MaxPlayers ?? null, Name: j.Name || c.name } : null }); }
   if (['server', 'players', 'calls', 'units', 'status', 'shifts'].includes(rest) && M === 'GET') { if (need('read')) return;
     if (rest === 'status') return ok({ units: police.statuses(c.id) });
     if (rest === 'shifts') { const days = Math.max(1, Math.min(30, +qs.get('days') || 7)), rid = String(qs.get('roblox_id') || '').replace(/\D/g, '');
